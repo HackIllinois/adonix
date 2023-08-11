@@ -1,0 +1,39 @@
+// GENERATED FROM https://gist.github.com/mtimbs/0eaf27df08cff8f4ca4303de60bf617b
+{
+    "compilerOptions": {
+        // project options
+        // "allowImportingTsExtensions": true,
+        "noEmit": true,
+        "lib": [
+            "ESNext",
+        ],
+        "outDir": "lib",
+        "removeComments": true,
+        "target": "ES6",
+        "module": "ES6",
+        // Module resolution
+        "baseUrl": "./",
+        "esModuleInterop": true,
+        "moduleResolution": "node",
+        // Source Map
+        "sourceMap": true,
+        "sourceRoot": "/",
+        // Strict Checks
+        "alwaysStrict": true,
+        "allowUnreachableCode": false,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        // Linter Checks
+        "noImplicitReturns": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    },
+    "include": [
+        "./**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/"
+    ]
+}
