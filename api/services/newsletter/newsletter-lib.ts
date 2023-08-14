@@ -3,7 +3,7 @@ import Constants from "../../constants.js";
 
 import { Collection } from "mongodb";
 import DatabaseHelper from "../../database.js";
-import { SubscribeRequest } from "./newsletter-formats.js";
+import { SubscribeRequest } from "./newsletter-requests.js";
 
 //  TODO: Add documentation
 export async function subscribeToNewsletter(request: Request, response: Response): Promise<void> {
