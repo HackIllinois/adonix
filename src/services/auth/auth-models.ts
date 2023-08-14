@@ -1,9 +1,7 @@
-import { Document, ObjectId, WithId } from "mongodb";
-
 import { Role } from "../../models.js";
 
 export interface ProfileData {
-	id: string,
+	id?: string,
 	name: string,
 	email: string,
 }
@@ -20,10 +18,7 @@ export enum Provider {
 	GOOGLE = "google",
 }
 
-// Newsletter document schema
-export interface RolesSchema extends WithId<Document> {
-	_id: ObjectId,
-	id: string,
-	provider: Provider,
-	roles: string[]
+export enum RoleOperation {
+	ADD = "add",
+	REMOVE = "remove",
 }

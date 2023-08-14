@@ -5,10 +5,12 @@ import express, { Request, Response, Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Profile as GoogleProfile, Strategy as GoogleStrategy } from "passport-google-oauth20";
 
+import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
-import { JwtPayload, ProfileData, Provider } from "./auth-models.js";
-import { generateJwtToken as generateJwtToken, getJwtPayload, verifyFunction } from "./auth-lib.js";
+import { JwtPayload, ProfileData, Provider, RoleOperation, RolesOperations } from "./auth-models.js";
+import { decodeJwtToken, generateJwtToken, getJwtPayload, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+import { ModifyRoleRequest } from "./auth-formats.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
@@ -35,28 +37,123 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 });
 
 
-authRouter.get("/:provider/", (req: Request, res: Response, next: NextFunction) => {
-	const provider: string = req.params.provider ?? "";
+authRouter.get("/github/", (req: Request, res: Response, next: NextFunction) => {
+	const provider: string = "github";
+	SelectAuthProvider(provider)(req, res, next);
+});
+
+authRouter.get("/google/", (req: Request, res: Response, next: NextFunction) => {
+	const provider: string = "google";
 	SelectAuthProvider(provider)(req, res, next);
 });
 
 
-authRouter.get("/:provider/callback/", (req: Request, res: Response, next: NextFunction) => {
-	const provider: string = req.params.provider ?? "";
+authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextFunction) => {
+	const provider: string = req.params.PROVIDER ?? "";
 	SelectAuthProvider(provider)(req, res, next);
-}, (req: Request, res: Response) => {
-	if (req.isAuthenticated()) {
-		const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
-		const data: ProfileData = user._json as ProfileData;
-		const payload: JwtPayload = getJwtPayload(user.provider, data);
-		const token: string = generateJwtToken(payload);
-		res.status(Constants.SUCCESS).send({ token: token });
-	} else {
+}, async (req: Request, res: Response) => {
+	// Throw unauthorized if request isn't authenticated
+	if (!req.isAuthenticated()) {
 		res.status(Constants.UNAUTHORIZED_REQUEST).send();
 	}
 
-	res.status(Constants.UNAUTHORIZED_REQUEST).send();
+	const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
+	const data: ProfileData = user._json as ProfileData;
+	data.id = data.id ?? user.id;
+	let payload: JwtPayload | undefined = undefined;
+	
+	await getJwtPayload(user.provider, data).then( (parsedPayload: JwtPayload) => {
+		payload = parsedPayload;
+	}).catch( (error: Error) => {
+		res.status(Constants.BAD_REQUEST).send(error);
+	});
+
+	const token: string = generateJwtToken(payload);
+	res.status(Constants.SUCCESS).send({ token: token });
+
 });
+
+
+authRouter.get("/roles/:USERID", async (req: Request, res: Response) => {
+	const targetUser: string | undefined = req.params.USERID;
+
+	if (!targetUser) {
+		res.redirect("/auth/roles/");
+		return;
+	}
+
+	try {
+		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+
+		if (payload.id == targetUser) {
+			res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
+		} else if (hasElevatedPerms(payload)) {
+			var roles: Role[] = [];
+			await getRoles(targetUser).then((targetRoles: Role[]) => {roles = targetRoles}).catch((error: Error) => {throw error});
+			console.log(roles);
+			res.status(Constants.SUCCESS).send({id: targetUser, roles: roles});
+		}
+		else {
+			res.status(Constants.FORBIDDEN).send("not authorized to perform this operation!");
+		}
+	} catch (error) {
+		res.status(Constants.FORBIDDEN).send(error);
+	}
+});
+
+
+authRouter.put("/roles/:OPERATION/", async (req: Request, res: Response) => {
+	const operation: string = req.params.OPERATION ?? "";
+
+	const op: RoleOperation | undefined = (<any>RoleOperation)[operation];
+
+	if (!op) {
+		res.status(Constants.BAD_REQUEST).send({error: "operation not specified!"});
+		return;
+	}
+
+	try {
+		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+
+		if (!hasElevatedPerms(payload)) {
+			res.status(Constants.FORBIDDEN).send({error: "not permitted to modify roles!"});
+		}
+
+		const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
+		const role: Role | undefined = (<any>Role)[data.role];
+		if (!role) {
+			res.status(Constants.BAD_REQUEST).send({error: "invalid role passed in!"});
+			return;
+		}
+
+		await updateRoles(data.id, role, op).catch((error) => {
+			console.log(error);
+			res.status(Constants.INTERNAL_ERROR).send({error: error});
+		});
+
+		await getRoles(data.id).then((roles: Role[]) => {
+			res.status(Constants.SUCCESS).send({id: data.id, roles: roles});
+		}).catch((error) => {
+			console.log(error);
+			res.status(Constants.INTERNAL_ERROR).send({error: error});
+		});
+
+	} catch (error) {
+		res.status(Constants.FORBIDDEN).send(error);
+	}
+})
+
+
+authRouter.get("/roles/", (req: Request, res: Response) => {
+	try {
+		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+		console.log(payload);
+		res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
+	} catch (error) {
+		res.status(Constants.FORBIDDEN).send({error: error});
+	}
+});
+
 
 
 export default authRouter;
