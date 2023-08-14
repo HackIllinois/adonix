@@ -8,7 +8,10 @@ abstract class Constants {
 	static readonly OLD_API:number = 418;
 	static readonly INTERNAL_ERROR:number = 500;
 
-	static readonly DOMAIN_URL: string = "https://www.hackillinois.org";
+	// URLs for various purposes
+	// static readonly OAUTH_CALLBACK:string = "https://hackillinois.org/auth/";
+	static readonly GITHUB_OAUTH_CALLBACK:string = "http://127.0.0.1:3000/auth/github/callback/";
+	static readonly GOOGLE_OAUTH_CALLBACK:string = "http://127.0.0.1:3000/auth/google/callback/";
 }
 
 export default Constants;
