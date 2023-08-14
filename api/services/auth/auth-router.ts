@@ -1,27 +1,27 @@
 import "dotenv";
-import express, { Request, Response, Router } from "express";
 import passport from "passport";
+import { NextFunction } from "express-serve-static-core";
+import express, { Request, Response, Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Profile as GoogleProfile, Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 import Constants from "../../constants.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
-import { generateJwtToken as generateJwtToken, getJwtPayload, verifyFunction } from "./auth-lib.js";
 import { JwtPayload, ProfileData, Provider } from "./auth-models.js";
-import { NextFunction } from "express-serve-static-core";
+import { generateJwtToken as generateJwtToken, getJwtPayload, verifyFunction } from "./auth-lib.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
 	clientID: process.env.GITHUB_OAUTH_ID ?? "",
 	clientSecret: process.env.GITHUB_OAUTH_SECRET ?? "",
-	callbackURL: Constants.OAUTH_CALLBACK,
+	callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
 }, verifyFunction));
 
 
 passport.use(Provider.GOOGLE, new GoogleStrategy({
 	clientID: process.env.GOOGLE_OAUTH_ID ?? "",
 	clientSecret: process.env.GOOGLE_OAUTH_SECRET ?? "",
-	callbackURL: Constants.OAUTH_CALLBACK,
+	callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
 }, verifyFunction));
 
 

@@ -54,13 +54,13 @@ export function generateJwtToken(payload: JwtPayload): string {
 	}
 
 	const options: SignOptions = {
-		// algorithm: "ES256",
 		expiresIn: "7d",
 	};
 
 	const token: string = jsonwebtoken.sign(payload, secret, options);
 	return token;
 }
+
 
 export function initializeRoles(provider: Provider): Role[] {
 	const roles: Role[] = [];
@@ -74,13 +74,11 @@ export function initializeRoles(provider: Provider): Role[] {
 
 export async function getRoles(id: string, provider: Provider): Promise<Role[]> {
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	console.log("in get roles! %s", id);
 	let roles: Role[] = [];
 
 	try {
 		const userRoles: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
 		if (userRoles == null) {
-			console.log("user not found! inserting");
 			roles = initializeRoles(provider);
 			const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
 			const insertResult: InsertOneResult = await collection.insertOne(newUser);
