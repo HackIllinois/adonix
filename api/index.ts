@@ -4,9 +4,9 @@ import express, { Application, Request, Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import Constants from "./constants.js";
-import authRouter from "./services/auth/auth-router.js";
-import newsletterRouter from "./services/newsletter/newsletter-router.js";
+import Constants from "../src/constants.js";
+import authRouter from "../src/services/auth/auth-router.js";
+import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 
 const app: Application = express();
 
