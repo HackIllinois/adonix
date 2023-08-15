@@ -1,5 +1,5 @@
 import "dotenv";
-import { Collection, ObjectId, UpdateFilter } from "mongodb";
+import { Collection, ObjectId} from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -134,18 +134,15 @@ export async function getRoles(id: string): Promise<Role[]> {
 
 
 export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<void> {
-	var op: string = "";
+	var filter: Partial<RolesSchema> | undefined;
 
-	if (operation == RoleOperation.ADD) {
-		op = "$addToSet";
-	} 
-
-	if (operation == RoleOperation.REMOVE) {
-		op = "$pull";
+	switch (operation) {
+		case RoleOperation.ADD: filter = {"$addToSet": {"roles": role}}; break;
+		case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break
+		default: return Promise.reject("no valid operation passed in");
 	}
 
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	const filter: Partial<RolesSchema> = {op: {"roles": role}};
 	await collection.updateOne({id: userId}, filter);
 	return Promise.resolve();
 }

@@ -8,7 +8,7 @@ import { Profile as GoogleProfile, Strategy as GoogleStrategy } from "passport-g
 import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
-import { JwtPayload, ProfileData, Provider, RoleOperation, RolesOperations } from "./auth-models.js";
+import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
 import { decodeJwtToken, generateJwtToken, getJwtPayload, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 import { ModifyRoleRequest } from "./auth-formats.js";
 
@@ -144,6 +144,26 @@ authRouter.put("/roles/:OPERATION/", async (req: Request, res: Response) => {
 })
 
 
+authRouter.get("/list/roles/", (req: Request, res: Response) => {
+	try {
+		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+
+		if (!hasElevatedPerms(payload)) {
+			res.status(Constants.FORBIDDEN).send({error: "not authorized to perform this operation!"});
+			return;
+		}
+
+		const roles: string[] = Object.keys(Role).filter((item) => {
+			return isNaN(Number(item));
+		});
+
+		res.status(Constants.SUCCESS).send({roles: roles});
+	} catch (error) {
+		res.status(Constants.FORBIDDEN).send({error: error});
+	}
+}) 
+
+
 authRouter.get("/roles/", (req: Request, res: Response) => {
 	try {
 		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
@@ -154,6 +174,24 @@ authRouter.get("/roles/", (req: Request, res: Response) => {
 	}
 });
 
+
+authRouter.get("/token/refresh", async (req: Request, res: Response) => {
+	try {
+		const oldPayload: JwtPayload = decodeJwtToken(req.headers.authorization);
+		const data: ProfileData = {
+			id: oldPayload.id,
+			email: oldPayload.email
+		}
+		var newPayload: JwtPayload | undefined;
+		await getJwtPayload(oldPayload.provider, data).then((payload: JwtPayload) => {newPayload = payload});
+
+		const newToken: string = generateJwtToken(newPayload);
+		res.status(Constants.SUCCESS).send({token: newToken});
+
+	} catch (error) {
+		res.status(Constants.FORBIDDEN).send({error: error})
+	}
+});
 
 
 export default authRouter;
