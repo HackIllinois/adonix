@@ -23,6 +23,7 @@ passport.use(Provider.GITHUB, new GitHubStrategy({
 passport.use(Provider.GOOGLE, new GoogleStrategy({
 	clientID: process.env.GOOGLE_OAUTH_ID ?? "",
 	clientSecret: process.env.GOOGLE_OAUTH_SECRET ?? "",
+	callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
 }, verifyFunction));
 
 
