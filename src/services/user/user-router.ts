@@ -71,4 +71,8 @@ userRouter.post("/", async (req: Request, res: Response) => {
 	});
 });
 
+
+// TODO: ADD IN FILTER + QR FUNCTIONS
+
+
 export default userRouter;
