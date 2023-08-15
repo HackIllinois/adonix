@@ -16,14 +16,12 @@ import { ModifyRoleRequest } from "./auth-formats.js";
 passport.use(Provider.GITHUB, new GitHubStrategy({
 	clientID: process.env.GITHUB_OAUTH_ID ?? "",
 	clientSecret: process.env.GITHUB_OAUTH_SECRET ?? "",
-	callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
 }, verifyFunction));
 
 
 passport.use(Provider.GOOGLE, new GoogleStrategy({
 	clientID: process.env.GOOGLE_OAUTH_ID ?? "",
 	clientSecret: process.env.GOOGLE_OAUTH_SECRET ?? "",
-	callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
 }, verifyFunction));
 
 
