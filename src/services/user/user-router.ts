@@ -14,9 +14,9 @@ const userRouter: Router = Router();
 userRouter.use(verifyJwt);
 
 
-userRouter.get("/qr/", async (_: Request, res: Response) => {
-	// Return the same payload, but with 
-	const payload: JwtPayload = res.locals.payload;
+userRouter.get("/qr/", (_: Request, res: Response) => {
+	// Return the same payload, but with
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const token: string = generateJwtToken(payload, "20s");
 	const uri: string = `hackillinois://user?userToken=${token}`;
 	res.status(Constants.SUCCESS).send({id: payload.id, qrInfo: uri});
@@ -32,7 +32,7 @@ userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 		return;
 	}
 
-	const payload: JwtPayload = res.locals.payload;
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Check if target user -> if so, return same payload but modified expiry
 	// Check if elevated -> if so, generate a new payload and return that one
@@ -41,7 +41,7 @@ userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 		res.status(Constants.SUCCESS).send({token: token});
 	} else if (hasElevatedPerms(payload)) {
 		// Get a new payload, and return the updated token
-		getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
+		await getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
 			const token: string = generateJwtToken(newPayload, "20s");
 			const uri: string = `hackillinois://user?userToken=${token}`;
 			res.status(Constants.SUCCESS).send({id: targetUser, qrInfo: uri});
@@ -51,7 +51,7 @@ userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 	} else {
 		res.status(Constants.FORBIDDEN).send("Not authorized to perform this request!");
 	}
-})
+});
 
 
 userRouter.get("/:USERID", async (req: Request, res: Response) => {

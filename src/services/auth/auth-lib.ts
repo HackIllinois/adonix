@@ -70,9 +70,9 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 }
 
 
-export async function getJwtPayloadFromDB(targetUser: string) {
-	var authInfo: RolesSchema | undefined;
-	var userInfo: UserSchema | undefined;
+export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
+	let authInfo: RolesSchema | undefined;
+	let userInfo: UserSchema | undefined;
 
 	// Fill in auth info, used for provider and roles
 	await getAuthInfo(targetUser).then((info: RolesSchema) => {
@@ -99,13 +99,13 @@ export async function getJwtPayloadFromDB(targetUser: string) {
 		roles: authInfo.roles as Role[],
 		email: userInfo.email,
 		provider: authInfo.provider,
-	}
+	};
 
 	return newPayload;
 }
 
 export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
-if (!payload) {
+	if (!payload) {
 		throw new Error("No JWT token passed in!");
 	}
 
