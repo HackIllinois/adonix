@@ -1,16 +1,58 @@
 import { Router, Request, Response } from "express";
 
 import Constants from "../../constants.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { UserSchema } from "./user-schemas.js";
-import { getUser, updateUser } from "./user-lib.js";
 import { verifyJwt } from "../../middleware/verify-jwt.js";
-import { UserFormat } from "./user-formats.js";
+import { Role } from "../../models.js";
 
+import { JwtPayload } from "../auth/auth-models.js";
+import { RolesSchema } from "../auth/auth-schemas.js";
+import { generateJwtToken, getAuthInfo, getJwtPayloadFromDB, hasElevatedPerms } from "../auth/auth-lib.js";
+
+import { UserSchema } from "./user-schemas.js";
+import { UserFormat } from "./user-formats.js";
+import { getUser, updateUser } from "./user-lib.js";
 
 const userRouter: Router = Router();
 userRouter.use(verifyJwt);
+
+
+userRouter.get("/qr/", async (_: Request, res: Response) => {
+	// Return the same payload, but with 
+	const payload: JwtPayload = res.locals.payload;
+	const token: string = generateJwtToken(payload, "20s");
+	res.status(Constants.SUCCESS).send({token: token});
+})
+
+
+// TODO: ADD IN FILTER + QR FUNCTIONS
+userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
+	const targetUser: string | undefined = req.query.USERID as string;
+
+	// If target user -> redirect to base function
+	if (!targetUser) {
+		res.redirect("/user/qr/");
+		return;
+	}
+
+	const payload: JwtPayload = res.locals.payload;
+
+	// Check if target user -> if so, return same payload but modified expiry
+	// Check if elevated -> if so, generate a new payload and return that one
+	if (payload.id == targetUser) {
+		const token: string = generateJwtToken(payload, "20s");
+		res.status(Constants.SUCCESS).send({token: token});
+	} else if (hasElevatedPerms(payload)) {
+		// Get a new payload, and return the updated token
+		getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
+			const token: string = generateJwtToken(newPayload, "20s");
+			res.status(Constants.SUCCESS).send({token: token});
+		}).catch( (error: string) => {
+			res.status(Constants.INTERNAL_ERROR).send(error);
+		});
+	} else {
+		res.status(Constants.FORBIDDEN).send("Not authorized to perform this request!");
+	}
+})
 
 
 userRouter.get("/:USERID", async (req: Request, res: Response) => {
@@ -31,7 +73,6 @@ userRouter.get("/:USERID", async (req: Request, res: Response) => {
 		}).catch((error: string) => {
 			res.status(Constants.INTERNAL_ERROR).send(error);
 		});
-		
 	} else {
 		res.status(Constants.FORBIDDEN).send({error: "no valid auth provided!"});
 	}
@@ -72,7 +113,6 @@ userRouter.post("/", async (req: Request, res: Response) => {
 });
 
 
-// TODO: ADD IN FILTER + QR FUNCTIONS
 
 
 export default userRouter;

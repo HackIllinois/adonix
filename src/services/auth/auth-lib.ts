@@ -7,8 +7,13 @@ import passport, { AuthenticateOptions, Profile } from "passport";
 import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import DatabaseHelper from "../../database.js";
+
+
 import { RolesSchema } from "./auth-schemas.js";
 import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+
+import { UserSchema } from "../user/user-schemas.js";
+import { getUser } from "../user/user-lib.js";
 
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
@@ -28,7 +33,7 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
 };
 
 
-export async function getJwtPayload(provider: string, data: ProfileData): Promise<JwtPayload> {
+export async function getJwtPayloadFromProfile(provider: string, data: ProfileData): Promise<JwtPayload> {
 	const userId: string = provider + data.id;
 	const email: string = data.email;
 
@@ -64,8 +69,42 @@ export async function getJwtPayload(provider: string, data: ProfileData): Promis
 }
 
 
-export function generateJwtToken(payload?: JwtPayload): string {
-	if (!payload) {
+export async function getJwtPayloadFromDB(targetUser: string) {
+	var authInfo: RolesSchema | undefined;
+	var userInfo: UserSchema | undefined;
+
+	// Fill in auth info, used for provider and roles
+	await getAuthInfo(targetUser).then((info: RolesSchema) => {
+		authInfo = info;
+	}).catch((error: string) => {
+		console.log(error);
+	});
+
+	// Fill in user info, used for email
+	await getUser(targetUser).then((info: UserSchema) => {
+		userInfo = info;
+	}).catch((error: string) => {
+		console.log(error);
+	});
+
+	// If either one does not exist, the info doesn't exist in the database. Throw error
+	if (!authInfo || !userInfo) {
+		return Promise.reject("Unable to get info from database!");
+	}
+
+	// Create and return new payload
+	const newPayload: JwtPayload = {
+		id: targetUser,
+		roles: authInfo.roles as Role[],
+		email: userInfo.email,
+		provider: authInfo.provider,
+	}
+
+	return newPayload;
+}
+
+export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
+if (!payload) {
 		throw new Error("No JWT token passed in!");
 	}
 
@@ -75,9 +114,9 @@ export function generateJwtToken(payload?: JwtPayload): string {
 		throw new Error("No secret provided for signing!");
 	}
 
-	// Appends an expiry field to the JWT token
+	// // Appends an expiry field to the JWT token
 	const options: SignOptions = {
-		expiresIn: "7d",
+		expiresIn: expiration ?? "7d",
 	};
 
 	// Generate a token, and return it
@@ -128,22 +167,33 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 }
 
 
-export async function getRoles(id: string): Promise<Role[]> {
+export async function getAuthInfo(id: string): Promise<RolesSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	let roles: Role[] = [];
-	
+
 	try {
-		// Get the roles for the user from the collection
-		const userRoles: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
-		
-		// If roles are non-empty, modify the return list
-		if (userRoles != null) {
-			roles = userRoles.roles as Role[];
+		const info: RolesSchema | null = await collection.findOne({id: id}) as RolesSchema | null;
+
+		// Null check to ensure that we're not returning anything null
+		if (!info) {
+			return Promise.reject("User ID does not exist in the database!");
 		}
+
+		return info;
 	} catch {
-		return Promise.reject("unable to connect to database!");
+		return Promise.reject("Unable to get data from the database!");
 	}
-	return roles;
+}
+
+
+export async function getRoles(id: string): Promise<Role[]> {
+	// Call helper function to get auth info, and just return data from there
+	getAuthInfo(id).then((info: RolesSchema) => {
+		return info.roles as Role[];
+	}).catch((error: string) => {
+		return Promise.reject(error);
+	});
+
+	return Promise.reject("Unknown error!");
 }
 
 
