@@ -2,11 +2,9 @@ import { Router, Request, Response } from "express";
 
 import Constants from "../../constants.js";
 import { verifyJwt } from "../../middleware/verify-jwt.js";
-import { Role } from "../../models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { RolesSchema } from "../auth/auth-schemas.js";
-import { generateJwtToken, getAuthInfo, getJwtPayloadFromDB, hasElevatedPerms } from "../auth/auth-lib.js";
+import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms } from "../auth/auth-lib.js";
 
 import { UserSchema } from "./user-schemas.js";
 import { UserFormat } from "./user-formats.js";
@@ -20,11 +18,11 @@ userRouter.get("/qr/", async (_: Request, res: Response) => {
 	// Return the same payload, but with 
 	const payload: JwtPayload = res.locals.payload;
 	const token: string = generateJwtToken(payload, "20s");
-	res.status(Constants.SUCCESS).send({token: token});
-})
+	const uri: string = `hackillinois://user?userToken=${token}`;
+	res.status(Constants.SUCCESS).send({id: payload.id, qrInfo: uri});
+});
 
 
-// TODO: ADD IN FILTER + QR FUNCTIONS
 userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.query.USERID as string;
 
@@ -45,7 +43,8 @@ userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 		// Get a new payload, and return the updated token
 		getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
 			const token: string = generateJwtToken(newPayload, "20s");
-			res.status(Constants.SUCCESS).send({token: token});
+			const uri: string = `hackillinois://user?userToken=${token}`;
+			res.status(Constants.SUCCESS).send({id: targetUser, qrInfo: uri});
 		}).catch( (error: string) => {
 			res.status(Constants.INTERNAL_ERROR).send(error);
 		});

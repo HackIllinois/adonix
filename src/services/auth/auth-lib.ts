@@ -1,4 +1,5 @@
 import "dotenv";
+import ms from "ms";
 import { Collection, ObjectId} from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
@@ -115,9 +116,8 @@ if (!payload) {
 	}
 
 	// // Appends an expiry field to the JWT token
-	const options: SignOptions = {
-		expiresIn: expiration ?? "7d",
-	};
+	const options: SignOptions = { };
+	payload.exp = ms(expiration ?? "7d");
 
 	// Generate a token, and return it
 	const token: string = jsonwebtoken.sign(payload, secret, options);

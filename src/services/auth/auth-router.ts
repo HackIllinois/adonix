@@ -9,7 +9,7 @@ import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
 import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
-import { decodeJwtToken, generateJwtToken, getJwtPayload, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+import { decodeJwtToken, generateJwtToken, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 import { ModifyRoleRequest } from "./auth-formats.js";
 
 
@@ -59,7 +59,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 	let payload: JwtPayload | undefined = undefined;
 	
 	// Load in the payload with the actual values stored in the database
-	await getJwtPayload(user.provider, data).then( (parsedPayload: JwtPayload) => {
+	await getJwtPayloadFromProfile(user.provider, data).then( (parsedPayload: JwtPayload) => {
 		payload = parsedPayload;
 	}).catch( (error: Error) => {
 		res.status(Constants.BAD_REQUEST).send(error);
@@ -192,7 +192,7 @@ authRouter.get("/token/refresh", async (req: Request, res: Response) => {
 
 		// Generate a new payload for the token
 		let newPayload: JwtPayload | undefined;
-		await getJwtPayload(oldPayload.provider, data).then((payload: JwtPayload) => {
+		await getJwtPayloadFromProfile(oldPayload.provider, data).then((payload: JwtPayload) => {
 			newPayload = payload;
 		});
 

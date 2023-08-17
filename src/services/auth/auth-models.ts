@@ -9,7 +9,8 @@ export interface JwtPayload {
 	id: string,
 	email: string,
 	provider: string,
-	roles: Role[]
+	roles: Role[],
+	exp?: number
 }
 
 export enum Provider {
