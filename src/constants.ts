@@ -16,6 +16,8 @@ abstract class Constants {
 	static readonly GOOGLE_OAUTH_CALLBACK:string = "https://adonix.hackillinois.org/auth/google/callback/";
 
 	static readonly SYSTEM_ADMIN_LIST:string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
+	
+	static readonly DEFAULT_JWT_OFFSET: string = "48h";
 
 	// Conversions for datetimes
 	static readonly MILLISECONDS_PER_SECOND:number = 1000;

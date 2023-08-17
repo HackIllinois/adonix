@@ -104,6 +104,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	return newPayload;
 }
 
+
 export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
 	if (!payload) {
 		throw new Error("No JWT token passed in!");
@@ -117,7 +118,8 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
 
 	// // Appends an expiry field to the JWT token
 	const options: SignOptions = { };
-	payload.exp = Math.floor(Date.now() + ms(expiration ?? "7d")) / Constants.MILLISECONDS_PER_SECOND;
+	const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
+	payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
 	console.log(payload.exp);
 
 	// Generate a token, and return it
