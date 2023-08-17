@@ -51,8 +51,8 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		if (userRoles.length) {
 			payload.roles = userRoles;
 		}
-	}).catch((error: Error) => {
-		console.log("get function failed!");
+	}).catch((error: string) => {
+		console.log("get function failed inside getRoles!");
 		console.log(error);
 	});
 
@@ -60,8 +60,8 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	if (!payload.roles.length) {
 		await initializeRoles(userId, provider as Provider, email).then((newRoles: Role[]) => {
 			payload.roles = newRoles;
-		}).catch((error: Error) => {
-			console.log("get function failed!");
+		}).catch((error: string) => {
+			console.log("get function failed inside initializeRoles!");
 			console.log(error);
 		});
 	}
@@ -117,7 +117,8 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
 
 	// // Appends an expiry field to the JWT token
 	const options: SignOptions = { };
-	payload.exp = ms(expiration ?? "7d");
+	payload.exp = Math.floor(Date.now() + ms(expiration ?? "7d")) / Constants.MILLISECONDS_PER_SECOND;
+	console.log(payload.exp);
 
 	// Generate a token, and return it
 	const token: string = jsonwebtoken.sign(payload, secret, options);
@@ -175,6 +176,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 		// Null check to ensure that we're not returning anything null
 		if (!info) {
+			console.log("rejecting...");
 			return Promise.reject("User ID does not exist in the database!");
 		}
 
@@ -186,14 +188,15 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 
 export async function getRoles(id: string): Promise<Role[]> {
+	let roles: Role[] | undefined;
 	// Call helper function to get auth info, and just return data from there
-	getAuthInfo(id).then((info: RolesSchema) => {
-		return info.roles as Role[];
+	await getAuthInfo(id).then((user: RolesSchema) => {
+		roles = user.roles as Role[];
 	}).catch((error: string) => {
 		return Promise.reject(error);
 	});
 
-	return Promise.reject("Unknown error!");
+	return roles ?? Promise.reject("Unknown error!");
 }
 
 

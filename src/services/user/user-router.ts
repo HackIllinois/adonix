@@ -11,10 +11,9 @@ import { UserFormat } from "./user-formats.js";
 import { getUser, updateUser } from "./user-lib.js";
 
 const userRouter: Router = Router();
-userRouter.use(verifyJwt);
 
 
-userRouter.get("/qr/", (_: Request, res: Response) => {
+userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
 	// Return the same payload, but with
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const token: string = generateJwtToken(payload, "20s");
@@ -23,8 +22,8 @@ userRouter.get("/qr/", (_: Request, res: Response) => {
 });
 
 
-userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
-	const targetUser: string | undefined = req.query.USERID as string;
+userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => {
+	const targetUser: string | undefined = req.params.USERID as string;
 
 	// If target user -> redirect to base function
 	if (!targetUser) {
@@ -54,14 +53,13 @@ userRouter.get("/qr/:USERID", async (req: Request, res: Response) => {
 });
 
 
-userRouter.get("/:USERID", async (req: Request, res: Response) => {
-	const targetUser: string | undefined = req.params.USERID;
-
+userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 	// If no target user, exact same as next route
-	if (!targetUser) {
+	if (!req.params.USERID) {
 		res.redirect("/");
-		return;
 	}
+
+	const targetUser: string = req.params.USERID ?? "";
 
 	// Get payload, and check if authorized
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -78,7 +76,7 @@ userRouter.get("/:USERID", async (req: Request, res: Response) => {
 });
 
 
-userRouter.get("/", async (_: Request, res: Response) => {
+userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 	// Get payload, return user's values
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const user: UserSchema = await getUser(payload.id);
@@ -86,7 +84,7 @@ userRouter.get("/", async (_: Request, res: Response) => {
 });
 
 
-userRouter.post("/", async (req: Request, res: Response) => {
+userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
 	if (!hasElevatedPerms(token)) {
@@ -110,8 +108,6 @@ userRouter.post("/", async (req: Request, res: Response) => {
 		res.status(Constants.INTERNAL_ERROR).send(error);
 	});
 });
-
-
 
 
 export default userRouter;
