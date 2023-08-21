@@ -3,6 +3,12 @@ import { UserSchema } from "./user-schemas.js";
 import DatabaseHelper from "../../database.js";
 import { UserFormat } from "./user-formats.js";
 
+
+/**
+ * Get information from user database about a user.
+ * @param userId
+ * @returns Promise, if successful then data about the user. If failed, contains erro.
+ */
 export async function getUser(userId: string): Promise<UserSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("user", "info");
 	console.log("|%s|", userId);
@@ -11,7 +17,6 @@ export async function getUser(userId: string): Promise<UserSchema> {
 		if (user) {
 			return user;
 		}
-
 		return Promise.reject("no such user found!");
 	} catch (error) {
 		return Promise.reject(error);
@@ -19,10 +24,16 @@ export async function getUser(userId: string): Promise<UserSchema> {
 }
 
 
+/**
+ * Update an EXISTING user's data, given new data. User must exist in this database to be updated.
+ * @param userData New information about user to add
+ * @returns Promise, containing nothing if successful but error if rejected.
+ */
 export async function updateUser(userData: UserFormat): Promise<void> {
 	const collection: Collection = await DatabaseHelper.getCollection("user", "info");
 
 	try {
+		// Create the query to run the update, then perform the update operation
 		const updateFilter: UpdateFilter<UserSchema> = {
 			$set: {
 				id: userData.id,

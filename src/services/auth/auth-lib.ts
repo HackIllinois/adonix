@@ -231,7 +231,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 
 /**
- * Calls the getAuthInfo function to 
+ * Calls the getAuthInfo function to
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
@@ -253,7 +253,7 @@ export async function getRoles(id: string): Promise<Role[]> {
  * @param userId ID of the user to update
  * @param role Role to add/remove
  * @param operation Operation to perform
- * @returns Promise - if valid, then update operation worked. If invalid, then contains why. 
+ * @returns Promise - if valid, then update operation worked. If invalid, then contains why.
  */
 export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<void> {
 	let filter: Partial<RolesSchema> | undefined;
