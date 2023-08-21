@@ -6,6 +6,7 @@ import morgan from "morgan";
 
 import Constants from "../src/constants.js";
 import authRouter from "../src/services/auth/auth-router.js";
+import userRouter from "../src/services/user/user-router.js";
 import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 
 const app: Application = express();
@@ -22,6 +23,7 @@ if (env == "preview" || env == "production") {
 
 // Add routers for each sub-service
 app.use("/auth/", authRouter);
+app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
 
 // Ensure that API is running

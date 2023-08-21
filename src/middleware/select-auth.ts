@@ -9,14 +9,9 @@ const githubOptions: AuthenticateOptions = {session: false};
 
 
 export function SelectAuthProvider(provider: string): RequestHandler {
-
-	console.log("|%s|", provider);
-	if (provider == "google") {
-		return authenticateFunction("google", googleOptions);
-	}
-	
-	if (provider == "github") {
-		return authenticateFunction("github", githubOptions);
+	switch (provider) {
+	case "google": return authenticateFunction("google", googleOptions);
+	case "github": return authenticateFunction("github", githubOptions);
 	}
 	
 	throw new Error("Provider not found!");

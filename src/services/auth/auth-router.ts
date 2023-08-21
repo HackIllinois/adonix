@@ -7,10 +7,12 @@ import { Profile as GoogleProfile, Strategy as GoogleStrategy } from "passport-g
 
 import { Role } from "../../models.js";
 import Constants from "../../constants.js";
+import { verifyJwt } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
-import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
-import { decodeJwtToken, generateJwtToken, getJwtPayload, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+
 import { ModifyRoleRequest } from "./auth-formats.js";
+import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
+import { decodeJwtToken, generateJwtToken, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
@@ -59,7 +61,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 	let payload: JwtPayload | undefined = undefined;
 	
 	// Load in the payload with the actual values stored in the database
-	await getJwtPayload(user.provider, data).then( (parsedPayload: JwtPayload) => {
+	await getJwtPayloadFromProfile(user.provider, data).then( (parsedPayload: JwtPayload) => {
 		payload = parsedPayload;
 	}).catch( (error: Error) => {
 		res.status(Constants.BAD_REQUEST).send(error);
@@ -71,7 +73,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 });
 
 
-authRouter.get("/roles/:USERID", async (req: Request, res: Response) => {
+authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID;
 
 	// Check if we have a user to get roles for - if not, get roles for current user
@@ -80,31 +82,34 @@ authRouter.get("/roles/:USERID", async (req: Request, res: Response) => {
 		return;
 	}
 
-	try {
-		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-		// Cases: Target user already logged in, auth user is admin
-		if (payload.id == targetUser) {
-			res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
-		} else if (hasElevatedPerms(payload)) {
-			let roles: Role[] = [];
-			await getRoles(targetUser).then((targetRoles: Role[]) => {
-				roles = targetRoles;
-			}).catch((error: Error) => {
-				throw error;
-			});
-			console.log(roles);
+	// Cases: Target user already logged in, auth user is admin
+	if (payload.id == targetUser) {
+		res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
+	} else if (hasElevatedPerms(payload)) {
+		let roles: Role[] = [];
+		await getRoles(targetUser).then((targetRoles: Role[]) => {
+			roles = targetRoles;
 			res.status(Constants.SUCCESS).send({id: targetUser, roles: roles});
-		} else {
-			res.status(Constants.FORBIDDEN).send("not authorized to perform this operation!");
-		}
-	} catch (error) {
-		res.status(Constants.FORBIDDEN).send(error);
+		}).catch((error: Error) => {
+			console.log(error);
+			res.status(Constants.INTERNAL_ERROR).send(error);
+		});
+	} else {
+		res.status(Constants.FORBIDDEN).send("not authorized to perform this operation!");
 	}
 });
 
 
-authRouter.put("/roles/:OPERATION/", async (req: Request, res: Response) => {
+authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+	// Not authenticated with modify roles perms
+	if (!hasElevatedPerms(payload)) {
+		res.status(Constants.FORBIDDEN).send({error: "not permitted to modify roles!"});
+	}
+
 	// Parse to get operation type
 	const op: RoleOperation | undefined = RoleOperation[req.params.operation as keyof typeof RoleOperation];
 
@@ -114,95 +119,71 @@ authRouter.put("/roles/:OPERATION/", async (req: Request, res: Response) => {
 		return;
 	}
 
-	try {
-		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
-
-		// Not authenticated with modify roles perms
-		if (!hasElevatedPerms(payload)) {
-			res.status(Constants.FORBIDDEN).send({error: "not permitted to modify roles!"});
-		}
-
-		// Check if role to add/remove actually exists
-		const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
-		const role: Role | undefined = Role[data.role as keyof typeof Role];
-		if (!role) {
-			res.status(Constants.BAD_REQUEST).send({error: "invalid role passed in!"});
-			return;
-		}
-
-		// Try to update roles, if possible
-		await updateRoles(data.id, role, op).catch((error: string) => {
-			console.log(error);
-			res.status(Constants.INTERNAL_ERROR).send({error: error});
-		});
-
-		// Get new roles for the current user, and return them
-		await getRoles(data.id).then((roles: Role[]) => {
-			res.status(Constants.SUCCESS).send({id: data.id, roles: roles});
-		}).catch((error: string) => {
-			console.log(error);
-			res.status(Constants.INTERNAL_ERROR).send({error: error});
-		});
-	} catch (error) {
-		res.status(Constants.FORBIDDEN).send(error);
+	// Check if role to add/remove actually exists
+	const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
+	const role: Role | undefined = Role[data.role as keyof typeof Role];
+	if (!role) {
+		res.status(Constants.BAD_REQUEST).send({error: "invalid role passed in!"});
+		return;
 	}
+
+	// Try to update roles, if possible
+	await updateRoles(data.id, role, op).catch((error: string) => {
+		console.log(error);
+		res.status(Constants.INTERNAL_ERROR).send({error: error});
+	});
+
+	// Get new roles for the current user, and return them
+	await getRoles(data.id).then((roles: Role[]) => {
+		res.status(Constants.SUCCESS).send({id: data.id, roles: roles});
+	}).catch((error: string) => {
+		console.log(error);
+		res.status(Constants.INTERNAL_ERROR).send({error: error});
+	});
 });
 
 
-authRouter.get("/list/roles/", (req: Request, res: Response) => {
-	try {
-		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
+authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-		// Check if current user should be able to access all roles
-		if (!hasElevatedPerms(payload)) {
-			res.status(Constants.FORBIDDEN).send({error: "not authorized to perform this operation!"});
-			return;
-		}
-
-		// Filter enum to get all possible string keys
-		const roles: string[] = Object.keys(Role).filter((item: string) => {
-			return isNaN(Number(item));
-		});
-
-		res.status(Constants.SUCCESS).send({roles: roles});
-	} catch (error) {
-		res.status(Constants.FORBIDDEN).send({error: error as string});
+	// Check if current user should be able to access all roles
+	if (!hasElevatedPerms(payload)) {
+		res.status(Constants.FORBIDDEN).send({error: "not authorized to perform this operation!"});
+		return;
 	}
+
+	// Filter enum to get all possible string keys
+	const roles: string[] = Object.keys(Role).filter((item: string) => {
+		return isNaN(Number(item));
+	});
+
+	res.status(Constants.SUCCESS).send({roles: roles});
 });
 
 
-authRouter.get("/roles/", (req: Request, res: Response) => {
-	try {
-		const payload: JwtPayload = decodeJwtToken(req.headers.authorization);
-		res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
-	} catch (error) {
-		res.status(Constants.FORBIDDEN).send({error: error as string});
-	}
+authRouter.get("/roles/", verifyJwt, (req: Request, res: Response) => {
+	const payload: JwtPayload = decodeJwtToken(req.headers.authorization) ;
+	res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
 });
 
 
-authRouter.get("/token/refresh", async (req: Request, res: Response) => {
-	try {
-		// Get old data from token
-		const oldPayload: JwtPayload = decodeJwtToken(req.headers.authorization);
-		const data: ProfileData = {
-			id: oldPayload.id,
-			email: oldPayload.email,
-		};
+authRouter.get("/token/refresh", verifyJwt, async (_: Request, res: Response) => {
+	// Get old data from token
+	const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
+	const data: ProfileData = {
+		id: oldPayload.id,
+		email: oldPayload.email,
+	};
 
-		// Generate a new payload for the token
-		let newPayload: JwtPayload | undefined;
-		await getJwtPayload(oldPayload.provider, data).then((payload: JwtPayload) => {
-			newPayload = payload;
-		});
+	// Generate a new payload for the token
+	let newPayload: JwtPayload | undefined;
+	await getJwtPayloadFromProfile(oldPayload.provider, data).then((payload: JwtPayload) => {
+		newPayload = payload;
+	});
 
-		// Create and return a new token with the payload
-		const newToken: string = generateJwtToken(newPayload);
-		res.status(Constants.SUCCESS).send({token: newToken});
-
-	} catch (error) {
-		res.status(Constants.FORBIDDEN).send({error: error as string});
-	}
+	// Create and return a new token with the payload
+	const newToken: string = generateJwtToken(newPayload);
+	res.status(Constants.SUCCESS).send({token: newToken});
 });
 
 
