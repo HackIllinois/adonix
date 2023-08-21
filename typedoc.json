@@ -1,0 +1,9 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "api/index.ts",
+        "src/middleware/select-auth.ts",
+        "src/services/auth/auth-lib.ts"
+    ],
+    "out": "doc"
+}
