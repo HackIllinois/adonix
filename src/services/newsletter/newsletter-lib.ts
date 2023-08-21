@@ -5,6 +5,7 @@ import { Collection } from "mongodb";
 import DatabaseHelper from "../../database.js";
 import { SubscribeRequest } from "./newsletter-formats.js";
 
+
 /**
  * Subscribe a user to a newsletter, given a body
  * @param request HTTP request received from the user
