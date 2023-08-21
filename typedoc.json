@@ -9,5 +9,5 @@
         "src/utils.ts",
         "src/constants.ts"
     ],
-    "out": "doc"
+    "out": "docs"
 }
