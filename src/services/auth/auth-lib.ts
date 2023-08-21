@@ -231,7 +231,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 
 /**
- * Calls the getAuthInfo function to
+ * Calls the getAuthInfo function to get roles for a user
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
