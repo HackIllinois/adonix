@@ -5,7 +5,12 @@ import { Collection } from "mongodb";
 import DatabaseHelper from "../../database.js";
 import { SubscribeRequest } from "./newsletter-formats.js";
 
-//  TODO: Add documentation
+/**
+ * Subscribe a user to a newsletter, given a body
+ * @param request HTTP request received from the user
+ * @param response Response to send to the user
+ * @returns Promise, void if successful. Else, promise is rejected with reason for error
+ */
 export async function subscribeToNewsletter(request: Request, response: Response): Promise<void> {
 	const requestBody: SubscribeRequest = request.body as SubscribeRequest;
 	const listName: string | undefined = requestBody.listName;
