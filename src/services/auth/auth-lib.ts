@@ -16,24 +16,40 @@ import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";
 
-
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
 type VerifyCallback = (err: Error | null, user?: Profile | false, info?: object) => void;
 type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => void;
 
 
-// Function that returns a RequestHandler based on the strategies and options passed in
+/**
+ * Perform the actual authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website.
+ * @param strategies List (or string) of valid authentication strategies for this route
+ * @param options Set of options to be associated with these strategies
+ * @returns Passport middleware that is used to perform authentication
+ */
 export const authenticateFunction: AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => {
 	return passport.authenticate(strategies, options, undefined) as RequestHandler;
 };
 
 
-// Do-Nothing function to be used in OAuth strategies
+/**
+ * Simple function, used to verify that authentication actually happens correctly.
+ * @param _1 Auth token - never used
+ * @param _2 Refresh token - also never used
+ * @param user Passport profile of the authenticated user - CHANGES based on strategy
+ * @param callback Function to verify if the actual authentication step worked
+ * @returns Results of the callback function, after it's been called with the user
+ */
 export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
 	return callback(null, user);
 };
 
-
+/**
+ * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
+ * @param provider String of the provider, being used
+ * @param data ProfileData, returned from passport post-authentication step
+ * @returns JwtPayload, which gets sent back to the user in the next step
+ */
 export async function getJwtPayloadFromProfile(provider: string, data: ProfileData): Promise<JwtPayload> {
 	const userId: string = provider + data.id;
 	const email: string = data.email;
@@ -69,7 +85,11 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	return payload;
 }
 
-
+/**
+ * Get a JWT payload for a user, from database. Perform an auth query and an users query, which are used in an implicit join.
+ * @param targetUser UserID of the user to return a JWT payload for.
+ * @returns Promise, containing either JWT payload or reason for failure
+ */
 export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
 	let authInfo: RolesSchema | undefined;
 	let userInfo: UserSchema | undefined;
@@ -104,7 +124,12 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	return newPayload;
 }
 
-
+/**
+ * Create the actual token, assign an expiry date, and sign it
+ * @param payload JWT payload to be included in the token
+ * @param expiration Offset-based expiration. If not provided, defaults to 2 days.
+ * @returns Signed JWT token, to be returned to the user.
+ */
 export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
 	if (!payload) {
 		throw new Error("No JWT token passed in!");
@@ -128,6 +153,11 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
 }
 
 
+/**
+ * Ensure that a JWT token is a valid token. If invalid, throws an error.
+ * @param token JWT token to decode
+ * @returns Payload of the token if valid/
+ */
 export function decodeJwtToken(token?: string): JwtPayload {
 	if (!token) {
 		throw new Error("no token provided!");
@@ -144,6 +174,13 @@ export function decodeJwtToken(token?: string): JwtPayload {
 }
 
 
+/**
+ * Create an auth database entry for the current user
+ * @param id UserID to create the entry for
+ * @param provider Provider being used to create this entry
+ * @param email Email address of current user
+ * @returns Promise, containing list of user roles if valid. If invalid, error containing why.
+ */
 export async function initializeRoles(id: string, provider: Provider, email: string): Promise<Role[]> {
 	const roles: Role[] = [];
 
@@ -169,7 +206,11 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 	return roles;
 }
 
-
+/**
+ * Get auth database information for a given user
+ * @param id UserID of the user to return the info for
+ * @returns Promise containing user, provider, email, and roles if valid. If invalid, error containing why.
+ */
 export async function getAuthInfo(id: string): Promise<RolesSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 
@@ -189,19 +230,31 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 }
 
 
+/**
+ * Calls the getAuthInfo function to 
+ * @param id UserID of the user to return the info for
+ * @returns Promise, containing array of roles for the user.
+ */
 export async function getRoles(id: string): Promise<Role[]> {
 	let roles: Role[] | undefined;
-	// Call helper function to get auth info, and just return data from there
+	// Call helper function to get auth info, and return data from there
 	await getAuthInfo(id).then((user: RolesSchema) => {
 		roles = user.roles as Role[];
 	}).catch((error: string) => {
 		return Promise.reject(error);
 	});
 
-	return roles ?? Promise.reject("Unknown error!");
+	return roles ?? Promise.reject("User does not exist in database!");
 }
 
 
+/**
+ * Update the roles of a particular user within the database. CAN ONLY PERFORM ADD/REMOVE operations
+ * @param userId ID of the user to update
+ * @param role Role to add/remove
+ * @param operation Operation to perform
+ * @returns Promise - if valid, then update operation worked. If invalid, then contains why. 
+ */
 export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<void> {
 	let filter: Partial<RolesSchema> | undefined;
 
@@ -219,7 +272,11 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 }
 
 
-// Check if a user is an ADMIN or a STAFF
+/**
+ * Check if a user should have permissions to perform operations on attendees
+ * @param payload Payload of user performing the actual request
+ * @returns True if the user is an ADMIN or a STAFF, else false
+ */
 export function hasElevatedPerms(payload: JwtPayload): boolean {
 	const roles: Role[] = payload.roles;
 	return roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
