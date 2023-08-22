@@ -22,7 +22,7 @@ type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profi
 
 
 /**
- * Perform authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website if successful or unsuccessful. 
+ * Perform authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website if successful or unsuccessful.
  * In the case of a failure, throw an error.
  * @param strategies List (or string) of valid authentication strategies for this route
  * @param options Set of options to be associated with these strategies
