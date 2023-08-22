@@ -22,7 +22,8 @@ type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profi
 
 
 /**
- * Perform the actual authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website.
+ * Perform authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website if successful or unsuccessful. 
+ * In the case of a failure, throw an error.
  * @param strategies List (or string) of valid authentication strategies for this route
  * @param options Set of options to be associated with these strategies
  * @returns Passport middleware that is used to perform authentication
@@ -125,7 +126,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 }
 
 /**
- * Create the actual token, assign an expiry date, and sign it
+ * Create the token, assign an expiry date, and sign it
  * @param payload JWT payload to be included in the token
  * @param expiration Offset-based expiration. If not provided, defaults to 2 days.
  * @returns Signed JWT token, to be returned to the user.

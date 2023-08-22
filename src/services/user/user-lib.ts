@@ -7,7 +7,7 @@ import { UserFormat } from "./user-formats.js";
 /**
  * Get information from user database about a user.
  * @param userId
- * @returns Promise, if successful then data about the user. If failed, contains erro.
+ * @returns Promise, if successful then data about the user. If failed, contains error.
  */
 export async function getUser(userId: string): Promise<UserSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("user", "info");
