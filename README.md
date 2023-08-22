@@ -18,3 +18,10 @@ Official repository for API redesign.
 ```
 npm run start
 ```
+
+## To generate docs
+
+```
+npm run docs
+```
+(Can be accessed via the docs/index.html file)
