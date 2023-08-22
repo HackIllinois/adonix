@@ -17,6 +17,6 @@ jobs:
       with:
         personal_token: ${{ secrets.PERSONAL_TOKEN }}
         external_repository: HackIllinois/adonix-dev-docs
-        publish_branch: master
+        publish_branch: main
         publish_dir: ./docs/
         
