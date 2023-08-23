@@ -8,7 +8,7 @@ import jsonwebtoken from "jsonwebtoken";
  * @apiHeader  {String} Authorization JWT token.
  * @apiHeaderExample {json} Example Headers:
  *     {"Authorization": "loremipsumdolorsitamet"}
- * 
+ *
 
  * @apiError (400: Bad Request) {string} NoToken No auth token passed in
  * @apiError (401: Unauthorized) {string} InvalidToken Invalid token passed in

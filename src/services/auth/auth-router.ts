@@ -44,7 +44,7 @@ authRouter.get("/test/", (_: Request, res: Response) => {
  * @apiName Github
  * @apiGroup Auth
  * @apiDescription Perform Github authentication for an attendee.
- * 
+ *
  * @apiSuccess (200: Success) {String} token JWT token of authenticated user
  * @apiSuccessExample Example Success Response:
  *     HTTP/1.1 200 OK
@@ -64,12 +64,12 @@ authRouter.get("/github/", SelectAuthProvider("github"));
  * @apiName Google
  * @apiGroup Auth
  * @apiDescription Perform Google authentication for a staff member.
- * 
+ *
  * @apiSuccess (200: Success) {String} token JWT token of authenticated user
  * @apiSuccessExample Example Success Response:
  *     HTTP/1.1 200 OK
  *     {"token": "loremipsumdolorsitamet"}
- * 
+ *
  * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
  * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
  * @apiErrorExample Example Error Response:
@@ -113,9 +113,9 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
  * @api {get} /auth/roles/:USERID/ /auth/roles/:USERID/
  * @apiGroup Auth
  * @apiDescription Get the roles of a user, provided that there is a JWT token and the token contains VALID credentials for the operation.
- * 
+ *
  * @apiParam {String} USERID Target user to get the roles of. Defaults to the user provided in the JWT token, if no user provided.
- * 
+ *
  * @apiSuccess (200: Success) {String} id User ID.
  * @apiSuccess (200: Success) {String[]} roles Roles of the target user.
  * @apiSuccessExample Example Success Response:
@@ -124,7 +124,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
  *		"id": "provider0000001",
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
- * 
+ *
  * @apiUse verifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
@@ -162,9 +162,9 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
  * @api {put} /auth/roles/:OPERATION/ /auth/roles/:OPERATION/
  * @apiGroup Auth
  * @apiDescription Given an operation (ADD/REMOVE), perform this operation on the given user.
- * 
+ *
  * @apiParam {String} OPERATION Operation to perform on the target user. MUST BE EITHER "ADD" OR "REMOVE".
- * 
+ *
  * @apiSuccess (200: Success) {String} id ID of the target user.
  * @apiSuccess (200: Success) {String[]} roles Roles of the selected user, post-completion of the requested operation.
  * @apiSuccessExample Example Success Response:
@@ -173,7 +173,7 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
  *		"id": "provider0000001",
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
- * 
+ *
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist, to perform these operations on.
  * @apiError (400: Bad Request) {String} InvalidOperation Invalid (non-ADD and non-REMOVE) operation passed in.
  * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
@@ -224,7 +224,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
  * @api {get} /auth/list/roles/ /auth/list/roles/
  * @apiGroup Auth
  * @apiDescription List all the available roles.
- * 
+ *
  * @apiSuccess (200: Success) {string[]} token JWT token of authenticated user.
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
@@ -232,7 +232,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
  *		"id": "provider0000001",
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
- * 
+ *
  * @apiUse verifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
@@ -259,7 +259,7 @@ authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
  * @api {get} /auth/roles/ /auth/roles/
  * @apiGroup Auth
  * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
- * 
+ *
  * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
  * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
  * @apiSuccessExample Example Success Response:
@@ -268,7 +268,7 @@ authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
  *		"id": "provider0000001",
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
- * 
+ *
  * @apiUse verifyErrors
  */
 authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
@@ -287,14 +287,14 @@ authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
  * @api {get} /auth/token/refresh/ /auth/token/refresh/
  * @apiGroup Auth
  * @apiDescription Refresh a JWT token - payload data stays consistent, but expiration date changes.
- * 
+ *
  * @apiSuccess (200: Success) {String} token New JWT token with extended expiry time.
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  * 		"token": "loremipsumdolorsitamet"
  * 	}
- * 
+ *
  * @apiUse verifyErrors
  */
 authRouter.get("/token/refresh", verifyJwt, async (_: Request, res: Response) => {

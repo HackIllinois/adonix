@@ -261,8 +261,8 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 
 	// Get filter, representing operation to perform on mongoDB
 	switch (operation) {
-		case RoleOperation.ADD: filter = {"$addToSet": {"roles": role}}; break;
-		case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break;
+	case RoleOperation.ADD: filter = {"$addToSet": {"roles": role}}; break;
+	case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break;
 	}
 
 	// Appoly filter to roles collection, based on the operation
