@@ -17,25 +17,20 @@ export async function subscribeToNewsletter(request: Request, response: Response
 	const listName: string | undefined = requestBody.listName;
 	const emailAddress: string | undefined = requestBody.emailAddress;
 
-	console.log(listName);
-	console.log(emailAddress);
-
 	// Verify that both parameters do exist
 	if (!listName || !emailAddress) {
-		return Promise.reject("invalid input passed in!");
+		response.status(Constants.BAD_REQUEST).send({error: "InvalidParams"});
 	}
 
-	console.log("valid input, working with database");
 
 	// Upsert to update the list - update document if possible, else add the document
 	try {
 		const newsletterCollection: Collection = await DatabaseHelper.getCollection("newsletters", "newsletters");
 		await newsletterCollection.updateOne({listName: listName}, {"$addToSet": {"subscribers": emailAddress}}, {upsert: true});
 	} catch (error) {
-		console.log(error);
-		return Promise.reject("invalid input passed in!");
+		response.status(Constants.BAD_REQUEST).send({error: "ListNotFound"});
 	}
 	
-	response.status(Constants.SUCCESS).end("list should have been created!");
+	response.status(Constants.SUCCESS).send({status: "Successful"});
 	return Promise.resolve();
 }

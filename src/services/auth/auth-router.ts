@@ -12,7 +12,7 @@ import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
 import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
-import { decodeJwtToken, generateJwtToken, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+import { generateJwtToken, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
@@ -39,10 +39,45 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 });
 
 
+/**
+ * @api {get} /auth/github/ /auth/github/
+ * @apiName Github
+ * @apiGroup Auth
+ * @apiDescription Perform Github authentication for an attendee.
+ * 
+ * @apiSuccess (200: Success) {String} token JWT token of authenticated user
+ * @apiSuccessExample Example Success Response:
+ *     HTTP/1.1 200 OK
+ *     {"token": "loremipsumdolorsitamet"}
+ 
+ * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
+ * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ */
 authRouter.get("/github/", SelectAuthProvider("github"));
 
 
+/**
+ * @api {get} /auth/google/ /auth/google/
+ * @apiName Google
+ * @apiGroup Auth
+ * @apiDescription Perform Google authentication for a staff member.
+ * 
+ * @apiSuccess (200: Success) {String} token JWT token of authenticated user
+ * @apiSuccessExample Example Success Response:
+ *     HTTP/1.1 200 OK
+ *     {"token": "loremipsumdolorsitamet"}
+ * 
+ * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
+ * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ */
 authRouter.get("/google/", SelectAuthProvider("google"));
+
 
 
 authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextFunction) => {
@@ -51,7 +86,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 }, async (req: Request, res: Response) => {
 	// Throw unauthorized if request isn't authenticated
 	if (!req.isAuthenticated()) {
-		res.status(Constants.UNAUTHORIZED_REQUEST).send();
+		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
 	}
 
 	// Data manipulation to store types of parsable inputs
@@ -59,12 +94,13 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 	const data: ProfileData = user._json as ProfileData;
 	data.id = data.id ?? user.id;
 	let payload: JwtPayload | undefined = undefined;
-	
+
 	// Load in the payload with the actual values stored in the database
-	await getJwtPayloadFromProfile(user.provider, data).then( (parsedPayload: JwtPayload) => {
+	await getJwtPayloadFromProfile(user.provider, data).then((parsedPayload: JwtPayload) => {
 		payload = parsedPayload;
-	}).catch( (error: Error) => {
-		res.status(Constants.BAD_REQUEST).send(error);
+	}).catch((error: Error) => {
+		console.log(error);
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
 	});
 
 	// Generate the token, and return it
@@ -73,6 +109,26 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 });
 
 
+/**
+ * @api {get} /auth/roles/:USERID/ /auth/roles/:USERID/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user, provided that there is a JWT token and the token contains VALID credentials for the operation.
+ * 
+ * @apiParam {String} USERID Target user to get the roles of. Defaults to the user provided in the JWT token, if no user provided.
+ * 
+ * @apiSuccess (200: Success) {String} id User ID.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the target user.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ * 
+ * @apiUse verifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
+ * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
+ */
 authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID;
 
@@ -86,28 +142,49 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
 
 	// Cases: Target user already logged in, auth user is admin
 	if (payload.id == targetUser) {
-		res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
+		res.status(Constants.SUCCESS).send({ id: payload.id, roles: payload.roles });
 	} else if (hasElevatedPerms(payload)) {
 		let roles: Role[] = [];
 		await getRoles(targetUser).then((targetRoles: Role[]) => {
 			roles = targetRoles;
-			res.status(Constants.SUCCESS).send({id: targetUser, roles: roles});
+			res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 		}).catch((error: Error) => {
 			console.log(error);
-			res.status(Constants.INTERNAL_ERROR).send(error);
+			res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
 		});
 	} else {
-		res.status(Constants.FORBIDDEN).send("not authorized to perform this operation!");
+		res.status(Constants.FORBIDDEN).send("Forbidden");
 	}
 });
 
 
+/**
+ * @api {put} /auth/roles/:OPERATION/ /auth/roles/:OPERATION/
+ * @apiGroup Auth
+ * @apiDescription Given an operation (ADD/REMOVE), perform this operation on the given user.
+ * 
+ * @apiParam {String} OPERATION Operation to perform on the target user. MUST BE EITHER "ADD" OR "REMOVE".
+ * 
+ * @apiSuccess (200: Success) {String} id ID of the target user.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the selected user, post-completion of the requested operation.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ * 
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist, to perform these operations on.
+ * @apiError (400: Bad Request) {String} InvalidOperation Invalid (non-ADD and non-REMOVE) operation passed in.
+ * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
+ * @apiUse verifyErrors
+ */
 authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Not authenticated with modify roles perms
 	if (!hasElevatedPerms(payload)) {
-		res.status(Constants.FORBIDDEN).send({error: "not permitted to modify roles!"});
+		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
 	// Parse to get operation type
@@ -115,7 +192,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 
 	// No operation - fail out
 	if (!op) {
-		res.status(Constants.BAD_REQUEST).send({error: "operation not specified!"});
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidOperation" });
 		return;
 	}
 
@@ -123,32 +200,49 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 	const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
 	const role: Role | undefined = Role[data.role as keyof typeof Role];
 	if (!role) {
-		res.status(Constants.BAD_REQUEST).send({error: "invalid role passed in!"});
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidRole" });
 		return;
 	}
 
 	// Try to update roles, if possible
 	await updateRoles(data.id, role, op).catch((error: string) => {
 		console.log(error);
-		res.status(Constants.INTERNAL_ERROR).send({error: error});
+		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	});
 
 	// Get new roles for the current user, and return them
 	await getRoles(data.id).then((roles: Role[]) => {
-		res.status(Constants.SUCCESS).send({id: data.id, roles: roles});
+		res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
 	}).catch((error: string) => {
 		console.log(error);
-		res.status(Constants.INTERNAL_ERROR).send({error: error});
+		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound"});
 	});
 });
 
 
+/**
+ * @api {get} /auth/list/roles/ /auth/list/roles/
+ * @apiGroup Auth
+ * @apiDescription List all the available roles.
+ * 
+ * @apiSuccess (200: Success) {string[]} token JWT token of authenticated user.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ * 
+ * @apiUse verifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
+ * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
+ */
 authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Check if current user should be able to access all roles
 	if (!hasElevatedPerms(payload)) {
-		res.status(Constants.FORBIDDEN).send({error: "not authorized to perform this operation!"});
+		res.status(Constants.FORBIDDEN).send({ error: "not authorized to perform this operation!" });
 		return;
 	}
 
@@ -157,16 +251,52 @@ authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
 		return isNaN(Number(item));
 	});
 
-	res.status(Constants.SUCCESS).send({roles: roles});
+	res.status(Constants.SUCCESS).send({ roles: roles });
 });
 
 
-authRouter.get("/roles/", verifyJwt, (req: Request, res: Response) => {
-	const payload: JwtPayload = decodeJwtToken(req.headers.authorization) ;
-	res.status(Constants.SUCCESS).send({id: payload.id, roles: payload.roles});
+/**
+ * @api {get} /auth/roles/ /auth/roles/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
+ * 
+ * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ * 
+ * @apiUse verifyErrors
+ */
+authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+	const targetUser: string = payload.id;
+
+	await getRoles(targetUser).then((roles: Role[]) => {
+		res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
+	}).catch((error: Error) => {
+		console.log(error);
+		res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
+	});
 });
 
-
+/**
+ * @api {get} /auth/token/refresh/ /auth/token/refresh/
+ * @apiGroup Auth
+ * @apiDescription Refresh a JWT token - payload data stays consistent, but expiration date changes.
+ * 
+ * @apiSuccess (200: Success) {String} token New JWT token with extended expiry time.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ * 		"token": "loremipsumdolorsitamet"
+ * 	}
+ * 
+ * @apiUse verifyErrors
+ */
 authRouter.get("/token/refresh", verifyJwt, async (_: Request, res: Response) => {
 	// Get old data from token
 	const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
@@ -183,7 +313,7 @@ authRouter.get("/token/refresh", verifyJwt, async (_: Request, res: Response) =>
 
 	// Create and return a new token with the payload
 	const newToken: string = generateJwtToken(newPayload);
-	res.status(Constants.SUCCESS).send({token: newToken});
+	res.status(Constants.SUCCESS).send({ token: newToken });
 });
 
 
