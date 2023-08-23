@@ -133,3 +133,5 @@ dist
 
 # Auto-generated HTML files
 docs/
+apidocs/
+devdocs/
