@@ -18,7 +18,7 @@ userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const token: string = generateJwtToken(payload, "20s");
 	const uri: string = `hackillinois://user?userToken=${token}`;
-	res.status(Constants.SUCCESS).send({id: payload.id, qrInfo: uri});
+	res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
 });
 
 
@@ -37,13 +37,13 @@ userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => 
 	// Check if elevated -> if so, generate a new payload and return that one
 	if (payload.id == targetUser) {
 		const token: string = generateJwtToken(payload, "20s");
-		res.status(Constants.SUCCESS).send({token: token});
+		res.status(Constants.SUCCESS).send({ token: token });
 	} else if (hasElevatedPerms(payload)) {
 		// Get a new payload, and return the updated token
 		await getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
 			const token: string = generateJwtToken(newPayload, "20s");
 			const uri: string = `hackillinois://user?userToken=${token}`;
-			res.status(Constants.SUCCESS).send({id: targetUser, qrInfo: uri});
+			res.status(Constants.SUCCESS).send({ id: targetUser, qrInfo: uri });
 		}).catch( (error: string) => {
 			res.status(Constants.INTERNAL_ERROR).send(error);
 		});
@@ -71,7 +71,7 @@ userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 			res.status(Constants.INTERNAL_ERROR).send(error);
 		});
 	} else {
-		res.status(Constants.FORBIDDEN).send({error: "no valid auth provided!"});
+		res.status(Constants.FORBIDDEN).send({ error: "no valid auth provided!" });
 	}
 });
 
@@ -88,14 +88,14 @@ userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({error: "token not authorized to perform this!"});
+		res.status(Constants.FORBIDDEN).send({ error: "token not authorized to perform this!" });
 	}
 
 	// Get userData from the request, and print to output
 	const userData: UserFormat = req.body as UserFormat;
 
 	if (!userData.id|| !userData.email || !userData.firstname || !userData.lastname || !userData.username) {
-		res.status(Constants.BAD_REQUEST).send({error: "bad request!"});
+		res.status(Constants.BAD_REQUEST).send({ error: "bad request!" });
 		return;
 	}
 

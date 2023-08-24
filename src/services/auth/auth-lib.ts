@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection, ObjectId} from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -70,7 +70,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		}
 	}).catch((error: string) => {
 		console.log("get function failed inside getRoles!");
-		console.log(error);
+		console.error(error);
 	});
 
 	// No roles found for user -> initialize them
@@ -79,7 +79,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 			payload.roles = newRoles;
 		}).catch((error: string) => {
 			console.log("get function failed inside initializeRoles!");
-			console.log(error);
+			console.error(error);
 		});
 	}
 
@@ -99,19 +99,19 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	await getAuthInfo(targetUser).then((info: RolesSchema) => {
 		authInfo = info;
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 	});
 
 	// Fill in user info, used for email
 	await getUser(targetUser).then((info: UserSchema) => {
 		userInfo = info;
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 	});
 
 	// If either one does not exist, the info doesn't exist in the database. Throw error
 	if (!authInfo || !userInfo) {
-		return Promise.reject("Unable to get info from database!");
+		return Promise.reject("UserNotFound");
 	}
 
 	// Create and return new payload
@@ -161,13 +161,13 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
  */
 export function decodeJwtToken(token?: string): JwtPayload {
 	if (!token) {
-		throw new Error("no token provided!");
+		throw new Error("NoToken");
 	}
 
 	// Ensure that we have a secret to parse token
 	const secret: string | undefined = process.env.JWT_SECRET;
 	if (!secret) {
-		throw new Error("no secret to parse JWT token!");
+		throw new Error("NoSecret");
 	}
 
 	// Verify already ensures that the token isn't expired. If it is, it returns an error
@@ -200,7 +200,7 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 	}
 
 	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RolesSchema = {_id: new ObjectId(), id: id, provider: provider, roles: roles};
+	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 	await collection.insertOne(newUser);
 
@@ -216,17 +216,17 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 
 	try {
-		const info: RolesSchema | null = await collection.findOne({id: id}) as RolesSchema | null;
+		const info: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
 
 		// Null check to ensure that we're not returning anything null
 		if (!info) {
 			console.log("rejecting...");
-			return Promise.reject("User ID does not exist in the database!");
+			return Promise.reject("UserNotFound");
 		}
 
 		return info;
 	} catch {
-		return Promise.reject("Unable to get data from the database!");
+		return Promise.reject("InternalError");
 	}
 }
 
@@ -245,7 +245,7 @@ export async function getRoles(id: string): Promise<Role[]> {
 		return Promise.reject(error);
 	});
 
-	return roles ?? Promise.reject("User does not exist in database!");
+	return roles ?? Promise.reject("UserNotFound");
 }
 
 
@@ -261,15 +261,13 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 
 	// Get filter, representing operation to perform on mongoDB
 	switch (operation) {
-	case RoleOperation.ADD: filter = {"$addToSet": {"roles": role}}; break;
-	case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break;
-	default: return Promise.reject("no valid operation passed in");
+	case RoleOperation.ADD: filter = { "$addToSet": { "roles": role } }; break;
+	case RoleOperation.REMOVE: filter = { "$pull": { "roles": role } }; break;
 	}
 
-	// Appoly filter to roles collection, based on the operation
+	// Apply filter to roles collection, based on the operation
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	await collection.updateOne({id: userId}, filter);
-	return Promise.resolve();
+	await collection.updateOne({ id: userId }, filter);
 }
 
 

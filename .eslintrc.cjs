@@ -3,7 +3,7 @@ module.exports = {
     extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended-type-checked'],
     parser: '@typescript-eslint/parser',
     plugins: ['@typescript-eslint'],
-    ignorePatterns: ["temp.js", "**/docs/**"],
+    ignorePatterns: ["temp.js", "**/devdocs/**", "**/apidocs/**"],
     parserOptions: {
         project: true,
         tsconfigRootDir: __dirname
@@ -56,6 +56,7 @@ module.exports = {
         "new-parens": ["error", "always"],
         "no-multi-spaces": ["error"],
         "no-trailing-spaces": ["error", { "skipBlankLines": true, "ignoreComments": false }],
+        "object-curly-spacing": ["error", "always"],
         "quotes": ["error", "double"],
         "semi": ["error", "always"],
     }

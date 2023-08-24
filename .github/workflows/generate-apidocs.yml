@@ -1,22 +1,21 @@
-name: Generate Dev Documentation
+name: Generate API Documentation
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  release:
+    types: [published]
 jobs:
-  build:
+  build: 
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install modules
       run: yarn
-    - name: Generate dev docs
-      run: npm run docs
-    - name: Push dev docs
+    - name: Generate docs
+      run: npm run apidocs
+    - name: Push API docs
       uses: peaceiris/actions-gh-pages@v3
       with:
         personal_token: ${{ secrets.PERSONAL_TOKEN }}
-        external_repository: HackIllinois/adonix-dev-docs
+        external_repository: HackIllinois/adonix-api-docs
         publish_branch: main
-        publish_dir: ./devdocs/
+        publish_dir: ./apidocs/

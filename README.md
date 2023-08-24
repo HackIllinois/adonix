@@ -19,9 +19,39 @@ Official repository for API redesign.
 npm run start
 ```
 
-## To generate docs
+## To generate local developer docs
 
 ```
-npm run docs
+npm run devdocs
 ```
 (Can be accessed via the docs/index.html file)
+
+## To generate local endpoint docs
+```
+npm run apidocs
+```
+
+#### Default API Docs Documentation:
+
+```
+/**
+ * @api {<METHOD>} /<SERVICE>/<ENDPOINT>/ <Service Description>
+ * @apiName <SERVICE>
+ * @apiGroup <SUBSERVICE>
+ * 
+ * @apiBody {<TYPE>} <NAME> <DESC>
+ * @apiParamExample {json} Example Request:
+ * {<JSON BODY>}
+ * 
+ * @apiSuccess {<TYPE>} <NAME> <DESC>
+ * @apiSuccessExample Example Success Response:
+ *     HTTP/1.1 200 OK
+ *     {<JSON BODY>}
+ *
+ * @apiError <ERROR NAME> <CODE>: <DESC>
+ *
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 <EXAMPLE CODE> <EXAMPLE CODE MEANING>
+ *     {"error": "<ERROR MESSAGE>"}
+ */
+```

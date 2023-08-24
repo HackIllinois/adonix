@@ -5,7 +5,10 @@
   "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "docs": "npx typedoc --options typedoc.json --plugin typedoc-plugin-missing-exports",
+    "devdocs": "npx typedoc --options typedoc.json --plugin typedoc-plugin-missing-exports",
+    "apidocs": "apidoc -i . -o apidocs/",
+    "docs": "npm run devdocs && npm run apidocs",
+    "clean-docs": "rm -r apidocs/ devdocs/",
     "lint": "yarn run eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run lint && vercel dev"
@@ -44,6 +47,7 @@
     "@types/passport-strategy": "^0.2.35",
     "@typescript-eslint/eslint-plugin": "^6.2.1",
     "@typescript-eslint/parser": "^6.2.1",
+    "apidoc": "^1.2.0",
     "eslint": "^8.46.0",
     "typedoc": "^0.24.8",
     "typedoc-plugin-missing-exports": "^2.0.1",
