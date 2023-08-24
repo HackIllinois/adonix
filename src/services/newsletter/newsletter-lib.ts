@@ -22,7 +22,6 @@ export async function subscribeToNewsletter(request: Request, response: Response
 		response.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-
 	// Upsert to update the list - update document if possible, else add the document
 	try {
 		const newsletterCollection: Collection = await DatabaseHelper.getCollection("newsletters", "newsletters");
