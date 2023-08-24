@@ -265,7 +265,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 	case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break;
 	}
 
-	// Appoly filter to roles collection, based on the operation
+	// Apply filter to roles collection, based on the operation
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 	await collection.updateOne({id: userId}, filter);
 }
