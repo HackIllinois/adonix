@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction} from "express";
+import { Request, Response, NextFunction } from "express";
 import Constants from "../constants.js";
 import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
@@ -23,7 +23,7 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
-		res.status(Constants.BAD_REQUEST).send({error: "NoToken"});
+		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
 		next("route");
 	}
 
@@ -37,7 +37,7 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 			next("router");
 		} else {
 			console.error(error);
-			res.status(Constants.UNAUTHORIZED_REQUEST).send({error: "InvalidToken"});
+			res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "InvalidToken" });
 			next("router");
 		}
 	}

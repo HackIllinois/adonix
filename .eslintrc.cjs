@@ -56,6 +56,7 @@ module.exports = {
         "new-parens": ["error", "always"],
         "no-multi-spaces": ["error"],
         "no-trailing-spaces": ["error", { "skipBlankLines": true, "ignoreComments": false }],
+        "object-curly-spacing": ["error", "always"],
         "quotes": ["error", "double"],
         "semi": ["error", "always"],
     }

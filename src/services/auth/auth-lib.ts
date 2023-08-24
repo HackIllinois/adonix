@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection, ObjectId} from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -200,7 +200,7 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 	}
 
 	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RolesSchema = {_id: new ObjectId(), id: id, provider: provider, roles: roles};
+	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 	await collection.insertOne(newUser);
 
@@ -216,7 +216,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
 
 	try {
-		const info: RolesSchema | null = await collection.findOne({id: id}) as RolesSchema | null;
+		const info: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
 
 		// Null check to ensure that we're not returning anything null
 		if (!info) {
@@ -261,13 +261,13 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 
 	// Get filter, representing operation to perform on mongoDB
 	switch (operation) {
-	case RoleOperation.ADD: filter = {"$addToSet": {"roles": role}}; break;
-	case RoleOperation.REMOVE: filter = {"$pull": {"roles": role}}; break;
+	case RoleOperation.ADD: filter = { "$addToSet": { "roles": role } }; break;
+	case RoleOperation.REMOVE: filter = { "$pull": { "roles": role } }; break;
 	}
 
 	// Apply filter to roles collection, based on the operation
 	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	await collection.updateOne({id: userId}, filter);
+	await collection.updateOne({ id: userId }, filter);
 }
 
 

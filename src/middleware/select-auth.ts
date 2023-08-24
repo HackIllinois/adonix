@@ -4,8 +4,8 @@ import { AuthenticateOptions } from "passport";
 import { authenticateFunction } from "../services/auth/auth-lib.js";
 
 
-const googleOptions: AuthenticateOptions = {session: false, scope: [ "profile", "email" ]};
-const githubOptions: AuthenticateOptions = {session: false};
+const googleOptions: AuthenticateOptions = { session: false, scope: [ "profile", "email" ] };
+const githubOptions: AuthenticateOptions = { session: false };
 
 /**
  * Given a provider, return the middleware function corresponding to the handler

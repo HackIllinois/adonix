@@ -40,8 +40,8 @@ export async function updateUser(userData: UserFormat): Promise<void> {
 				email: userData.email,
 				firstname: userData.firstname,
 				lastname: userData.lastname,
-			}};
-		await collection.updateOne({id: userData.id}, updateFilter, {upsert: true});
+			} };
+		await collection.updateOne({ id: userData.id }, updateFilter, { upsert: true });
 	} catch (error) {
 		return Promise.reject(error as string);
 	}

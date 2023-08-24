@@ -19,18 +19,18 @@ export async function subscribeToNewsletter(request: Request, response: Response
 
 	// Verify that both parameters do exist
 	if (!listName || !emailAddress) {
-		response.status(Constants.BAD_REQUEST).send({error: "InvalidParams"});
+		response.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 
 	// Upsert to update the list - update document if possible, else add the document
 	try {
 		const newsletterCollection: Collection = await DatabaseHelper.getCollection("newsletters", "newsletters");
-		await newsletterCollection.updateOne({listName: listName}, {"$addToSet": {"subscribers": emailAddress}}, {upsert: true});
+		await newsletterCollection.updateOne({ listName: listName }, { "$addToSet": { "subscribers": emailAddress } }, { upsert: true });
 	} catch (error) {
-		response.status(Constants.BAD_REQUEST).send({error: "ListNotFound"});
+		response.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
 	}
 	
-	response.status(Constants.SUCCESS).send({status: "Successful"});
+	response.status(Constants.SUCCESS).send({ status: "Successful" });
 	return Promise.resolve();
 }

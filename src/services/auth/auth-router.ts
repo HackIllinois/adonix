@@ -150,7 +150,7 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
 			res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 		}).catch((error: Error) => {
 			console.error(error);
-			res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
+			res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
 		});
 	} else {
 		res.status(Constants.FORBIDDEN).send("Forbidden");
@@ -215,7 +215,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 		res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
 	}).catch((error: string) => {
 		console.error(error);
-		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound"});
+		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
 	});
 });
 
@@ -279,7 +279,7 @@ authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
 		res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 	}).catch((error: Error) => {
 		console.error(error);
-		res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
+		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
 	});
 });
 
