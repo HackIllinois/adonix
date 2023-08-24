@@ -99,7 +99,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 	await getJwtPayloadFromProfile(user.provider, data).then((parsedPayload: JwtPayload) => {
 		payload = parsedPayload;
 	}).catch((error: Error) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
 	});
 
@@ -149,7 +149,7 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
 			roles = targetRoles;
 			res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 		}).catch((error: Error) => {
-			console.log(error);
+			console.error(error);
 			res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
 		});
 	} else {
@@ -206,7 +206,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 
 	// Try to update roles, if possible
 	await updateRoles(data.id, role, op).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	});
 
@@ -214,7 +214,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 	await getRoles(data.id).then((roles: Role[]) => {
 		res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound"});
 	});
 });
@@ -278,7 +278,7 @@ authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
 	await getRoles(targetUser).then((roles: Role[]) => {
 		res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 	}).catch((error: Error) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
 	});
 });

@@ -70,7 +70,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		}
 	}).catch((error: string) => {
 		console.log("get function failed inside getRoles!");
-		console.log(error);
+		console.error(error);
 	});
 
 	// No roles found for user -> initialize them
@@ -79,7 +79,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 			payload.roles = newRoles;
 		}).catch((error: string) => {
 			console.log("get function failed inside initializeRoles!");
-			console.log(error);
+			console.error(error);
 		});
 	}
 
@@ -99,14 +99,14 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	await getAuthInfo(targetUser).then((info: RolesSchema) => {
 		authInfo = info;
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 	});
 
 	// Fill in user info, used for email
 	await getUser(targetUser).then((info: UserSchema) => {
 		userInfo = info;
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 	});
 
 	// If either one does not exist, the info doesn't exist in the database. Throw error

@@ -36,7 +36,7 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 			res.status(Constants.FORBIDDEN).send("TokenExpired");
 			next("router");
 		} else {
-			console.log(error);
+			console.error(error);
 			res.status(Constants.UNAUTHORIZED_REQUEST).send({error: "InvalidToken"});
 			next("router");
 		}

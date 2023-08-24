@@ -19,7 +19,7 @@ abstract class DatabaseHelper {
 
 		const client: MongoClient = new MongoClient(connectionString);
 		await client.connect().catch((error: Error) => {
-			console.log(error);
+			console.error(error);
 		});
 		
 		const database: Db = client.db(databaseName);
