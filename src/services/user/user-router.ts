@@ -12,9 +12,26 @@ import { getUser, updateUser } from "./user-lib.js";
 
 const userRouter: Router = Router();
 
+/**
+ * @api {get} /user/qr/ GET /user/qr/
+ * @apiGroup User
+ * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds, 
+ * we recommend that the results from this endpoint are not stored, but instead used immediately.
+ *
+ * @apiSuccess (200: Success) {String} id User to generate a QR code for 
+ * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the given user
 
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider000001",
+ * 		"qrinfo": "hackillinois://user?userToken=loremipsumdolorsitamet"
+ * 	}
+ *
+ * @apiUse verifyErrors
+ */
 userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
-	// Return the same payload, but with
+	// Return the same payload, but with a shorter expiration time
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const token: string = generateJwtToken(payload, "20s");
 	const uri: string = `hackillinois://user?userToken=${token}`;
@@ -22,6 +39,28 @@ userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
 });
 
 
+/**
+ * @api {get} /user/qr/:USERID/ GET /user/qr/:USERID/
+ * @apiGroup User
+ * @apiDescription Get a QR code with a pre-defined expiration for a particular user, provided that the JWT token's user has elevated perms. Since expiry is set to 20 seconds, 
+ * we recommend that the results from this endpoint are not stored, but instead used immediately.
+ *
+ * @apiParam {String} USERID to generate the QR code for.
+ * 
+ * @apiSuccess (200: Success) {String} id User to generate a QR code for 
+ * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the user to be used
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider000001",
+ * 		"qrinfo": "hackillinois://user?userToken=loremipsumdolorsitamet"
+ * 	}
+ *
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
+ * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
+ * @apiUse verifyErrors
+ */
 userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID as string;
 
@@ -37,7 +76,8 @@ userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => 
 	// Check if elevated -> if so, generate a new payload and return that one
 	if (payload.id == targetUser) {
 		const token: string = generateJwtToken(payload, "20s");
-		res.status(Constants.SUCCESS).send({ token: token });
+		const uri: string = `hackillinois://user?userToken=${token}`;
+		res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
 	} else if (hasElevatedPerms(payload)) {
 		// Get a new payload, and return the updated token
 		await getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
@@ -45,14 +85,39 @@ userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => 
 			const uri: string = `hackillinois://user?userToken=${token}`;
 			res.status(Constants.SUCCESS).send({ id: targetUser, qrInfo: uri });
 		}).catch( (error: string) => {
-			res.status(Constants.INTERNAL_ERROR).send(error);
+			console.error(error);
+			res.status(Constants.BAD_REQUEST).send("UserNotFound");
 		});
 	} else {
-		res.status(Constants.FORBIDDEN).send("Not authorized to perform this request!");
+		res.status(Constants.FORBIDDEN).send("Forbidden");
 	}
 });
 
 
+/**
+ * @api {get} /user/:USERID/ GET /user/:USERID/
+ * @apiGroup User
+ * @apiDescription Get user data for a particular user, provided that the JWT token's user has elevated perms.
+ * @apiParam {String} USERID to generate the QR code for.
+ *
+ * @apiSuccess (200: Success) {String} id UserID
+ * @apiSuccess (200: Success) {String} firstname User's first name.
+ * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+		"id": "provider00001",
+		"firstname": "john",
+		"lastname": "doe",
+		"email": "johndoe@provider.com"
+ * 	}
+ *
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
+ * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
+ * @apiUse verifyErrors
+ */
 userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 	// If no target user, exact same as next route
 	if (!req.params.USERID) {
@@ -76,6 +141,27 @@ userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 });
 
 
+/**
+ * @api {get} /user/ GET /user/
+ * @apiGroup User
+ * @apiDescription Get user data for the current user in the JWT token.
+ *
+ * @apiSuccess (200: Success) {String} id UserID
+ * @apiSuccess (200: Success) {String} firstname User's first name.
+ * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+		"id": "provider00001",
+		"firstname": "john",
+		"lastname": "doe",
+		"email": "johndoe@provider.com"
+ * 	}
+ *
+ * @apiUse verifyErrors
+ */
 userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 	// Get payload, return user's values
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -84,6 +170,39 @@ userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 });
 
 
+/**
+ * @api {post} /user/ POST /user/
+ * @apiGroup User
+ * @apiDescription Update a given user
+ *
+ * @apiBody {String} id UserID
+ * @apiBody {String} firstname User's first name.
+ * @apiBody {String} lastname User's last name.
+ * @apiBody {String} email Email address (staff gmail or Github email).
+ * @apiParamExample {json} Example Request: 
+ *	{
+		"id": "provider00001",
+		"firstname": "john",
+		"lastname": "doe",
+		"email": "johndoe@provider.com"
+ * 	}
+ * 
+ * @apiSuccess (200: Success) {String} id UserID
+ * @apiSuccess (200: Success) {String} firstname User's first name.
+ * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+		"id": "provider00001",
+		"firstname": "john",
+		"lastname": "doe",
+		"email": "johndoe@provider.com"
+ * 	}
+ *
+ * @apiUse verifyErrors
+ */
 userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -95,17 +214,19 @@ userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	const userData: UserFormat = req.body as UserFormat;
 
 	if (!userData.id|| !userData.email || !userData.firstname || !userData.lastname || !userData.username) {
-		res.status(Constants.BAD_REQUEST).send({ error: "bad request!" });
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 		return;
 	}
 
+	// Update the given user
 	await updateUser(userData);
 
 	// Return new value of the user
 	await getUser(userData.id).then((user: UserSchema) => {
 		res.status(Constants.SUCCESS).send(user);
 	}).catch((error: string) => {
-		res.status(Constants.INTERNAL_ERROR).send(error);
+		console.log(error);
+		res.status(Constants.INTERNAL_ERROR).send({error: "InternalError"});
 	});
 });
 
