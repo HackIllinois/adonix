@@ -33,25 +33,57 @@ npm run apidocs
 
 #### Default API Docs Documentation:
 
+Endpoints should be documented as such:
 ```
 /**
- * @api {<METHOD>} /<SERVICE>/<ENDPOINT>/ <Service Description>
- * @apiName <SERVICE>
- * @apiGroup <SUBSERVICE>
- * 
- * @apiBody {<TYPE>} <NAME> <DESC>
- * @apiParamExample {json} Example Request:
- * {<JSON BODY>}
- * 
- * @apiSuccess {<TYPE>} <NAME> <DESC>
+ * @api {METHOD} SERVICE/ENDPOINT SERVICE/ENDPOINT
+ * @apiGroup SERVICE
+ * @apiDescription SERVICE DESCRIPTION
+ *
+ * @apiParam {TYPE} PARAM1 DESC
+ * @apiParam {TYPE} PARAM2 DESC
+ * @apiParam {TYPE} PARAM3 DESC
+ *
+ * @apiSuccess (200: Success) {TYPE} NAME1 DESC
+ * @apiSuccess (200: Success) {TYPE} NAME2 DESC
+ * @apiSuccess (200: Success) {TYPE} NAME3 DESC
+
  * @apiSuccessExample Example Success Response:
- *     HTTP/1.1 200 OK
- *     {<JSON BODY>}
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"NAME1": VALUE1,
+ * 		"NAME2": VALUE2,
+ * 		"NAME3": VALUE3
+ * 	}
  *
- * @apiError <ERROR NAME> <CODE>: <DESC>
+ * @apiUse verifyErrors
+ * @apiError (CODE: DESC) {TYPE} ERROR1 DESC
+ * @apiError (CODE: DESC) {TYPE} ERROR2 DESC
+ * @apiError (CODE: DESC) {TYPE} ERROR3 DESC
+ */
+```
+
+
+Below is an example for the auth roles endpoint, to be used as a general guideline:
+```
+/**
+ * @api {get} /auth/roles/:USERID/ /auth/roles/:USERID/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user, provided that there is a JWT token and the token contains VALID credentials for the operation.
  *
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 <EXAMPLE CODE> <EXAMPLE CODE MEANING>
- *     {"error": "<ERROR MESSAGE>"}
+ * @apiParam {String} USERID Target user to get the roles of. Defaults to the user provided in the JWT token, if no user provided.
+ *
+ * @apiSuccess (200: Success) {String} id User ID.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the target user.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ *
+ * @apiUse verifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
+ * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
 ```
