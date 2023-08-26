@@ -15,10 +15,10 @@ const userRouter: Router = Router();
 /**
  * @api {get} /user/qr/ GET /user/qr/
  * @apiGroup User
- * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds, 
+ * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
  *
- * @apiSuccess (200: Success) {String} id User to generate a QR code for 
+ * @apiSuccess (200: Success) {String} id User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the given user
 
  * @apiSuccessExample Example Success Response:
@@ -165,8 +165,16 @@ userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 	// Get payload, return user's values
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
-	const user: UserSchema = await getUser(payload.id);
-	res.status(Constants.SUCCESS).send(user);
+	try {
+		const user: UserSchema = await getUser(payload.id);
+		res.status(Constants.SUCCESS).send(user);
+	} catch (error) {
+		if (error == "UserNotFound") {
+			res.status(Constants.BAD_REQUEST).send("UserNotFound");
+		}
+
+		res.status(Constants.INTERNAL_ERROR).send("InternalError");
+	}
 });
 
 
@@ -186,7 +194,7 @@ userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 		"lastname": "doe",
 		"email": "johndoe@provider.com"
  * 	}
- * 
+ *
  * @apiSuccess (200: Success) {String} id UserID
  * @apiSuccess (200: Success) {String} firstname User's first name.
  * @apiSuccess (200: Success) {String} lastname User's last name.
