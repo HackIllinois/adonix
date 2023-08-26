@@ -17,9 +17,9 @@ export async function getUser(userId: string): Promise<UserSchema> {
 		if (user) {
 			return user;
 		}
-		return Promise.reject("no such user found!");
+		return Promise.reject("UserNotFound");
 	} catch (error) {
-		return Promise.reject(error);
+		return Promise.reject("InternalError");
 	}
 }
 
@@ -43,8 +43,7 @@ export async function updateUser(userData: UserFormat): Promise<void> {
 			} };
 		await collection.updateOne({ id: userData.id }, updateFilter, { upsert: true });
 	} catch (error) {
-		return Promise.reject(error as string);
+		console.error(error);
+		return Promise.reject("InternalError");
 	}
-
-	return Promise.resolve();
 }

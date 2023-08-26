@@ -165,8 +165,16 @@ userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
 userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
 	// Get payload, return user's values
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
-	const user: UserSchema = await getUser(payload.id);
-	res.status(Constants.SUCCESS).send(user);
+	try {
+		const user: UserSchema = await getUser(payload.id);
+		res.status(Constants.SUCCESS).send(user);
+	} catch (error) {
+		if (error == "UserNotFound") {
+			res.status(Constants.BAD_REQUEST).send("UserNotFound");
+		}
+
+		res.status(Constants.INTERNAL_ERROR).send("InternalError");
+	}
 });
 
 
@@ -225,7 +233,7 @@ userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	await getUser(userData.id).then((user: UserSchema) => {
 		res.status(Constants.SUCCESS).send(user);
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({error: "InternalError"});
 	});
 });
