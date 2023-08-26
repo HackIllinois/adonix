@@ -6,6 +6,12 @@ import { MongoClient, Collection, Db } from "mongodb";
 abstract class DatabaseHelper {
 	private static databases: Map<string, Db> = new Map();
 
+	/**
+	 * Get a particular collection from the MongoDB. If connection does not exist, instantiate it.
+	 * @param databaseName Name of the database to pull from
+	 * @param collectionName Name of the collection to pull from
+	 * @returns Promise for a collection from a database.
+	 */
 	static async getCollection(databaseName: string, collectionName: string): Promise<Collection> {
 		const database: Db = this.databases?.get(databaseName) ?? await this.getDatabase(databaseName);
 		const targetCollection: Collection = database.collection(collectionName);
@@ -14,6 +20,11 @@ abstract class DatabaseHelper {
 		return targetCollection;
 	}
 
+	/**
+	 * Connect to a particular database from Mongo, if not already connected. If already connected, return database.
+	 * @param databaseName Database to instantiate.
+	 * @returns Promise for generation of a database.
+	 */
 	private static async getDatabase(databaseName: string): Promise<Db> {
 		const connectionString: string = this.getConnectionString();
 

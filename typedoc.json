@@ -7,6 +7,7 @@
         "src/services/newsletter/newsletter-lib.ts",
         "src/services/user/user-lib.ts",
         "src/utils.ts",
+        "src/database.ts",
         "src/constants.ts"
     ],
     "out": "devdocs"
