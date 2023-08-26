@@ -46,4 +46,6 @@ export async function updateUser(userData: UserFormat): Promise<void> {
 		console.error(error);
 		return Promise.reject("InternalError");
 	}
+
+	return Promise.resolve();
 }

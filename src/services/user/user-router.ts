@@ -15,10 +15,10 @@ const userRouter: Router = Router();
 /**
  * @api {get} /user/qr/ GET /user/qr/
  * @apiGroup User
- * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds, 
+ * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
  *
- * @apiSuccess (200: Success) {String} id User to generate a QR code for 
+ * @apiSuccess (200: Success) {String} id User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the given user
 
  * @apiSuccessExample Example Success Response:
@@ -42,12 +42,12 @@ userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
 /**
  * @api {get} /user/qr/:USERID/ GET /user/qr/:USERID/
  * @apiGroup User
- * @apiDescription Get a QR code with a pre-defined expiration for a particular user, provided that the JWT token's user has elevated perms. Since expiry is set to 20 seconds, 
+ * @apiDescription Get a QR code with a pre-defined expiration for a particular user, provided that the JWT token's user has elevated perms. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
  *
  * @apiParam {String} USERID to generate the QR code for.
- * 
- * @apiSuccess (200: Success) {String} id User to generate a QR code for 
+ *
+ * @apiSuccess (200: Success) {String} id User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the user to be used
 
  * @apiSuccessExample Example Success Response:
@@ -187,14 +187,14 @@ userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
  * @apiBody {String} firstname User's first name.
  * @apiBody {String} lastname User's last name.
  * @apiBody {String} email Email address (staff gmail or Github email).
- * @apiParamExample {json} Example Request: 
+ * @apiParamExample {json} Example Request:
  *	{
 		"id": "provider00001",
 		"firstname": "john",
 		"lastname": "doe",
 		"email": "johndoe@provider.com"
  * 	}
- * 
+ *
  * @apiSuccess (200: Success) {String} id UserID
  * @apiSuccess (200: Success) {String} firstname User's first name.
  * @apiSuccess (200: Success) {String} lastname User's last name.
@@ -234,7 +234,7 @@ userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 		res.status(Constants.SUCCESS).send(user);
 	}).catch((error: string) => {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({error: "InternalError"});
+		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	});
 });
 
