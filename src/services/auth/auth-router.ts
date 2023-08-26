@@ -40,7 +40,7 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 
 
 /**
- * @api {get} /auth/github/ /auth/github/
+ * @api {get} /auth/github/ GET /auth/github/
  * @apiName Github
  * @apiGroup Auth
  * @apiDescription Perform Github authentication for an attendee.
@@ -60,7 +60,7 @@ authRouter.get("/github/", SelectAuthProvider("github"));
 
 
 /**
- * @api {get} /auth/google/ /auth/google/
+ * @api {get} /auth/google/ GET /auth/google/
  * @apiName Google
  * @apiGroup Auth
  * @apiDescription Perform Google authentication for a staff member.
@@ -110,7 +110,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 
 
 /**
- * @api {get} /auth/roles/:USERID/ /auth/roles/:USERID/
+ * @api {get} /auth/roles/:USERID/ GET /auth/roles/:USERID/
  * @apiGroup Auth
  * @apiDescription Get the roles of a user, provided that there is a JWT token and the token contains VALID credentials for the operation.
  *
@@ -159,7 +159,7 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
 
 
 /**
- * @api {put} /auth/roles/:OPERATION/ /auth/roles/:OPERATION/
+ * @api {put} /auth/roles/:OPERATION/ PUT /auth/roles/:OPERATION/
  * @apiGroup Auth
  * @apiDescription Given an operation (ADD/REMOVE), perform this operation on the given user.
  *
@@ -221,7 +221,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
 
 
 /**
- * @api {get} /auth/list/roles/ /auth/list/roles/
+ * @api {get} /auth/list/roles/ GET /auth/list/roles/
  * @apiGroup Auth
  * @apiDescription List all the available roles.
  *
@@ -256,7 +256,7 @@ authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
 
 
 /**
- * @api {get} /auth/roles/ /auth/roles/
+ * @api {get} /auth/roles/ GET /auth/roles/
  * @apiGroup Auth
  * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
  *
@@ -284,7 +284,7 @@ authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
 });
 
 /**
- * @api {get} /auth/token/refresh/ /auth/token/refresh/
+ * @api {get} /auth/token/refresh/ GET /auth/token/refresh/
  * @apiGroup Auth
  * @apiDescription Refresh a JWT token - payload data stays consistent, but expiration date changes.
  *
