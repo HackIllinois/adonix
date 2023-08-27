@@ -107,6 +107,7 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 	const token: string = generateJwtToken(payload);
 
 	const redirectUrl: string = `hackillinois://auth/?token=${token}`;
+	console.log(redirectUrl);
 	res.redirect(redirectUrl);
 	// res.status(Constants.SUCCESS).send({ token: token });
 });
