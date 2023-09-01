@@ -5,8 +5,12 @@ import { authenticateFunction } from "../services/auth/auth-lib.js";
 import Constants from "../constants.js";
 
 
-const googleOptions: AuthenticateOptions = { session: false, scope: [ "profile", "email" ]};
-const githubOptions: AuthenticateOptions = { session: false};
+const googleOptions: AuthenticateOptions = { session: false, scope: [ "profile", "email" ] };
+const githubOptions: AuthenticateOptions = { session: false };
+
+type CustomOptions = AuthenticateOptions & {
+    callbackURL: string;
+};
 
 /**
  * Given a provider, return the middleware function corresponding to the handler
@@ -17,15 +21,16 @@ const githubOptions: AuthenticateOptions = { session: false};
  */
 export function SelectAuthProvider(provider: string, device: string): RequestHandler {
 	if (provider == "google") {
-		const options = { ...googleOptions, callbackURL: Constants.GOOGLE_OAUTH_CALLBACK }; // Create a copy of options to modify
+		const options: CustomOptions = { ...googleOptions, callbackURL: Constants.GOOGLE_OAUTH_CALLBACK };
+		options.callbackURL += `device=${device}`;
 		return authenticateFunction("google", options);
 	}
 
 	if (provider == "github") {
-		const options = { ...githubOptions, callbackURL: Constants.GITHUB_OAUTH_CALLBACK }; // Create a copy of options to modify
-		options.callbackURL += `device=${device}`
+		const options: CustomOptions = { ...githubOptions, callbackURL: Constants.GITHUB_OAUTH_CALLBACK };
+		options.callbackURL += `device=${device}`;
 
-		return authenticateFunction("github", options) as RequestHandler;
+		return authenticateFunction("github", options) ;
 	}
 	
 	throw new Error("Provider not found!");

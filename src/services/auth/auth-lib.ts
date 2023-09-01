@@ -41,7 +41,7 @@ export const authenticateFunction: AuthenticateFunction = (strategies: string | 
  * @param callback Function to verify if the actual authentication step worked
  * @returns Results of the callback function, after it's been called with the user
  */
-export const verifyFunction: VerifyFunction = async (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
+export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
 	// Data manipulation to store types of parsable inputs
 	return callback(null, user);
 };
@@ -295,7 +295,7 @@ export function hasElevatedPerms(payload: JwtPayload): boolean {
 
 /**
  * Given a string of the format device=DEVICENAME, verify that the string is actually valid and contains a device name.
- * @param k Key-value pair, representing the parameter. 
+ * @param k Key-value pair, representing the parameter.
  * @returns Device type if valid, else throws an error
  */
 export function getDevice(kv?: string): string {
@@ -303,10 +303,10 @@ export function getDevice(kv?: string): string {
 		throw new Error("NoInput");
 	}
 
-	const data: string[] = kv.split("=");
 
-	const key: string | undefined = data[0];
-	const value: string | undefined = data[1];
+	// Replace everything before/after the first equal with nothing, to get KV pairs
+	const key: string = kv.replace(/=.*/, "");
+	const value: string = kv.replace(/.*=/, "");
 
 	if (!key || key != "device") {
 		throw new Error("NoKey");
