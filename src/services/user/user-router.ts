@@ -233,7 +233,7 @@ userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
 	await getUser(userData.id).then((user: UserSchema) => {
 		res.status(Constants.SUCCESS).send(user);
 	}).catch((error: string) => {
-		console.log(error);
+		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	});
 });

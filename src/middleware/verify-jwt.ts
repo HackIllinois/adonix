@@ -32,7 +32,7 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 		next();
 	} catch (error) {
 		if (error instanceof jsonwebtoken.TokenExpiredError) {
-			console.log("token expired!");
+			console.error("token expired!");
 			res.status(Constants.FORBIDDEN).send("TokenExpired");
 			next("router");
 		} else {

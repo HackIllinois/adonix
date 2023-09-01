@@ -1,9 +1,11 @@
 import "dotenv";
-import passport from "passport";
+
 import { NextFunction } from "express-serve-static-core";
 import express, { Request, Response, Router } from "express";
+
+import passport from "passport";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
-import { Profile as GoogleProfile, Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
 import { Role } from "../../models.js";
 import Constants from "../../constants.js";
@@ -12,7 +14,7 @@ import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
 import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
-import { generateJwtToken, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
@@ -34,16 +36,17 @@ authRouter.use(express.urlencoded({ extended: false }));
 
 
 authRouter.get("/test/", (_: Request, res: Response) => {
-	console.log("Received log!");
 	res.end("Auth endpoint is working!");
 });
 
 
 /**
- * @api {get} /auth/github/ GET /auth/github/
+ * @api {get} /auth/login/github/ GET /auth/login/github/
  * @apiName Github
  * @apiGroup Auth
  * @apiDescription Perform Github authentication for an attendee.
+ *
+ * @apiQuery {String} device=web Type of the device to be passed in, can take on "web", "ios", and "android", but defaults to web.
  *
  * @apiSuccess (200: Success) {String} token JWT token of authenticated user
  * @apiSuccessExample Example Success Response:
@@ -51,47 +54,71 @@ authRouter.get("/test/", (_: Request, res: Response) => {
  *     {"token": "loremipsumdolorsitamet"}
  
  * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
+ * @apiError (400: Bad Request) {String} BadDevice An invalid device was passed in.
  * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-authRouter.get("/github/", SelectAuthProvider("github"));
+authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunction) => {
+	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
+	if (device && !Constants.DEVICE_LIST.includes(device)) {
+		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
+		return;
+	}
+	SelectAuthProvider("github", device)(req, res, next);
+});
 
 /**
- * @api {get} /auth/google/ GET /auth/google/
+ * @api {get} /auth/login/google/ GET /auth/login/google/
  * @apiName Google
  * @apiGroup Auth
  * @apiDescription Perform Google authentication for a staff member.
+ *
+ * @apiQuery {String} device=web Type of the device to be passed in, can take on "web", "ios", and "android", but defaults to web.
  *
  * @apiSuccess (200: Success) {String} token JWT token of authenticated user
  * @apiSuccessExample Example Success Response:
  *     HTTP/1.1 200 OK
  *     {"token": "loremipsumdolorsitamet"}
  *
+ * @apiError (400: Bad Request) {String} BadDevice An invalid device was passed in.
  * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
  * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-authRouter.get("/google/", SelectAuthProvider("google"));
+authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunction) => {
+	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
+
+	if (device && !Constants.DEVICE_LIST.includes(device)) {
+		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
+		return;
+	}
+	SelectAuthProvider("github", device)(req, res, next);
+});
 
 
-
-authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next: NextFunction) => {
 	const provider: string = req.params.PROVIDER ?? "";
-	SelectAuthProvider(provider)(req, res, next);
+	try {
+		const device: string = getDevice(req.params.DEVICE);
+		res.locals.device = device;
+		SelectAuthProvider(provider, device)(req, res, next);
+	} catch (error) {
+		console.error(error);
+	}
 }, async (req: Request, res: Response) => {
-	// Throw unauthorized if request isn't authenticated
 	if (!req.isAuthenticated()) {
 		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
 	}
 
-	// Data manipulation to store types of parsable inputs
+	const device: string = (res.locals.device ?? Constants.DEFAULT_DEVICE) as string;
 	const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
 	const data: ProfileData = user._json as ProfileData;
+
 	data.id = data.id ?? user.id;
 	let payload: JwtPayload | undefined = undefined;
 
@@ -105,11 +132,10 @@ authRouter.get("/:PROVIDER/callback/", (req: Request, res: Response, next: NextF
 
 	// Generate the token, and return it
 	const token: string = generateJwtToken(payload);
-
-	const redirectUrl: string = `hackillinois://auth/?token=${token}`;
-	console.log(redirectUrl);
-	res.redirect(redirectUrl);
-	// res.status(Constants.SUCCESS).send({ token: token });
+	const redirect: string = (Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT);
+	const url: string = `${redirect}token=${token}`;
+	console.log("Redirecting!", url);
+	res.redirect(url);
 });
 
 
