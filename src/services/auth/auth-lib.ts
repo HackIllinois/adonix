@@ -41,7 +41,8 @@ export const authenticateFunction: AuthenticateFunction = (strategies: string | 
  * @param callback Function to verify if the actual authentication step worked
  * @returns Results of the callback function, after it's been called with the user
  */
-export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
+export const verifyFunction: VerifyFunction = async (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
+	// Data manipulation to store types of parsable inputs
 	return callback(null, user);
 };
 
@@ -69,7 +70,6 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 			payload.roles = userRoles;
 		}
 	}).catch((error: string) => {
-		console.log("get function failed inside getRoles!");
 		console.error(error);
 	});
 
@@ -78,7 +78,6 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		await initializeRoles(userId, provider as Provider, email).then((newRoles: Role[]) => {
 			payload.roles = newRoles;
 		}).catch((error: string) => {
-			console.log("get function failed inside initializeRoles!");
 			console.error(error);
 		});
 	}
@@ -146,7 +145,6 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
 	const options: SignOptions = { };
 	const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
 	payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
-	console.log(payload.exp);
 
 	// Generate a token, and return it
 	const token: string = jsonwebtoken.sign(payload, secret, options);
@@ -176,13 +174,31 @@ export function decodeJwtToken(token?: string): JwtPayload {
 
 
 /**
- * Create an auth database entry for the current user
+ * Create an auth database entry for the current user. Should be called whenever a user is created.
  * @param id UserID to create the entry for
  * @param provider Provider being used to create this entry
  * @param email Email address of current user
  * @returns Promise, containing list of user roles if valid. If invalid, error containing why.
  */
 export async function initializeRoles(id: string, provider: Provider, email: string): Promise<Role[]> {
+	const roles: Role[] = defineUserRoles(provider, email);
+
+	// Create a new rolesEntry for the database, and insert it into the collection
+	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
+	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
+	await collection.insertOne(newUser);
+
+	return roles;
+}
+
+
+/**
+ * Function to define the very basic user roles that a user should have before getting access.
+ * @param provider Provider used to sign the user up
+ * @param email Email address that the user signed up with
+ * @returns List of roles that the uer containss
+ */
+export function defineUserRoles(provider: Provider, email: string): Role[] {
 	const roles: Role[] = [];
 
 	// Check if this is a staff email
@@ -199,13 +215,9 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 		roles.push(Role.USER);
 	}
 
-	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
-	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
-	await collection.insertOne(newUser);
-
 	return roles;
 }
+
 
 /**
  * Get auth database information for a given user
@@ -220,7 +232,6 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 		// Null check to ensure that we're not returning anything null
 		if (!info) {
-			console.log("rejecting...");
 			return Promise.reject("UserNotFound");
 		}
 
@@ -279,4 +290,31 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 export function hasElevatedPerms(payload: JwtPayload): boolean {
 	const roles: Role[] = payload.roles;
 	return roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+}
+
+
+/**
+ * Given a string of the format device=DEVICENAME, verify that the string is actually valid and contains a device name.
+ * @param k Key-value pair, representing the parameter. 
+ * @returns Device type if valid, else throws an error
+ */
+export function getDevice(kv?: string): string {
+	if (!kv) {
+		throw new Error("NoInput");
+	}
+
+	const data: string[] = kv.split("=");
+
+	const key: string | undefined = data[0];
+	const value: string | undefined = data[1];
+
+	if (!key || key != "device") {
+		throw new Error("NoKey");
+	}
+
+	if (!value || !Constants.DEVICE_LIST.includes(value) ) {
+		throw new Error("NoValue");
+	}
+
+	return value;
 }
