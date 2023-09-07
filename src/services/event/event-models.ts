@@ -18,7 +18,7 @@ export interface Event {
 	sponsor: string,
 	eventType: EVENT_TYPE,
 	points: number,
-	isAsync: boolean, 
+	isAsync: boolean,
 	isPrivate: boolean,
 	displayOnStaffCheckIn: boolean,
 }

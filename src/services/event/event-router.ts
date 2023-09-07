@@ -65,9 +65,9 @@ eventsRouter.get("/", async (_: Request, res: Response) => {
 	try {
 		// Get collection from the database, and return it as an array
 		const events: EventSchema[] = await collection.find().toArray() as EventSchema[];
-		res.status(Constants.SUCCESS).send({events:events})
+		res.status(Constants.SUCCESS).send({ events: events });
 	} catch {
-		res.status(Constants.INTERNAL_ERROR).send({error: "InternalError"})
+		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
