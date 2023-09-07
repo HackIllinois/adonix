@@ -5,6 +5,8 @@ import DatabaseHelper from "../../database.js";
 import { EventSchema } from "./event-schemas.js";
 import Constants from "../../constants.js";
 
+import { camelcaseEvent } from "./event-lib.js";
+
 const eventsRouter: Router = Router();
 
 /**
@@ -65,7 +67,7 @@ eventsRouter.get("/", async (_: Request, res: Response) => {
 	try {
 		// Get collection from the database, and return it as an array
 		const events: EventSchema[] = await collection.find().toArray() as EventSchema[];
-		res.status(Constants.SUCCESS).send({ events: events });
+		res.status(Constants.SUCCESS).send({ events: events.map(camelcaseEvent) });
 	} catch {
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}

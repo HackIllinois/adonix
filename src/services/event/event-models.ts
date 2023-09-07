@@ -1,4 +1,3 @@
-
 // Interface for the location of the event
 export interface Location {
 	description: string,
@@ -8,7 +7,23 @@ export interface Location {
 }
 
 // Interface for the actual event
-export interface Event {
+export interface UnfilteredEvent {
+	id: string,
+	name: string,
+	description: string,
+	starttime: number,
+	endtime: number,
+	locations: Location[],
+	sponsor: string,
+	eventtype: EVENT_TYPE,
+	points: number,
+	isasync: boolean,
+	isprivate: boolean,
+	displayonstaffcheckin: boolean,
+}
+
+// Interface for the actual event
+export interface FilteredEvent {
 	id: string,
 	name: string,
 	description: string,
