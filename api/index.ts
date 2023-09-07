@@ -7,6 +7,7 @@ import morgan from "morgan";
 import Constants from "../src/constants.js";
 import authRouter from "../src/services/auth/auth-router.js";
 import userRouter from "../src/services/user/user-router.js";
+import eventsRouter from "../src/services/event/event-router.js";
 import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 
 const app: Application = express();
@@ -25,6 +26,7 @@ if (env == "preview" || env == "production") {
 app.use("/auth/", authRouter);
 app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
+app.use("/events/", eventsRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
