@@ -97,7 +97,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 		return;
 	}
-	SelectAuthProvider("github", device)(req, res, next);
+	SelectAuthProvider("google", device)(req, res, next);
 });
 
 
