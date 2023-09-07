@@ -10,13 +10,32 @@ import { castLeaderboardEntries } from "./profile-lib.js";
 const eventsRouter: Router = Router();
 
 /**
- * @api {get} /event/ GET /event/
- * @apiName Event
- * @apiGroup Event
- * @apiDescription Get all the publicly-available events
+ * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
+ * @apiName Leaderboard
+ * @apiGroup Profile
+ * @apiDescription Get the top N profiles from the leaderboard, sorted by points.
  *
- * @apiSuccess (200: Success) {Json} events All publicly-facing events.
+ * @apiQuery {int} limit Number of profiles to return. If not provided, defaults to all profiles stored in the database.
+ *
+ *
+ * @apiSuccess (200: Success) {Json} profiles Specified number of profiles, sorted in descending point order.
  * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+    "profiles": [
+        {
+            "id": "profileid123456",
+            "points": 2021,
+            "discord": "patrick#1234"
+        },
+        {
+            "id": "profileid123456",
+            "points": 2021,
+            "discord": "patrick#1234"
+        },
+    ]
+ }
+
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
@@ -33,9 +52,6 @@ eventsRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 		if (limitString) {
 			const limit: number = parseInt(limitString);
 			leaderboardCursor = leaderboardCursor.limit(limit);
-			// leaderboardCursor = collection.find().sort({points: -1,}).limit(limit);
-		// } else {
-		// 	leaderboardCursor = collection.find().sort({points: -1,});
 		}
 
 		const leaderboardProfiles: LeaderboardSchema[] = await leaderboardCursor.toArray() as LeaderboardSchema[];
