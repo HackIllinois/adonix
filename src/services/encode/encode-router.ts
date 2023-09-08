@@ -19,7 +19,7 @@ encodeRouter.post("/encode", (req: Request, res: Response) => {
 
 	const ciphertext: string = CryptoJS.AES.encrypt(JSON.stringify({ data, time }), key).toString();
 
-	res.status(Constants.SUCCESS).send({ token: ciphertext });
+	res.status(Constants.SUCCESS).send({ token: ciphertext, context: {} });
 });
 
 encodeRouter.post("/decode", (req: Request, res: Response) => {

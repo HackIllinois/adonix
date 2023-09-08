@@ -5,6 +5,7 @@ export interface EncodeFormat {
 
 export interface DecodeToken {
 	token: string,
+	context: never,
 }
 export interface DecodeFormat {
 	data: EncodeFormat,
