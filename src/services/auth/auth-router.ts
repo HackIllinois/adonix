@@ -18,14 +18,14 @@ import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasEle
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
-	clientID: process.env.GITHUB_OAUTH_ID ?? "",
+	clientID: process.env.GITHUB_OAUTH_ID ?? "a",
 	clientSecret: process.env.GITHUB_OAUTH_SECRET ?? "",
 	callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
 }, verifyFunction));
 
 
 passport.use(Provider.GOOGLE, new GoogleStrategy({
-	clientID: process.env.GOOGLE_OAUTH_ID ?? "",
+	clientID: process.env.GOOGLE_OAUTH_ID ?? "a",
 	clientSecret: process.env.GOOGLE_OAUTH_SECRET ?? "",
 	callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
 }, verifyFunction));
@@ -52,7 +52,7 @@ authRouter.get("/test/", (_: Request, res: Response) => {
  * @apiSuccessExample Example Success Response:
  *     HTTP/1.1 200 OK
  *     {"token": "loremipsumdolorsitamet"}
- 
+
  * @apiError (400: Bad Request) {String} InvalidData User profile doesn't have enough data for JWT
  * @apiError (400: Bad Request) {String} BadDevice An invalid device was passed in.
  * @apiError (401: Unauthorized) {String} FailedAuth Invalid input passed in (missing name or email)
