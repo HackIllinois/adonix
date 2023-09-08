@@ -9,6 +9,7 @@ import authRouter from "../src/services/auth/auth-router.js";
 import userRouter from "../src/services/user/user-router.js";
 import eventRouter from "../src/services/event/event-router.js";
 import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
+import encodeRouter from "../src/services/encode/encode-router.js";
 
 const app: Application = express();
 
@@ -27,6 +28,7 @@ app.use("/auth/", authRouter);
 app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
+app.use("/", encodeRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
