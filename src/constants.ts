@@ -43,6 +43,9 @@ abstract class Constants {
 
 	// Conversions for datetimes
 	static readonly MILLISECONDS_PER_SECOND:number = 1000;
+	
+	// Constants for general usage
+	static readonly ZERO: number = 0;
 }
 
 export default Constants;

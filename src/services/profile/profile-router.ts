@@ -5,7 +5,7 @@ import { Collection, Document, FindCursor, WithId } from "mongodb";
 import Constants from "../../constants.js";
 import DatabaseHelper from "../../database.js";
 import { LeaderboardSchema } from "./profile-schemas.js";
-import { castLeaderboardEntries } from "./profile-lib.js";
+import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
 const eventsRouter: Router = Router();
 
@@ -36,10 +36,11 @@ const eventsRouter: Router = Router();
     ]
  }
 
+ * @apiError (400: Bad Request) {String} InvalidInput Invalid value passed in for limit (negative or zero).
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidInput"}
  */
 eventsRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 	const collection: Collection = await DatabaseHelper.getCollection("profile", "profiles");
@@ -51,14 +52,22 @@ eventsRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
 		if (limitString) {
 			const limit: number = parseInt(limitString);
+			
+			// If invalid limit - return InvalidInput
+			if (!isValidLimit(limit)) {
+				res.status(Constants.BAD_REQUEST).send({ error: "InvalidInput" });
+				return;
+			}
 			leaderboardCursor = leaderboardCursor.limit(limit);
 		}
 
+		// Return the profiles, after mapping them to simple leaderboard entries
 		const leaderboardProfiles: LeaderboardSchema[] = await leaderboardCursor.toArray() as LeaderboardSchema[];
-
 		res.status(Constants.SUCCESS).send({ profiles: leaderboardProfiles.map(castLeaderboardEntries) });
+		return;
 	} catch {
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return;
 	}
 });
 
