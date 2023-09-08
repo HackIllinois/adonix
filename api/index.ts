@@ -8,6 +8,7 @@ import Constants from "../src/constants.js";
 import authRouter from "../src/services/auth/auth-router.js";
 import userRouter from "../src/services/user/user-router.js";
 import eventRouter from "../src/services/event/event-router.js";
+import profileRouter from "../src/services/profile/profile-router.js";
 import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 
 const app: Application = express();
@@ -27,6 +28,7 @@ app.use("/auth/", authRouter);
 app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
+app.use("/profile/", profileRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
