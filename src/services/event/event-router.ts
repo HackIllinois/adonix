@@ -1,13 +1,18 @@
+import cors from "cors";
+
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 import { Collection } from "mongodb";
-import DatabaseHelper from "../../database.js";
-import { EventSchema } from "./event-schemas.js";
-import Constants from "../../constants.js";
 
+import Constants from "../../constants.js";
+import DatabaseHelper from "../../database.js";
+
+import { EventSchema } from "./event-schemas.js";
 import { camelcaseEvent } from "./event-lib.js";
 
+
 const eventsRouter: Router = Router();
+eventsRouter.use(cors({ origin: "*" }));
 
 /**
  * @api {get} /event/ GET /event/
