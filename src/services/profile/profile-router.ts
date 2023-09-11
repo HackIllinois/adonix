@@ -1,3 +1,4 @@
+import cors, { CorsOptions } from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, FindCursor, WithId } from "mongodb";
@@ -8,8 +9,8 @@ import { LeaderboardSchema } from "./profile-schemas.js";
 import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
 const profileRouter: Router = Router();
-
 profileRouter.use(cors({ origin: '*' }));
+
 
 /**
  * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
