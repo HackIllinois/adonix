@@ -3,7 +3,7 @@
     "entryPoints": [
         "api/index.ts",
         "src/middleware/select-auth.ts",
-        
+
         "src/services/auth/auth-lib.ts",
         "src/services/event/event-lib.ts",
         "src/services/newsletter/newsletter-lib.ts",
