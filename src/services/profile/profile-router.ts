@@ -7,7 +7,9 @@ import DatabaseHelper from "../../database.js";
 import { LeaderboardSchema } from "./profile-schemas.js";
 import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
-const eventsRouter: Router = Router();
+const profileRouter: Router = Router();
+
+profileRouter.use(cors({ origin: '*' }));
 
 /**
  * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
@@ -42,7 +44,7 @@ const eventsRouter: Router = Router();
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidInput"}
  */
-eventsRouter.get("/leaderboard/", async (req: Request, res: Response) => {
+profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 	const collection: Collection = await DatabaseHelper.getCollection("profile", "profiles");
 	const limitString: string | undefined = req.query.limit as string | undefined;
 
@@ -72,4 +74,4 @@ eventsRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 });
 
 
-export default eventsRouter;
+export default profileRouter;
