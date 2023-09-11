@@ -1,4 +1,4 @@
-import cors, { CorsOptions } from "cors";
+import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, FindCursor, WithId } from "mongodb";
