@@ -9,7 +9,7 @@ import { LeaderboardSchema } from "./profile-schemas.js";
 import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
 const profileRouter: Router = Router();
-profileRouter.use(cors({ origin: '*' }));
+profileRouter.use(cors({ origin: "*" }));
 
 
 /**

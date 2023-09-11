@@ -1,8 +1,6 @@
 import "dotenv";
-import express, { Application, Request, Response } from "express";
-
-import helmet from "helmet";
 import morgan from "morgan";
+import express, { Application, Request, Response } from "express";
 
 import Constants from "../src/constants.js";
 import authRouter from "../src/services/auth/auth-router.js";
