@@ -14,7 +14,7 @@ import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 const app: Application = express();
 
 // Utility packages (detailed in the readme)
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
 
 // Use express.json only if we're not running locally
