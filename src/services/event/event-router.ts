@@ -5,7 +5,7 @@ import { Response } from "express-serve-static-core";
 import { Collection } from "mongodb";
 
 import Constants from "../../constants.js";
-import DatabaseHelper from "../../database.js";
+import databaseClient from "../../database.js";
 
 import { EventSchema } from "./event-schemas.js";
 import { camelcaseEvent } from "./event-lib.js";
@@ -67,7 +67,7 @@ eventsRouter.use(cors({ origin: "*" }));
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/", async (_: Request, res: Response) => {
-	const collection: Collection = await DatabaseHelper.getCollection("event", "events");
+	const collection: Collection = databaseClient.db("event").collection("events");
 
 	try {
 		// Get collection from the database, and return it as an array

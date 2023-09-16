@@ -1,57 +1,20 @@
 import "dotenv";
-import { MongoClient, Collection, Db } from "mongodb";
+import { MongoClient } from "mongodb";
 
-//  TODO: Add in documentation
+const username: string | undefined = process.env.DB_USERNAME;
+const password: string | undefined = process.env.DB_PASSWORD;
+const server: string | undefined = process.env.DB_SERVER;
 
-abstract class DatabaseHelper {
-	private static databases: Map<string, Db> = new Map();
-
-	/**
-	 * Get a particular collection from the MongoDB. If connection does not exist, instantiate it.
-	 * @param databaseName Name of the database to pull from
-	 * @param collectionName Name of the collection to pull from
-	 * @returns Promise for a collection from a database.
-	 */
-	static async getCollection(databaseName: string, collectionName: string): Promise<Collection> {
-		const database: Db = this.databases?.get(databaseName) ?? await this.getDatabase(databaseName);
-		const targetCollection: Collection = database.collection(collectionName);
-
-		console.log(`Successfully connected to collection: ${targetCollection.collectionName}`);
-		return targetCollection;
-	}
-
-	/**
-	 * Connect to a particular database from Mongo, if not already connected. If already connected, return database.
-	 * @param databaseName Database to instantiate.
-	 * @returns Promise for generation of a database.
-	 */
-	private static async getDatabase(databaseName: string): Promise<Db> {
-		const connectionString: string = this.getConnectionString();
-
-		const client: MongoClient = new MongoClient(connectionString);
-		await client.connect().catch((error: Error) => {
-			console.error(error);
-		});
-		
-		const database: Db = client.db(databaseName);
-		this.databases.set(databaseName, database);
-
-		console.log(`Successfully connected to database: ${database.databaseName}`);
-		return database;
-	}
-
-	private static getConnectionString():string {
-		const user:string | undefined = process.env.DB_USERNAME;
-		const pass:string | undefined = process.env.DB_PASSWORD;
-		const server:string | undefined = process.env.DB_SERVER;
-
-		if (!user || !pass || !server) {
-			throw new Error("login values not provided in .env file!");
-		}
-
-		const connectionString:string = `mongodb+srv://${user}:${pass}@${server}/?retryWrites=true&w=majority`;
-		return connectionString;
-	}
+const credInfo: string = (username) ? `${encodeURIComponent(username)}:${encodeURIComponent(password || "")}@` : "";
+if (!server) {
+	throw new Error("server URI not provided in .env file!");
 }
 
-export default DatabaseHelper;
+const uri = `mongodb+srv://${credInfo}${server}`;
+
+const client = new MongoClient(uri, {
+	retryWrites: true,
+	w: "majority",
+});
+
+export default client;

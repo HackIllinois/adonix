@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import Constants from "../../constants.js";
 
 import { Collection } from "mongodb";
-import DatabaseHelper from "../../database.js";
+import databaseClient from "../../database.js";
 import { SubscribeRequest } from "./newsletter-formats.js";
 
 
@@ -24,7 +24,7 @@ export async function subscribeToNewsletter(request: Request, response: Response
 
 	// Upsert to update the list - update document if possible, else add the document
 	try {
-		const newsletterCollection: Collection = await DatabaseHelper.getCollection("newsletters", "newsletters");
+		const newsletterCollection: Collection = databaseClient.db("newsletters").collection("newsletters");
 		await newsletterCollection.updateOne({ listName: listName }, { "$addToSet": { "subscribers": emailAddress } }, { upsert: true });
 	} catch (error) {
 		response.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
