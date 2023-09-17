@@ -46,10 +46,10 @@ export type GenericEvent = PrivateEvent | PublicEvent;
 // Enum representing the type of the event
 // MEAL, SPEAKER, WORKSHOP, MINIEVENT, QNA, or OTHER
 export enum EVENT_TYPE {
-	MEAL = "meal",
-	SPEAKER = "speaker",
-	WORKSHOP = "workshop",
-	MINIEVENT = "minievent",
-	QNA = "qna",
-	OTHER = "other",
+	MEAL = "MEAL",
+	SPEAKER = "SPEAKER",
+	WORKSHOP = "WORKSHOP",
+	MINIEVENT = "MINIEVENT",
+	QNA = "QNA",
+	OTHER = "OTHER",
 }
