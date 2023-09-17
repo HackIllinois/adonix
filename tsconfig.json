@@ -31,11 +31,11 @@
         "noUnusedParameters": true
     },
     "include": [
-        "./**/*.ts"
-    ],
+        "./**/*.ts",
+     ],
     "exclude": [
         "node_modules/**",
         "doc/",
-        "docs/"
+        "docs/",
     ]
 }
