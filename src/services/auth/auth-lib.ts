@@ -5,13 +5,12 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import DatabaseHelper from "../../database.js";
 
 
 import { RolesSchema } from "./auth-schemas.js";
-import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { JwtPayload, Provider, ProfileData, Role, RoleOperation } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";

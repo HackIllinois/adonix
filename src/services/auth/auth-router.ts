@@ -7,13 +7,12 @@ import passport from "passport";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
-import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
+import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
 import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 
 
