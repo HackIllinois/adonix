@@ -13,7 +13,8 @@ abstract class Constants {
 
 	// URLs
 	private static readonly ADMIN_DEVICE:string = "admin";
-	private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
+	// private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
+	private static readonly ADMIN_REDIRECT:string = "localhost:3000/auth/";
 
 	private static readonly WEB_DEVICE:string = "web";
 	private static readonly WEB_REDIRECT:string = "https://www.hackillinois.org/auth/";
