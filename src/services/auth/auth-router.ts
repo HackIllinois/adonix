@@ -9,7 +9,7 @@ import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-g
 
 import { Role } from "../../models.js";
 import Constants from "../../constants.js";
-import { verifyJwt } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
@@ -159,7 +159,7 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
-authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) => {
+authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID;
 
 	// Check if we have a user to get roles for - if not, get roles for current user
@@ -209,7 +209,7 @@ authRouter.get("/roles/:USERID", verifyJwt, async (req: Request, res: Response) 
  * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
  * @apiUse verifyErrors
  */
-authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Response) => {
+authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Not authenticated with modify roles perms
@@ -267,7 +267,7 @@ authRouter.put("/roles/:OPERATION/", verifyJwt, async (req: Request, res: Respon
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
  */
-authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
+authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Check if current user should be able to access all roles
@@ -301,7 +301,7 @@ authRouter.get("/list/roles/", verifyJwt, (_: Request, res: Response) => {
  *
  * @apiUse verifyErrors
  */
-authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
+authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const targetUser: string = payload.id;
 
@@ -327,7 +327,7 @@ authRouter.get("/roles/", verifyJwt, async (_: Request, res: Response) => {
  *
  * @apiUse verifyErrors
  */
-authRouter.get("/token/refresh", verifyJwt, async (_: Request, res: Response) => {
+authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response) => {
 	// Get old data from token
 	const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
 	const data: ProfileData = {

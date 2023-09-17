@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 
 import Constants from "../../constants.js";
-import { verifyJwt } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms } from "../auth/auth-lib.js";
@@ -30,7 +30,7 @@ const userRouter: Router = Router();
  *
  * @apiUse verifyErrors
  */
-userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
+userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
 	// Return the same payload, but with a shorter expiration time
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	const token: string = generateJwtToken(payload, "20s");
@@ -61,7 +61,7 @@ userRouter.get("/qr/", verifyJwt, (_: Request, res: Response) => {
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse verifyErrors
  */
-userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => {
+userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID as string;
 
 	// If target user -> redirect to base function
@@ -118,7 +118,7 @@ userRouter.get("/qr/:USERID", verifyJwt, async (req: Request, res: Response) => 
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse verifyErrors
  */
-userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
+userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
 	// If no target user, exact same as next route
 	if (!req.params.USERID) {
 		res.redirect("/");
@@ -162,7 +162,7 @@ userRouter.get("/:USERID", verifyJwt, async (req: Request, res: Response) => {
  *
  * @apiUse verifyErrors
  */
-userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
+userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
 	// Get payload, return user's values
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	try {
@@ -211,7 +211,7 @@ userRouter.get("/", verifyJwt, async (_: Request, res: Response) => {
  *
  * @apiUse verifyErrors
  */
-userRouter.post("/", verifyJwt, async (req: Request, res: Response) => {
+userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
 	if (!hasElevatedPerms(token)) {

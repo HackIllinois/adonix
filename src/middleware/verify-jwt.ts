@@ -19,7 +19,7 @@ import jsonwebtoken from "jsonwebtoken";
  *     {"error": "NoToken"}
  */
 
-export function verifyJwt(req: Request, res: Response, next: NextFunction): void {
+export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
@@ -42,3 +42,17 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 		}
 	}
 }
+
+
+export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
+	const token: string | undefined = req.headers.authorization;
+
+	try {
+		res.locals.payload = decodeJwtToken(token);
+		next();
+	} catch (error) {
+		console.error(error);
+		next();
+	}
+}
+ 

@@ -1,25 +1,31 @@
-import { FilteredEvent, UnfilteredEvent } from "./event-models";
+import { BaseEvent, GenericEvent, PrivateEvent } from "./event-models";
+
 
 /**
  * Convert a noncamelcased event into a more camelcased event
- * @param event Uncapitalized event to convert into camelcase
+ * @param baseEvent Uncapitalized event to convert into camelcase
  * @returns Camelcased event
  */
-export function camelcaseEvent(event: UnfilteredEvent): FilteredEvent {
-	const newEvent: FilteredEvent = {
-		id: event.id,
-		name: event.name,
-		description: event.description,
-		startTime: event.starttime,
-		endTime: event.endtime,
-		locations: event.locations,
-		sponsor: event.sponsor,
-		eventType: event.eventtype,
-		points: event.points,
-		isAsync: event.isasync,
-		isPrivate: event.isprivate,
-		displayOnStaffCheckIn: event.displayonstaffcheckin,
+export function camelcaseEvent(baseEvent: BaseEvent, hasElevatedPerms: boolean): GenericEvent {
+	const base: GenericEvent = {
+		id: baseEvent.id,
+		name: baseEvent.name,
+		description: baseEvent.description,
+		startTime: baseEvent.starttime,
+		endTime: baseEvent.endtime,
+		locations: baseEvent.locations,
+		sponsor: baseEvent.sponsor,
+		eventType: baseEvent.eventtype,
+		points: baseEvent.points,
+		isAsync: baseEvent.isasync,
 	};
 
-	return newEvent;
+	if (hasElevatedPerms) {
+		const newEvent: PrivateEvent = base as PrivateEvent;
+		newEvent.isPrivate = baseEvent.isprivate;
+		newEvent.displayOnStaffCheckIn = baseEvent.displayonstaffcheckin;
+		return newEvent;
+	}
+
+	return base;
 }
