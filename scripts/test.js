@@ -1,4 +1,4 @@
-import open from "open"
+import open from "open";
 import inquirer from "inquirer";
 
 // Options for auth token generation
@@ -10,9 +10,9 @@ const options = [
 		choices: [
 			"Attendee (Github)",
 			"Staff (Google)",
-			"Exit"
-		]
-	}
+			"Exit",
+		],
+	},
 ];
 
 
@@ -20,16 +20,16 @@ const options = [
 async function processChoice(choice) {
 	let provider;
 	switch (choice) {
-		case "Attendee (Github)":
-			provider = "github";
-			break;
-		case "Staff (Google)":
-			provider = "google";
-			break;
-		default:
-			return;
+	case "Attendee (Github)":
+		provider = "github";
+		break;
+	case "Staff (Google)":
+		provider = "google";
+		break;
+	default:
+		return;
 	}
-	await open(`https://adonix.hackillinois.org/auth/login/${provider}/?device=dev`)
+	await open(`https://adonix.hackillinois.org/auth/login/${provider}/?device=dev`);
 }
 
 
@@ -37,8 +37,12 @@ async function processChoice(choice) {
 async function main() {
 	inquirer
 		.prompt(options)
-		.then(async answers => { await processChoice(answers.choice); })
-		.catch(error => { console.error(error); });
+		.then(async (answers) => {
+			await processChoice(answers.choice);
+		})
+		.catch((error) => {
+			console.error(error);
+		});
 }
 
 await main();

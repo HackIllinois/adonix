@@ -46,8 +46,8 @@ authRouter.get("/dev/", (req: Request, res: Response) => {
 		res.status(Constants.BAD_REQUEST).send( { error: "NoToken" });
 	}
 
-	res.status(Constants.SUCCESS).send( {token: token} );
-})
+	res.status(Constants.SUCCESS).send( { token: token } );
+});
 
 /**
  * @api {get} /auth/login/github/ GET /auth/login/github/
