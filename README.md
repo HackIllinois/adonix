@@ -56,7 +56,7 @@ Endpoints should be documented as such:
  * 		"NAME3": VALUE3
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  * @apiError (CODE: DESC) {TYPE} ERROR1 DESC
  * @apiError (CODE: DESC) {TYPE} ERROR2 DESC
  * @apiError (CODE: DESC) {TYPE} ERROR3 DESC
@@ -82,7 +82,7 @@ Below is an example for the auth roles endpoint, to be used as a general guideli
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */

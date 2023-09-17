@@ -1,7 +1,7 @@
 import { Document, ObjectId, WithId } from "mongodb";
-import { UnfilteredEvent } from "./event-models";
+import { BaseEvent } from "./event-models";
 
 // Schema for each MongoDB
-export interface EventSchema extends UnfilteredEvent, WithId<Document>{
+export interface EventSchema extends BaseEvent, WithId<Document>{
 	_id: ObjectId
 }
