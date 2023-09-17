@@ -63,7 +63,7 @@ eventsRouter.use(cors({ origin: "*" }));
 				}
 		  ]
    }
- *  
+ *
  * @apiUse weakVerifyErrors
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
