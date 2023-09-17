@@ -22,7 +22,6 @@ eventsRouter.use(cors({ origin: "*" }));
  * @apiName Event
  * @apiGroup Event
  * @apiDescription Get all the publicly-available events
- *
  * @apiSuccess (200: Success) {Json} events All publicly-facing events.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -64,6 +63,8 @@ eventsRouter.use(cors({ origin: "*" }));
 				}
 		  ]
    }
+ *  
+ * @apiUse weakVerifyErrors
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error

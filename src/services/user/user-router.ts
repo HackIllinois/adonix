@@ -28,7 +28,7 @@ const userRouter: Router = Router();
  * 		"qrinfo": "hackillinois://user?userToken=loremipsumdolorsitamet"
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
 	// Return the same payload, but with a shorter expiration time
@@ -59,7 +59,7 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
  *
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
 	const targetUser: string | undefined = req.params.USERID as string;
@@ -116,7 +116,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  *
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
 	// If no target user, exact same as next route
@@ -160,7 +160,7 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 		"email": "johndoe@provider.com"
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
 	// Get payload, return user's values
@@ -209,7 +209,7 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
 		"email": "johndoe@provider.com"
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;

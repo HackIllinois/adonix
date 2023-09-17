@@ -155,7 +155,7 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
@@ -207,7 +207,7 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist, to perform these operations on.
  * @apiError (400: Bad Request) {String} InvalidOperation Invalid (non-ADD and non-REMOVE) operation passed in.
  * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -263,7 +263,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
  */
@@ -299,7 +299,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
  * 		"roles": ["Admin", "Staff", "Mentor"]
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -325,7 +325,7 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * 		"token": "loremipsumdolorsitamet"
  * 	}
  *
- * @apiUse verifyErrors
+ * @apiUse strongVerifyErrors
  */
 authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response) => {
 	// Get old data from token

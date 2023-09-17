@@ -4,7 +4,7 @@ import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
 
 /**
- * @apiDefine verifyErrors
+ * @apiDefine strongVerifyErrors
  * @apiHeader  {String} Authorization JWT token.
  * @apiHeaderExample {json} Example Headers:
  *     {"Authorization": "loremipsumdolorsitamet"}
@@ -18,7 +18,6 @@ import jsonwebtoken from "jsonwebtoken";
  *     HTTP/1.1 400 Bad Request
  *     {"error": "NoToken"}
  */
-
 export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
 	const token: string | undefined = req.headers.authorization;
 
@@ -44,6 +43,12 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
 }
 
 
+/**
+ * @apiDefine weakVerifyErrors
+ * @apiHeader  {String} Authorization JWT token.
+ * @apiHeaderExample {json} Example Headers:
+ *     {"Authorization": "loremipsumdolorsitamet"}
+ */
 export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
 	const token: string | undefined = req.headers.authorization;
 
