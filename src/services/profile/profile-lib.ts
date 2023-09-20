@@ -1,6 +1,7 @@
 import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models";
 
+
 /**
  * Remove non-necessary fields from a leaderboardentry item
  * @param initial Initial entry with extra items
@@ -14,6 +15,7 @@ export function castLeaderboardEntries(initial: LeaderboardEntry): LeaderboardEn
 	};
 	return final;
 }
+
 
 /**
  * Check if the limit is valid or not

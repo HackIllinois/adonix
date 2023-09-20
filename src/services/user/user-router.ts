@@ -10,7 +10,9 @@ import { UserSchema } from "./user-schemas.js";
 import { UserFormat } from "./user-formats.js";
 import { getUser, updateUser } from "./user-lib.js";
 
+
 const userRouter: Router = Router();
+
 
 /**
  * @api {get} /user/qr/ GET /user/qr/
