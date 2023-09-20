@@ -74,4 +74,5 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 	}
 });
 
+
 export default profileRouter;
