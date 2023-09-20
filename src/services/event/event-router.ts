@@ -234,12 +234,6 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(Constants.EVENT_EVENTS);
 
-	const updateFilter: UpdateFilter<PrivateEventSchema> = {
-		$set: {
-			...eventFormat,
-		},
-	};
-
 	// Try to update the database, if possivle
 	try {
 		await collection.insertOne(eventFormat);
@@ -269,7 +263,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiParam {string} eventType The type of the event.
  * @apiParam {number} points The points associated with the event.
  * @apiParam {boolean} isAsync Indicates whether the event is asynchronous.
- * 
+ *
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event.
  * @apiSuccessExample Example Success Response:
@@ -331,7 +325,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 
 	// Try to update the database, if possivle
 	try {
-		await collection.updateOne(updateFilter, eventFormat, {upsert: true});
+		await collection.updateOne(updateFilter, eventFormat, { upsert: true });
 		res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
