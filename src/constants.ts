@@ -16,6 +16,12 @@ abstract class Constants {
 	// private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
 	private static readonly ADMIN_REDIRECT:string = "http://localhost:3000/auth/";
 
+  private static readonly DEV_DEVICE:string = "dev";
+	private static readonly DEV_REDIRECT:string = "https://adonix.hackillinois.org/auth/dev/";
+
+	private static readonly IOS_DEVICE:string = "ios";
+	private static readonly IOS_REDIRECT:string = "hackillinois://login/";
+
 	private static readonly WEB_DEVICE:string = "web";
 	private static readonly WEB_REDIRECT:string = "https://www.hackillinois.org/auth/";
 
@@ -34,6 +40,7 @@ abstract class Constants {
 		[ this.IOS_DEVICE, this.IOS_REDIRECT ],
 		[ this.ANDROID_DEVICE, this.ANDROID_REDIRECT ],
 		[ this.DEFAULT_DEVICE, this.DEFAULT_REDIRECT ],
+		[ this.DEV_DEVICE, this.DEV_REDIRECT ],
 	]);
 
 	static readonly GITHUB_OAUTH_CALLBACK:string = "https://adonix.hackillinois.org/auth/github/callback/";

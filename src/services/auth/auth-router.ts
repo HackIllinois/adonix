@@ -39,6 +39,15 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 });
 
 
+authRouter.get("/dev/", (req: Request, res: Response) => {
+	const token: string | undefined = req.query.token as string | undefined;
+	if (!token) {
+		res.status(Constants.BAD_REQUEST).send( { error: "NoToken" });
+	}
+
+	res.status(Constants.SUCCESS).send( { token: token } );
+});
+
 /**
  * @api {get} /auth/login/github/ GET /auth/login/github/
  * @apiName Github

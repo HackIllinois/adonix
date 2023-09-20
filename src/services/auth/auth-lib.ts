@@ -6,7 +6,7 @@ import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
 import Constants from "../../constants.js";
-import DatabaseHelper from "../../database.js";
+import databaseClient from "../../database.js";
 
 
 import { RolesSchema } from "./auth-schemas.js";
@@ -184,7 +184,7 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 
 	// Create a new rolesEntry for the database, and insert it into the collection
 	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
-	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
+	const collection: Collection = databaseClient.db("auth").collection("roles");
 	await collection.insertOne(newUser);
 
 	return roles;
@@ -224,7 +224,7 @@ export function defineUserRoles(provider: Provider, email: string): Role[] {
  * @returns Promise containing user, provider, email, and roles if valid. If invalid, error containing why.
  */
 export async function getAuthInfo(id: string): Promise<RolesSchema> {
-	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
+	const collection: Collection = databaseClient.db("auth").collection("roles");
 
 	try {
 		const info: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
@@ -276,7 +276,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 	}
 
 	// Apply filter to roles collection, based on the operation
-	const collection: Collection = await DatabaseHelper.getCollection("auth", "roles");
+	const collection: Collection = databaseClient.db("auth").collection("roles");
 	await collection.updateOne({ id: userId }, filter);
 }
 
