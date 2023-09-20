@@ -4,7 +4,7 @@ import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
 
 /**
- * @apiDefine verifyErrors
+ * @apiDefine strongVerifyErrors
  * @apiHeader  {String} Authorization JWT token.
  * @apiHeaderExample {json} Example Headers:
  *     {"Authorization": "loremipsumdolorsitamet"}
@@ -18,8 +18,7 @@ import jsonwebtoken from "jsonwebtoken";
  *     HTTP/1.1 400 Bad Request
  *     {"error": "NoToken"}
  */
-
-export function verifyJwt(req: Request, res: Response, next: NextFunction): void {
+export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
@@ -42,3 +41,23 @@ export function verifyJwt(req: Request, res: Response, next: NextFunction): void
 		}
 	}
 }
+
+
+/**
+ * @apiDefine weakVerifyErrors
+ * @apiHeader  {String} Authorization JWT token.
+ * @apiHeaderExample {json} Example Headers:
+ *     {"Authorization": "loremipsumdolorsitamet"}
+ */
+export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
+	const token: string | undefined = req.headers.authorization;
+
+	try {
+		res.locals.payload = decodeJwtToken(token);
+		next();
+	} catch (error) {
+		console.error(error);
+		next();
+	}
+}
+ 

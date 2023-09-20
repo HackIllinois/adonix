@@ -287,7 +287,11 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
  * @param payload Payload of user performing the actual request
  * @returns True if the user is an ADMIN or a STAFF, else false
  */
-export function hasElevatedPerms(payload: JwtPayload): boolean {
+export function hasElevatedPerms(payload: JwtPayload | undefined): boolean {
+	if (!payload) {
+		return false;
+	}
+	
 	const roles: Role[] = payload.roles;
 	return roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
 }

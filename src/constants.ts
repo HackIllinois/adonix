@@ -12,6 +12,9 @@ abstract class Constants {
 	static readonly INTERNAL_ERROR:number = 500;
 
 	// URLs
+	private static readonly DEV_DEVICE:string = "dev";
+	private static readonly DEV_REDIRECT:string = "https://adonix.hackillinois.org/auth/dev/";
+
 	private static readonly IOS_DEVICE:string = "ios";
 	private static readonly IOS_REDIRECT:string = "hackillinois://login/";
 
@@ -29,9 +32,10 @@ abstract class Constants {
 		[ this.IOS_DEVICE, this.IOS_REDIRECT ],
 		[ this.ANDROID_DEVICE, this.ANDROID_REDIRECT ],
 		[ this.DEFAULT_DEVICE, this.DEFAULT_REDIRECT ],
+		[ this.DEV_DEVICE, this.DEV_REDIRECT ],
 	]);
 
-	static readonly DEVICE_LIST: string[] = [ this.IOS_DEVICE, this.ANDROID_DEVICE, this.WEB_DEVICE, this.DEFAULT_DEVICE ];
+	static readonly DEVICE_LIST: string[] = [ this.IOS_DEVICE, this.ANDROID_DEVICE, this.WEB_DEVICE, this.DEFAULT_DEVICE, this.DEV_DEVICE ];
 
 	static readonly GITHUB_OAUTH_CALLBACK:string = "https://adonix.hackillinois.org/auth/github/callback/";
 	// static readonly GITHUB_OAUTH_CALLBACK:string = "http://localhost:3000/auth/github/callback/";

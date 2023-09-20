@@ -49,6 +49,8 @@
     "@typescript-eslint/parser": "^6.2.1",
     "apidoc": "^1.2.0",
     "eslint": "^8.46.0",
+    "inquirer": "^9.2.11",
+    "open": "^9.1.0",
     "typedoc": "^0.24.8",
     "typedoc-plugin-missing-exports": "^2.0.1",
     "typescript": "^5.1.6"
