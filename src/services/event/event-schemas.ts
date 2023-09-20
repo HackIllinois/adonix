@@ -1,7 +1,11 @@
 import { Document, ObjectId, WithId } from "mongodb";
-import { BaseEvent } from "./event-models";
+import { PrivateEvent, PublicEvent } from "./event-models";
 
 // Schema for each MongoDB
-export interface EventSchema extends BaseEvent, WithId<Document>{
+export interface PrivateEventSchema extends PrivateEvent, WithId<Document>{
+	_id: ObjectId
+}
+
+export interface PublicEventSchema extends PublicEvent, WithId<Document> {
 	_id: ObjectId
 }
