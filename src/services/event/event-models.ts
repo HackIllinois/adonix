@@ -1,3 +1,4 @@
+
 // Interface for the location of the event
 export interface Location {
 	description: string,
@@ -7,7 +8,7 @@ export interface Location {
 }
 
 // Interface for the actual event
-export interface BaseEvent {
+export interface PublicEvent {
 	id: string,
 	name: string,
 	description: string,
@@ -20,13 +21,11 @@ export interface BaseEvent {
 	isAsync: boolean,
 }
 
-export interface PublicEvent extends BaseEvent {
-}
-
-export interface PrivateEvent extends BaseEvent {
+export interface PrivateEvent extends PublicEvent {
 	isPrivate: boolean,
 	displayOnStaffCheckIn: boolean,
 }
+
 
 // Enum representing the type of the event
 // MEAL, SPEAKER, WORKSHOP, MINIEVENT, QNA, or OTHER
