@@ -24,7 +24,7 @@ export async function subscribeToNewsletter(request: Request, response: Response
 
 	// Upsert to update the list - update document if possible, else add the document
 	try {
-		const newsletterCollection: Collection = databaseClient.db("newsletters").collection("newsletters");
+		const newsletterCollection: Collection = databaseClient.db("newsletter").collection("newsletters");
 		await newsletterCollection.updateOne({ listName: listName }, { "$addToSet": { "subscribers": emailAddress } }, { upsert: true });
 	} catch (error) {
 		response.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
