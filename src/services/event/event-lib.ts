@@ -1,32 +1,25 @@
-import { BaseEvent, GenericEvent, PrivateEvent } from "./event-models";
+import { PublicEvent, BaseEvent } from "./event-models";
 
 
 /**
- * Convert a noncamelcased event into a more camelcased event
- * @param baseEvent Uncapitalized event to convert into camelcase
- * @param hasElevatedPerms Whether or not the results are going to an elevated user (display private events?)
- * @returns Camelcased event
+ * Truncates a PrivateEvent object to create a PublicEvent by omitting
+ * the 'isPrivate' and 'displayOnStaffCheckIn' properties.
+ *
+ * @param {PrivateEvent} privateEvent - The PrivateEvent object to truncate.
+ * @returns {PublicEvent} The truncated PublicEvent object.
  */
-export function camelcaseEvent(baseEvent: BaseEvent, hasElevatedPerms: boolean): GenericEvent {
-	const base: GenericEvent = {
-		id: baseEvent.id,
-		name: baseEvent.name,
-		description: baseEvent.description,
-		startTime: baseEvent.starttime,
-		endTime: baseEvent.endtime,
-		locations: baseEvent.locations,
-		sponsor: baseEvent.sponsor,
-		eventType: baseEvent.eventtype,
-		points: baseEvent.points,
-		isAsync: baseEvent.isasync,
+export function truncateToPublicEvent(privateEvent: BaseEvent): PublicEvent {
+	const publicEvent: PublicEvent = {
+		id: privateEvent.id,
+		name: privateEvent.name,
+		description: privateEvent.description,
+		startTime: privateEvent.startTime,
+		endTime: privateEvent.endTime,
+		locations: privateEvent.locations,
+		sponsor: privateEvent.sponsor,
+		eventType: privateEvent.eventType,
+		points: privateEvent.points,
+		isAsync: privateEvent.isAsync,
 	};
-
-	if (hasElevatedPerms) {
-		const newEvent: PrivateEvent = base as PrivateEvent;
-		newEvent.isPrivate = baseEvent.isprivate;
-		newEvent.displayOnStaffCheckIn = baseEvent.displayonstaffcheckin;
-		return newEvent;
-	}
-
-	return base;
+	return publicEvent;
 }

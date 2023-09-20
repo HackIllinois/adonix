@@ -6,24 +6,9 @@ export interface Location {
 	longitude: number,
 }
 
-// Interface for the actual event
-export interface BaseEvent {
-	id: string,
-	name: string,
-	description: string,
-	starttime: number,
-	endtime: number,
-	locations: Location[],
-	sponsor: string,
-	eventtype: EVENT_TYPE,
-	points: number,
-	isasync: boolean,
-	isprivate: boolean,
-	displayonstaffcheckin: boolean,
-}
 
 // Interface for the actual event
-export interface PublicEvent {
+export interface BaseEvent {
 	id: string,
 	name: string,
 	description: string,
@@ -36,12 +21,13 @@ export interface PublicEvent {
 	isAsync: boolean,
 }
 
-export interface PrivateEvent extends PublicEvent {
+export interface PublicEvent extends BaseEvent {
+}
+
+export interface PrivateEvent extends BaseEvent {
 	isPrivate: boolean,
 	displayOnStaffCheckIn: boolean,
 }
-
-export type GenericEvent = PrivateEvent | PublicEvent;
 
 // Enum representing the type of the event
 // MEAL, SPEAKER, WORKSHOP, MINIEVENT, QNA, or OTHER
