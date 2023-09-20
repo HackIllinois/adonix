@@ -1,11 +1,11 @@
 import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
-import { Collection, Document, Filter } from "mongodb";
+import { Collection, Document, Filter, UpdateFilter } from "mongodb";
 
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
-import { weakJwtVerification } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
@@ -13,6 +13,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
 import { truncateToPublicEvent } from "./event-lib.js";
 import { PrivateEvent, PublicEvent } from "./event-models.js";
+import { EventFormat, isEventFormat } from "./event-formats.js";
 
 
 const eventsRouter: Router = Router();
@@ -71,7 +72,7 @@ eventsRouter.get("/:EVENTID", weakJwtVerification, async (req: Request, res: Res
 	try {
 		const isElevated: boolean = hasElevatedPerms(res.locals.payload as JwtPayload | undefined);
 		const event: PublicEventSchema = await collection.findOne({ id: eventId }) as PublicEventSchema;
-		
+
 		if (event.isPrivate) {
 			// If event is private and we're elevated, return the event -> else, return forbidden
 			if (isElevated) {
@@ -159,6 +160,87 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
+
+
+/**
+ * @api {post} /event/ POST /event/
+ * @apiName Create or Update Event
+ * @apiGroup Event
+ * @apiDescription Create a new event or update an existing event.
+ *
+ * @apiParam {Json} eventFormat The event data to create or update.
+ *
+ * @apiSuccess (200: Success) {Json} event The created or updated event.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP"
+ *   }
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "DatabaseError"}
+ */
+eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+	const token: JwtPayload = res.locals.payload as JwtPayload;
+
+	// Check if the token has elevated permissions
+	if (!hasElevatedPerms(token)) {
+		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
+
+
+	// Verify that the input format is valid to create a new event or update it
+	const eventFormat: EventFormat = req.body as EventFormat;
+	if (!isEventFormat(eventFormat)) {
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(Constants.EVENT_EVENTS);
+
+	const updateFilter: UpdateFilter<PrivateEventSchema> = {
+		$set: {
+			...eventFormat,
+		},
+	};
+
+	// Try to update the database, if possivle
+	try {
+		await collection.insertOne(eventFormat);
+		res.status(Constants.SUCCESS).send({ ...eventFormat });
+	} catch (error) {
+		console.error(error);
+		res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+	}
+});
+
+
+
 
 
 
