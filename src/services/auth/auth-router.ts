@@ -72,7 +72,7 @@ authRouter.get("/dev/", (req: Request, res: Response) => {
 authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunction) => {
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
-	if (device && !Constants.DEVICE_LIST.includes(device)) {
+	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
 		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 		return;
 	}
@@ -102,7 +102,7 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
 authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunction) => {
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
-	if (device && !Constants.DEVICE_LIST.includes(device)) {
+	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
 		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 		return;
 	}
