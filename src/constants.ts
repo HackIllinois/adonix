@@ -35,10 +35,7 @@ abstract class Constants {
 		[ this.DEV_DEVICE, this.DEV_REDIRECT ],
 	]);
 
-	static readonly DEVICE_LIST: string[] = [ this.IOS_DEVICE, this.ANDROID_DEVICE, this.WEB_DEVICE, this.DEFAULT_DEVICE, this.DEV_DEVICE ];
-
 	static readonly GITHUB_OAUTH_CALLBACK:string = "https://adonix.hackillinois.org/auth/github/callback/";
-	// static readonly GITHUB_OAUTH_CALLBACK:string = "http://localhost:3000/auth/github/callback/";
 	static readonly GOOGLE_OAUTH_CALLBACK:string = "https://adonix.hackillinois.org/auth/google/callback/";
 
 	static readonly SYSTEM_ADMIN_LIST:string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
