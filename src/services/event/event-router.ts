@@ -4,7 +4,7 @@ import { Response } from "express-serve-static-core";
 import { Collection, Document, Filter } from "mongodb";
 
 import Constants from "../../constants.js";
-import DatabaseHelper from "../../database.js";
+import databaseClient from "../../database.js";
 import { weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { EventSchema } from "./event-schemas.js";
@@ -71,7 +71,7 @@ eventsRouter.use(cors({ origin: "*" }));
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
-	const collection: Collection = await DatabaseHelper.getCollection("event", "events");
+	const collection: Collection = databaseClient.db("event").collection("events");
 
 	try {
 		// Check if we have a JWT token passed in, and use that to define the query cursor
