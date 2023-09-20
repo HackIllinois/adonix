@@ -1,9 +1,8 @@
 import "dotenv";
 
+import passport from "passport";
 import { NextFunction } from "express-serve-static-core";
 import express, { Request, Response, Router } from "express";
-
-import passport from "passport";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 

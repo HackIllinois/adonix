@@ -9,7 +9,6 @@ import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
-
 import { RolesSchema } from "./auth-schemas.js";
 import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
@@ -45,6 +44,7 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
 	// Data manipulation to store types of parsable inputs
 	return callback(null, user);
 };
+
 
 /**
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
@@ -85,6 +85,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	return payload;
 }
 
+
 /**
  * Get a JWT payload for a user, from database. Perform an auth query and an users query, which are used in an implicit join.
  * @param targetUser UserID of the user to return a JWT payload for.
@@ -123,6 +124,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 
 	return newPayload;
 }
+
 
 /**
  * Create the token, assign an expiry date, and sign it
