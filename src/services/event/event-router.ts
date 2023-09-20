@@ -168,7 +168,18 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
- * @apiParam {Json} eventFormat The event data to create or update.
+ * @apiParam {boolean} isPrivate Indicates whether the event is private.
+ * @apiParam {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiParam {string} id The unique identifier of the event.
+ * @apiParam {string} name The name of the event.
+ * @apiParam {string} description A description of the event.
+ * @apiParam {number} startTime The start time of the event.
+ * @apiParam {number} endTime The end time of the event.
+ * @apiParam {Location[]} locations An array of locations associated with the event.
+ * @apiParam {string} sponsor The sponsor of the event.
+ * @apiParam {string} eventType The type of the event.
+ * @apiParam {number} points The points associated with the event.
+ * @apiParam {boolean} isAsync Indicates whether the event is asynchronous.
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event.
  * @apiSuccessExample Example Success Response:
@@ -240,6 +251,93 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 });
 
 
+/**
+ * @api {put} /event/ PUT /event/
+ * @apiName Create or Update Event
+ * @apiGroup Event
+ * @apiDescription Create a new event or update an existing event.
+ *
+ * @apiParam {boolean} isPrivate Indicates whether the event is private.
+ * @apiParam {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiParam {string} id The unique identifier of the event.
+ * @apiParam {string} name The name of the event.
+ * @apiParam {string} description A description of the event.
+ * @apiParam {number} startTime The start time of the event.
+ * @apiParam {number} endTime The end time of the event.
+ * @apiParam {Location[]} locations An array of locations associated with the event.
+ * @apiParam {string} sponsor The sponsor of the event.
+ * @apiParam {string} eventType The type of the event.
+ * @apiParam {number} points The points associated with the event.
+ * @apiParam {boolean} isAsync Indicates whether the event is asynchronous.
+ * 
+ *
+ * @apiSuccess (200: Success) {Json} event The created or updated event.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP"
+ *   }
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "DatabaseError"}
+ */
+eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
+	const token: JwtPayload = res.locals.payload as JwtPayload;
+
+	// Check if the token has elevated permissions
+	if (!hasElevatedPerms(token)) {
+		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
+
+	// Verify that the input format is valid to create a new event or update it
+	const eventFormat: EventFormat = req.body as EventFormat;
+	if (!isEventFormat(eventFormat)) {
+		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(Constants.EVENT_EVENTS);
+
+	const updateFilter: UpdateFilter<PrivateEventSchema> = {
+		$set: {
+			...eventFormat,
+		},
+	};
+
+	// Try to update the database, if possivle
+	try {
+		await collection.updateOne(updateFilter, eventFormat, {upsert: true});
+		res.status(Constants.SUCCESS).send({ ...eventFormat });
+	} catch (error) {
+		console.error(error);
+		res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+	}
+});
 
 
 
