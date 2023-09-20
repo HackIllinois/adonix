@@ -316,7 +316,7 @@ export function getDevice(kv?: string): string {
 		throw new Error("NoKey");
 	}
 
-	if (!value || !Constants.DEVICE_LIST.includes(value) ) {
+	if (!value || !Constants.REDIRECT_MAPPINGS.has(value) ) {
 		throw new Error("NoValue");
 	}
 
