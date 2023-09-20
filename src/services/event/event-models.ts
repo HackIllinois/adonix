@@ -6,7 +6,6 @@ export interface Location {
 	longitude: number,
 }
 
-
 // Interface for the actual event
 export interface BaseEvent {
 	id: string,
