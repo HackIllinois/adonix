@@ -167,8 +167,9 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	const token: JwtPayload | undefined = res.locals.payload as JwtPayload;
 	const attendanceFormat: AttendanceFormat = req.body as AttendanceFormat;
 
+	// Only staff can mark themselves as attending these events
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidPermission" });
+		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
 	if (!isAttendanceFormat) {
