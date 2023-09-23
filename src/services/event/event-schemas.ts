@@ -18,3 +18,8 @@ export enum EventDB {
 	FAVORITES = "favorites",
 	USER_TRACKERS = "usertrackers",
 }
+
+// Collections within the staff database
+export enum StaffDB {
+	ATTENDANCE = "attendance",
+}
