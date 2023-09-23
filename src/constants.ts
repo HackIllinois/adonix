@@ -50,7 +50,6 @@ abstract class Constants {
 
 	// Constants for database names
 	static readonly EVENT_DB: string = "event";
-	static readonly EVENT_EVENTS: string = "events";
 }
 
 export default Constants;
