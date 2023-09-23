@@ -27,7 +27,6 @@ export interface EventFormat {
  */
 export function isEventFormat(obj: EventFormat): boolean {
 	if (
-		typeof obj !== "object" ||
 		typeof obj.isPrivate !== "boolean" ||
 		typeof obj.displayOnStaffCheckIn !== "boolean" ||
 		typeof obj.id !== "string" ||
@@ -64,6 +63,17 @@ export function isEventFormat(obj: EventFormat): boolean {
 	) {
 		return false;
 	}
-	console.log("D");
 	return true;
+}
+
+
+
+export interface AttendanceFormat {
+	staffId: string,
+	eventId: string,
+}
+
+
+export function isAttendanceFormat(obj: AttendanceFormat): boolean {
+	return (typeof obj.staffId === "string" && typeof obj.eventId == "string");
 }

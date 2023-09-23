@@ -53,6 +53,7 @@ abstract class Constants {
 	static readonly EVENT_DB: string = "event";
 	static readonly NEWSLETTER_DB: string = "newsletter";
 	static readonly PROFILE_DB: string = "profile";
+	static readonly STAFF_DB: string = "user";
 	static readonly USER_DB: string = "user";
 }
 
