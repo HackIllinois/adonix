@@ -5,7 +5,7 @@ import { Collection, Document, FindCursor, WithId } from "mongodb";
 
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
-import { LeaderboardSchema } from "./profile-schemas.js";
+import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
 import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
 const profileRouter: Router = Router();
@@ -46,7 +46,7 @@ profileRouter.use(cors({ origin: "*" }));
  *     {"error": "InvalidInput"}
  */
 profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db("profile").collection("profiles");
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 	const limitString: string | undefined = req.query.limit as string | undefined;
 
 	try {

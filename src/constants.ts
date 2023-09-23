@@ -52,6 +52,7 @@ abstract class Constants {
 	static readonly AUTH_DB: string = "auth";
 	static readonly EVENT_DB: string = "event";
 	static readonly NEWSLETTER_DB: string = "newsletter";
+	static readonly PROFILE_DB: string = "profile";
 }
 
 export default Constants;
