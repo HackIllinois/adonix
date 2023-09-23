@@ -7,3 +7,8 @@ export interface NewsletterSchema extends WithId<Document> {
 	listName: string,
 	subscribers: string[]
 }
+
+// Collections within the newsletter database
+export enum NewsletterDB {
+	NEWSLETTERS = "newsletters"
+}
