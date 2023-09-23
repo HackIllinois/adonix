@@ -10,6 +10,7 @@ export interface PublicEventSchema extends PublicEvent, WithId<Document> {
 	_id: ObjectId
 }
 
+// Collections within the "event" database
 export enum EventDB {
 	EVENT_CODES = "eventcodes",
 	EVENTS = "events",

@@ -8,3 +8,8 @@ export interface RolesSchema extends WithId<Document> {
 	provider: Provider,
 	roles: string[]
 }
+
+// Collections within the auth database
+export enum AuthDB {
+	ROLES = "roles",
+}

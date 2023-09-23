@@ -49,6 +49,7 @@ abstract class Constants {
 	static readonly ZERO: number = 0;
 
 	// Constants for database names
+	static readonly AUTH_DB: string = "auth";
 	static readonly EVENT_DB: string = "event";
 }
 
