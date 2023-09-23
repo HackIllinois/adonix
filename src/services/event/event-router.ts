@@ -10,7 +10,7 @@ import { strongJwtVerification, weakJwtVerification } from "../../middleware/ver
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
+import { EventDB, PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
 import { truncateToPublicEvent } from "./event-lib.js";
 import { PrivateEvent, PublicEvent } from "./event-models.js";
 import { EventFormat, isEventFormat } from "./event-formats.js";
@@ -62,7 +62,7 @@ eventsRouter.use(cors({ origin: "*" }));
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/:EVENTID", weakJwtVerification, async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db("event").collection("events");
+	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
 	const eventId: string | undefined = req.params.EVENTID;
 
 	if (!eventId) {
@@ -232,7 +232,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(Constants.EVENT_EVENTS);
+	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
 
 	// Try to update the database, if possivle
 	try {
@@ -315,7 +315,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(Constants.EVENT_EVENTS);
+	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
 
 	const updateFilter: UpdateFilter<PrivateEventSchema> = {
 		$set: {
@@ -332,6 +332,8 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
 	}
 });
+
+
 
 
 
