@@ -134,6 +134,35 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 });
 
 
+/**
+ * @api {post} /event/staff/attendance/ POST /event/staff/attendance/
+ * @apiName Record Staff Attendance
+ * @apiGroup Event
+ * @apiDescription Record staff attendance for an event.
+ *
+ * @apiHeader {String} Authorization JWT Token with elevated permissions.
+ *
+ * @apiBody {String} eventId The unique identifier of the event.
+ * @apiBody {String} staffId The unique identifier of the staff member.
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {}
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
 eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload | undefined = res.locals.payload as JwtPayload;
 	const attendanceFormat: AttendanceFormat = req.body as AttendanceFormat;
