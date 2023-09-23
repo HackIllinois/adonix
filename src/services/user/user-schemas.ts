@@ -8,3 +8,8 @@ export interface UserSchema extends WithId<Document> {
 	lastName: string,
 	email: string
 }
+
+// Collections within the user database
+export enum UserDB {
+	INFO = "info",
+}
