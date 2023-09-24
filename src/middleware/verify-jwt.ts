@@ -19,26 +19,22 @@ import jsonwebtoken from "jsonwebtoken";
  *     {"error": "NoToken"}
  */
 export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
-	console.log("inhere!");
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
-		console.log("in error!")
 		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
 		next("router");
 	}
-	console.log("moving on")
 
 	try {
 		res.locals.payload = decodeJwtToken(token);
 		next();
 	} catch (error) {
+		console.error(error);
 		if (error instanceof jsonwebtoken.TokenExpiredError) {
-			console.error("token expired!");
 			res.status(Constants.FORBIDDEN).send("TokenExpired");
 			next("router");
 		} else {
-			console.error(error);
 			res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "InvalidToken" });
 			next("router");
 		}
