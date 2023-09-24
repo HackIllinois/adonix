@@ -143,7 +143,6 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiHeader {String} Authorization JWT Token with elevated permissions.
  *
  * @apiBody {String} eventId The unique identifier of the event.
- * @apiBody {String} staffId The unique identifier of the staff member.
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -279,27 +278,36 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiBody {number} points The points associated with the event.
  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
  *
- * @apiSuccess (200: Success) {Json} event The created or updated event.
+ * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
+ * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiSuccess {string} id The unique identifier of the event.
+ * @apiSuccess {string} name The name of the event.
+ * @apiSuccess {string} description A description of the event.
+ * @apiSuccess {number} startTime The start time of the event.
+ * @apiSuccess {number} endTime The end time of the event.
+ * @apiSuccess {Location[]} locations An array of locations associated with the event.
+ * @apiSuccess {string} sponsor The sponsor of the event.
+ * @apiSuccess {string} eventType The type of the event.
+ * @apiSuccess {number} points The points associated with the event.
+ * @apiSuccess {boolean} isAsync Indicates whether the event is asynchronous.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
- *   "event": {
- *     "id": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "Example Event 10",
- *     "description": "This is a description",
- *     "startTime": 1532202702,
- *     "endTime": 1532212702,
- *     "locations": [
- *       {
- *         "description": "Example Location",
- *         "tags": ["SIEBEL0", "ECEB1"],
- *         "latitude": 40.1138,
- *         "longitude": -88.2249
- *       }
- *     ],
- *     "sponsor": "Example sponsor",
- *     "eventType": "WORKSHOP"
- *   }
+*     "id": "52fdfc072182654f163f5f0f9a621d72",
+*     "name": "Example Event 10",
+*     "description": "This is a description",
+*     "startTime": 1532202702,
+*     "endTime": 1532212702,
+*     "locations": [
+*       {
+*         "description": "Example Location",
+*         "tags": ["SIEBEL0", "ECEB1"],
+*         "latitude": 40.1138,
+*         "longitude": -88.2249
+*       }
+*     ],
+*     "sponsor": "Example sponsor",
+*     "eventType": "WORKSHOP"
  * }
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
