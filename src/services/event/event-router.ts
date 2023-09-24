@@ -13,7 +13,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { EventDB, StaffDB, PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
 import { truncateToPublicEvent } from "./event-lib.js";
 import { PrivateEvent, PublicEvent } from "./event-models.js";
-import { EventFormat, isEventFormat } from "./event-formats.js";
+import { AttendanceFormat, EventFormat, isEventFormat } from "./event-formats.js";
 
 
 const eventsRouter: Router = Router();
@@ -165,7 +165,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload | undefined = res.locals.payload as JwtPayload;
 	
-	const eventId: string | undefined = req.body.eventId;
+	const eventId: string | undefined = (req.body as AttendanceFormat).eventId ;
 
 	// Only staff can mark themselves as attending these events
 	if (!hasElevatedPerms(token)) {

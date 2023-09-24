@@ -65,3 +65,7 @@ export function isEventFormat(obj: EventFormat): boolean {
 	}
 	return true;
 }
+
+export interface AttendanceFormat{
+	eventId: string,
+}
