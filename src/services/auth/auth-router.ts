@@ -141,7 +141,6 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 	const token: string = generateJwtToken(payload);
 	const redirect: string = (Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT);
 	const url: string = `${redirect}?token=${token}`;
-	console.log("Redirecting!", url);
 	res.redirect(url);
 });
 

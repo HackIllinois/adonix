@@ -12,7 +12,6 @@ import Constants from "../../constants.js";
  */
 export async function getUser(userId: string): Promise<UserSchema> {
 	const collection: Collection = databaseClient.db(Constants.USER_DB).collection(UserDB.INFO);
-	console.log("|%s|", userId);
 	try {
 		const user: UserSchema | null = await collection.findOne({ id: userId }) as UserSchema | null;
 		if (user) {
