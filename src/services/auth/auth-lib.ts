@@ -9,7 +9,7 @@ import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
 import { AuthDB, RolesSchema } from "./auth-schemas.js";
-import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";

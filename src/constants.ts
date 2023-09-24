@@ -16,7 +16,7 @@ abstract class Constants {
 	// private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
 	private static readonly ADMIN_REDIRECT:string = "http://localhost:3000/auth/";
 
-  private static readonly DEV_DEVICE:string = "dev";
+	private static readonly DEV_DEVICE:string = "dev";
 	private static readonly DEV_REDIRECT:string = "https://adonix.hackillinois.org/auth/dev/";
 
 	private static readonly IOS_DEVICE:string = "ios";
