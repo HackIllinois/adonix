@@ -74,7 +74,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
 	// No roles found for user -> initialize them
 	if (!payload.roles.length) {
-		await initializeRoles(userId, provider as Provider, email).then((newRoles: Role[]) => {
+		await initializeRoles(userId, provider.toUpperCase() as Provider, email).then((newRoles: Role[]) => {
 			payload.roles = newRoles;
 		}).catch((error: string) => {
 			console.error(error);

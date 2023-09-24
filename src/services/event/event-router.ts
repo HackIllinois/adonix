@@ -126,7 +126,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 	// Perform a lazy delete, and return true if not existent
 	try {
 		await collection.deleteOne({ id: eventId });
-		res.status(Constants.SUCCESS).send();
+		res.sendStatus(Constants.SUCCESS);
 	} catch (error) {
 		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -170,18 +170,21 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	// Only staff can mark themselves as attending these events
 	if (!hasElevatedPerms(token)) {
 		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+		return;
 	}
 
 	if (!eventId) {
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+		return;
 	}
 
 	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
 	const staffCollection: Collection = databaseClient.db(Constants.STAFF_DB).collection(StaffDB.ATTENDANCE);
 
 	try {
-		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "subscribers": token.id } }, { upsert: true });
-		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "records": eventId } }, { upsert: true });
+		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": token.id } }, { upsert: true });
+		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
+		res.sendStatus(Constants.SUCCESS);
 	} catch (error) {
 		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
