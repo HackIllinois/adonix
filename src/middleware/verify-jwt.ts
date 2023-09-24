@@ -19,12 +19,15 @@ import jsonwebtoken from "jsonwebtoken";
  *     {"error": "NoToken"}
  */
 export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
+	console.log("inhere!");
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
+		console.log("in error!")
 		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
-		next("route");
+		next("router");
 	}
+	console.log("moving on")
 
 	try {
 		res.locals.payload = decodeJwtToken(token);

@@ -17,6 +17,7 @@ export enum EventDB {
 	EVENT_TRACKERS = "eventtrackers",
 	FAVORITES = "favorites",
 	USER_TRACKERS = "usertrackers",
+	STAFF_ATTENDANCE = "staffattendance",
 }
 
 // Collections within the staff database

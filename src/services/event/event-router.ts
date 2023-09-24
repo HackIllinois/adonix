@@ -13,7 +13,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { EventDB, StaffDB, PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
 import { truncateToPublicEvent } from "./event-lib.js";
 import { PrivateEvent, PublicEvent } from "./event-models.js";
-import { AttendanceFormat, EventFormat, isAttendanceFormat, isEventFormat } from "./event-formats.js";
+import { EventFormat, isEventFormat } from "./event-formats.js";
 
 
 const eventsRouter: Router = Router();
@@ -153,7 +153,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 403 Forbidden
- *     {"error": "InvalidPermission"}
+ *     {"error": "Forbidden"}
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
@@ -164,23 +164,24 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  */
 eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload | undefined = res.locals.payload as JwtPayload;
-	const attendanceFormat: AttendanceFormat = req.body as AttendanceFormat;
+	
+	const eventId: string | undefined = req.body.eventId;
 
 	// Only staff can mark themselves as attending these events
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
-	if (!isAttendanceFormat) {
+	if (!eventId) {
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	// const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
 	const staffCollection: Collection = databaseClient.db(Constants.STAFF_DB).collection(StaffDB.ATTENDANCE);
 
 	try {
-		// await eventsCollection.updateOne({ id: attendanceFormat.eventId }, { "$addToSet": { "subscribers": attendanceFormat.staffId } }, { upsert: true });
-		await staffCollection.updateOne({ id: attendanceFormat.staffId }, { "$addToSet": { "records": attendanceFormat.eventId } }, { upsert: true });
+		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "subscribers": token.id } }, { upsert: true });
+		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "records": eventId } }, { upsert: true });
 	} catch (error) {
 		console.error(error);
 		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });

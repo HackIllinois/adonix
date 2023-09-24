@@ -65,15 +65,3 @@ export function isEventFormat(obj: EventFormat): boolean {
 	}
 	return true;
 }
-
-
-
-export interface AttendanceFormat {
-	staffId: string,
-	eventId: string,
-}
-
-
-export function isAttendanceFormat(obj: AttendanceFormat): boolean {
-	return (typeof obj.staffId === "string" && typeof obj.eventId == "string");
-}
