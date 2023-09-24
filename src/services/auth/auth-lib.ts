@@ -5,13 +5,12 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
 
 import { RolesSchema } from "./auth-schemas.js";
-import { JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { JwtPayload, Provider, ProfileData, Role, RoleOperation } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";
@@ -316,7 +315,7 @@ export function getDevice(kv?: string): string {
 		throw new Error("NoKey");
 	}
 
-	if (!value || !Constants.DEVICE_LIST.includes(value) ) {
+	if (!value || !Constants.REDIRECT_MAPPINGS.has(value) ) {
 		throw new Error("NoValue");
 	}
 

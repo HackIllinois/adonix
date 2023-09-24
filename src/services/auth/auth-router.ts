@@ -7,13 +7,12 @@ import passport from "passport";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
-import { JwtPayload, ProfileData, Provider, RoleOperation } from "./auth-models.js";
+import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
 import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
 
 
@@ -72,7 +71,7 @@ authRouter.get("/dev/", (req: Request, res: Response) => {
 authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunction) => {
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
-	if (device && !Constants.DEVICE_LIST.includes(device)) {
+	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
 		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 		return;
 	}
@@ -102,7 +101,7 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
 authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunction) => {
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
-	if (device && !Constants.DEVICE_LIST.includes(device)) {
+	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
 		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 		return;
 	}
