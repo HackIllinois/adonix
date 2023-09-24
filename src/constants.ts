@@ -12,7 +12,11 @@ abstract class Constants {
 	static readonly INTERNAL_ERROR:number = 500;
 
 	// URLs
-	private static readonly DEV_DEVICE:string = "dev";
+	private static readonly ADMIN_DEVICE:string = "admin";
+	// private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
+	private static readonly ADMIN_REDIRECT:string = "http://localhost:3000/auth/";
+
+  private static readonly DEV_DEVICE:string = "dev";
 	private static readonly DEV_REDIRECT:string = "https://adonix.hackillinois.org/auth/dev/";
 
 	private static readonly IOS_DEVICE:string = "ios";
@@ -21,6 +25,9 @@ abstract class Constants {
 	private static readonly WEB_DEVICE:string = "web";
 	private static readonly WEB_REDIRECT:string = "https://www.hackillinois.org/auth/";
 
+	private static readonly IOS_DEVICE:string = "ios";
+	private static readonly IOS_REDIRECT:string = "hackillinois://login/";
+
 	private static readonly ANDROID_DEVICE:string = "android";
 	private static readonly ANDROID_REDIRECT:string = "hackillinois://login/";
 	
@@ -28,6 +35,7 @@ abstract class Constants {
 	static readonly DEFAULT_REDIRECT:string = this.WEB_REDIRECT;
 
 	static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<string, string>([
+		[ this.ADMIN_DEVICE, this.ADMIN_REDIRECT ],
 		[ this.WEB_DEVICE, this.WEB_REDIRECT ],
 		[ this.IOS_DEVICE, this.IOS_REDIRECT ],
 		[ this.ANDROID_DEVICE, this.ANDROID_REDIRECT ],

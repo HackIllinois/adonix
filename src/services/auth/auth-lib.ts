@@ -5,7 +5,6 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import { Role } from "../../models.js";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
