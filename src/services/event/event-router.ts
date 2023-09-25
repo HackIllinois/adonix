@@ -246,19 +246,22 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
+	console.error("In body");
 	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	console.error("Got collection");
 
 	try {
 		// Check if we have a JWT token passed in, and use that to define the query cursor
 		const isElevated: boolean = hasElevatedPerms(res.locals.payload as JwtPayload | undefined);
 		const filter: Filter<Document> = isElevated ? {} : { isPrivate: false };
 
+		console.error("Got filter + checked elevated perms");
 		// Get collection from the database, and return it as an array
 		const events: PrivateEventSchema[] = await collection.find(filter).toArray() as PrivateEventSchema[];
 		const cleanedEvents: PrivateEvent[] | PublicEvent[] = isElevated ? events : events.map(truncateToPublicEvent);
-		res.status(Constants.SUCCESS).send({ events: cleanedEvents });
+		return res.status(Constants.SUCCESS).send({ events: cleanedEvents });
 	} catch {
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
