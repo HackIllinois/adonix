@@ -1,7 +1,8 @@
 import { Collection, UpdateFilter } from "mongodb";
-import { UserSchema } from "./user-schemas.js";
+import { UserDB, UserSchema } from "./user-schemas.js";
 import databaseClient from "../../database.js";
 import { UserFormat } from "./user-formats.js";
+import Constants from "../../constants.js";
 
 
 /**
@@ -10,8 +11,7 @@ import { UserFormat } from "./user-formats.js";
  * @returns Promise, if successful then data about the user. If failed, contains error.
  */
 export async function getUser(userId: string): Promise<UserSchema> {
-	const collection: Collection = databaseClient.db("user").collection("info");
-	console.log("|%s|", userId);
+	const collection: Collection = databaseClient.db(Constants.USER_DB).collection(UserDB.INFO);
 	try {
 		const user: UserSchema | null = await collection.findOne({ id: userId }) as UserSchema | null;
 		if (user) {
@@ -30,7 +30,7 @@ export async function getUser(userId: string): Promise<UserSchema> {
  * @returns Promise, containing nothing if successful but error if rejected.
  */
 export async function updateUser(userData: UserFormat): Promise<void> {
-	const collection: Collection = databaseClient.db("user").collection("info");
+	const collection: Collection = databaseClient.db(Constants.USER_DB).collection(UserDB.INFO);
 
 	try {
 		// Create the query to run the update, then perform the update operation

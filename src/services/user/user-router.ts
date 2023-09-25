@@ -10,7 +10,9 @@ import { UserSchema } from "./user-schemas.js";
 import { UserFormat } from "./user-formats.js";
 import { getUser, updateUser } from "./user-lib.js";
 
+
 const userRouter: Router = Router();
+
 
 /**
  * @api {get} /user/qr/ GET /user/qr/
@@ -199,23 +201,22 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccess (200: Success) {String} firstname User's first name.
  * @apiSuccess (200: Success) {String} lastname User's last name.
  * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
-
+		
  * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
-		"id": "provider00001",
-		"firstname": "john",
-		"lastname": "doe",
-		"email": "johndoe@provider.com"
- * 	}
- *
+		* 	HTTP/1.1 200 OK
+		*	{
+			"id": "provider00001",
+			"firstname": "john",
+			"lastname": "doe",
+			"email": "johndoe@provider.com"
+ 		* 	}
  * @apiUse strongVerifyErrors
  */
 userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "token not authorized to perform this!" });
+		res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
 	}
 
 	// Get userData from the request, and print to output

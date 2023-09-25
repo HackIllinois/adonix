@@ -8,9 +8,8 @@ import passport, { AuthenticateOptions, Profile } from "passport";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
-
-import { RolesSchema } from "./auth-schemas.js";
-import { JwtPayload, Provider, ProfileData, Role, RoleOperation } from "./auth-models.js";
+import { AuthDB, RolesSchema } from "./auth-schemas.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";
@@ -45,6 +44,7 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
 	return callback(null, user);
 };
 
+
 /**
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
  * @param provider String of the provider, being used
@@ -74,7 +74,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
 	// No roles found for user -> initialize them
 	if (!payload.roles.length) {
-		await initializeRoles(userId, provider as Provider, email).then((newRoles: Role[]) => {
+		await initializeRoles(userId, provider.toUpperCase() as Provider, email).then((newRoles: Role[]) => {
 			payload.roles = newRoles;
 		}).catch((error: string) => {
 			console.error(error);
@@ -83,6 +83,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
 	return payload;
 }
+
 
 /**
  * Get a JWT payload for a user, from database. Perform an auth query and an users query, which are used in an implicit join.
@@ -122,6 +123,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 
 	return newPayload;
 }
+
 
 /**
  * Create the token, assign an expiry date, and sign it
@@ -184,7 +186,7 @@ export async function initializeRoles(id: string, provider: Provider, email: str
 
 	// Create a new rolesEntry for the database, and insert it into the collection
 	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
-	const collection: Collection = databaseClient.db("auth").collection("roles");
+	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 	await collection.insertOne(newUser);
 
 	return roles;
@@ -224,7 +226,7 @@ export function defineUserRoles(provider: Provider, email: string): Role[] {
  * @returns Promise containing user, provider, email, and roles if valid. If invalid, error containing why.
  */
 export async function getAuthInfo(id: string): Promise<RolesSchema> {
-	const collection: Collection = databaseClient.db("auth").collection("roles");
+	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 
 	try {
 		const info: RolesSchema | null = await collection.findOne({ id: id }) as RolesSchema | null;
@@ -276,7 +278,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 	}
 
 	// Apply filter to roles collection, based on the operation
-	const collection: Collection = databaseClient.db("auth").collection("roles");
+	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 	await collection.updateOne({ id: userId }, filter);
 }
 

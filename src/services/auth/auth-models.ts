@@ -12,14 +12,14 @@ export interface JwtPayload {
 }
 
 export enum Role {
-	ADMIN = "Admin",
-	STAFF = "Staff",
-	MENTOR = "Mentor",
-	APPLICANT = "Applicant",
-	ATTENDEE = "Attendee",
-	USER = "User",
-	SPONSOR = "Sponsor",
-	BLOBSTORE = "Blobstore",
+	ADMIN = "ADMIN",
+	STAFF = "STAFF",
+	MENTOR = "MENTOR",
+	APPLICANT = "APPLICANT",
+	ATTENDEE = "ATTENDEE",
+	USER = "USER",
+	SPONSOR = "SPONSOR",
+	BLOBSTORE = "BLOBSTORE",
 }
 
 export enum Provider {
@@ -31,3 +31,4 @@ export enum RoleOperation {
 	ADD = "add",
 	REMOVE = "remove",
 }
+

@@ -1,9 +1,8 @@
 import "dotenv";
 
+import passport from "passport";
 import { NextFunction } from "express-serve-static-core";
 import express, { Request, Response, Router } from "express";
-
-import passport from "passport";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
@@ -142,7 +141,6 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 	const token: string = generateJwtToken(payload);
 	const redirect: string = (Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT);
 	const url: string = `${redirect}?token=${token}`;
-	console.log("Redirecting!", url);
 	res.redirect(url);
 });
 
@@ -236,7 +234,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
 	// Check if role to add/remove actually exists
 	const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
-	const role: Role | undefined = Role[data.role as keyof typeof Role];
+	const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
 	if (!role) {
 		res.status(Constants.BAD_REQUEST).send({ error: "InvalidRole" });
 		return;
@@ -280,7 +278,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
 
 	// Check if current user should be able to access all roles
 	if (!hasElevatedPerms(payload)) {
-		res.status(Constants.FORBIDDEN).send({ error: "not authorized to perform this operation!" });
+		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 		return;
 	}
 

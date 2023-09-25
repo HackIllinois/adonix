@@ -16,11 +16,8 @@ abstract class Constants {
 	// private static readonly ADMIN_REDIRECT:string = "https://admin.hackillinois.org/auth";
 	private static readonly ADMIN_REDIRECT:string = "http://localhost:3000/auth/";
 
-  private static readonly DEV_DEVICE:string = "dev";
+	private static readonly DEV_DEVICE:string = "dev";
 	private static readonly DEV_REDIRECT:string = "https://adonix.hackillinois.org/auth/dev/";
-
-	private static readonly IOS_DEVICE:string = "ios";
-	private static readonly IOS_REDIRECT:string = "hackillinois://login/";
 
 	private static readonly WEB_DEVICE:string = "web";
 	private static readonly WEB_REDIRECT:string = "https://www.hackillinois.org/auth/";
@@ -55,6 +52,14 @@ abstract class Constants {
 	
 	// Constants for general usage
 	static readonly ZERO: number = 0;
+
+	// Constants for database names
+	static readonly AUTH_DB: string = "auth";
+	static readonly EVENT_DB: string = "event";
+	static readonly NEWSLETTER_DB: string = "newsletter";
+	static readonly PROFILE_DB: string = "profile";
+	static readonly STAFF_DB: string = "staff";
+	static readonly USER_DB: string = "user";
 }
 
 export default Constants;

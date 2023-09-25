@@ -10,7 +10,7 @@ import jsonwebtoken from "jsonwebtoken";
  *     {"Authorization": "loremipsumdolorsitamet"}
  *
 
- * @apiError (400: Bad Request) {string} NoToken No token passed in request.
+ * @apiError (401: Unauthorized) {string} NoToken No token passed in request.
  * @apiError (401: Unauthorized) {string} InvalidToken Invalid token (not API-signed).
  * @apiError (403: Forbidden) {string} TokenExpired Expired token.
  * @apiError (500: Internal Server Error) {string} InternalError Server error.
@@ -22,20 +22,20 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
 	const token: string | undefined = req.headers.authorization;
 
 	if (!token) {
-		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
-		next("route");
+		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "NoToken" });
+		next("router");
+		return;
 	}
 
 	try {
 		res.locals.payload = decodeJwtToken(token);
 		next();
 	} catch (error) {
+		console.error(error);
 		if (error instanceof jsonwebtoken.TokenExpiredError) {
-			console.error("token expired!");
 			res.status(Constants.FORBIDDEN).send("TokenExpired");
 			next("router");
 		} else {
-			console.error(error);
 			res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "InvalidToken" });
 			next("router");
 		}
