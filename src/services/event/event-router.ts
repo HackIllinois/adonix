@@ -22,7 +22,6 @@ eventsRouter.use(cors({ origin: "*" }));
 
 /**
  * @api {get} /event/:EVENTID GET /event/:EVENTID
- * @apiName Get Event by ID
  * @apiGroup Event
  * @apiDescription Get event details by its unique ID.
  *
@@ -92,7 +91,6 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
 
 /**
  * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
- * @apiName Delete Event by ID
  * @apiGroup Event
  * @apiDescription Delete an event by its unique ID.
  *
@@ -136,7 +134,6 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 
 /**
  * @api {post} /event/staff/attendance/ POST /event/staff/attendance/
- * @apiName Record Staff Attendance
  * @apiGroup Event
  * @apiDescription Record staff attendance for an event.
  *
@@ -192,7 +189,6 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 
 /**
  * @api {get} /event/ GET /event/
- * @apiName Event
  * @apiGroup Event
  * @apiDescription Get all the publicly-available events
  * @apiSuccess (200: Success) {Json} events All publicly-facing events.
@@ -263,7 +259,6 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
 
 /**
  * @api {post} /event/ POST /event/
- * @apiName Create or Update Event
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
@@ -354,7 +349,6 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 /**
  * @api {put} /event/ PUT /event/
- * @apiName Create or Update Event
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *

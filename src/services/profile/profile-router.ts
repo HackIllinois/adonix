@@ -14,7 +14,6 @@ profileRouter.use(cors({ origin: "*" }));
 
 /**
  * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
- * @apiName Leaderboard
  * @apiGroup Profile
  * @apiDescription Get the top N profiles from the leaderboard, sorted by points.
  *
