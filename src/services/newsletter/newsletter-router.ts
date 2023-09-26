@@ -1,7 +1,14 @@
-import { Router } from "express";
-import { subscribeToNewsletter } from "./newsletter-lib.js";
+import { Request, Response, Router } from "express";
 import { regexPasses } from "../../utils.js";
 import cors, { CorsOptions } from "cors";
+
+import Constants from "../../constants.js";
+
+import { Collection } from "mongodb";
+import databaseClient from "../../database.js";
+import { SubscribeRequest } from "./newsletter-formats.js";
+import { NewsletterDB } from "./newsletter-schemas.js";
+
 
 const newsletterRouter: Router = Router();
 
@@ -51,7 +58,27 @@ newsletterRouter.use(cors(corsOptions));
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-newsletterRouter.post("/subscribe/", subscribeToNewsletter);
+newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => {
+	const requestBody: SubscribeRequest = request.body as SubscribeRequest;
+	const listName: string | undefined = requestBody.listName;
+	const emailAddress: string | undefined = requestBody.emailAddress;
+
+	// Verify that both parameters do exist
+	if (!listName || !emailAddress) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	// Upsert to update the list - update document if possible, else add the document
+	const newsletterCollection: Collection = databaseClient.db(Constants.NEWSLETTER_DB).collection(NewsletterDB.NEWSLETTERS);
+	try {
+		await newsletterCollection.updateOne({ listName: listName }, { "$addToSet": { "subscribers": emailAddress } }, { upsert: true });
+		return res.sendStatus(Constants.SUCCESS);
+	} catch (error) {
+		res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
+	}
+	
+	return res.status(Constants.SUCCESS).send({ status: "Successful" });
+});
 
 
 export default newsletterRouter;

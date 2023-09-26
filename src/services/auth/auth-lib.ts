@@ -64,21 +64,16 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	};
 
 	// Get roles, and assign those to payload.roles if they exist
-	await getRoles(userId).then((userRoles: Role[]) => {
-		if (userRoles.length) {
-			payload.roles = userRoles;
-		}
-	}).catch((error: string) => {
-		console.error(error);
-	});
+	try {
+		let roles: Role[] = await getRoles(userId);
 
-	// No roles found for user -> initialize them
-	if (!payload.roles.length) {
-		await initializeRoles(userId, provider.toUpperCase() as Provider, email).then((newRoles: Role[]) => {
-			payload.roles = newRoles;
-		}).catch((error: string) => {
-			console.error(error);
-		});
+		// If roles don't exist already - initialize them for the user, and return the new set of roles
+		if (!roles.length) {
+			roles = await initializeRoles(userId, provider.toUpperCase() as Provider, email);
+		}
+		payload.roles = roles;
+	} catch (error) {
+		console.error(error);
 	}
 
 	return payload;
@@ -91,23 +86,23 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
  * @returns Promise, containing either JWT payload or reason for failure
  */
 export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
+
 	let authInfo: RolesSchema | undefined;
 	let userInfo: UserSchema | undefined;
 
 	// Fill in auth info, used for provider and roles
-	await getAuthInfo(targetUser).then((info: RolesSchema) => {
-		authInfo = info;
-	}).catch((error: string) => {
-		console.error(error);
-	});
 
-	// Fill in user info, used for email
-	await getUser(targetUser).then((info: UserSchema) => {
-		userInfo = info;
-	}).catch((error: string) => {
-		console.error(error);
-	});
 
+
+	try {
+		authInfo = await getAuthInfo(targetUser);
+		userInfo = await getUser(targetUser);
+		
+
+	} catch (error) {
+		console.error(error);
+	}
+		
 	// If either one does not exist, the info doesn't exist in the database. Throw error
 	if (!authInfo || !userInfo) {
 		return Promise.reject("UserNotFound");
@@ -120,10 +115,8 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 		email: userInfo.email,
 		provider: authInfo.provider,
 	};
-
 	return newPayload;
 }
-
 
 /**
  * Create the token, assign an expiry date, and sign it
