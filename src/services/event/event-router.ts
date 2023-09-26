@@ -330,7 +330,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
-	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_LENGTH).toString("hex");
+	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
 	if (!isEventFormat(eventFormat)) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}

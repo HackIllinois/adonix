@@ -49,7 +49,8 @@ abstract class Constants {
 
 	// Constants for general usage
 	static readonly ZERO: number = 0;
-	static readonly EVENT_ID_LENGTH: number = 16;
+	static readonly EVENT_ID_BYTES: number = 16;
+	static readonly EVENT_ID_LENGTH: number = 32;
 	static readonly MILLISECONDS_PER_SECOND:number = 1000;
 
 	// Constants for database names
