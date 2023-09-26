@@ -26,10 +26,13 @@ export interface EventFormat {
  *
  */
 export function isEventFormat(obj: EventFormat): boolean {
+	if (typeof obj.id !== "string" || obj.id.length != 16) {
+		return false;
+	}
+
 	if (
 		typeof obj.isPrivate !== "boolean" ||
 		typeof obj.displayOnStaffCheckIn !== "boolean" ||
-		typeof obj.id !== "string" ||
 		typeof obj.name !== "string" ||
 		typeof obj.description !== "string" ||
 		typeof obj.startTime !== "number" ||
@@ -53,6 +56,7 @@ export function isEventFormat(obj: EventFormat): boolean {
 			return false;
 		}
 	}
+
 
 	if (
 		typeof obj.sponsor !== "string" ||

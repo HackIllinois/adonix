@@ -1,5 +1,6 @@
 import cors from "cors";
 import { Request, Router } from "express";
+import crypto from "crypto";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, Filter, UpdateFilter } from "mongodb";
 
@@ -290,7 +291,6 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
-*     "id": "52fdfc072182654f163f5f0f9a621d72",
 *     "name": "Example Event 10",
 *     "description": "This is a description",
 *     "startTime": 1532202702,
@@ -330,6 +330,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
+	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_LENGTH).toString("hex");
 	if (!isEventFormat(eventFormat)) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
