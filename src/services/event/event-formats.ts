@@ -1,3 +1,4 @@
+import Constants from "../../constants.js";
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 
@@ -26,10 +27,13 @@ export interface EventFormat {
  *
  */
 export function isEventFormat(obj: EventFormat): boolean {
+	if (typeof obj.id !== "string" || obj.id.length != Constants.EVENT_ID_LENGTH) {
+		return false;
+	}
+
 	if (
 		typeof obj.isPrivate !== "boolean" ||
 		typeof obj.displayOnStaffCheckIn !== "boolean" ||
-		typeof obj.id !== "string" ||
 		typeof obj.name !== "string" ||
 		typeof obj.description !== "string" ||
 		typeof obj.startTime !== "number" ||
@@ -53,6 +57,7 @@ export function isEventFormat(obj: EventFormat): boolean {
 			return false;
 		}
 	}
+
 
 	if (
 		typeof obj.sponsor !== "string" ||

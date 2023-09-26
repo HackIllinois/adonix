@@ -49,7 +49,6 @@ authRouter.get("/dev/", (req: Request, res: Response) => {
 
 /**
  * @api {get} /auth/login/github/ GET /auth/login/github/
- * @apiName Github
  * @apiGroup Auth
  * @apiDescription Perform Github authentication for an attendee.
  *
@@ -79,7 +78,6 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
 
 /**
  * @api {get} /auth/login/google/ GET /auth/login/google/
- * @apiName Google
  * @apiGroup Auth
  * @apiDescription Perform Google authentication for a staff member.
  *

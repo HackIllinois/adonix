@@ -47,11 +47,10 @@ abstract class Constants {
 	
 	static readonly DEFAULT_JWT_OFFSET: string = "48h";
 
-	// Conversions for datetimes
-	static readonly MILLISECONDS_PER_SECOND:number = 1000;
-	
 	// Constants for general usage
 	static readonly ZERO: number = 0;
+	static readonly EVENT_ID_LENGTH: number = 16;
+	static readonly MILLISECONDS_PER_SECOND:number = 1000;
 
 	// Constants for database names
 	static readonly AUTH_DB: string = "auth";

@@ -1,5 +1,6 @@
 import cors from "cors";
 import { Request, Router } from "express";
+import crypto from "crypto";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, Filter, UpdateFilter } from "mongodb";
 
@@ -22,7 +23,6 @@ eventsRouter.use(cors({ origin: "*" }));
 
 /**
  * @api {get} /event/:EVENTID GET /event/:EVENTID
- * @apiName Get Event by ID
  * @apiGroup Event
  * @apiDescription Get event details by its unique ID.
  *
@@ -66,7 +66,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
 	const eventId: string | undefined = req.params.EVENTID;
 
 	if (!eventId) {
-		res.redirect("/");
+		return res.redirect("/");
 	}
 
 	try {
@@ -76,23 +76,22 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
 		if (event.isPrivate) {
 			// If event is private and we're elevated, return the event -> else, return forbidden
 			if (isElevated) {
-				res.status(Constants.SUCCESS).send({ event: event });
+				return res.status(Constants.SUCCESS).send({ event: event });
 			} else {
-				res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
+				return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
 			}
 		} else {
 			// Not a private event -> convert to Public event and return
-			res.status(Constants.SUCCESS).send({ event: truncateToPublicEvent(event) });
+			return res.status(Constants.SUCCESS).send({ event: truncateToPublicEvent(event) });
 		}
 	} catch {
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
 
 /**
  * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
- * @apiName Delete Event by ID
  * @apiGroup Event
  * @apiDescription Delete an event by its unique ID.
  *
@@ -113,12 +112,12 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 
 	// Check if request sender has permission to delete the event
 	if (!hasElevatedPerms(res.locals.payload as JwtPayload)) {
-		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
 	// Check if event doesn't exist -> if not, returns error
 	if (!eventId) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
@@ -126,17 +125,16 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 	// Perform a lazy delete, and return true if not existent
 	try {
 		await collection.deleteOne({ id: eventId });
-		res.sendStatus(Constants.SUCCESS);
+		return res.sendStatus(Constants.SUCCESS);
 	} catch (error) {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
 
 /**
  * @api {post} /event/staff/attendance/ POST /event/staff/attendance/
- * @apiName Record Staff Attendance
  * @apiGroup Event
  * @apiDescription Record staff attendance for an event.
  *
@@ -169,13 +167,11 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 
 	// Only staff can mark themselves as attending these events
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
-		return;
+		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
 	if (!eventId) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
@@ -184,17 +180,16 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	try {
 		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": token.id } }, { upsert: true });
 		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
-		res.sendStatus(Constants.SUCCESS);
+		return res.sendStatus(Constants.SUCCESS);
 	} catch (error) {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
 
 /**
  * @api {get} /event/ GET /event/
- * @apiName Event
  * @apiGroup Event
  * @apiDescription Get all the publicly-available events
  * @apiSuccess (200: Success) {Json} events All publicly-facing events.
@@ -256,16 +251,15 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
 		// Get collection from the database, and return it as an array
 		const events: PrivateEventSchema[] = await collection.find(filter).toArray() as PrivateEventSchema[];
 		const cleanedEvents: PrivateEvent[] | PublicEvent[] = isElevated ? events : events.map(truncateToPublicEvent);
-		res.status(Constants.SUCCESS).send({ events: cleanedEvents });
+		return res.status(Constants.SUCCESS).send({ events: cleanedEvents });
 	} catch {
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
 
 /**
  * @api {post} /event/ POST /event/
- * @apiName Create or Update Event
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
@@ -297,7 +291,6 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
-*     "id": "52fdfc072182654f163f5f0f9a621d72",
 *     "name": "Example Event 10",
 *     "description": "This is a description",
 *     "startTime": 1532202702,
@@ -332,13 +325,14 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 	// Check if the token has elevated permissions
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
+	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_LENGTH).toString("hex");
 	if (!isEventFormat(eventFormat)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
@@ -346,17 +340,16 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	// Try to update the database, if possivle
 	try {
 		await collection.insertOne(eventFormat);
-		res.status(Constants.SUCCESS).send({ ...eventFormat });
+		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
 	}
 });
 
 
 /**
  * @api {put} /event/ PUT /event/
- * @apiName Create or Update Event
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
@@ -415,13 +408,13 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 
 	// Check if the token has elevated permissions
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
 	if (!isEventFormat(eventFormat)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
@@ -435,10 +428,10 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 	// Try to update the database, if possivle
 	try {
 		await collection.updateOne(updateFilter, eventFormat, { upsert: true });
-		res.status(Constants.SUCCESS).send({ ...eventFormat });
+		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
 	}
 });
 

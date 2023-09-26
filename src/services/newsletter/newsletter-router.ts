@@ -31,7 +31,6 @@ newsletterRouter.use(cors(corsOptions));
 
 /**
  * @api {post} /newsletter/subscribe/ POST /newsletter/subscribe/
- * @apiName Subscribe
  * @apiGroup Newsletter
  * @apiDescription Subscribe an email address to a newsletter. Will create a newsleter if it doesn't exist.
  *
