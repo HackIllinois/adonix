@@ -1,3 +1,4 @@
+import Constants from "src/constants.js";
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 
@@ -26,7 +27,7 @@ export interface EventFormat {
  *
  */
 export function isEventFormat(obj: EventFormat): boolean {
-	if (typeof obj.id !== "string" || obj.id.length != 16) {
+	if (typeof obj.id !== "string" || obj.id.length != Constants.EVENT_ID_LENGTH) {
 		return false;
 	}
 
