@@ -1,4 +1,4 @@
-import Constants from "src/constants.js";
+import Constants from "../../constants.js";
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 
