@@ -125,7 +125,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 	// Perform a lazy delete, and return true if not existent
 	try {
 		await collection.deleteOne({ id: eventId });
-		return res.sendStatus(Constants.SUCCESS);
+		return res.status(Constants.SUCCESS).send( {status: "Success" });
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -180,7 +180,7 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	try {
 		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": token.id } }, { upsert: true });
 		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
-		return res.sendStatus(Constants.SUCCESS);
+		return res.status(Constants.SUCCESS).send( {status: "Success" });	
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
