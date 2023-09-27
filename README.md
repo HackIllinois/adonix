@@ -31,6 +31,8 @@ npm run devdocs
 npm run apidocs
 ```
 
+Important scripts can be found in the `package.json` file!
+
 #### Default API Docs Documentation:
 
 Endpoints should be documented as such:
