@@ -411,6 +411,11 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
+	// Check to ensure that ID isn't being passed in
+	if (req.body._id) {
+		delete req.body._id;
+	}
+
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
 	if (!isEventFormat(eventFormat)) {
@@ -423,11 +428,12 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		$set: {
 			...eventFormat,
 		},
-	};
+	}
 
-	// Try to update the database, if possivle
+	// Try to update the database, if possible
+	console.log(updateFilter, eventFormat)
 	try {
-		await collection.updateOne(updateFilter, eventFormat, { upsert: true });
+		await collection.updateOne({id: eventFormat.id}, updateFilter, { upsert: true });
 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
