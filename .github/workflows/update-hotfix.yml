@@ -1,0 +1,21 @@
+name: Push code to prod-hotfix branch upon release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Push to Prod-Hotfix
+    steps:
+      - name: Push
+        uses: s0/git-publish-subdir-action@develop
+        env:
+          REPO: self
+          BRANCH: prod-hotfix
+          FOLDER: ./
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
+          MESSAGE: "Push: ({sha}) {msg}" # The commit message
