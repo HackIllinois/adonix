@@ -72,7 +72,7 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
 	const newsletterCollection: Collection = databaseClient.db(Constants.NEWSLETTER_DB).collection(NewsletterDB.NEWSLETTERS);
 	try {
 		await newsletterCollection.updateOne({ listName: listName }, { "$addToSet": { "subscribers": emailAddress } }, { upsert: true });
-		return res.sendStatus(Constants.SUCCESS);
+		return res.status(Constants.SUCCESS).send( {status: "Success" });
 	} catch (error) {
 		res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
 	}
