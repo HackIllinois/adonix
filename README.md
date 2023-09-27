@@ -1,5 +1,5 @@
 # adonix
-Official repository for API redesign.
+Official repository for HackIllinois API redesign.
 
 ## Installation
 
