@@ -16,6 +16,6 @@ jobs:
 
       - name: Synchronize prod-hotfix with main
         run: |
-          git checkout prod-hotfix
+          git checkout --track origin/prod-hotfix
           git reset --hard main
           git push --force origin prod-hotfix
