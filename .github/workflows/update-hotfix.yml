@@ -1,4 +1,4 @@
-name: Push code to prod-hotfix branch upon release
+name: Update Prod-Hotfix
 
 on:
   workflow_dispatch:
@@ -7,15 +7,15 @@ on:
       - main
 
 jobs:
-  build:
+  sync-prod-hotfix:
     runs-on: ubuntu-latest
-    name: Push to Prod-Hotfix
+
     steps:
-      - name: Push
-        uses: s0/git-publish-subdir-action@develop
-        env:
-          REPO: self
-          BRANCH: prod-hotfix
-          FOLDER: ./
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
-          MESSAGE: "Push: ({sha}) {msg}" # The commit message
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Synchronize prod-hotfix with main
+        run: |
+          git checkout prod-hotfix
+          git reset --hard main
+          git push --force origin prod-hotfix
