@@ -58,7 +58,6 @@ export function isEventFormat(obj: EventFormat): boolean {
 		}
 	}
 
-
 	if (
 		typeof obj.sponsor !== "string" ||
 		typeof obj.eventType !== "string" ||

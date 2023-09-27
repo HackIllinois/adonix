@@ -68,8 +68,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 
 	// If target user -> redirect to base function
 	if (!targetUser) {
-		res.redirect("/user/qr/");
-		return;
+		return res.redirect("/user/qr/");
 	}
 
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -81,18 +80,18 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 		const uri: string = `hackillinois://user?userToken=${token}`;
 		res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
 	} else if (hasElevatedPerms(payload)) {
-		// Get a new payload, and return the updated token
-		await getJwtPayloadFromDB(targetUser).then((newPayload: JwtPayload) => {
+		// Try to generate the new token for the given user, and return it
+		try {
+			const newPayload: JwtPayload = await getJwtPayloadFromDB(targetUser);
 			const token: string = generateJwtToken(newPayload, "20s");
 			const uri: string = `hackillinois://user?userToken=${token}`;
-			res.status(Constants.SUCCESS).send({ id: targetUser, qrInfo: uri });
-		}).catch( (error: string) => {
+			return res.status(Constants.SUCCESS).send({ id: targetUser, qrInfo: uri });
+		} catch (error) {
 			console.error(error);
-			res.status(Constants.BAD_REQUEST).send("UserNotFound");
-		});
-	} else {
-		res.status(Constants.FORBIDDEN).send("Forbidden");
+			return res.status(Constants.BAD_REQUEST).send("UserNotFound");
+		}
 	}
+	return res.status(Constants.FORBIDDEN).send("Forbidden");
 });
 
 
@@ -216,28 +215,28 @@ userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) 
 	const token: JwtPayload = res.locals.payload as JwtPayload;
 
 	if (!hasElevatedPerms(token)) {
-		res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
 	}
 
 	// Get userData from the request, and print to output
 	const userData: UserFormat = req.body as UserFormat;
 
 	if (!userData.id|| !userData.email || !userData.firstname || !userData.lastname || !userData.username) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	// Update the given user
 	await updateUser(userData);
 
 	// Return new value of the user
-	await getUser(userData.id).then((user: UserSchema) => {
-		res.status(Constants.SUCCESS).send(user);
-	}).catch((error: string) => {
-		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	});
-});
 
+	try {
+		const user: UserSchema = await getUser(userData.id);
+		return res.status(Constants.SUCCESS).send(user);
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 export default userRouter;

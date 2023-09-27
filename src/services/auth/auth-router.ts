@@ -70,10 +70,9 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
 	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 	}
-	SelectAuthProvider("github", device)(req, res, next);
+	return SelectAuthProvider("github", device)(req, res, next);
 });
 
 /**
@@ -99,10 +98,9 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 	const device: string = req.query.device as string | undefined ?? Constants.DEFAULT_DEVICE;
 
 	if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
 	}
-	SelectAuthProvider("google", device)(req, res, next);
+	return SelectAuthProvider("google", device)(req, res, next);
 });
 
 
@@ -117,29 +115,29 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 	}
 }, async (req: Request, res: Response) => {
 	if (!req.isAuthenticated()) {
-		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
+		return res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
 	}
 
 	const device: string = (res.locals.device ?? Constants.DEFAULT_DEVICE) as string;
 	const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
 	const data: ProfileData = user._json as ProfileData;
+	const redirect: string = (Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT);
 
 	data.id = data.id ?? user.id;
-	let payload: JwtPayload | undefined = undefined;
 
-	// Load in the payload with the actual values stored in the database
-	await getJwtPayloadFromProfile(user.provider, data).then((parsedPayload: JwtPayload) => {
-		payload = parsedPayload;
-	}).catch((error: Error) => {
+	try {
+		// Load in the payload with the actual values stored in the database
+		const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
+
+		// Generate the token, and return it
+		const token: string = generateJwtToken(payload);
+		const url: string = `${redirect}?token=${token}`;
+		return res.redirect(url);
+	} catch (error) {
 		console.error(error);
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
-	});
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
+	}
 
-	// Generate the token, and return it
-	const token: string = generateJwtToken(payload);
-	const redirect: string = (Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT);
-	const url: string = `${redirect}?token=${token}`;
-	res.redirect(url);
 });
 
 
@@ -168,26 +166,24 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
 
 	// Check if we have a user to get roles for - if not, get roles for current user
 	if (!targetUser) {
-		res.redirect("/auth/roles/");
-		return;
+		return res.redirect("/auth/roles/");
 	}
 
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Cases: Target user already logged in, auth user is admin
 	if (payload.id == targetUser) {
-		res.status(Constants.SUCCESS).send({ id: payload.id, roles: payload.roles });
+		return res.status(Constants.SUCCESS).send({ id: payload.id, roles: payload.roles });
 	} else if (hasElevatedPerms(payload)) {
-		let roles: Role[] = [];
-		await getRoles(targetUser).then((targetRoles: Role[]) => {
-			roles = targetRoles;
-			res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
-		}).catch((error: Error) => {
+		try {
+			const roles: Role[] = await getRoles(targetUser);
+			return res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
+		} catch (error) {
 			console.error(error);
-			res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
-		});
+			return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+		}
 	} else {
-		res.status(Constants.FORBIDDEN).send("Forbidden");
+		return res.status(Constants.FORBIDDEN).send("Forbidden");
 	}
 });
 
@@ -218,7 +214,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
 	// Not authenticated with modify roles perms
 	if (!hasElevatedPerms(payload)) {
-		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
 	// Parse to get operation type
@@ -226,31 +222,31 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
 	// No operation - fail out
 	if (!op) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidOperation" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidOperation" });
 	}
 
 	// Check if role to add/remove actually exists
 	const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
 	const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
 	if (!role) {
-		res.status(Constants.BAD_REQUEST).send({ error: "InvalidRole" });
-		return;
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidRole" });
 	}
 
 	// Try to update roles, if possible
-	await updateRoles(data.id, role, op).catch((error: string) => {
+	try {
+		await updateRoles(data.id, role, op);
+	} catch (error) {
 		console.error(error);
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	});
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
 
-	// Get new roles for the current user, and return them
-	await getRoles(data.id).then((roles: Role[]) => {
-		res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
-	}).catch((error: string) => {
+	try {
+		const roles: Role[] = await getRoles(data.id);
+		return res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
+	} catch (error) {
 		console.error(error);
-		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
-	});
+		return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+	}
 });
 
 
@@ -276,8 +272,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
 
 	// Check if current user should be able to access all roles
 	if (!hasElevatedPerms(payload)) {
-		res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
-		return;
+		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
 	// Filter enum to get all possible string keys
@@ -285,7 +280,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
 		return isNaN(Number(item));
 	});
 
-	res.status(Constants.SUCCESS).send({ roles: roles });
+	return res.status(Constants.SUCCESS).send({ roles: roles });
 });
 
 
@@ -310,10 +305,10 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
 	const targetUser: string = payload.id;
 
 	await getRoles(targetUser).then((roles: Role[]) => {
-		res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
+		return res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
 	}).catch((error: Error) => {
 		console.error(error);
-		res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
 	});
 });
 
@@ -339,15 +334,17 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
 		email: oldPayload.email,
 	};
 
-	// Generate a new payload for the token
-	let newPayload: JwtPayload | undefined;
-	await getJwtPayloadFromProfile(oldPayload.provider, data).then((payload: JwtPayload) => {
-		newPayload = payload;
-	});
+	try {
+		// Generate a new payload for the token
+		const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data);
 
-	// Create and return a new token with the payload
-	const newToken: string = generateJwtToken(newPayload);
-	res.status(Constants.SUCCESS).send({ token: newToken });
+		// Create and return a new token with the payload
+		const newToken: string = generateJwtToken(newPayload);
+		return res.status(Constants.SUCCESS).send({ token: newToken });
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
 });
 
 

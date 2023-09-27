@@ -57,19 +57,16 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 			
 			// If invalid limit - return InvalidInput
 			if (!isValidLimit(limit)) {
-				res.status(Constants.BAD_REQUEST).send({ error: "InvalidInput" });
-				return;
+				return res.status(Constants.BAD_REQUEST).send({ error: "InvalidInput" });
 			}
 			leaderboardCursor = leaderboardCursor.limit(limit);
 		}
 
 		// Return the profiles, after mapping them to simple leaderboard entries
 		const leaderboardProfiles: LeaderboardSchema[] = await leaderboardCursor.toArray() as LeaderboardSchema[];
-		res.status(Constants.SUCCESS).send({ profiles: leaderboardProfiles.map(castLeaderboardEntries) });
-		return;
+		return res.status(Constants.SUCCESS).send({ profiles: leaderboardProfiles.map(castLeaderboardEntries) });
 	} catch {
-		res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-		return;
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
