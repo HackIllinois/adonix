@@ -125,7 +125,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 	// Perform a lazy delete, and return true if not existent
 	try {
 		await collection.deleteOne({ id: eventId });
-		return res.sendStatus(Constants.SUCCESS);
+		return res.status(Constants.SUCCESS).send( { status: "Success" });
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -180,7 +180,7 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	try {
 		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": token.id } }, { upsert: true });
 		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
-		return res.sendStatus(Constants.SUCCESS);
+		return res.status(Constants.SUCCESS).send( { status: "Success" });
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -411,8 +411,15 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
+
 	// Verify that the input format is valid to create a new event or update it
 	const eventFormat: EventFormat = req.body as EventFormat;
+	
+	// Check to ensure that ID isn't being passed in
+	if (eventFormat._id) {
+		delete eventFormat._id;
+	}
+
 	if (!isEventFormat(eventFormat)) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
@@ -425,9 +432,9 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		},
 	};
 
-	// Try to update the database, if possivle
+	// Try to update the database, if possible
 	try {
-		await collection.updateOne(updateFilter, eventFormat, { upsert: true });
+		await collection.updateOne({ id: eventFormat.id }, updateFilter, { upsert: true });
 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
