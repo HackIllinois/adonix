@@ -16,6 +16,10 @@ Official repository for HackIllinois API redesign.
 ## To run locally
 
 ```
+vercel dev
+```
+
+```
 npm run start
 ```
 
