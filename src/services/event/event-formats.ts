@@ -1,9 +1,11 @@
+import { ObjectId } from "mongodb";
 import Constants from "../../constants.js";
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 
 // Interface for the actual event
 export interface EventFormat {
+	_id?: ObjectId,
 	id: string,
 	name: string,
 	description: string,
