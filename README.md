@@ -5,8 +5,8 @@ Official repository for HackIllinois API redesign.
 
 #### Prerequisites
 
-- `node`
-- `yarn`
+- [node](https://nodejs.org)
+- [yarn](https://yarnpkg.com/getting-started/install)
 
 #### Steps for development environment
 
