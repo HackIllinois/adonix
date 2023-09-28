@@ -6,7 +6,11 @@ import { Collection, Document, FindCursor, WithId } from "mongodb";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
-import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
+import { castLeaderboardEntries, errorHandler, isValidLimit, jwtHandler } from "./profile-lib.js";
+
+// import { decodeJwtToken } from "../auth/auth-lib.js";
+import { JwtPayload } from "../auth/auth-models.js";
+import { Profile } from "./profile-models.js";
 
 const profileRouter: Router = Router();
 profileRouter.use(cors({ origin: "*" }));
@@ -68,6 +72,76 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 	} catch {
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
+});
+
+/*
+TODO:
+- finish rest of the endpoints
+- figure out implementing JWT on all endpoints
+*/
+
+// decode jwt token
+// then get the id from there & hit the database (profile/profiles collection) to return the user
+profileRouter.get("/profile/", async (req: Request, res: Response) => {
+    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+
+    // let jwtToken: string = req.headers.authorization as string;
+
+    try {
+        let decodedData: JwtPayload = jwtHandler(req);
+
+        let id: string = decodedData.id;
+        const user = await collection.findOne({id: id}) as Profile | null;
+
+        if (!user) {
+            return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        }
+
+        return res.status(Constants.SUCCESS).send(user);
+
+    } catch (error) {
+        return errorHandler(res, error);
+    }
+
+});
+
+profileRouter.get("/profile/id/:id", async (req: Request, res: Response) => {
+    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+
+    const id = req.params.id;
+
+    try {
+        const user = await collection.findOne({id: id}) as Profile | null;
+
+        if (!user) {
+            return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        }
+
+        return res.status(Constants.SUCCESS).send(user);
+    } catch (error) {
+        return errorHandler(res, error);
+    }
+});
+
+profileRouter.post("/profile/", async (req: Request, res: Response) => {
+    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+
+    const profile: Profile = req.body;
+
+    // ensure they dont set foodwave or points
+    profile.foodWave = 0;
+    profile.points = 0;
+
+    try {
+        let decodedData: JwtPayload = jwtHandler(req);
+
+        profile.id = decodedData.id;
+
+        await collection.insertOne(profile);
+        return res.status(Constants.SUCCESS).send(profile);
+    } catch (error) {
+        return errorHandler(res, error);
+    }
 });
 
 
