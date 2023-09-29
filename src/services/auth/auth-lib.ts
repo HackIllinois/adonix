@@ -316,3 +316,28 @@ export function getDevice(kv?: string): string {
 
 	return value;
 }
+
+
+/**
+ * Get all id of users that have a particular role within the database.
+ * @param role role that we want to filter for
+ * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
+ */
+export async function getUsersWithRole(role : string): Promise<string[]> {
+
+	// Makse a reference to the roles collection
+	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
+	//now iterate thru and check which ones have the role
+
+	const queryCriteria : { roles: { $in: string[] } } = { roles: { $in: [role] } };
+
+	//array of users that have role as one of its roles
+	const result : RolesSchema[] = await collection.find(queryCriteria).toArray();
+
+	//array of strings for id, will be the return value of this funciton
+	const idArray : string[] = (result).map((user : RolesSchema) => {
+		return user.id;
+	});
+
+	return idArray ?? Promise.reject("Unknown Error");
+}
