@@ -4,12 +4,11 @@ module.exports = {
         node: true,
     },
     extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-    overrides: [],
     parser: "@typescript-eslint/parser",
     parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
-        project: true,
+        project: "./tsconfig.json",
         tsconfigRootDir: __dirname,
     },
     plugins: ["@typescript-eslint"],
@@ -36,4 +35,12 @@ module.exports = {
         strict: ["error", "global"],
         yoda: ["error", "never"],
     },
+    overrides: [
+        {
+            files: ["**/*.test.ts"], // Disable specific rules for tests
+            rules: {
+                "no-magic-numbers": "off",
+            },
+        },
+    ],
 };

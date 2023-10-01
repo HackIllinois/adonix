@@ -4,9 +4,7 @@
         // project options
         // "allowImportingTsExtensions": true,
         "noEmit": true,
-        "lib": [
-            "ESNext",
-        ],
+        "lib": ["ESNext"],
         "outDir": "lib",
         "removeComments": true,
         "target": "ES6",
@@ -33,13 +31,6 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
     },
-    "include": [
-        "./**/*.ts",
-        "./**/*.cjs",
-     ],
-    "exclude": [
-        "node_modules/**",
-        "doc/",
-        "docs/",
-    ]
+    "include": ["./**/*.ts", "./**/*.cjs"],
+    "exclude": ["node_modules/**", "doc/", "docs/"]
 }
