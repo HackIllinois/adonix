@@ -440,7 +440,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @api {get} /event/expiration/:EVENTID GET /event/expiration/:EVENTID
  * @apiGroup Event
  * @apiDescription Get the expiration time for requested event.
- * 
+ *
  * @apiParam {String} EVENTID The unique identifier of the event.
  *
  * @apiSuccess (200: Success) {Json} event The existing event and expiration data.
@@ -462,7 +462,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
- *     {"error": "DatabaseError"}
+ *     {"error": "InternalError"}
  */
 eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -474,8 +474,7 @@ eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Requ
 	// Check if the request information is valid
 	const eventId: string | undefined = req.params.EVENTID;
 
-
-	if (!eventExists(eventId)) {
+	if (!await(eventExists(eventId)) ){
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
@@ -483,7 +482,7 @@ eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Requ
 		// Get collection from the database, and return expData
 		const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
 		const expData: InternalEventSchema = await collection.findOne({ id: eventId }) as InternalEventSchema;
-		return res.status(Constants.SUCCESS).send({ expData });
+		return res.status(Constants.SUCCESS).send({ ...expData });
 	} catch {
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
@@ -517,7 +516,7 @@ eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Requ
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
- *     {"error": "DatabaseError"}
+ *     {"error": "InternalError"}
  */
 eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -596,7 +595,7 @@ eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
- *     {"error": "DatabaseError"}
+ *     {"error": "InternalError"}
  */
 eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -647,7 +646,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
