@@ -8,17 +8,78 @@ import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
-import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { EventDB, StaffDB, PrivateEventSchema, PublicEventSchema } from "./event-schemas.js";
-import { truncateToPublicEvent } from "./event-lib.js";
-import { PrivateEvent, PublicEvent } from "./event-models.js";
-import { AttendanceFormat, EventFormat, isEventFormat } from "./event-formats.js";
+import { EventDB, StaffDB, InternalEventSchema } from "./event-schemas.js";
+import { eventExists, hasExpired, truncateToExternalEvent, updateExpiry } from "./event-lib.js";
+import { InternalEvent, ExternalEvent } from "./event-models.js";
+import { AttendanceFormat, isStaffEventFormat, isAttendeeEventFormat, BaseEventFormat, ExpirationFormat, isExpirationFormat } from "./event-formats.js";
 
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
+
+
+/**
+ * @api {get} /event/staff GET /event/staff
+ * @apiGroup Event
+ * @apiDescription Get staff event details by its unique ID.
+ *
+ * @apiSuccess (200: Success) {Json} event The event details.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP".
+ * 	   "isStaff": true,
+ * 	   "isPrivate": true,
+ * 	   "isAsync": true,
+ * 	   "displayOnStaffCheckIn": true,
+ *   }
+ * }
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "PrivateEvent"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+	if (!hasStaffPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+	}
+
+	// Get staff collection, and return all staff events
+	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
+
+	try {
+		const staffEvents: InternalEventSchema[] = await collection.find().toArray() as InternalEventSchema[];
+		return res.status(Constants.SUCCESS).send({ events: staffEvents });
+	} catch (error) {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 
 /**
@@ -62,27 +123,28 @@ eventsRouter.use(cors({ origin: "*" }));
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
 	const eventId: string | undefined = req.params.EVENTID;
 
 	if (!eventId) {
 		return res.redirect("/");
 	}
 
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	try {
-		const isElevated: boolean = hasElevatedPerms(res.locals.payload as JwtPayload | undefined);
-		const event: PublicEventSchema = await collection.findOne({ id: eventId }) as PublicEventSchema;
+		const isStaff: boolean = hasStaffPerms(payload);
+		const event: InternalEventSchema = await collection.findOne({ id: eventId }) as InternalEventSchema;
 
 		if (event.isPrivate) {
-			// If event is private and we're elevated, return the event -> else, return forbidden
-			if (isElevated) {
+			// If event is private and a staff member is requesting this event, return the event. Else, give forbidden1
+			if (isStaff) {
 				return res.status(Constants.SUCCESS).send({ event: event });
 			} else {
 				return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
 			}
 		} else {
 			// Not a private event -> convert to Public event and return
-			return res.status(Constants.SUCCESS).send({ event: truncateToPublicEvent(event) });
+			return res.status(Constants.SUCCESS).send({ event: truncateToExternalEvent(event) });
 		}
 	} catch {
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -111,21 +173,23 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 	const eventId: string | undefined = req.params.EVENTID;
 
 	// Check if request sender has permission to delete the event
-	if (!hasElevatedPerms(res.locals.payload as JwtPayload)) {
+	if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
-	// Check if event doesn't exist -> if not, returns error
+	// Check if eventid field doesn't exist -> if not, returns error
 	if (!eventId) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	const publicCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+	const staffCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
 
-	// Perform a lazy delete, and return true if not existent
+	// Perform a lazy delete on both databases, and return true if the operation succeeds
 	try {
-		await collection.deleteOne({ id: eventId });
-		return res.status(Constants.SUCCESS).send( { status: "Success" });
+		await publicCollection.deleteOne({ id: eventId });
+		await staffCollection.deleteOne({ id: eventId });
+		return res.status(Constants.SUCCESS).send({ status: "Success" });
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -138,7 +202,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiGroup Event
  * @apiDescription Record staff attendance for an event.
  *
- * @apiHeader {String} Authorization JWT Token with elevated permissions.
+ * @apiHeader {String} Authorization JWT Token with staff permissions.
  *
  * @apiBody {String} eventId The unique identifier of the event.
  *
@@ -149,6 +213,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
+ * @apiError (400: Bad Request) {String} EventExpired This particular event has expired.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
@@ -161,12 +226,11 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  *     {"error": "InternalError"}
  */
 eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
-	const token: JwtPayload | undefined = res.locals.payload as JwtPayload;
-	
-	const eventId: string | undefined = (req.body as AttendanceFormat).eventId ;
+	const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+	const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
 
 	// Only staff can mark themselves as attending these events
-	if (!hasElevatedPerms(token)) {
+	if (!hasStaffPerms(payload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 	}
 
@@ -174,13 +238,17 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
+	if (await hasExpired(eventId)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "EventExpired" });
+	}
+
 	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
 	const staffCollection: Collection = databaseClient.db(Constants.STAFF_DB).collection(StaffDB.ATTENDANCE);
 
 	try {
-		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": token.id } }, { upsert: true });
-		await staffCollection.updateOne({ id: token.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
-		return res.status(Constants.SUCCESS).send( { status: "Success" });
+		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": payload.id } }, { upsert: true });
+		await staffCollection.updateOne({ id: payload.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
+		return res.status(Constants.SUCCESS).send({ status: "Success" });
 	} catch (error) {
 		console.error(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -191,7 +259,7 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 /**
  * @api {get} /event/ GET /event/
  * @apiGroup Event
- * @apiDescription Get all the publicly-available events
+ * @apiDescription Get all the publicly-available events. NOTE THAT THIS WILL CREATE DUPLICATE EVENTS IF CALLED TWICE.
  * @apiSuccess (200: Success) {Json} events All publicly-facing events.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -241,16 +309,16 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
  *     {"error": "InternalError"}
  */
 eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
 
 	try {
 		// Check if we have a JWT token passed in, and use that to define the query cursor
-		const isElevated: boolean = hasElevatedPerms(res.locals.payload as JwtPayload | undefined);
-		const filter: Filter<Document> = isElevated ? {} : { isPrivate: false };
+		const isStaff: boolean = hasStaffPerms(res.locals.payload as JwtPayload | undefined);
+		const filter: Filter<Document> = isStaff ? { isStaff: { $ne: true } } : { isStaff: { $ne: true }, isPrivate: false };
 
 		// Get collection from the database, and return it as an array
-		const events: PrivateEventSchema[] = await collection.find(filter).toArray() as PrivateEventSchema[];
-		const cleanedEvents: PrivateEvent[] | PublicEvent[] = isElevated ? events : events.map(truncateToPublicEvent);
+		const events: InternalEventSchema[] = await collection.find(filter).toArray() as InternalEventSchema[];
+		const cleanedEvents: InternalEvent[] | ExternalEvent[] = isStaff ? events : events.map(truncateToExternalEvent);
 		return res.status(Constants.SUCCESS).send({ events: cleanedEvents });
 	} catch {
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -263,9 +331,6 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
- * @apiBody {boolean} isPrivate Indicates whether the event is private.
- * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
- * @apiBody {string} id The unique identifier of the event.
  * @apiBody {string} name The name of the event.
  * @apiBody {string} description A description of the event.
  * @apiBody {number} startTime The start time of the event.
@@ -275,9 +340,10 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiBody {string} eventType The type of the event.
  * @apiBody {number} points The points associated with the event.
  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  *
- * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
- * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiSuccess {string} id The unique identifier of the event.
  * @apiSuccess {string} name The name of the event.
  * @apiSuccess {string} description A description of the event.
@@ -288,6 +354,9 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccess {string} eventType The type of the event.
  * @apiSuccess {number} points The points associated with the event.
  * @apiSuccess {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
+ * @apiSuccess {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
@@ -321,25 +390,45 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *     {"error": "DatabaseError"}
  */
 eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-	const token: JwtPayload = res.locals.payload as JwtPayload;
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-	// Check if the token has elevated permissions
-	if (!hasElevatedPerms(token)) {
+	// Check if the token has staff permissions
+	if (!hasAdminPerms(payload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
-	// Verify that the input format is valid to create a new event or update it
-	const eventFormat: EventFormat = req.body as EventFormat;
-	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
-	if (!isEventFormat(eventFormat)) {
+	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
+
+	// If ID doesn't exist -> return the invalid parameters
+	if (eventFormat.id) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
+	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
 
-	// Try to update the database, if possivle
+	// Create base types, to be defined based on whether or not there's an isStaff field
+	let eventCollection: Collection<Document>;
+	let validRequestChecker: (event: BaseEventFormat) => boolean;
+
+	// Get the function to execute to check if input format is right
+	if (eventFormat.isStaff ?? false) {
+		validRequestChecker = isStaffEventFormat;
+		eventCollection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
+	} else {
+		validRequestChecker = isAttendeeEventFormat;
+		eventCollection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+	}
+
+	// Check if the actual request is valid (based on the function passed in earlier)
+	if (!validRequestChecker(eventFormat)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	// Try to update the database. Update the collection containing the event, and the expiration times
+	const expCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
 	try {
-		await collection.insertOne(eventFormat);
+		await eventCollection.insertOne(eventFormat);
+		await expCollection.insertOne({ eventId: eventFormat.id, exp: eventFormat.endTime });
 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
@@ -349,12 +438,63 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 
 /**
+ * @api {put} /event/expiration/ PUT /event/expiration/
+ * @apiGroup Event
+ * @apiDescription Create a new expiration entry, or update the expiration entry.
+ *
+ * @apiBody {string} id The unique identifier of the event.
+ * @apiBody {number} exp Time to set the expiration to, IN MILLISECONDS.
+ *
+ *
+ * @apiSuccess (200: Success) {Json} event The created or updated expiration data.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": "52fdfc072182654f163f5f0f9a621d72",
+ *    "exp": 1532202702,
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "DatabaseError"}
+ */
+eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+	
+	if (!hasAdminPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
+
+	// Check if the request information is valid
+	const expData: ExpirationFormat = req.body as ExpirationFormat;
+	if (!isExpirationFormat(expData)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	// Update the database, and return true if it passes. Else, return false.
+	try {
+		await updateExpiry(expData);
+		return res.status(Constants.SUCCESS).send({ ...expData });
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
+
+
+/**
  * @api {put} /event/ PUT /event/
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
- *
- * @apiBody {boolean} isPrivate Indicates whether the event is private.
- * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiBody {string} id The unique identifier of the event.
  * @apiBody {string} name The name of the event.
  * @apiBody {string} description A description of the event.
@@ -365,6 +505,9 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiBody {string} eventType The type of the event.
  * @apiBody {number} points The points associated with the event.
  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
  *
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event.
@@ -404,29 +547,43 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  *     {"error": "DatabaseError"}
  */
 eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
-	const token: JwtPayload = res.locals.payload as JwtPayload;
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	// Check if the token has elevated permissions
-	if (!hasElevatedPerms(token)) {
+	if (!hasAdminPerms(payload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
 
+	// Verify that the input format is valid to create a new event
+	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
 
-	// Verify that the input format is valid to create a new event or update it
-	const eventFormat: EventFormat = req.body as EventFormat;
-	
+	// TODO: Check to ensure that the event exists
+
+	// Create base types, to be defined based on whether or not there's an isStaff field
+	let collection: Collection<Document>;
+	let validRequestChecker: (event: BaseEventFormat) => boolean;
+
 	// Check to ensure that ID isn't being passed in
 	if (eventFormat._id) {
 		delete eventFormat._id;
 	}
 
-	if (!isEventFormat(eventFormat)) {
+	// Get the function to execute to check if input format is right
+	if (eventFormat.isStaff ?? false) {
+		validRequestChecker = isStaffEventFormat;
+		collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
+	} else {
+		validRequestChecker = isAttendeeEventFormat;
+		collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+	}
+
+	// Check if the actual request is valid (based on the function passed in earlier)
+	if (!validRequestChecker(eventFormat) || !await eventExists(eventFormat.id)) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	const collection: Collection<Document> = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EVENTS);
-
-	const updateFilter: UpdateFilter<PrivateEventSchema> = {
+	// Generate the filter to update the event
+	const updateFilter: UpdateFilter<Document> = {
 		$set: {
 			...eventFormat,
 		},

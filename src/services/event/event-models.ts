@@ -7,8 +7,9 @@ export interface Location {
 	longitude: number,
 }
 
+
 // Interface for the actual event
-export interface PublicEvent {
+export interface ExternalEvent {
 	id: string,
 	name: string,
 	description: string,
@@ -21,9 +22,10 @@ export interface PublicEvent {
 	isAsync: boolean,
 }
 
-export interface PrivateEvent extends PublicEvent {
+export interface InternalEvent extends ExternalEvent {
 	isPrivate: boolean,
 	displayOnStaffCheckIn: boolean,
+	isStaff: boolean,
 }
 
 

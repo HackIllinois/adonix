@@ -277,19 +277,42 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
 
 
 /**
- * Check if a user should have permissions to perform operations on attendees
+ * Catch-all function to check if a user should have permissions to perform operations on attendees
  * @param payload Payload of user performing the actual request
  * @returns True if the user is an ADMIN or a STAFF, else false
  */
-export function hasElevatedPerms(payload: JwtPayload | undefined): boolean {
+export function hasElevatedPerms(payload: JwtPayload): boolean {
+	return hasStaffPerms(payload) || hasAdminPerms(payload);
+}
+
+
+/**
+ * Check if a user has permissions to perform staff operations
+ * @param payload Payload of user performing the actual request
+ * @returns True if the user is a STAFF, else false
+ */
+
+export function hasStaffPerms(payload?: JwtPayload): boolean {
 	if (!payload) {
 		return false;
 	}
-	
-	const roles: Role[] = payload.roles;
-	return roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
+
+	return payload.roles.includes(Role.STAFF);
 }
 
+
+/**
+ * Check if a user has permissions to perform admin operations
+ * @param payload Payload of user performing the actual request
+ * @returns True if the user is an ADMIN, else false
+ */
+export function hasAdminPerms(payload?: JwtPayload): boolean {
+	if (!payload) {
+		return false;
+	}
+
+	return payload.roles.includes(Role.ADMIN);
+}
 
 /**
  * Given a string of the format device=DEVICENAME, verify that the string is actually valid and contains a device name.
