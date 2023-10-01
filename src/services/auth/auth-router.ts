@@ -328,13 +328,10 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiUse strongVerifyErrors
  */
 authRouter.get("/roles/list/:role", async (req: Request, res: Response) => {
-	//NOTES: WORKS BUT ALWAYS HAS 2 ERRORS BC TYPESCRIPT!!!
-
 	const role: string | undefined = req.params.role?.toString();
 
-
+	//returns error if role parameter is empty
 	if (!role) {
-		//role parameter was empty
 		return res.status(Constants.BAD_REQUEST).send({ error: "Role parameter is missing" });
 	}
 
@@ -344,12 +341,6 @@ authRouter.get("/roles/list/:role", async (req: Request, res: Response) => {
 		console.error(error);
 		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
 	});
-	/*
-	const users : string[] = await getUsersWithRole(role).catch((error: Error) => {
-		console.error(error);
-		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
-	});
-	return res.status(Constants.SUCCESS).send({ data: users });*/
 });
 
 /**
