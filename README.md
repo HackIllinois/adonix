@@ -1,12 +1,13 @@
 # adonix
-Official repository for API redesign.
+Official repository for HackIllinois API redesign.
 
 ## Installation
 
 #### Prerequisites
 
-- `node`
-- `yarn`
+- [node](https://nodejs.org)
+- [yarn](https://yarnpkg.com/getting-started/install)
+- [vercel (cli)](https://vercel.com/docs/cli)
 
 #### Steps for development environment
 
@@ -30,6 +31,8 @@ npm run devdocs
 ```
 npm run apidocs
 ```
+
+Important scripts can be found in the `package.json` file!
 
 #### Default API Docs Documentation:
 

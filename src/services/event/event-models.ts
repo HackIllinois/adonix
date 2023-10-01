@@ -1,3 +1,4 @@
+
 // Interface for the location of the event
 export interface Location {
 	description: string,
