@@ -336,7 +336,7 @@ authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
 	}
 
 	return await getUsersWithRole(role).then((users: string[]) => {
-		return res.status(Constants.SUCCESS).send({ data: users });
+		return res.status(Constants.SUCCESS).send({ userIds: users });
 	}).catch((error: Error) => {
 		console.error(error);
 		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
