@@ -216,6 +216,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 		if (!info) {
 			return Promise.reject("UserNotFound");
 		}
+		info.provider = info.provider.toLowerCase();
 
 		return info;
 	} catch {
