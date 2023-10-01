@@ -1,7 +1,7 @@
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 
-// Interface for the actual event
+// Interface for the actual event!
 export interface EventFormat {
 	id: string,
 	name: string,
