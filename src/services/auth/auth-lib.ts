@@ -9,7 +9,7 @@ import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
 import { AuthDB, RolesSchema } from "./auth-schemas.js";
-import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation, RoleData } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";
@@ -170,7 +170,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
 	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
+	const newUser: RoleData = { id: id, provider: provider, roles: roles };
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 	await collection.updateOne({ id: id }, { $set: { ...newUser } }, { upsert: true });
 	return;
