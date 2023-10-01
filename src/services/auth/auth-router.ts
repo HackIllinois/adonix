@@ -328,14 +328,14 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiUse strongVerifyErrors
  */
 authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
-	const ROLE: string | undefined = req.params.ROLE?.toString();
+	const role: string | undefined = req.params.ROLE;
 
-	//returns error if role parameter is empty
-	if (!ROLE) {
+	//Returns error if role parameter is empty
+	if (!role) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	return await getUsersWithRole(ROLE).then((users: string[]) => {
+	return await getUsersWithRole(role).then((users: string[]) => {
 		return res.status(Constants.SUCCESS).send({ data: users });
 	}).catch((error: Error) => {
 		console.error(error);
