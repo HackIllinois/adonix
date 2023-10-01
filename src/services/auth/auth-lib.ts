@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection, ObjectId } from "mongodb";
+import { Collection, ObjectId, Filter, Document } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -325,16 +325,20 @@ export function getDevice(kv?: string): string {
  */
 export async function getUsersWithRole(role : string): Promise<string[]> {
 
-	// Makse a reference to the roles collection
+	// Makes a reference to the roles collection
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
+	
+	/*type Filter = {
+		roles: { $in: string[] };
+	};*/
 
-	//now make a mongodb query that iterates thru and check which ones have the role
-	const queryCriteria : { roles: { $in: string[] } } = { roles: { $in: [role] } };
+	//Makes a mongodb query that iterates through the roles array for each user and selects ones that have wanted role
+	const queryCriteria : Filter<Document> = { roles: { $in: [role] } };
 
 	//array of users as MongoDb schema that have role as one of its roles
 	const result : RolesSchema[] = await collection.find(queryCriteria).toArray() as RolesSchema[];
 	//array of strings for id, will be the return value of this funciton
-	const idArray : string[] = (result).map((user : RolesSchema) => {
+	const idArray : string[] = result.map((user : RolesSchema) => {
 		return user.id;
 	});
 
