@@ -5,8 +5,9 @@ Official repository for HackIllinois API redesign.
 
 #### Prerequisites
 
-- `node`
-- `yarn`
+- [node](https://nodejs.org)
+- [yarn](https://yarnpkg.com/getting-started/install)
+- [vercel (cli)](https://vercel.com/docs/cli)
 
 #### Steps for development environment
 
