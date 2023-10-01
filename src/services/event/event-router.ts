@@ -436,6 +436,57 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	}
 });
 
+/**
+ * @api {get} /event/expiration/:EVENTID GET /event/expiration/:EVENTID
+ * @apiGroup Event
+ * @apiDescription Get the expiration time for requested event.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event.
+ *
+ * @apiSuccess (200: Success) {Json} event The existing event and expiration data.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": "52fdfc072182654f163f5f0f9a621d72",
+ *    "exp": 1532202702,
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+	
+	if (!hasStaffPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
+
+	// Check if the request information is valid
+	const eventId: string | undefined = req.params.EVENTID;
+
+	if (!await(eventExists(eventId)) ){
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	try {
+		// Get collection from the database, and return expData
+		const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
+		const expData: InternalEventSchema = await collection.findOne({ id: eventId }) as InternalEventSchema;
+		return res.status(Constants.SUCCESS).send({ ...expData });
+	} catch {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 /**
  * @api {put} /event/expiration/ PUT /event/expiration/
@@ -465,7 +516,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
- *     {"error": "DatabaseError"}
+ *     {"error": "InternalError"}
  */
 eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -544,7 +595,7 @@ eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res
  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 500 Internal Server Error
- *     {"error": "DatabaseError"}
+ *     {"error": "InternalError"}
  */
 eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -595,7 +646,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
 	} catch (error) {
 		console.error(error);
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
 
