@@ -84,19 +84,13 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
  * @returns Promise, containing either JWT payload or reason for failure
  */
 export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
-
 	let authInfo: RolesSchema | undefined;
 	let userInfo: UserSchema | undefined;
 
 	// Fill in auth info, used for provider and roles
-
-
-
 	try {
 		authInfo = await getAuthInfo(targetUser);
 		userInfo = await getUser(targetUser);
-		
-
 	} catch (error) {
 		console.error(error);
 	}
@@ -232,18 +226,19 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 
 /**
- * Calls the getAuthInfo function to get roles for a user
+ * Calls the getAuthInfo function to get roles for a user. If the user does not exist, we return an empty array as opposed to an error.
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
 export async function getRoles(id: string): Promise<Role[]> {
+	let roles: Role[] = [];
 	try {
-		const roles: Role[] = (await getAuthInfo(id) ).roles as Role[];
-		return roles;
+		roles = (await getAuthInfo(id) ).roles as Role[];
 	} catch (error) {
 		console.error(error);
-		return Promise.reject(error);
 	}
+
+	return roles;
 }
 
 
