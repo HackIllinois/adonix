@@ -401,7 +401,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
 	// If ID doesn't exist -> return the invalid parameters
 	if (eventFormat.id) {
-		return res.status(Constants.BAD_REQUEST).send({error: "InvalidParams"});
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
 	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
