@@ -189,9 +189,11 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
 
 	// Check if this is a staff email
 	if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
+		console.log("in init! is staff");
 		roles.push(Role.STAFF);
 		// If email in the system admin list, add the admin role
 		if (Constants.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
+			console.log("in init! is admin");
 			roles.push(Role.ADMIN);
 		}
 	}
