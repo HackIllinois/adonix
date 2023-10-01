@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection, ObjectId } from "mongodb";
+import { Collection } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -105,7 +105,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	// Create and return new payload
 	const newPayload: JwtPayload = {
 		id: targetUser,
-		roles: authInfo.roles as Role[],
+		roles: authInfo.roles ,
 		email: userInfo.email,
 		provider: authInfo.provider,
 	};
@@ -235,7 +235,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 export async function getRoles(id: string): Promise<Role[]> {
 	let roles: Role[] = [];
 	try {
-		roles = (await getAuthInfo(id) ).roles as Role[];
+		roles = (await getAuthInfo(id) ).roles ;
 	} catch (error) {
 		console.error(error);
 	}
