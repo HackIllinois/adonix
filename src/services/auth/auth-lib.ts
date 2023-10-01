@@ -327,13 +327,13 @@ export async function getUsersWithRole(role : string): Promise<string[]> {
 
 	// Makse a reference to the roles collection
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
-	//now iterate thru and check which ones have the role
 
+	//now make a mongodb query that iterates thru and check which ones have the role
 	const queryCriteria : { roles: { $in: string[] } } = { roles: { $in: [role] } };
 
 	//array of users that have role as one of its roles
-	const result : RolesSchema[] = await collection.find(queryCriteria).toArray();
-
+	//right side returns a WithId<Document>[]
+	const result : RolesSchema[] = await collection.find(queryCriteria).toArray() as RolesSchema[];
 	//array of strings for id, will be the return value of this funciton
 	const idArray : string[] = (result).map((user : RolesSchema) => {
 		return user.id;

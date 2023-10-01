@@ -41,10 +41,10 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 authRouter.get("/dev/", (req: Request, res: Response) => {
 	const token: string | undefined = req.query.token as string | undefined;
 	if (!token) {
-		res.status(Constants.BAD_REQUEST).send( { error: "NoToken" });
+		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
 	}
 
-	res.status(Constants.SUCCESS).send( { token: token } );
+	res.status(Constants.SUCCESS).send({ token: token });
 });
 
 /**
@@ -329,14 +329,27 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  */
 authRouter.get("/roles/list/:role", async (req: Request, res: Response) => {
 	//NOTES: WORKS BUT ALWAYS HAS 2 ERRORS BC TYPESCRIPT!!!
-	const role : string = req.params.role.toString();
 
-	await getUsersWithRole(role).then((ans: string[]) => {
-		return res.status(Constants.SUCCESS).send({ data: ans });
+	const role: string | undefined = req.params.role?.toString();
+
+
+	if (!role) {
+		//role parameter was empty
+		return res.status(Constants.BAD_REQUEST).send({ error: "Role parameter is missing" });
+	}
+
+	return await getUsersWithRole(role).then((users: string[]) => {
+		return res.status(Constants.SUCCESS).send({ data: users });
 	}).catch((error: Error) => {
 		console.error(error);
 		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
 	});
+	/*
+	const users : string[] = await getUsersWithRole(role).catch((error: Error) => {
+		console.error(error);
+		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+	});
+	return res.status(Constants.SUCCESS).send({ data: users });*/
 });
 
 /**
