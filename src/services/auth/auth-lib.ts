@@ -238,7 +238,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
  */
 export async function getRoles(id: string): Promise<Role[]> {
 	try {
-		const roles: Role[] = (await getAuthInfo(id) as RolesSchema).roles as Role[];
+		const roles: Role[] = (await getAuthInfo(id) ).roles as Role[];
 		return roles;
 	} catch (error) {
 		console.error(error);
