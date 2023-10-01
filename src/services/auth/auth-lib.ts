@@ -63,11 +63,12 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		roles: [],
 	};
 
-	// Get roles, and assign those to payload.roles if they exist
+	// Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
 	try {
 		const oldRoles: Role[] = await getRoles(userId);
-		const newRoles: Role[] = await initializeRoles(userId, provider.toUpperCase() as Provider, email);
+		const newRoles: Role[] = defineUserRoles(provider.toUpperCase() as Provider, data.email);
 		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
+		await initializeRoles(userId, provider.toUpperCase() as Provider, payload.roles);
 	} catch (error) {
 		console.error(error);
 	}
@@ -167,18 +168,16 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * Create an auth database entry for the current user. Should be called whenever a user is created.
  * @param id UserID to create the entry for
  * @param provider Provider being used to create this entry
- * @param email Email address of current user
- * @returns Promise, containing list of user roles if valid. If invalid, error containing why.
+ * @param roles Array of roles that belong to the given ruler
+ * @returns Promise, containing nothing if valid. If invalid, error containing why.
  */
-export async function initializeRoles(id: string, provider: Provider, email: string): Promise<Role[]> {
-	const roles: Role[] = defineUserRoles(provider, email);
-
+export async function initializeRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
 	// Create a new rolesEntry for the database, and insert it into the collection
 	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
-	await collection.insertOne(newUser);
+	await collection.updateOne({ id: id }, { $set: { ...newUser } }, { upsert: true });
 
-	return roles;
+	return;
 }
 
 
