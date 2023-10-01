@@ -68,6 +68,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		const oldRoles: Role[] = await getRoles(userId);
 		const newRoles: Role[] = defineUserRoles(provider.toUpperCase() as Provider, data.email);
 		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
+		console.log(payload.roles);
 		await initializeRoles(userId, provider.toUpperCase() as Provider, payload.roles);
 	} catch (error) {
 		console.error(error);
