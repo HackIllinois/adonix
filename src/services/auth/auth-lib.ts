@@ -65,9 +65,9 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
 	// Get roles, and assign those to payload.roles if they exist
 	try {
-		const oldRoles: Role[] = await getRoles(userId);
-		const newRoles: Role[] = await initializeRoles(userId, provider.toUpperCase() as Provider, email);
-		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
+		let oldRoles: Role[] = await getRoles(userId);
+		let newRoles: Role[] = await initializeRoles(userId, provider.toUpperCase() as Provider, email);
+		payload.roles = [...new Set([...oldRoles, ...newRoles])];
 	} catch (error) {
 		console.error(error);
 	}
