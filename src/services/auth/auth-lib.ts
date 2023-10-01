@@ -185,6 +185,7 @@ export async function updateUserRoles(id: string, provider: Provider, roles: Rol
  */
 export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	const roles: Role[] = [];
+	console.log("in init", provider, email);
 
 	// Check if this is a staff email
 	if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
@@ -199,6 +200,7 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	if (provider == Provider.GITHUB) {
 		roles.push(Role.USER);
 	}
+	console.log("in init", roles);
 
 	return roles;
 }
