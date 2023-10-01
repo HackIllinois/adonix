@@ -66,12 +66,9 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	// Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
 	try {
 		const oldRoles: Role[] = await getRoles(userId);
-		console.log("old", oldRoles);
-		const newRoles: Role[] = initializeUserRoles(provider.toUpperCase() as Provider, data.email);
-		console.log("new", newRoles);
+		const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
 		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
-		console.log(payload.roles);
-		await updateUserRoles(userId, provider.toUpperCase() as Provider, payload.roles);
+		await updateUserRoles(userId, provider as Provider, payload.roles);
 	} catch (error) {
 		console.error(error);
 	}
@@ -170,7 +167,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
 	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RoleData = { id: id, provider: provider, roles: roles };
+	const newUser: RoleData = { id: id, provider: provider.toUpperCase(), roles: roles };
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 	await collection.updateOne({ id: id }, { $set: { ...newUser } }, { upsert: true });
 	return;
@@ -185,15 +182,12 @@ export async function updateUserRoles(id: string, provider: Provider, roles: Rol
  */
 export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	const roles: Role[] = [];
-	console.log("in init", provider, email);
 
 	// Check if this is a staff email
 	if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
-		console.log("in init! is staff");
 		roles.push(Role.STAFF);
 		// If email in the system admin list, add the admin role
 		if (Constants.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
-			console.log("in init! is admin");
 			roles.push(Role.ADMIN);
 		}
 	}
@@ -202,7 +196,6 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	if (provider == Provider.GITHUB) {
 		roles.push(Role.USER);
 	}
-	console.log("in init", roles);
 
 	return roles;
 }

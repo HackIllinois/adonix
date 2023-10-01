@@ -5,7 +5,7 @@ export interface ProfileData {
 
 export interface RoleData {
 	id: string,
-	provider: Provider,
+	provider: Provider | string,
 	roles: Role[]
 }
 
