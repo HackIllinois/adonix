@@ -418,7 +418,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	}
 
 	// Try to update the database. Update the collection containing the event, and the expiration times
-	const expCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+	const expCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
 	try {
 		await eventCollection.insertOne(eventFormat);
 		await expCollection.insertOne({ eventId: eventFormat.id, exp: eventFormat.endTime });
