@@ -12,12 +12,12 @@
         "target": "ES6",
         "module": "ES6",
         // Module resolution
-        "baseUrl": "./",
+        "baseUrl": "./src",
         "esModuleInterop": true,
         "moduleResolution": "node",
         // Source Map
         "sourceMap": true,
-        "sourceRoot": "/",
+        "sourceRoot": "./src",
         // Strict Checks
         "alwaysStrict": true,
         "allowUnreachableCode": false,
@@ -35,6 +35,7 @@
     },
     "include": [
         "./**/*.ts",
+        "./**/*.cjs",
      ],
     "exclude": [
         "node_modules/**",
