@@ -202,7 +202,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiGroup Event
  * @apiDescription Record staff attendance for an event.
  *
- * @apiHeader {String} Authorization JWT Token with elevated permissions.
+ * @apiHeader {String} Authorization JWT Token with staff permissions.
  *
  * @apiBody {String} eventId The unique identifier of the event.
  *
@@ -392,7 +392,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
 eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-	// Check if the token has elevated permissions
+	// Check if the token has staff permissions
 	if (!hasAdminPerms(payload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 	}
