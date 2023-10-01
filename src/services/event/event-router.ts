@@ -12,7 +12,7 @@ import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
 import { EventDB, StaffDB, InternalEventSchema } from "./event-schemas.js";
-import { hasExpired, truncateToExternalEvent, updateExpiry } from "./event-lib.js";
+import { eventExists, hasExpired, truncateToExternalEvent, updateExpiry } from "./event-lib.js";
 import { InternalEvent, ExternalEvent } from "./event-models.js";
 import { AttendanceFormat, isStaffEventFormat, isAttendeeEventFormat, BaseEventFormat, ExpirationFormat, isExpirationFormat } from "./event-formats.js";
 
@@ -397,6 +397,12 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	}
 
 	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
+
+	// If ID doesn't exist -> return the invalid parameters
+	if (eventFormat.id) {
+		return res.status(Constants.BAD_REQUEST).send({error: "InvalidParams"});
+	}
+
 	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
 
 	// Create base types, to be defined based on whether or not there's an isStaff field
@@ -572,7 +578,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 	}
 
 	// Check if the actual request is valid (based on the function passed in earlier)
-	if (!validRequestChecker(eventFormat)) {
+	if (!validRequestChecker(eventFormat) || !await eventExists(eventFormat.id)) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
