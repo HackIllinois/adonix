@@ -113,7 +113,9 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 	} catch (error) {
 		console.error(error);
 	}
+	console.log("Finished callback #1");
 }, async (req: Request, res: Response) => {
+	console.log("In callback #2");
 	if (!req.isAuthenticated()) {
 		return res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
 	}
@@ -137,7 +139,7 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 		console.error(error);
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
 	}
-
+	console.log("Finished callback #2");
 });
 
 
