@@ -66,10 +66,10 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 	// Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
 	try {
 		const oldRoles: Role[] = await getRoles(userId);
-		const newRoles: Role[] = defineUserRoles(provider.toUpperCase() as Provider, data.email);
+		const newRoles: Role[] = initializeUserRoles(provider.toUpperCase() as Provider, data.email);
 		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
 		console.log(payload.roles);
-		await initializeRoles(userId, provider.toUpperCase() as Provider, payload.roles);
+		await updateUserRoles(userId, provider.toUpperCase() as Provider, payload.roles);
 	} catch (error) {
 		console.error(error);
 	}
@@ -172,12 +172,11 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * @param roles Array of roles that belong to the given ruler
  * @returns Promise, containing nothing if valid. If invalid, error containing why.
  */
-export async function initializeRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
+export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
 	// Create a new rolesEntry for the database, and insert it into the collection
 	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
 	await collection.updateOne({ id: id }, { $set: { ...newUser } }, { upsert: true });
-
 	return;
 }
 
@@ -188,7 +187,7 @@ export async function initializeRoles(id: string, provider: Provider, roles: Rol
  * @param email Email address that the user signed up with
  * @returns List of roles that the uer containss
  */
-export function defineUserRoles(provider: Provider, email: string): Role[] {
+export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	const roles: Role[] = [];
 
 	// Check if this is a staff email
@@ -238,15 +237,13 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
  * @returns Promise, containing array of roles for the user.
  */
 export async function getRoles(id: string): Promise<Role[]> {
-	let roles: Role[] | undefined;
-	// Call helper function to get auth info, and return data from there
-	await getAuthInfo(id).then((user: RolesSchema) => {
-		roles = user.roles as Role[];
-	}).catch((error: string) => {
+	try {
+		const roles: Role[] = (await getAuthInfo(id) as RolesSchema).roles as Role[];
+		return roles;
+	} catch (error) {
+		console.error(error);
 		return Promise.reject(error);
-	});
-
-	return roles ?? Promise.reject("UserNotFound");
+	}
 }
 
 
