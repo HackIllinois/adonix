@@ -239,7 +239,7 @@ eventsRouter.post("/staff/attendance/", strongJwtVerification, async (req: Reque
 	}
 
 	if (await hasExpired(eventId)) {
-		res.status(Constants.BAD_REQUEST).send({ error: "EventExpired" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "EventExpired" });
 	}
 
 	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
@@ -443,7 +443,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiDescription Create a new expiration entry, or update the expiration entry.
  *
  * @apiBody {string} id The unique identifier of the event.
- * @apiBody {number} exp Time to set the expiration to
+ * @apiBody {number} exp Time to set the expiration to, IN MILLISECONDS.
  *
  *
  * @apiSuccess (200: Success) {Json} event The created or updated expiration data.

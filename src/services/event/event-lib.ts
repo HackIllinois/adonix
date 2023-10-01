@@ -77,7 +77,6 @@ export async function hasExpired(eventId: string): Promise<boolean> {
 	} catch (error ){
 		return Promise.reject(error);
 	}
-
 }
 
 /**
