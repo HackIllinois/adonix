@@ -331,9 +331,6 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
  *
- * @apiBody {boolean} isPrivate Indicates whether the event is private.
- * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
- * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiBody {string} name The name of the event.
  * @apiBody {string} description A description of the event.
  * @apiBody {number} startTime The start time of the event.
@@ -343,9 +340,10 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiBody {string} eventType The type of the event.
  * @apiBody {number} points The points associated with the event.
  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  *
- * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
- * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiSuccess {string} id The unique identifier of the event.
  * @apiSuccess {string} name The name of the event.
  * @apiSuccess {string} description A description of the event.
@@ -356,6 +354,9 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccess {string} eventType The type of the event.
  * @apiSuccess {number} points The points associated with the event.
  * @apiSuccess {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
+ * @apiSuccess {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
@@ -494,10 +495,6 @@ eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res
  * @api {put} /event/ PUT /event/
  * @apiGroup Event
  * @apiDescription Create a new event or update an existing event.
- *
- * @apiBody {boolean} isPrivate Indicates whether the event is private.
- * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
- * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
  * @apiBody {string} id The unique identifier of the event.
  * @apiBody {string} name The name of the event.
  * @apiBody {string} description A description of the event.
@@ -508,6 +505,9 @@ eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res
  * @apiBody {string} eventType The type of the event.
  * @apiBody {number} points The points associated with the event.
  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
  *
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event.

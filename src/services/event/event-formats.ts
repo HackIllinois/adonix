@@ -27,11 +27,12 @@ export interface AttendeeEventFormat extends BaseEventFormat {
 // Empty interface, allows for easier code readability
 export interface StaffEventFormat extends BaseEventFormat { }
 
-
+// Format for default staff attendance input
 export interface AttendanceFormat {
 	eventId: string,
 }
 
+// Input format for changing event expiration
 export interface ExpirationFormat {
 	id: string,
 	exp: string,
