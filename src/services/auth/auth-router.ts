@@ -12,7 +12,7 @@ import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
 import { ModifyRoleRequest } from "./auth-formats.js";
 import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
-import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction } from "./auth-lib.js";
+import { generateJwtToken, getDevice, getJwtPayloadFromProfile, getRoles, hasElevatedPerms, updateRoles, verifyFunction, getUsersWithRole } from "./auth-lib.js";
 
 
 passport.use(Provider.GITHUB, new GitHubStrategy({
@@ -41,10 +41,10 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 authRouter.get("/dev/", (req: Request, res: Response) => {
 	const token: string | undefined = req.query.token as string | undefined;
 	if (!token) {
-		res.status(Constants.BAD_REQUEST).send( { error: "NoToken" });
+		res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
 	}
 
-	res.status(Constants.SUCCESS).send( { token: token } );
+	res.status(Constants.SUCCESS).send({ token: token });
 });
 
 /**
@@ -312,6 +312,37 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
 	});
 });
 
+
+/**
+ * @api {get} /auth/roles/list/:role GET /auth/roles/list/:role
+ * @apiGroup Auth
+ * @apiDescription Get all users that have a certain role.
+ *
+ * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"data" : ["github44122133", "github22779056", "github5997469", "github98075854"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
+	const role: string | undefined = req.params.ROLE;
+
+	//Returns error if role parameter is empty
+	if (!role) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	return await getUsersWithRole(role).then((users: string[]) => {
+		return res.status(Constants.SUCCESS).send({ userIds: users });
+	}).catch((error: Error) => {
+		console.error(error);
+		return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+	});
+});
+
 /**
  * @api {get} /auth/token/refresh/ GET /auth/token/refresh/
  * @apiGroup Auth
@@ -346,6 +377,9 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
+
+
+
 
 
 export default authRouter;
