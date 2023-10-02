@@ -481,7 +481,7 @@ eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Requ
 	try {
 		// Get collection from the database, and return expData
 		const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
-		const expData: InternalEventSchema = await collection.findOne({ id: eventId }) as InternalEventSchema;
+		const expData: InternalEventSchema = await collection.findOne({ eventId: eventId }) as InternalEventSchema;
 		return res.status(Constants.SUCCESS).send({ ...expData });
 	} catch {
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
