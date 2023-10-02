@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection } from "mongodb";
+import { Collection, Filter, Document } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -326,4 +326,28 @@ export function getDevice(kv?: string): string {
 	}
 
 	return value;
+}
+
+
+/**
+ * Get all id of users that have a particular role within the database.
+ * @param role role that we want to filter for
+ * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
+ */
+export async function getUsersWithRole(role : string): Promise<string[]> {
+
+	// Makes a reference to the roles collection
+	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
+
+	//Makes a mongodb query that iterates through the roles array for each user and selects ones that have wanted role
+	const queryCriteria : Filter<Document> = { roles: { $in: [role] } };
+
+	//Array of users as MongoDb schema that have role as one of its roles
+	const result : RolesSchema[] = await collection.find(queryCriteria).toArray() as RolesSchema[];
+	//Array of strings for id, will be the return value of this funciton
+	const idArray : string[] = result.map((user : RolesSchema) => {
+		return user.id;
+	});
+
+	return idArray ?? Promise.reject("Unknown Error");
 }
