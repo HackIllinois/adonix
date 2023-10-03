@@ -28,7 +28,9 @@
         "noImplicitReturns": true,
         "noUncheckedIndexedAccess": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+        // Enabling these for mongoose
+        "experimentalDecorators": true
     },
     "include": [
         "./**/*.ts",
