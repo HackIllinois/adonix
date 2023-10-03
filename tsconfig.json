@@ -30,7 +30,8 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         // Enabling these for mongoose
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
     },
     "include": [
         "./**/*.ts",

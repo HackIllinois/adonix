@@ -1,9 +1,9 @@
 import { Collection, Document, Filter } from "mongodb";
-import { InternalEvent, ExternalEvent } from "./event-models";
 import client from "../../database.js";
 import Constants from "../../constants.js";
-import { EventDB, ExpirationSchema } from "./event-schemas.js";
+import { EventDB, ExpirationSchema } from "./event-db.js";
 import { ExpirationFormat } from "./event-formats";
+import { FilteredEventView, Location, PublicEvent } from "./event-models.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting
@@ -12,14 +12,14 @@ import { ExpirationFormat } from "./event-formats";
  * @param baseEvent The object to convert into a public event.
  * @returns The truncated ExternalEvent object.
  */
-export function truncateToExternalEvent(baseEvent: InternalEvent | ExternalEvent): ExternalEvent {
-	const publicEvent: ExternalEvent = {
+export function truncateToExternalEvent(baseEvent: PublicEvent): FilteredEventView {
+	const publicEvent: FilteredEventView = {
 		id: baseEvent.id,
 		name: baseEvent.name,
 		description: baseEvent.description,
 		startTime: baseEvent.startTime,
 		endTime: baseEvent.endTime,
-		locations: baseEvent.locations,
+		locations: baseEvent.locations as Location[],
 		sponsor: baseEvent.sponsor,
 		eventType: baseEvent.eventType,
 		points: baseEvent.points,
@@ -41,7 +41,7 @@ export async function eventExists(eventId: string | undefined): Promise<boolean>
 
 	const searchFilter: Filter<Document> = { id: eventId };
 
-	const attendeeCollection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+	const attendeeCollection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.PUBLIC_EVENTS);
 	const staffCollection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
 
 	try {
@@ -71,7 +71,7 @@ export async function hasExpired(eventId: string): Promise<boolean> {
 		if (!isValidEvent) {
 			return Promise.reject("EventNotFound");
 		}
-		const collection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
+		const collection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.METADATA);
 		const event: ExpirationSchema = await collection.findOne({ id: eventId }) as ExpirationSchema;
 		return Promise.resolve(Date.now() >= event.exp);
 	} catch (error ){
@@ -84,7 +84,7 @@ export async function hasExpired(eventId: string): Promise<boolean> {
  * @param eventId EventData struct containing the data to update.
  */
 export async function updateExpiry(eventData: ExpirationFormat): Promise<void> {
-	const collection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
+	const collection: Collection = client.db(Constants.EVENT_DB).collection(EventDB.METADATA);
 	await collection.updateOne({ id: eventData.id }, { $set: { exp: eventData.exp } }, { upsert: true });
 	return;
 }

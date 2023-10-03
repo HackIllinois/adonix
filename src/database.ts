@@ -1,19 +1,20 @@
+import { IModelOptions } from "@typegoose/typegoose/lib/types";
 import "dotenv";
 import { MongoClient } from "mongodb";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 const username: string | undefined = process.env.DB_USERNAME;
 const password: string | undefined = process.env.DB_PASSWORD;
 const server: string | undefined = process.env.DB_SERVER;
 
-const params:string =  "?retryWrites=true&w=majority"
+const params:string = "?retryWrites=true&w=majority";
 const uri: string = `mongodb+srv://${username}:${password}@${server}/${params}`;
 const client: MongoClient = new MongoClient(uri);
 
 const existingConnections: Map<string, mongoose.Connection> = new Map();
 
 export function connectToMongoose(dbName: string): mongoose.Connection {
-	const url: string = `mongodb+srv://${username}:${password}@${server}/${dbName}/${params}`;
+	const url: string = `mongodb+srv://${username}:${password}@${server}/${dbName}${params}`;
 
 	let database: mongoose.Connection | undefined = existingConnections.get(dbName);
 
@@ -23,6 +24,12 @@ export function connectToMongoose(dbName: string): mongoose.Connection {
 	}
 
 	return database;
+}
+
+export function generateConfig(database: string, collection: string): IModelOptions {
+	const connection: mongoose.Connection = connectToMongoose(database);
+
+	return {existingConnection: connection, schemaOptions: {collection: collection}};
 }
 
 export default client;

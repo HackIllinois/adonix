@@ -1,10 +1,10 @@
 import { Document, ObjectId, WithId } from "mongodb";
-import { PublicEvent, StaffEvent } from "./event-models";
+import { PublicEvent, StaffEvent } from "./event-models.js";
 
 import { getModelForClass } from "@typegoose/typegoose";
 import mongoose from "mongoose";
-import { connectToMongoose } from "src/database";
-import Constants from "src/constants";
+import { generateConfig } from "../../database.js";
+import Constants from "../../constants.js";
 
 
 export interface ExpirationSchema extends WithId<Document> {
@@ -15,7 +15,7 @@ export interface ExpirationSchema extends WithId<Document> {
 
 // Collections within the event database
 export enum EventDB {
-	ATTENDEE_EVENTS = "staffevents",
+	PUBLIC_EVENTS = "events",
 	EVENT_CODES = "eventcodes",
 	EVENT_TRACKERS = "eventtrackers",
 	FAVORITES = "favorites",
@@ -31,9 +31,5 @@ export enum StaffDB {
 	ATTENDANCE = "attendance",
 }
 
-
-const staffDatabase: mongoose.Connection = connectToMongoose(Constants.EVENT_DB);
-const publicDatabase: mongoose.Connection = connectToMongoose(Constants.EVENT_DB);
-
-export const StaffEventModel = getModelForClass(StaffEvent, {existingConnection: staffDatabase});
-export const PublicEventModel = getModelForClass(PublicEvent, {existingConnection: publicDatabase});
+export const StaffEventModel: mongoose.Model<StaffEvent> = getModelForClass(StaffEvent, generateConfig(Constants.EVENT_DB, EventDB.STAFF_EVENTS));
+export const PublicEventModel: mongoose.Model<PublicEvent> = getModelForClass(PublicEvent, generateConfig(Constants.EVENT_DB, EventDB.PUBLIC_EVENTS));
