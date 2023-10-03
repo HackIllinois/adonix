@@ -1,10 +1,9 @@
-import { ObjectId } from "mongodb";
 import Constants from "../../constants.js";
 import { Location, EVENT_TYPE } from "./event-models.js";
 
 // Base format for the event - ALL events must have these
 export interface BaseEventFormat {
-	_id?: ObjectId,
+	_id?: string,
 	id: string,
 	name: string,
 	description: string,
@@ -26,18 +25,6 @@ export interface AttendeeEventFormat extends BaseEventFormat {
 
 // Empty interface, allows for easier code readability
 export interface StaffEventFormat extends BaseEventFormat { }
-
-// Format for default staff attendance input
-export interface AttendanceFormat {
-	eventId: string,
-}
-
-// Input format for changing event expiration
-export interface ExpirationFormat {
-	id: string,
-	exp: string,
-}
-
 
 /**
  * Checks whether an object conforms to the structure of a Location.
@@ -68,7 +55,7 @@ function isLocation(loc: Location): boolean {
  *
  */
 /* eslint-disable no-magic-numbers */
-function isBaseEventFormat(obj: BaseEventFormat): boolean {
+function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
 	if (typeof obj.id !== "string" || obj.id.length !== Constants.EVENT_ID_LENGTH) {
 		return false;
 	}
@@ -111,8 +98,8 @@ function isBaseEventFormat(obj: BaseEventFormat): boolean {
  * @returns True if the object is a valid AttendeeEventFormat, otherwise False.
  *
  */
-export function isAttendeeEventFormat(baseEvent: BaseEventFormat): boolean {
-	if (!isBaseEventFormat(baseEvent)) {
+export function isValidAttendeeFormat(baseEvent: BaseEventFormat): boolean {
+	if (!isValidBaseEventFormat(baseEvent)) {
 		return false;
 	}
 	
@@ -141,15 +128,17 @@ export function isAttendeeEventFormat(baseEvent: BaseEventFormat): boolean {
  * @returns True if the object is a valid AttendeeEventFormat, otherwise False.
  *
  */
-export function isStaffEventFormat(baseEvent: BaseEventFormat): boolean {
-	return isBaseEventFormat(baseEvent);
+export function isValidStaffFormat(baseEvent: BaseEventFormat): boolean {
+	return isValidBaseEventFormat(baseEvent);
 }
 
-export function isExpirationFormat(expData: ExpirationFormat): boolean {
-	if (typeof expData.id !== "string" || typeof expData.exp !== "number" || expData.exp <= 0) {
-		return false;
-	}
-
-	return true;
+// Format for default staff attendance input
+export interface AttendanceFormat {
+	eventId: string,
 }
-/* eslint-enable no-magic-numbers */
+
+// Input format for changing event expiration
+export interface ExpirationFormat {
+	id: string,
+	exp: string,
+}

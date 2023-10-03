@@ -3,7 +3,7 @@ import client from "../../database.js";
 import Constants from "../../constants.js";
 import { EventDB, ExpirationSchema } from "./event-db.js";
 import { ExpirationFormat } from "./event-formats";
-import { FilteredEventView, Location, PublicEvent } from "./event-models.js";
+import { EVENT_TYPE, FilteredEventView, PublicEvent } from "./event-models.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting
@@ -12,16 +12,16 @@ import { FilteredEventView, Location, PublicEvent } from "./event-models.js";
  * @param baseEvent The object to convert into a public event.
  * @returns The truncated ExternalEvent object.
  */
-export function truncateToExternalEvent(baseEvent: PublicEvent): FilteredEventView {
+export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventView {
 	const publicEvent: FilteredEventView = {
 		id: baseEvent.id,
 		name: baseEvent.name,
 		description: baseEvent.description,
 		startTime: baseEvent.startTime,
 		endTime: baseEvent.endTime,
-		locations: baseEvent.locations as Location[],
+		locations: baseEvent.locations,
 		sponsor: baseEvent.sponsor,
-		eventType: baseEvent.eventType,
+		eventType: baseEvent.eventType as EVENT_TYPE,
 		points: baseEvent.points,
 		isAsync: baseEvent.isAsync,
 	};

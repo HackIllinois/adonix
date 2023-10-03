@@ -1,200 +1,161 @@
 import cors from "cors";
 import { Request, Router } from "express";
-import crypto from "crypto";
 import { NextFunction, Response } from "express-serve-static-core";
-import { Collection, Document, UpdateFilter } from "mongodb";
+import { ObjectId } from "mongodb";
 
 import Constants from "../../constants.js";
-import databaseClient from "../../database.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { eventExists, truncateToExternalEvent, updateExpiry } from "./event-lib.js";
-import { isStaffEventFormat, isAttendeeEventFormat, BaseEventFormat, ExpirationFormat, isExpirationFormat } from "./event-formats.js";
-import { FilteredEventView, PublicEvent } from "./event-models.js";
-import { PublicEventModel, EventDB, StaffDB } from "./event-db.js";
-
+import { createFilteredEventView, eventExists, updateExpiry } from "./event-lib.js";
+import { BaseEventFormat, ExpirationFormat, isValidStaffFormat, isValidAttendeeFormat } from "./event-formats.js";
+import { EventMetadata, FilteredEventView, PublicEvent, StaffEvent } from "./event-models.js";
+import { PublicEventModel, StaffEventModel, EventMetadataModel } from "./event-db.js";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
 
+/**
+ * @api {get} /event/staff GET /event/staff
+ * @apiGroup Event
+ * @apiDescription Get staff event details by its unique ID.
+ *
+ * @apiSuccess (200: Success) {Json} event The event details.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP".
+ * 	   "isStaff": true,
+ * 	   "isPrivate": true,
+ * 	   "isAsync": true,
+ * 	   "displayOnStaffCheckIn": true,
+ *   }
+ * }
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "PrivateEvent"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-// /**
-//  * @api {get} /event/staff GET /event/staff
-//  * @apiGroup Event
-//  * @apiDescription Get staff event details by its unique ID.
-//  *
-//  * @apiSuccess (200: Success) {Json} event The event details.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {
-//  *   "event": {
-//  *     "id": "52fdfc072182654f163f5f0f9a621d72",
-//  *     "name": "Example Event 10",
-//  *     "description": "This is a description",
-//  *     "startTime": 1532202702,
-//  *     "endTime": 1532212702,
-//  *     "locations": [
-//  *       {
-//  *         "description": "Example Location",
-//  *         "tags": ["SIEBEL0", "ECEB1"],
-//  *         "latitude": 40.1138,
-//  *         "longitude": -88.2249
-//  *       }
-//  *     ],
-//  *     "sponsor": "Example sponsor",
-//  *     "eventType": "WORKSHOP".
-//  * 	   "isStaff": true,
-//  * 	   "isPrivate": true,
-//  * 	   "isAsync": true,
-//  * 	   "displayOnStaffCheckIn": true,
-//  *   }
-//  * }
-//  *
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "PrivateEvent"}
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "InternalError"}
-//  */
-// eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response) => {
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
+	if (!hasStaffPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+	}
 
-// 	if (!hasStaffPerms(payload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
-// 	}
+	try {
+		const staffEvents: StaffEvent[] = await StaffEventModel.find();
+		return res.status(Constants.SUCCESS).send({ events: staffEvents });
+	} catch (error) {
+		return next(error);
+	}
+});
 
-// 	// Get staff collection, and return all staff events
-// 	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
+/**
+ * @api {get} /event/:EVENTID GET /event/:EVENTID
+ * @apiGroup Event
+ * @apiDescription Get event details by its unique ID.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event.
+ *
+ * @apiSuccess (200: Success) {Json} event The event details.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP"
+ *   }
+ * }
+ *
+ * @apiUse weakVerifyErrors
+ * @apiError (403: Forbidden) {String} PrivateEvent Access denied for private event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "PrivateEvent"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+	const eventId: string | undefined = req.params.EVENTID;
 
-// 	try {
-// 		const staffEvents: InternalEventSchema[] = await collection.find().toArray() as InternalEventSchema[];
-// 		return res.status(Constants.SUCCESS).send({ events: staffEvents });
-// 	} catch (error) {
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
+	if (!eventId) {
+		return res.redirect("/");
+	}
 
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+	try {
+		const isStaff: boolean = hasStaffPerms(payload);
 
-// /**
-//  * @api {get} /event/:EVENTID GET /event/:EVENTID
-//  * @apiGroup Event
-//  * @apiDescription Get event details by its unique ID.
-//  *
-//  * @apiParam {String} EVENTID The unique identifier of the event.
-//  *
-//  * @apiSuccess (200: Success) {Json} event The event details.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {
-//  *   "event": {
-//  *     "id": "52fdfc072182654f163f5f0f9a621d72",
-//  *     "name": "Example Event 10",
-//  *     "description": "This is a description",
-//  *     "startTime": 1532202702,
-//  *     "endTime": 1532212702,
-//  *     "locations": [
-//  *       {
-//  *         "description": "Example Location",
-//  *         "tags": ["SIEBEL0", "ECEB1"],
-//  *         "latitude": 40.1138,
-//  *         "longitude": -88.2249
-//  *       }
-//  *     ],
-//  *     "sponsor": "Example sponsor",
-//  *     "eventType": "WORKSHOP"
-//  *   }
-//  * }
-//  *
-//  * @apiUse weakVerifyErrors
-//  * @apiError (403: Forbidden) {String} PrivateEvent Access denied for private event.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "PrivateEvent"}
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "InternalError"}
-//  */
-// eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Response) => {
-// 	const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
-// 	const eventId: string | undefined = req.params.EVENTID;
+		const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
 
-// 	if (!eventId) {
-// 		return res.redirect("/");
-// 	}
+		if (!metadata) {
+			console.error("no metadata found!");
+			return next(new Error("no event found!"));
+		}
+		
+		if (metadata.isStaff) {
+			if (!isStaff) {
 
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
-// 	try {
-// 		const isStaff: boolean = hasStaffPerms(payload);
-// 		const event: InternalEventSchema = await collection.findOne({ id: eventId }) as InternalEventSchema;
+				return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
+			}
 
-// 		if (event.isPrivate) {
-// 			// If event is private and a staff member is requesting this event, return the event. Else, give forbidden1
-// 			if (isStaff) {
-// 				return res.status(Constants.SUCCESS).send({ event: event });
-// 			} else {
-// 				return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
-// 			}
-// 		} else {
-// 			// Not a private event -> convert to Public event and return
-// 			return res.status(Constants.SUCCESS).send({ event: truncateToExternalEvent(event) });
-// 		}
-// 	} catch {
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
-
-
-// /**
-//  * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
-//  * @apiGroup Event
-//  * @apiDescription Delete an event by its unique ID.
-//  *
-//  * @apiParam {String} EVENTID The unique identifier of the event to be deleted.
-//  *
-//  * @apiSuccess (200: Success) {String} message Event successfully deleted.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {}
-//  *
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing EVENTID parameter.
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  */
-// eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const eventId: string | undefined = req.params.EVENTID;
-
-// 	// Check if request sender has permission to delete the event
-// 	if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-// 	}
-
-// 	// Check if eventid field doesn't exist -> if not, returns error
-// 	if (!eventId) {
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
-
-// 	const publicCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
-// 	const staffCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
-
-// 	// Perform a lazy delete on both databases, and return true if the operation succeeds
-// 	try {
-// 		await publicCollection.deleteOne({ id: eventId });
-// 		await staffCollection.deleteOne({ id: eventId });
-// 		return res.status(Constants.SUCCESS).send({ status: "Success" });
-// 	} catch (error) {
-// 		console.error(error);
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
+			const event: StaffEvent | null = await StaffEventModel.findById(eventId);
+			return res.status(Constants.SUCCESS).send({ event: event });
+		} else {
+			// Not a private event -> convert to Public event and return
+			const event: PublicEvent | null = await PublicEventModel.findById(eventId);
+			
+			if (!event) {
+				console.error("no metadata found!");
+				return next(new Error("no event found!"));
+			}
+	
+			const filteredEvent: FilteredEventView = createFilteredEventView(event);
+			return res.status(Constants.SUCCESS).send({ event: filteredEvent });
+		}
+	} catch {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 /**
  * @api {get} /event/ GET /event/
@@ -248,137 +209,177 @@ eventsRouter.use(cors({ origin: "*" }));
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
+eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
 	try {
-		// Check if we have a JWT token passed in, and use that to define the query cursor
-		const isStaff: boolean = hasStaffPerms(res.locals.payload as JwtPayload | undefined);
-
 		// Get collection from the database, and return it as an array
 		const publicEvents: PublicEvent[] = await PublicEventModel.find();
-		console.log("EVENT SIZE", publicEvents.length);
 
-		if (isStaff) {
+		if (hasStaffPerms(payload)) {
 			return res.status(Constants.SUCCESS).send( { events: publicEvents });
 		} else {
-			const filteredEvents: FilteredEventView[] = publicEvents.map(truncateToExternalEvent);
+			const filteredEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
 			return res.status(Constants.SUCCESS).send({ events: filteredEvents });
 		}
-	} catch {
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	} catch (error) {
+		return next(error);
 	}
 });
 
+/**
+ * @api {post} /event/ POST /event/
+ * @apiGroup Event
+ * @apiDescription Create a new event or update an existing event.
+ *
+ * @apiBody {string} name The name of the event.
+ * @apiBody {string} description A description of the event.
+ * @apiBody {number} startTime The start time of the event.
+ * @apiBody {number} endTime The end time of the event.
+ * @apiBody {Location[]} locations An array of locations associated with the event.
+ * @apiBody {string} sponsor The sponsor of the event.
+ * @apiBody {string} eventType The type of the event.
+ * @apiBody {number} points The points associated with the event.
+ * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ *
+ * @apiSuccess {string} id The unique identifier of the event.
+ * @apiSuccess {string} name The name of the event.
+ * @apiSuccess {string} description A description of the event.
+ * @apiSuccess {number} startTime The start time of the event.
+ * @apiSuccess {number} endTime The end time of the event.
+ * @apiSuccess {Location[]} locations An array of locations associated with the event.
+ * @apiSuccess {string} sponsor The sponsor of the event.
+ * @apiSuccess {string} eventType The type of the event.
+ * @apiSuccess {number} points The points associated with the event.
+ * @apiSuccess {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
+ * @apiSuccess {boolean} isStaff Indicates whether the event is staff-only.
+ * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+*     "name": "Example Event 10",
+*     "description": "This is a description",
+*     "startTime": 1532202702,
+*     "endTime": 1532212702,
+*     "locations": [
+*       {
+*         "description": "Example Location",
+*         "tags": ["SIEBEL0", "ECEB1"],
+*         "latitude": 40.1138,
+*         "longitude": -88.2249
+*       }
+*     ],
+*     "sponsor": "Example sponsor",
+*     "eventType": "WORKSHOP"
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "DatabaseError"}
+ */
+eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+	// Check if the token has staff permissions
+	if (!hasAdminPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
+
+	// Convert event format into the base event format
+	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
+
+	// If ID doesn't exist -> return the invalid parameters
+	if (!isValidStaffFormat(eventFormat) || !isValidAttendeeFormat(eventFormat)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
+
+	// Create the ID and process metadata for this event
+	const id: string = new ObjectId().toHexString();
+	const isStaffEvent: boolean = eventFormat.isStaff;
+	const metadata: EventMetadata = new EventMetadata(id, isStaffEvent, eventFormat.endTime);
+	eventFormat._id = id;
+
+	// Try to upload the events if possible, else throw an error
+	try {
+		if (isStaffEvent) {
+			const staffEvent: StaffEvent = new StaffEvent(eventFormat);
+			await StaffEventModel.insertMany(staffEvent);
+		} else {
+			const publicEvent: PublicEvent = new PublicEvent(eventFormat);
+			await PublicEventModel.insertMany(publicEvent);
+		}
+		await EventMetadataModel.insertMany(metadata);
+	} catch (error) {
+		return next(error);
+	}
+	
+	return res.status(Constants.SUCCESS).send(req.body);
+});
+
+
+
+
 
 // /**
-//  * @api {post} /event/ POST /event/
+//  * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
 //  * @apiGroup Event
-//  * @apiDescription Create a new event or update an existing event.
+//  * @apiDescription Delete an event by its unique ID.
 //  *
-//  * @apiBody {string} name The name of the event.
-//  * @apiBody {string} description A description of the event.
-//  * @apiBody {number} startTime The start time of the event.
-//  * @apiBody {number} endTime The end time of the event.
-//  * @apiBody {Location[]} locations An array of locations associated with the event.
-//  * @apiBody {string} sponsor The sponsor of the event.
-//  * @apiBody {string} eventType The type of the event.
-//  * @apiBody {number} points The points associated with the event.
-//  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
-//  * @apiBody {boolean} isPrivate Indicates whether the event is private.
-//  * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
-//  * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+//  * @apiParam {String} EVENTID The unique identifier of the event to be deleted.
 //  *
-//  * @apiSuccess {string} id The unique identifier of the event.
-//  * @apiSuccess {string} name The name of the event.
-//  * @apiSuccess {string} description A description of the event.
-//  * @apiSuccess {number} startTime The start time of the event.
-//  * @apiSuccess {number} endTime The end time of the event.
-//  * @apiSuccess {Location[]} locations An array of locations associated with the event.
-//  * @apiSuccess {string} sponsor The sponsor of the event.
-//  * @apiSuccess {string} eventType The type of the event.
-//  * @apiSuccess {number} points The points associated with the event.
-//  * @apiSuccess {boolean} isAsync Indicates whether the event is asynchronous.
-//  * @apiSuccess {boolean} isPrivate Indicates whether the event is private.
-//  * @apiSuccess {boolean} isStaff Indicates whether the event is staff-only.
-//  * @apiSuccess {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+//  * @apiSuccess (200: Success) {String} message Event successfully deleted.
 //  * @apiSuccessExample Example Success Response:
 //  * HTTP/1.1 200 OK
-//  * {
-// *     "name": "Example Event 10",
-// *     "description": "This is a description",
-// *     "startTime": 1532202702,
-// *     "endTime": 1532212702,
-// *     "locations": [
-// *       {
-// *         "description": "Example Location",
-// *         "tags": ["SIEBEL0", "ECEB1"],
-// *         "latitude": 40.1138,
-// *         "longitude": -88.2249
-// *       }
-// *     ],
-// *     "sponsor": "Example sponsor",
-// *     "eventType": "WORKSHOP"
-//  * }
+//  * {}
+//  *
 //  * @apiUse strongVerifyErrors
 //  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "InvalidPermission"}
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 400 Bad Request
-//  *     {"error": "InvalidParams"}
+//  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing EVENTID parameter.
 //  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "DatabaseError"}
 //  */
-// eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
+// eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response) => {
+// 	const eventId: string | undefined = req.params.EVENTID;
 
-// 	// Check if the token has staff permissions
-// 	if (!hasAdminPerms(payload)) {
+// 	// Check if request sender has permission to delete the event
+// 	if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
 // 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
 // 	}
 
-// 	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
-
-// 	// If ID doesn't exist -> return the invalid parameters
-// 	if (eventFormat.id) {
+// 	// Check if eventid field doesn't exist -> if not, returns error
+// 	if (!eventId) {
 // 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 // 	}
 
-// 	eventFormat.id = crypto.randomBytes(Constants.EVENT_ID_BYTES).toString("hex");
+// 	const publicCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
+// 	const staffCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
 
-// 	// Create base types, to be defined based on whether or not there's an isStaff field
-// 	let eventCollection: Collection<Document>;
-// 	let validRequestChecker: (event: BaseEventFormat) => boolean;
-
-// 	// Get the function to execute to check if input format is right
-// 	if (eventFormat.isStaff ?? false) {
-// 		validRequestChecker = isStaffEventFormat;
-// 		eventCollection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
-// 	} else {
-// 		validRequestChecker = isAttendeeEventFormat;
-// 		eventCollection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
-// 	}
-
-// 	// Check if the actual request is valid (based on the function passed in earlier)
-// 	if (!validRequestChecker(eventFormat)) {
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
-
-// 	// Try to update the database. Update the collection containing the event, and the expiration times
-// 	const expCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
+// 	// Perform a lazy delete on both databases, and return true if the operation succeeds
 // 	try {
-// 		await eventCollection.insertOne(eventFormat);
-// 		await expCollection.insertOne({ eventId: eventFormat.id, exp: eventFormat.endTime });
-// 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
+// 		await publicCollection.deleteOne({ id: eventId });
+// 		await staffCollection.deleteOne({ id: eventId });
+// 		return res.status(Constants.SUCCESS).send({ status: "Success" });
 // 	} catch (error) {
 // 		console.error(error);
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "DatabaseError" });
+// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 // 	}
 // });
+
+
+
+
 
 // /**
 //  * @api {get} /event/expiration/:EVENTID GET /event/expiration/:EVENTID

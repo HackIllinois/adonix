@@ -1,4 +1,6 @@
-import { Ref, prop, modelOptions } from "@typegoose/typegoose";
+import { prop, modelOptions } from "@typegoose/typegoose";
+import { BaseEventFormat } from "./event-formats";
+import { ObjectId } from "mongodb";
 
 // Interface for the location of the event
 @modelOptions({ schemaOptions: { _id: false } })
@@ -41,22 +43,38 @@ class BaseEvent {
 	@prop({ required: true, type: () => {
 		return Location;
 	} })
-		locations: Ref<Location>[];
+		locations: Location[];
 	
 	@prop({ required: true })
 		isAsync: boolean;
+
+	constructor (baseEvent: BaseEventFormat) {
+		this._id = baseEvent._id ?? new ObjectId().toHexString();
+		this.id = this._id;
+		this.description = baseEvent.description;
+		this.name = baseEvent.name;
+		this.startTime = baseEvent.startTime;
+		this.endTime = baseEvent.endTime;
+		this.locations = baseEvent.locations;
+	}
 	
 }
 
 export class EventMetadata {
 	@prop({ required: true })
-	public id: string;
-
+	public _id: string;
+	
 	@prop({ required: true })
 	public isStaff: boolean;
 
 	@prop({ required: true })
 	public exp: number;
+
+	constructor(_id: string, isStaff: boolean, exp: number) {
+		this._id = _id;
+		this.isStaff = isStaff;
+		this.exp = exp;
+	}
 }
 
 export class PublicEvent extends BaseEvent {
@@ -74,6 +92,15 @@ export class PublicEvent extends BaseEvent {
 
 	@prop({ required: true })
 		eventType: string;
+
+	constructor (baseEvent: BaseEventFormat) {
+		super(baseEvent);
+		this.isPrivate = baseEvent.isPrivate ?? false;
+		this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
+		this.sponsor = baseEvent.sponsor ?? "None";
+		this.points = baseEvent.points ?? 0;
+		this.eventType = baseEvent.eventType ?? "OTHER";
+	}
 }
 
 export class StaffEvent extends BaseEvent {

@@ -1,7 +1,7 @@
 import { IModelOptions } from "@typegoose/typegoose/lib/types";
 import "dotenv";
 import { MongoClient } from "mongodb";
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const username: string | undefined = process.env.DB_USERNAME;
 const password: string | undefined = process.env.DB_PASSWORD;
@@ -29,7 +29,7 @@ export function connectToMongoose(dbName: string): mongoose.Connection {
 export function generateConfig(database: string, collection: string): IModelOptions {
 	const connection: mongoose.Connection = connectToMongoose(database);
 
-	return {existingConnection: connection, schemaOptions: {collection: collection}};
+	return { existingConnection: connection, schemaOptions: { collection: collection } };
 }
 
 export default client;
