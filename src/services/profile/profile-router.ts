@@ -6,10 +6,12 @@ import { Collection, Document, FindCursor, WithId } from "mongodb";
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
-import { castLeaderboardEntries, isValidLimit, jwtHandler } from "./profile-lib.js";
+import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
 
-import { JwtPayload, Role } from "../auth/auth-models.js";
+import { JwtPayload } from "../auth/auth-models.js";
 import { Profile } from "./profile-models.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 const profileRouter: Router = Router();
 
@@ -84,13 +86,12 @@ TODO:
 
 // decode jwt token
 // then get the id from there & hit the database (profile/profiles collection) to return the user
-profileRouter.get("/", async (req: Request, res: Response) => {
+
+profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
-	// let jwtToken: string = req.headers.authorization as string;
-
 	try {
-		const decodedData: JwtPayload = jwtHandler(req);
+		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
 		const id: string = decodedData.id;
 		const user: Profile | null = await collection.findOne({ id: id }) as Profile | null;
@@ -102,12 +103,13 @@ profileRouter.get("/", async (req: Request, res: Response) => {
 		return res.status(Constants.SUCCESS).send(user);
 
 	} catch (error) {
+		console.log(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 
 });
 
-profileRouter.get("/id/:id", async (req: Request, res: Response) => {
+profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
 	const id: string | undefined = req.params.id;
@@ -125,17 +127,22 @@ profileRouter.get("/id/:id", async (req: Request, res: Response) => {
 	}
 });
 
-profileRouter.post("/", async (req: Request, res: Response) => {
+profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
-	// res.send(req.body);
 	
 	try {
 		const profile: Profile = req.body as Profile;
 
-		const decodedData: JwtPayload = jwtHandler(req);
+		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+
 		profile.id = decodedData.id;
 		profile.points = 0;
 		profile.foodWave = 0;
+
+		const user: Profile | null = await collection.findOne({ id: profile.id }) as Profile | null;
+		if (user) {
+			return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
+		}
 
 		await collection.insertOne(profile);
 
@@ -146,21 +153,22 @@ profileRouter.post("/", async (req: Request, res: Response) => {
 	}
 });
 
-profileRouter.put("/", async (req: Request, res: Response) => {
+
+profileRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
 	const profile: Profile = req.body as Profile;
 
 	try {
-		const decodedData: JwtPayload = jwtHandler(req);
+		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+        
 		profile.id = decodedData.id;
 
 		// eslint-disable-next-line @typescript-eslint/typedef
 		const filter = { id: profile.id };
 
 		// not an admin
-		if ( (!decodedData.roles.includes(Role.ADMIN) && !decodedData.roles.includes(Role.STAFF)) ) {
-			console.log("not admin");
+		if (!hasElevatedPerms(decodedData)) {
 			// eslint-disable-next-line @typescript-eslint/typedef
 			const update = {
 				$set: {
@@ -200,10 +208,12 @@ profileRouter.put("/", async (req: Request, res: Response) => {
 
 });
 
-profileRouter.delete("/", async (req: Request, res: Response) => {
+profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
+	// console.log(req.body);
+
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 	try {
-		const decodedData: JwtPayload = jwtHandler(req);
+		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
 		// eslint-disable-next-line @typescript-eslint/typedef
 		const filter = { id: decodedData.id };
