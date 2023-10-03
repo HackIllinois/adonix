@@ -13,7 +13,7 @@ import jsonwebtoken from "jsonwebtoken";
  * @apiError (401: Unauthorized) {string} NoToken No token passed in request.
  * @apiError (401: Unauthorized) {string} InvalidToken Invalid token (not API-signed).
  * @apiError (403: Forbidden) {string} TokenExpired Expired token.
- * @apiError (500: Internal Server Error) {string} InternalError Server error.
+ * @apiError (500: Internal Error) {string} InternalError Server error.
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 400 Bad Request
  *     {"error": "NoToken"}

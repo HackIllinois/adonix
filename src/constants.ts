@@ -3,6 +3,8 @@ import "dotenv";
 abstract class Constants {
 	// Status codes
 	static readonly SUCCESS:number = 200;
+	static readonly CREATED:number = 201;
+	static readonly NO_CONTENT:number = 204;
 	static readonly BAD_REQUEST:number = 400;
 	static readonly FAILURE:number = 400;
 	static readonly UNAUTHORIZED_REQUEST:number = 401;
