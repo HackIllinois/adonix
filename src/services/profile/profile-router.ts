@@ -2,19 +2,16 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, FindCursor, WithId } from "mongodb";
-import bodyParser from "body-parser";
 
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
 import { castLeaderboardEntries, isValidLimit, jwtHandler } from "./profile-lib.js";
 
-// import { decodeJwtToken } from "../auth/auth-lib.js";
 import { JwtPayload, Role } from "../auth/auth-models.js";
 import { Profile } from "./profile-models.js";
 
 const profileRouter: Router = Router();
-profileRouter.use(bodyParser.json());
 
 profileRouter.use(cors({ origin: "*" }));
 
@@ -130,30 +127,21 @@ profileRouter.get("/id/:id", async (req: Request, res: Response) => {
 
 profileRouter.post("/", async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
-
-	console.log(req.body);
-	res.send(req.body);
-
+	// res.send(req.body);
+	
 	try {
+		const profile: Profile = req.body as Profile;
 
 		const decodedData: JwtPayload = jwtHandler(req);
-
-		const profile: Profile = {
-			id: decodedData.id, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			firstName: req.body.firstName as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			lastName: req.body.lastName as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			points: 0, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			discord: req.body.discord as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			avatarUrl: req.body.avatarUrl as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-			foodWave: 0,
-		};
-
-		console.log(profile);
+		profile.id = decodedData.id;
+		profile.points = 0;
+		profile.foodWave = 0;
 
 		await collection.insertOne(profile);
+
 		return res.status(Constants.SUCCESS).send(profile);
 	} catch (error) {
-		console.log(error);
+		console.log("err", error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
@@ -172,6 +160,7 @@ profileRouter.put("/", async (req: Request, res: Response) => {
 
 		// not an admin
 		if ( (!decodedData.roles.includes(Role.ADMIN) && !decodedData.roles.includes(Role.STAFF)) ) {
+			console.log("not admin");
 			// eslint-disable-next-line @typescript-eslint/typedef
 			const update = {
 				$set: {
@@ -184,11 +173,28 @@ profileRouter.put("/", async (req: Request, res: Response) => {
 
 			await collection.updateOne(filter, update);
 		} else {
-			await collection.updateOne(filter, profile);
+			const update: { $set: Partial<Profile> } = {
+				$set: {
+					firstName: profile.firstName,
+					lastName: profile.lastName,
+					discord: profile.discord,
+					avatarUrl: profile.avatarUrl,
+				},
+			};
+
+			if (profile.foodWave) {
+				update.$set.foodWave = profile.foodWave;
+			}
+			if (profile.points) {
+				update.$set.points = profile.points;
+			}
+
+			await collection.updateOne(filter, update);
 		}
 
 		return res.status(Constants.SUCCESS).send(profile);
 	} catch (error) {
+		console.log(error);
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 
