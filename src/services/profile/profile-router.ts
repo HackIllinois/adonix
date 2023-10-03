@@ -2,18 +2,23 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 import { Collection, Document, FindCursor, WithId } from "mongodb";
+import bodyParser from "body-parser";
 
 import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
-import { castLeaderboardEntries, errorHandler, isValidLimit, jwtHandler } from "./profile-lib.js";
+import { castLeaderboardEntries, isValidLimit, jwtHandler } from "./profile-lib.js";
 
 // import { decodeJwtToken } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { JwtPayload, Role } from "../auth/auth-models.js";
 import { Profile } from "./profile-models.js";
 
 const profileRouter: Router = Router();
+profileRouter.use(bodyParser.json());
+
 profileRouter.use(cors({ origin: "*" }));
+
+
 
 
 /**
@@ -82,67 +87,128 @@ TODO:
 
 // decode jwt token
 // then get the id from there & hit the database (profile/profiles collection) to return the user
-profileRouter.get("/profile/", async (req: Request, res: Response) => {
-    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+profileRouter.get("/", async (req: Request, res: Response) => {
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
-    // let jwtToken: string = req.headers.authorization as string;
+	// let jwtToken: string = req.headers.authorization as string;
 
-    try {
-        let decodedData: JwtPayload = jwtHandler(req);
+	try {
+		const decodedData: JwtPayload = jwtHandler(req);
 
-        let id: string = decodedData.id;
-        const user = await collection.findOne({id: id}) as Profile | null;
+		const id: string = decodedData.id;
+		const user: Profile | null = await collection.findOne({ id: id }) as Profile | null;
 
-        if (!user) {
-            return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-        }
+		if (!user) {
+			return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+		}
 
-        return res.status(Constants.SUCCESS).send(user);
+		return res.status(Constants.SUCCESS).send(user);
 
-    } catch (error) {
-        return errorHandler(res, error);
-    }
+	} catch (error) {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
 
 });
 
-profileRouter.get("/profile/id/:id", async (req: Request, res: Response) => {
-    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+profileRouter.get("/id/:id", async (req: Request, res: Response) => {
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
-    const id = req.params.id;
+	const id: string | undefined = req.params.id;
 
-    try {
-        const user = await collection.findOne({id: id}) as Profile | null;
+	try {
+		const user: Profile | null = await collection.findOne({ id: id }) as Profile | null;
 
-        if (!user) {
-            return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-        }
+		if (!user) {
+			return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+		}
 
-        return res.status(Constants.SUCCESS).send(user);
-    } catch (error) {
-        return errorHandler(res, error);
-    }
+		return res.status(Constants.SUCCESS).send(user);
+	} catch (error) {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
 });
 
-profileRouter.post("/profile/", async (req: Request, res: Response) => {
-    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+profileRouter.post("/", async (req: Request, res: Response) => {
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
-    const profile: Profile = req.body;
+	console.log(req.body);
+	res.send(req.body);
 
-    // ensure they dont set foodwave or points
-    profile.foodWave = 0;
-    profile.points = 0;
+	try {
 
-    try {
-        let decodedData: JwtPayload = jwtHandler(req);
+		const decodedData: JwtPayload = jwtHandler(req);
 
-        profile.id = decodedData.id;
+		const profile: Profile = {
+			id: decodedData.id, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			firstName: req.body.firstName as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			lastName: req.body.lastName as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			points: 0, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			discord: req.body.discord as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			avatarUrl: req.body.avatarUrl as string, // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			foodWave: 0,
+		};
 
-        await collection.insertOne(profile);
-        return res.status(Constants.SUCCESS).send(profile);
-    } catch (error) {
-        return errorHandler(res, error);
-    }
+		console.log(profile);
+
+		await collection.insertOne(profile);
+		return res.status(Constants.SUCCESS).send(profile);
+	} catch (error) {
+		console.log(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
 });
 
+profileRouter.put("/", async (req: Request, res: Response) => {
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+
+	const profile: Profile = req.body as Profile;
+
+	try {
+		const decodedData: JwtPayload = jwtHandler(req);
+		profile.id = decodedData.id;
+
+		// eslint-disable-next-line @typescript-eslint/typedef
+		const filter = { id: profile.id };
+
+		// not an admin
+		if ( (!decodedData.roles.includes(Role.ADMIN) && !decodedData.roles.includes(Role.STAFF)) ) {
+			// eslint-disable-next-line @typescript-eslint/typedef
+			const update = {
+				$set: {
+					firstName: profile.firstName,
+					lastName: profile.lastName,
+					discord: profile.discord,
+					avatarUrl: profile.avatarUrl,
+				},
+			};
+
+			await collection.updateOne(filter, update);
+		} else {
+			await collection.updateOne(filter, profile);
+		}
+
+		return res.status(Constants.SUCCESS).send(profile);
+	} catch (error) {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+
+});
+
+profileRouter.delete("/", async (req: Request, res: Response) => {
+	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+	try {
+		const decodedData: JwtPayload = jwtHandler(req);
+
+		// eslint-disable-next-line @typescript-eslint/typedef
+		const filter = { id: decodedData.id };
+
+		await collection.deleteOne(filter);
+		return res.status(Constants.SUCCESS).send({ success: true });
+
+	} catch (error) {
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+    
+});
 
 export default profileRouter;

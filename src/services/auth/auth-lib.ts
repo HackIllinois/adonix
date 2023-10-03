@@ -153,13 +153,13 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
  */
 export function decodeJwtToken(token?: string): JwtPayload {
 	if (!token) {
-		throw new JWTError("NoToken");
+		throw new Error("NoToken");
 	}
 
 	// Ensure that we have a secret to parse token
 	const secret: string | undefined = process.env.JWT_SECRET;
 	if (!secret) {
-		throw new JWTError("NoSecret");
+		throw new Error("NoSecret");
 	}
 
 	// Verify already ensures that the token isn't expired. If it is, it returns an error
