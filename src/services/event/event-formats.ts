@@ -77,7 +77,8 @@ function isBaseEventFormat(obj: BaseEventFormat): boolean {
 		typeof obj.name !== "string" ||
 		typeof obj.description !== "string" ||
 		typeof obj.startTime !== "number" ||obj.startTime < 0 ||
-		typeof obj.endTime !== "number" || obj.endTime < 0
+		typeof obj.endTime !== "number" || obj.endTime < 0 ||
+		obj.endTime < obj.startTime
 	) {
 		return false;
 	}

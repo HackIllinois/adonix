@@ -162,7 +162,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * Create an auth database entry for the current user. Should be called whenever a user is created.
  * @param id UserID to create the entry for
  * @param provider Provider being used to create this entry
- * @param roles Array of roles that belong to the given ruler
+ * @param roles Array of roles that belong to the given user
  * @returns Promise, containing nothing if valid. If invalid, error containing why.
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {

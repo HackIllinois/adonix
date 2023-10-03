@@ -447,7 +447,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
- *    "id": "52fdfc072182654f163f5f0f9a621d72",
+ *    "eventId": "52fdfc072182654f163f5f0f9a621d72",
  *    "exp": 1532202702,
  * }
  * @apiUse strongVerifyErrors
