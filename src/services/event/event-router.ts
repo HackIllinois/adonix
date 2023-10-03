@@ -608,6 +608,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 	const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
 	const eventId: string = eventFormat.eventId;
 
+	console.log(eventFormat.eventId);
 	if (!eventId) {
 		return res.status(Constants.BAD_REQUEST).send({ message: "NoEventId" });
 	}
@@ -643,6 +644,10 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 
 // Prototype error handler
 eventsRouter.use((err: Error, req: Request, res: Response) => {
+	if (!err) {
+		return res.status(Constants.SUCCESS).send({status: "OK"});
+	}
+	
 	console.error("IN PROTOTYPE ERROR HANDLER!");
 	console.warn(req.body);
 	console.error(err);
