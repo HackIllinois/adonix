@@ -1,9 +1,9 @@
-import { Request } from "express";
+// import { Request } from "express";
 import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models";
 // import { MongoNetworkTimeoutError } from "mongodb";
-import { JwtPayload } from "../auth/auth-models.js";
-import { decodeJwtToken } from "../auth/auth-lib.js";
+// import { JwtPayload } from "../auth/auth-models.js";
+// import { decodeJwtToken } from "../auth/auth-lib.js";
 
 
 /**
@@ -41,7 +41,7 @@ export function isValidLimit(limit: number): boolean {
 // 	res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 // }
 
-export function jwtHandler(req: Request): JwtPayload {
-	const jwtToken: string = req.headers.authorization as string;
-	return decodeJwtToken(jwtToken);
-}
+// export function jwtHandler(req: Request): JwtPayload {
+// 	const jwtToken: string = req.headers.authorization as string;
+// 	return decodeJwtToken(jwtToken);
+// }
