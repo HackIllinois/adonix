@@ -48,7 +48,7 @@ eventsRouter.use(cors({ origin: "*" }));
  *     "displayOnStaffCheckIn": true
  *   }
  * }
- * 
+ *
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
  * */
@@ -537,7 +537,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  * @apiHeader {String} Authorization Staff or Admin JWT Token.
  *
  * @apiBody {Json} event The event object to create or update.
- * 
+ *
  * @apiParamExample Example Request (Staff):
  * HTTP/1.1 PUT /event/
  * {
@@ -562,7 +562,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  *     "displayOnStaffCheckIn": true
  *   }
  * }
- * 
+ *
  * @apiParamExample Example Request (Public):
  * HTTP/1.1 PUT /event/
  * {
@@ -590,7 +590,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  * }
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event object.
- * 
+ *
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff or admin token.
  * @apiError (400: Bad Request) {String} Bad Request Invalid parameters or event format.
