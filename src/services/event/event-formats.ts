@@ -1,5 +1,5 @@
 import Constants from "../../constants.js";
-import { Location, EVENT_TYPE } from "./event-models.js";
+import { Location, PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
 
 // Base format for the event - ALL events must have these
 export interface BaseEventFormat {
@@ -17,14 +17,17 @@ export interface BaseEventFormat {
 // Interface for the attendee event
 export interface PublicEventFormat extends BaseEventFormat {
 	sponsor: string,
-	eventType: EVENT_TYPE,
+	publicEventType: PUBLIC_EVENT_TYPE,
 	points: number,
 	isPrivate: boolean,
 	displayOnStaffCheckIn: boolean,
+
 }
 
 // Empty interface, allows for easier code readability
-export interface StaffEventFormat extends BaseEventFormat { }
+export interface StaffEventFormat extends BaseEventFormat {
+	staffEventType: STAFF_EVENT_TYPE
+}
 export interface GenericEventFormat extends PublicEventFormat, StaffEventFormat { }
 
 
@@ -108,8 +111,8 @@ export function isValidAttendeeFormat(baseEvent: BaseEventFormat): boolean {
 
 	if (
 		typeof obj.sponsor !== "string" ||
-		typeof obj.eventType !== "string" ||
-		!Object.values(EVENT_TYPE).includes(obj.eventType) ||
+		typeof obj.publicEventType !== "string" ||
+		!Object.values(PUBLIC_EVENT_TYPE).includes(obj.publicEventType) ||
 		typeof obj.points !== "number" || obj.points < 0 ||
 		typeof obj.isPrivate !== "boolean" ||
 		typeof obj.displayOnStaffCheckIn !== "boolean"
@@ -129,7 +132,19 @@ export function isValidAttendeeFormat(baseEvent: BaseEventFormat): boolean {
  *
  */
 export function isValidStaffFormat(baseEvent: BaseEventFormat): boolean {
-	return isValidBaseEventFormat(baseEvent);
+	if (!isValidBaseEventFormat(baseEvent)) {
+		return false;
+	}
+
+	// Cast the object to AttendeeEventFormat
+	const obj: StaffEventFormat = baseEvent as StaffEventFormat;
+
+	if (typeof obj.staffEventType !== "string" ||
+		!Object.values(STAFF_EVENT_TYPE).includes(obj.staffEventType)) {
+		return false;
+	}
+
+	return true;;
 }
 
 // Input format for changing event expiration

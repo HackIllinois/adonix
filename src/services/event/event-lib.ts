@@ -1,4 +1,4 @@
-import { EVENT_TYPE, FilteredEventView, PublicEvent } from "./event-models.js";
+import { PUBLIC_EVENT_TYPE, FilteredEventView, PublicEvent } from "./event-models.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting
@@ -16,7 +16,7 @@ export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventVi
 		endTime: baseEvent.endTime,
 		locations: baseEvent.locations,
 		sponsor: baseEvent.sponsor,
-		eventType: baseEvent.eventType as EVENT_TYPE,
+		eventType: baseEvent.eventType as PUBLIC_EVENT_TYPE,
 		points: baseEvent.points,
 		isAsync: baseEvent.isAsync,
 	};

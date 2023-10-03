@@ -43,6 +43,9 @@ class BaseEvent {
 	@prop({ required: true })
 		endTime: number;
 
+	@prop({ required: true })
+		eventType: string;
+
 	@prop({
 		required: true, type: () => {
 			return Location;
@@ -97,33 +100,38 @@ export class PublicEvent extends BaseEvent {
 	@prop({ required: true })
 		points: number;
 
-	@prop({ required: true })
-		eventType: string;
 
 	constructor(baseEvent: GenericEventFormat) {
 		super(baseEvent);
+		this.eventType = baseEvent.publicEventType ?? "OTHER";;
 		this.isPrivate = baseEvent.isPrivate ?? false;
 		this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
 		this.sponsor = baseEvent.sponsor ?? "None";
 		this.points = baseEvent.points ?? Constants.DEFAULT_POINT_VALUE;
-		this.eventType = baseEvent.eventType ?? "OTHER";
 	}
 }
 
 export class StaffEvent extends BaseEvent {
 	constructor(baseEvent: GenericEventFormat) {
 		super(baseEvent);
+		this.eventType = baseEvent.staffEventType ?? "OTHER";
 	}
 }
 
 // Enum representing the type of the event
 // MEAL, SPEAKER, WORKSHOP, MINIEVENT, QNA, or OTHER
-export enum EVENT_TYPE {
+export enum PUBLIC_EVENT_TYPE {
 	MEAL = "MEAL",
 	SPEAKER = "SPEAKER",
 	WORKSHOP = "WORKSHOP",
 	MINIEVENT = "MINIEVENT",
 	QNA = "QNA",
+	OTHER = "OTHER",
+}
+
+export enum STAFF_EVENT_TYPE {
+	MEETING = "MEETING",
+	STAFF_SHIFT = "STAFFSHIFT",
 	OTHER = "OTHER",
 }
 
@@ -135,7 +143,7 @@ export interface FilteredEventView {
 	endTime: number,
 	locations: Location[],
 	sponsor: string,
-	eventType: EVENT_TYPE,
+	eventType: PUBLIC_EVENT_TYPE,
 	points: number,
 	isAsync: boolean,
 }

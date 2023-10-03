@@ -312,18 +312,25 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	eventFormat._id = id;
 	eventFormat.eventId = id;
 
-	// If ID doesn't exist -> return the invalid parameters
-	if (!isValidStaffFormat(eventFormat) && !isValidAttendeeFormat(eventFormat)) {
-		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-	}
+	
 
+
+
+	
 	// Try to upload the events if possible, else throw an error
 	try {
 		if (isStaffEvent) {
-			console.log("EVENT FORMAT", eventFormat);
+			// If ID doesn't exist -> return the invalid parameters
+			if (!isValidStaffFormat(eventFormat)) {
+				return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+			}
+
 			const staffEvent: StaffEvent = new StaffEvent(eventFormat);
 			await StaffEventModel.insertMany(staffEvent);
 		} else {
+			if (!isValidAttendeeFormat(eventFormat)) {
+				return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+			}
 			const publicEvent: PublicEvent = new PublicEvent(eventFormat);
 			await PublicEventModel.insertMany(publicEvent);
 		}
