@@ -1,5 +1,6 @@
 import { Document, ObjectId, WithId } from "mongodb";
-import { EventMetadata, PublicEvent, StaffEvent } from "./event-models.js";
+import { EventMetadata, PublicEvent, StaffEvent, StaffAttendingEvent } from "./event-models.js";
+
 
 import { getModelForClass } from "@typegoose/typegoose";
 import mongoose from "mongoose";
@@ -26,11 +27,7 @@ export enum EventDB {
 }
 
 
-// Collections within the staff database
-export enum StaffDB {
-	ATTENDANCE = "attendance",
-}
-
 export const StaffEventModel: mongoose.Model<StaffEvent> = getModelForClass(StaffEvent, generateConfig(Constants.EVENT_DB, EventDB.STAFF_EVENTS));
 export const PublicEventModel: mongoose.Model<PublicEvent> = getModelForClass(PublicEvent, generateConfig(Constants.EVENT_DB, EventDB.PUBLIC_EVENTS));
 export const EventMetadataModel: mongoose.Model<EventMetadata> = getModelForClass(EventMetadata, generateConfig(Constants.EVENT_DB, EventDB.METADATA));
+export const StaffAttendingEventModel: mongoose.Model<StaffAttendingEvent> = getModelForClass(StaffAttendingEvent, generateConfig(Constants.STAFF_DB, EventDB.STAFF_ATTENDANCE));

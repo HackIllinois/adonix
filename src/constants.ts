@@ -50,6 +50,7 @@ abstract class Constants {
 	static readonly ZERO: number = 0;
 	static readonly EVENT_ID_LENGTH: number = 24;
 	static readonly MILLISECONDS_PER_SECOND:number = 1000;
+	static readonly DEFAULT_POINT_VALUE: number = 10;
 
 	// Constants for database names
 	static readonly AUTH_DB: string = "auth";

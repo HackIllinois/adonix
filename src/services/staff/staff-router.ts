@@ -1,16 +1,14 @@
-import { Collection } from "mongodb";
 import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasStaffPerms } from "../auth/auth-lib";
 
-import { hasExpired } from "../event/event-lib";
-import { AttendanceFormat } from "../event/event-formats.js";
-import { EventDB, StaffDB } from "../event/event-schemas.js";
-
+import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
-import databaseClient from "../../database.js";
+import { EventMetadataModel, StaffAttendingEventModel } from "../event/event-db.js";
+import { EventsAttendedByStaffModel } from "./staff-db.js";
+import { EventMetadata } from "../event/event-models.js";
 
 
 const staffRouter: Router = Router();
@@ -45,8 +43,9 @@ const staffRouter: Router = Router();
  */
 staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+	
 	const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
-
+	const userId: string = payload.id;
 	// Only staff can mark themselves as attending these events
 	if (!hasStaffPerms(payload)) {
 		return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
@@ -56,16 +55,19 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
 
-	if (await hasExpired(eventId)) {
-		return res.status(Constants.BAD_REQUEST).send({ error: "EventExpired" });
-	}
-
-	const eventsCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_ATTENDANCE);
-	const staffCollection: Collection = databaseClient.db(Constants.STAFF_DB).collection(StaffDB.ATTENDANCE);
-
 	try {
-		await eventsCollection.updateOne({ id: eventId }, { "$addToSet": { "attendees": payload.id } }, { upsert: true });
-		await staffCollection.updateOne({ id: payload.id }, { "$addToSet": { "attendance": eventId } }, { upsert: true });
+		const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+
+		if (!metadata) {
+			return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
+		}
+
+		if (metadata.exp <= Date.now()) {
+			return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
+		}
+
+		await EventsAttendedByStaffModel.findByIdAndUpdate(userId, { $addToSet: { "attendance": eventId } });
+		await StaffAttendingEventModel.findByIdAndUpdate(eventId, { $addToSet: { "attendees": userId } });
 		return res.status(Constants.SUCCESS).send({ status: "Success" });
 	} catch (error) {
 		console.error(error);

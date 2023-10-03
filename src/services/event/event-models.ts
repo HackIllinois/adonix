@@ -1,6 +1,7 @@
 import { prop, modelOptions } from "@typegoose/typegoose";
-import { BaseEventFormat } from "./event-formats";
+import { GenericEventFormat } from "./event-formats";
 import { ObjectId } from "mongodb";
+import Constants from "src/constants";
 
 // Interface for the location of the event
 @modelOptions({ schemaOptions: { _id: false } })
@@ -8,9 +9,11 @@ export class Location {
 	@prop({ required: true })
 	public description: string;
 
-	@prop({ required: true, type: () => {
-		return String;
-	} })
+	@prop({
+		required: true, type: () => {
+			return String;
+		},
+	})
 	public tags: string[];
 
 	@prop({ required: true })
@@ -19,14 +22,14 @@ export class Location {
 	@prop({ required: true })
 	public longitude: number;
 }
-  
+
 // Interface for the actual event
 class BaseEvent {
 	@prop({ required: true })
-	public _id: string;
-	
+		_id: string;
+
 	@prop({ required: true })
-		id: string;
+		eventId: string;
 
 	@prop({ required: true })
 		name: string;
@@ -36,34 +39,38 @@ class BaseEvent {
 
 	@prop({ required: true })
 		startTime: number;
-	
+
 	@prop({ required: true })
 		endTime: number;
-	
-	@prop({ required: true, type: () => {
-		return Location;
-	} })
+
+	@prop({
+		required: true, type: () => {
+			return Location;
+		},
+	})
 		locations: Location[];
-	
+
 	@prop({ required: true })
 		isAsync: boolean;
 
-	constructor (baseEvent: BaseEventFormat) {
-		this._id = baseEvent._id ?? new ObjectId().toHexString();
-		this.id = this._id;
+	constructor(baseEvent: GenericEventFormat) {
+		const id: string = baseEvent._id ?? new ObjectId().toHexString();
+		this._id = id;
+		this.eventId = id;
 		this.description = baseEvent.description;
 		this.name = baseEvent.name;
 		this.startTime = baseEvent.startTime;
 		this.endTime = baseEvent.endTime;
 		this.locations = baseEvent.locations;
+		this.isAsync = baseEvent.isAsync;
 	}
-	
+
 }
 
 export class EventMetadata {
 	@prop({ required: true })
 	public _id: string;
-	
+
 	@prop({ required: true })
 	public isStaff: boolean;
 
@@ -80,10 +87,10 @@ export class EventMetadata {
 export class PublicEvent extends BaseEvent {
 	@prop({ required: true })
 		isPrivate: boolean;
-	
+
 	@prop({ required: true })
 		displayOnStaffCheckIn: boolean;
-	
+
 	@prop({ required: true })
 		sponsor: string;
 
@@ -93,17 +100,20 @@ export class PublicEvent extends BaseEvent {
 	@prop({ required: true })
 		eventType: string;
 
-	constructor (baseEvent: BaseEventFormat) {
+	constructor(baseEvent: GenericEventFormat) {
 		super(baseEvent);
 		this.isPrivate = baseEvent.isPrivate ?? false;
 		this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
 		this.sponsor = baseEvent.sponsor ?? "None";
-		this.points = baseEvent.points ?? 0;
+		this.points = baseEvent.points ?? Constants.DEFAULT_POINT_VALUE;
 		this.eventType = baseEvent.eventType ?? "OTHER";
 	}
 }
 
 export class StaffEvent extends BaseEvent {
+	constructor(baseEvent: GenericEventFormat) {
+		super(baseEvent);
+	}
 }
 
 // Enum representing the type of the event
@@ -128,4 +138,16 @@ export interface FilteredEventView {
 	eventType: EVENT_TYPE,
 	points: number,
 	isAsync: boolean,
+}
+
+export class StaffAttendingEvent {
+	@prop({ required: true })
+		_id: string;
+
+	@prop({
+		required: true, type: () => {
+			return String;
+		},
+	})
+		attendees: string[];
 }

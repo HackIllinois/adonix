@@ -4,7 +4,7 @@ import { Location, EVENT_TYPE } from "./event-models.js";
 // Base format for the event - ALL events must have these
 export interface BaseEventFormat {
 	_id?: string,
-	id: string,
+	eventId: string,
 	name: string,
 	description: string,
 	startTime: number,
@@ -14,8 +14,8 @@ export interface BaseEventFormat {
 	isStaff: boolean,
 }
 
-// Interface for the actual event
-export interface AttendeeEventFormat extends BaseEventFormat {
+// Interface for the attendee event
+export interface PublicEventFormat extends BaseEventFormat {
 	sponsor: string,
 	eventType: EVENT_TYPE,
 	points: number,
@@ -25,6 +25,8 @@ export interface AttendeeEventFormat extends BaseEventFormat {
 
 // Empty interface, allows for easier code readability
 export interface StaffEventFormat extends BaseEventFormat { }
+export interface GenericEventFormat extends PublicEventFormat, StaffEventFormat { }
+
 
 /**
  * Checks whether an object conforms to the structure of a Location.
@@ -56,14 +58,13 @@ function isLocation(loc: Location): boolean {
  */
 /* eslint-disable no-magic-numbers */
 function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
-	if (typeof obj.id !== "string" || obj.id.length !== Constants.EVENT_ID_LENGTH) {
+	if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
 		return false;
 	}
-
 	if (
 		typeof obj.name !== "string" ||
 		typeof obj.description !== "string" ||
-		typeof obj.startTime !== "number" ||obj.startTime < 0 ||
+		typeof obj.startTime !== "number" || obj.startTime < 0 ||
 		typeof obj.endTime !== "number" || obj.endTime < 0 ||
 		obj.endTime < obj.startTime
 	) {
@@ -79,7 +80,6 @@ function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
 			return false;
 		}
 	}
-
 	if (
 		typeof obj.isAsync !== "boolean" ||
 		typeof obj.isStaff !== "boolean"
@@ -102,10 +102,10 @@ export function isValidAttendeeFormat(baseEvent: BaseEventFormat): boolean {
 	if (!isValidBaseEventFormat(baseEvent)) {
 		return false;
 	}
-	
+
 	// Cast the object to AttendeeEventFormat
-	const obj: AttendeeEventFormat = baseEvent as AttendeeEventFormat;
-	
+	const obj: PublicEventFormat = baseEvent as PublicEventFormat;
+
 	if (
 		typeof obj.sponsor !== "string" ||
 		typeof obj.eventType !== "string" ||
@@ -132,13 +132,25 @@ export function isValidStaffFormat(baseEvent: BaseEventFormat): boolean {
 	return isValidBaseEventFormat(baseEvent);
 }
 
-// Format for default staff attendance input
-export interface AttendanceFormat {
+// Input format for changing event expiration
+export interface MetadataFormat {
 	eventId: string,
+	exp: number,
 }
 
-// Input format for changing event expiration
-export interface ExpirationFormat {
-	id: string,
-	exp: string,
+/**
+ *
+ * @param obj Input expiration format object
+ * @returns Boolean representing whether or not the object is a valid expiration object
+ */
+export function isValidMetadataFormat(obj: MetadataFormat): boolean {
+	if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
+		return false;
+	}
+
+	if (typeof obj.exp !== "number" || obj.exp < 0) {
+		return false;
+	}
+
+	return true;
 }

@@ -29,7 +29,7 @@ export function connectToMongoose(dbName: string): mongoose.Connection {
 export function generateConfig(database: string, collection: string): IModelOptions {
 	const connection: mongoose.Connection = connectToMongoose(database);
 
-	return { existingConnection: connection, schemaOptions: { collection: collection } };
+	return { existingConnection: connection, schemaOptions: { collection: collection, versionKey: false } };
 }
 
 export default client;

@@ -9,8 +9,8 @@ import { strongJwtVerification, weakJwtVerification } from "../../middleware/ver
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { createFilteredEventView, eventExists, updateExpiry } from "./event-lib.js";
-import { BaseEventFormat, ExpirationFormat, isValidStaffFormat, isValidAttendeeFormat } from "./event-formats.js";
+import { createFilteredEventView } from "./event-lib.js";
+import { MetadataFormat, isValidStaffFormat, isValidAttendeeFormat, GenericEventFormat, isValidMetadataFormat } from "./event-formats.js";
 import { EventMetadata, FilteredEventView, PublicEvent, StaffEvent } from "./event-models.js";
 import { PublicEventModel, StaffEventModel, EventMetadataModel } from "./event-db.js";
 
@@ -299,22 +299,28 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	}
 
 	// Convert event format into the base event format
-	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
+	const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
 
-	// If ID doesn't exist -> return the invalid parameters
-	if (!isValidStaffFormat(eventFormat) || !isValidAttendeeFormat(eventFormat)) {
+	if (eventFormat.eventId) {
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 	}
-
+	
 	// Create the ID and process metadata for this event
 	const id: string = new ObjectId().toHexString();
 	const isStaffEvent: boolean = eventFormat.isStaff;
 	const metadata: EventMetadata = new EventMetadata(id, isStaffEvent, eventFormat.endTime);
 	eventFormat._id = id;
+	eventFormat.eventId = id;
+
+	// If ID doesn't exist -> return the invalid parameters
+	if (!isValidStaffFormat(eventFormat) && !isValidAttendeeFormat(eventFormat)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
 
 	// Try to upload the events if possible, else throw an error
 	try {
 		if (isStaffEvent) {
+			console.log("EVENT FORMAT", eventFormat);
 			const staffEvent: StaffEvent = new StaffEvent(eventFormat);
 			await StaffEventModel.insertMany(staffEvent);
 		} else {
@@ -330,276 +336,252 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 });
 
 
+/**
+ * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
+ * @apiGroup Event
+ * @apiDescription Delete an event by its unique ID.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event to be deleted.
+ *
+ * @apiSuccess (200: Success) {String} message Event successfully deleted.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {}
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing EVENTID parameter.
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ */
+eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response) => {
+	const eventId: string | undefined = req.params.EVENTID;
 
+	// Check if request sender has permission to delete the event
+	if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
 
+	// Check if eventid field doesn't exist -> if not, returns error
+	if (!eventId) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
 
-// /**
-//  * @api {delete} /event/:EVENTID DELETE /event/:EVENTID
-//  * @apiGroup Event
-//  * @apiDescription Delete an event by its unique ID.
-//  *
-//  * @apiParam {String} EVENTID The unique identifier of the event to be deleted.
-//  *
-//  * @apiSuccess (200: Success) {String} message Event successfully deleted.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {}
-//  *
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing EVENTID parameter.
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  */
-// eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const eventId: string | undefined = req.params.EVENTID;
+	// Perform a lazy delete on both databases, and return true if the operation succeeds
+	try {
+		await StaffEventModel.findByIdAndDelete(eventId);
+		await PublicEventModel.findByIdAndDelete(eventId);
+		await EventMetadataModel.findByIdAndDelete(eventId);
+		
+		return res.status(Constants.SUCCESS).send({ status: "Success" });
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
-// 	// Check if request sender has permission to delete the event
-// 	if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-// 	}
-
-// 	// Check if eventid field doesn't exist -> if not, returns error
-// 	if (!eventId) {
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
-
-// 	const publicCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
-// 	const staffCollection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
-
-// 	// Perform a lazy delete on both databases, and return true if the operation succeeds
-// 	try {
-// 		await publicCollection.deleteOne({ id: eventId });
-// 		await staffCollection.deleteOne({ id: eventId });
-// 		return res.status(Constants.SUCCESS).send({ status: "Success" });
-// 	} catch (error) {
-// 		console.error(error);
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
-
-
-
-
-
-// /**
-//  * @api {get} /event/expiration/:EVENTID GET /event/expiration/:EVENTID
-//  * @apiGroup Event
-//  * @apiDescription Get the expiration time for requested event.
-//  *
-//  * @apiParam {String} EVENTID The unique identifier of the event.
-//  *
-//  * @apiSuccess (200: Success) {Json} event The existing event and expiration data.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {
-//  *    "eventId": "52fdfc072182654f163f5f0f9a621d72",
-//  *    "exp": 1532202702,
-//  * }
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "InvalidPermission"}
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 400 Bad Request
-//  *     {"error": "InvalidParams"}
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "InternalError"}
-//  */
-// eventsRouter.get("/expiration/:EVENTID", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
+/**
+ * @api {get} /event/expiration/:EVENTID GET /event/expiration/:EVENTID
+ * @apiGroup Event
+ * @apiDescription Get the expiration time for requested event.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event.
+ *
+ * @apiSuccess (200: Success) {Json} event The existing event and expiration data.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "eventId": "52fdfc072182654f163f5f0f9a621d72",
+ *    "exp": 1532202702,
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	
-// 	if (!hasStaffPerms(payload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-// 	}
+	if (!hasStaffPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
 
-// 	// Check if the request information is valid
-// 	const eventId: string | undefined = req.params.EVENTID;
+	// Check if the request information is valid
+	const eventId: string | undefined = req.params.EVENTID;
+	try {
+		const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+		if (!metadata) {
+			return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
+		}
+		return res.status(Constants.SUCCESS).send(metadata);
+	} catch (error) {
+		return next(error);
+	}
+});
 
-// 	if (!await(eventExists(eventId)) ){
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
-
-// 	try {
-// 		// Get collection from the database, and return expData
-// 		const collection: Collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.EXPIRATIONS);
-// 		const expData: InternalEventSchema = await collection.findOne({ eventId: eventId }) as InternalEventSchema;
-// 		return res.status(Constants.SUCCESS).send({ ...expData });
-// 	} catch {
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
-
-// /**
-//  * @api {put} /event/expiration/ PUT /event/expiration/
-//  * @apiGroup Event
-//  * @apiDescription Create a new expiration entry, or update the expiration entry.
-//  *
-//  * @apiBody {string} id The unique identifier of the event.
-//  * @apiBody {number} exp Time to set the expiration to, IN MILLISECONDS.
-//  *
-//  *
-//  * @apiSuccess (200: Success) {Json} event The created or updated expiration data.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {
-//  *    "id": "52fdfc072182654f163f5f0f9a621d72",
-//  *    "exp": 1532202702,
-//  * }
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "InvalidPermission"}
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 400 Bad Request
-//  *     {"error": "InvalidParams"}
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "InternalError"}
-//  */
-// eventsRouter.put("/expiration/", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
+/**
+ * @api {put} /event/expiration/ PUT /event/expiration/
+ * @apiGroup Event
+ * @apiDescription Create a new expiration entry, or update the expiration entry.
+ *
+ * @apiBody {string} id The unique identifier of the event.
+ * @apiBody {number} exp Time to set the expiration to, IN MILLISECONDS.
+ *
+ *
+ * @apiSuccess (200: Success) {Json} event The created or updated expiration data.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "id": "52fdfc072182654f163f5f0f9a621d72",
+ *    "exp": 1532202702,
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 	
-// 	if (!hasAdminPerms(payload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-// 	}
+	if (!hasAdminPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
 
-// 	// Check if the request information is valid
-// 	const expData: ExpirationFormat = req.body as ExpirationFormat;
-// 	if (!isExpirationFormat(expData)) {
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
+	// Check if the request information is valid
+	const metadata: MetadataFormat = req.body as MetadataFormat;
+	if (!isValidMetadataFormat(metadata)) {
+		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+	}
 
-// 	// Update the database, and return true if it passes. Else, return false.
-// 	try {
-// 		await updateExpiry(expData);
-// 		return res.status(Constants.SUCCESS).send({ ...expData });
-// 	} catch (error) {
-// 		console.error(error);
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
+	// Update the database, and return true if it passes. Else, return false.
+	try {
+		await EventMetadataModel.findByIdAndUpdate(metadata.eventId, metadata);
+		return res.status(Constants.SUCCESS).send(metadata);
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 
-// /**
-//  * @api {put} /event/ PUT /event/
-//  * @apiGroup Event
-//  * @apiDescription Create a new event or update an existing event.
-//  * @apiBody {string} id The unique identifier of the event.
-//  * @apiBody {string} name The name of the event.
-//  * @apiBody {string} description A description of the event.
-//  * @apiBody {number} startTime The start time of the event.
-//  * @apiBody {number} endTime The end time of the event.
-//  * @apiBody {Location[]} locations An array of locations associated with the event.
-//  * @apiBody {string} sponsor The sponsor of the event.
-//  * @apiBody {string} eventType The type of the event.
-//  * @apiBody {number} points The points associated with the event.
-//  * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
-//  * @apiBody {boolean} isPrivate Indicates whether the event is private.
-//  * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
-//  * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
-//  *
-//  *
-//  * @apiSuccess (200: Success) {Json} event The created or updated event.
-//  * @apiSuccessExample Example Success Response:
-//  * HTTP/1.1 200 OK
-//  * {
-//  *   "event": {
-//  *     "id": "52fdfc072182654f163f5f0f9a621d72",
-//  *     "name": "Example Event 10",
-//  *     "description": "This is a description",
-//  *     "startTime": 1532202702,
-//  *     "endTime": 1532212702,
-//  *     "locations": [
-//  *       {
-//  *         "description": "Example Location",
-//  *         "tags": ["SIEBEL0", "ECEB1"],
-//  *         "latitude": 40.1138,
-//  *         "longitude": -88.2249
-//  *       }
-//  *     ],
-//  *     "sponsor": "Example sponsor",
-//  *     "eventType": "WORKSHOP"
-//  *   }
-//  * }
-//  * @apiUse strongVerifyErrors
-//  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 403 Forbidden
-//  *     {"error": "InvalidPermission"}
-//  * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 400 Bad Request
-//  *     {"error": "InvalidParams"}
-//  * @apiError (500: Internal Error) {String} InternalError Database operation failed.
-//  * @apiErrorExample Example Error Response:
-//  *     HTTP/1.1 500 Internal Server Error
-//  *     {"error": "InternalError"}
-//  */
-// eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
-// 	const payload: JwtPayload = res.locals.payload as JwtPayload;
+/**
+ * @api {put} /event/ PUT /event/
+ * @apiGroup Event
+ * @apiDescription Create a new event or update an existing event.
+ * @apiBody {string} id The unique identifier of the event.
+ * @apiBody {string} name The name of the event.
+ * @apiBody {string} description A description of the event.
+ * @apiBody {number} startTime The start time of the event.
+ * @apiBody {number} endTime The end time of the event.
+ * @apiBody {Location[]} locations An array of locations associated with the event.
+ * @apiBody {string} sponsor The sponsor of the event.
+ * @apiBody {string} eventType The type of the event.
+ * @apiBody {number} points The points associated with the event.
+ * @apiBody {boolean} isAsync Indicates whether the event is asynchronous.
+ * @apiBody {boolean} isPrivate Indicates whether the event is private.
+ * @apiBody {boolean} displayOnStaffCheckIn Indicates whether the event should be displayed on staff check-in.
+ * @apiBody {boolean} isStaff Indicates whether the event is staff-only.
+ *
+ *
+ * @apiSuccess (200: Success) {Json} event The created or updated event.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "event": {
+ *     "id": "52fdfc072182654f163f5f0f9a621d72",
+ *     "name": "Example Event 10",
+ *     "description": "This is a description",
+ *     "startTime": 1532202702,
+ *     "endTime": 1532212702,
+ *     "locations": [
+ *       {
+ *         "description": "Example Location",
+ *         "tags": ["SIEBEL0", "ECEB1"],
+ *         "latitude": 40.1138,
+ *         "longitude": -88.2249
+ *       }
+ *     ],
+ *     "sponsor": "Example sponsor",
+ *     "eventType": "WORKSHOP"
+ *   }
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "InvalidPermission"}
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid parameters for the event.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiError (500: Internal Error) {String} InternalError Database operation failed.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
+	const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-// 	// Check if the token has elevated permissions
-// 	if (!hasAdminPerms(payload)) {
-// 		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-// 	}
+	// Check if the token has elevated permissions
+	if (!hasAdminPerms(payload)) {
+		return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+	}
 
-// 	// Verify that the input format is valid to create a new event
-// 	const eventFormat: BaseEventFormat = req.body as BaseEventFormat;
+	// Verify that the input format is valid to create a new event
+	const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
+	const eventId: string = eventFormat.eventId;
 
-// 	// TODO: Check to ensure that the event exists
+	const metadata: EventMetadata | null = await EventMetadataModel.findById(eventFormat.eventId);
 
-// 	// Create base types, to be defined based on whether or not there's an isStaff field
-// 	let collection: Collection<Document>;
-// 	let validRequestChecker: (event: BaseEventFormat) => boolean;
+	if (!metadata) {
+		return res.status(Constants.BAD_REQUEST).send({ message: "EventNotFound" });
+	}
 
-// 	// Check to ensure that ID isn't being passed in
-// 	if (eventFormat._id) {
-// 		delete eventFormat._id;
-// 	}
-
-// 	// Get the function to execute to check if input format is right
-// 	if (eventFormat.isStaff ?? false) {
-// 		validRequestChecker = isStaffEventFormat;
-// 		collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.STAFF_EVENTS);
-// 	} else {
-// 		validRequestChecker = isAttendeeEventFormat;
-// 		collection = databaseClient.db(Constants.EVENT_DB).collection(EventDB.ATTENDEE_EVENTS);
-// 	}
-
-// 	// Check if the actual request is valid (based on the function passed in earlier)
-// 	if (!validRequestChecker(eventFormat) || !await eventExists(eventFormat.id)) {
-// 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-// 	}
-
-// 	// Generate the filter to update the event
-// 	const updateFilter: UpdateFilter<Document> = {
-// 		$set: {
-// 			...eventFormat,
-// 		},
-// 	};
-
-// 	// Try to update the database, if possible
-// 	try {
-// 		await collection.updateOne({ id: eventFormat.id }, updateFilter, { upsert: true });
-// 		return res.status(Constants.SUCCESS).send({ ...eventFormat });
-// 	} catch (error) {
-// 		console.error(error);
-// 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// 	}
-// });
+	try {
+		if (metadata.isStaff) {
+			if (!isValidStaffFormat(eventFormat)) {
+				return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
+			}
+	
+			const event: StaffEvent = new PublicEvent(eventFormat);
+			await StaffEventModel.findByIdAndUpdate(eventId, event);
+			return res.status(Constants.SUCCESS).send(event);
+		} else {
+			if (!isValidStaffFormat(eventFormat)) {
+				return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
+			}
+			const event: PublicEvent = new PublicEvent(eventFormat);
+			await StaffEventModel.findByIdAndUpdate(eventId, event);
+			return res.status(Constants.SUCCESS).send(event);
+		}
+	} catch (error) {
+		console.error(error);
+		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+	}
+});
 
 
 // Prototype error handler
-eventsRouter.use((err: Error, req: Request, res: Response, _: NextFunction) => {
+eventsRouter.use((err: Error, req: Request, res: Response) => {
 	console.error("IN PROTOTYPE ERROR HANDLER!");
-	console.warn(req);
+	console.warn(req.body);
 	console.error(err);
 	res.status(Constants.INTERNAL_ERROR);
 	res.render( "PROTOerror", { error: err });
