@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasStaffPerms } from "../auth/auth-lib";
+import { hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
@@ -43,7 +43,7 @@ const staffRouter: Router = Router();
  */
 staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
 	const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
-	
+
 	const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
 	const userId: string = payload.id;
 	// Only staff can mark themselves as attending these events
@@ -62,12 +62,15 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
 			return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
 		}
 
-		if (metadata.exp <= Date.now()) {
+		const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
+		console.log(metadata.exp, timestamp);
+
+		if (metadata.exp <= timestamp) {
 			return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
 		}
 
-		await EventsAttendedByStaffModel.findByIdAndUpdate(userId, { $addToSet: { "attendance": eventId } });
-		await StaffAttendingEventModel.findByIdAndUpdate(eventId, { $addToSet: { "attendees": userId } });
+		await EventsAttendedByStaffModel.findByIdAndUpdate(userId, { $addToSet: { "attendance": eventId } }, { upsert: true });
+		await StaffAttendingEventModel.findByIdAndUpdate(eventId, { $addToSet: { "attendees": userId } }, { upsert: true });
 		return res.status(Constants.SUCCESS).send({ status: "Success" });
 	} catch (error) {
 		console.error(error);

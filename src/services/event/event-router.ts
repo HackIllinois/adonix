@@ -10,7 +10,7 @@ import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
 import { createFilteredEventView } from "./event-lib.js";
-import { MetadataFormat, isValidStaffFormat, isValidAttendeeFormat, GenericEventFormat, isValidMetadataFormat } from "./event-formats.js";
+import { MetadataFormat, isValidStaffFormat, isValidPublicFormat, GenericEventFormat, isValidMetadataFormat } from "./event-formats.js";
 import { EventMetadata, FilteredEventView, PublicEvent, StaffEvent } from "./event-models.js";
 import { PublicEventModel, StaffEventModel, EventMetadataModel } from "./event-db.js";
 
@@ -302,7 +302,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
 
 	if (eventFormat.eventId) {
-		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+		return res.status(Constants.BAD_REQUEST).send({ error: "ExtraIdProvided" });
 	}
 	
 	// Create the ID and process metadata for this event
@@ -312,11 +312,6 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 	eventFormat._id = id;
 	eventFormat.eventId = id;
 
-	
-
-
-
-	
 	// Try to upload the events if possible, else throw an error
 	try {
 		if (isStaffEvent) {
@@ -328,7 +323,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 			const staffEvent: StaffEvent = new StaffEvent(eventFormat);
 			await StaffEventModel.insertMany(staffEvent);
 		} else {
-			if (!isValidAttendeeFormat(eventFormat)) {
+			if (!isValidPublicFormat(eventFormat)) {
 				return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
 			}
 			const publicEvent: PublicEvent = new PublicEvent(eventFormat);
@@ -555,6 +550,10 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 	const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
 	const eventId: string = eventFormat.eventId;
 
+	if (!eventId) {
+		return res.status(Constants.BAD_REQUEST).send({ message: "NoEventId" });
+	}
+
 	const metadata: EventMetadata | null = await EventMetadataModel.findById(eventFormat.eventId);
 
 	if (!metadata) {
@@ -567,15 +566,15 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 				return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
 			}
 	
-			const event: StaffEvent = new PublicEvent(eventFormat);
+			const event: StaffEvent = new StaffEvent(eventFormat, false);
 			await StaffEventModel.findByIdAndUpdate(eventId, event);
 			return res.status(Constants.SUCCESS).send(event);
 		} else {
-			if (!isValidStaffFormat(eventFormat)) {
+			if (!isValidPublicFormat(eventFormat)) {
 				return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
 			}
-			const event: PublicEvent = new PublicEvent(eventFormat);
-			await StaffEventModel.findByIdAndUpdate(eventId, event);
+			const event: PublicEvent = new PublicEvent(eventFormat, false);
+			await PublicEventModel.findByIdAndUpdate(eventId, event);
 			return res.status(Constants.SUCCESS).send(event);
 		}
 	} catch (error) {

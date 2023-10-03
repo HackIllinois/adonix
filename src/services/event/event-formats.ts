@@ -101,7 +101,7 @@ function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
  * @returns True if the object is a valid AttendeeEventFormat, otherwise False.
  *
  */
-export function isValidAttendeeFormat(baseEvent: BaseEventFormat): boolean {
+export function isValidPublicFormat(baseEvent: BaseEventFormat): boolean {
 	if (!isValidBaseEventFormat(baseEvent)) {
 		return false;
 	}

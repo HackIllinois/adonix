@@ -1,6 +1,9 @@
 import { prop } from "@typegoose/typegoose";
 
 
+
+
+
 export class EventsAttendedByStaff {
 	@prop({ required: true })
 		_id: string;

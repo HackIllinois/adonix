@@ -56,10 +56,12 @@ class BaseEvent {
 	@prop({ required: true })
 		isAsync: boolean;
 
-	constructor(baseEvent: GenericEventFormat) {
+	constructor(baseEvent: GenericEventFormat, setId: boolean = true) {
 		const id: string = baseEvent._id ?? new ObjectId().toHexString();
-		this._id = id;
-		this.eventId = id;
+		if (setId) {
+			this._id = id;
+			this.eventId = id;
+		}
 		this.description = baseEvent.description;
 		this.name = baseEvent.name;
 		this.startTime = baseEvent.startTime;
@@ -101,8 +103,8 @@ export class PublicEvent extends BaseEvent {
 		points: number;
 
 
-	constructor(baseEvent: GenericEventFormat) {
-		super(baseEvent);
+	constructor(baseEvent: GenericEventFormat, setId: boolean = true) {
+		super(baseEvent, setId);
 		this.eventType = baseEvent.publicEventType ?? "OTHER";
 		this.isPrivate = baseEvent.isPrivate ?? false;
 		this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
@@ -112,8 +114,8 @@ export class PublicEvent extends BaseEvent {
 }
 
 export class StaffEvent extends BaseEvent {
-	constructor(baseEvent: GenericEventFormat) {
-		super(baseEvent);
+	constructor(baseEvent: GenericEventFormat, setId: boolean = true) {
+		super(baseEvent, setId);
 		this.eventType = baseEvent.staffEventType ?? "OTHER";
 	}
 }
