@@ -103,7 +103,7 @@ export class PublicEvent extends BaseEvent {
 
 	constructor(baseEvent: GenericEventFormat) {
 		super(baseEvent);
-		this.eventType = baseEvent.publicEventType ?? "OTHER";;
+		this.eventType = baseEvent.publicEventType ?? "OTHER";
 		this.isPrivate = baseEvent.isPrivate ?? false;
 		this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
 		this.sponsor = baseEvent.sponsor ?? "None";

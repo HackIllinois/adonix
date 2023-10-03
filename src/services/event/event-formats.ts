@@ -144,7 +144,7 @@ export function isValidStaffFormat(baseEvent: BaseEventFormat): boolean {
 		return false;
 	}
 
-	return true;;
+	return true;
 }
 
 // Input format for changing event expiration
