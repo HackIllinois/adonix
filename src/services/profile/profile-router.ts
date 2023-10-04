@@ -78,14 +78,35 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 	}
 });
 
-/*
-TODO:
-- finish rest of the endpoints
-- figure out implementing JWT on all endpoints
-*/
-
-// decode jwt token
-// then get the id from there & hit the database (profile/profiles collection) to return the user
+/**
+ * @api {get} /profile/ GET /profile/
+ * @apiGroup Profile
+ * @apiDescription Retrieve the user profile based on their authentication.
+ *
+ * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "12345",
+ *    "firstName": "Hackk",
+ *    "lastName": "Illinois",
+ *    "discord": "hackillinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "id": "abcde",
+ *    "foodWave": 0
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserNotFound):
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "UserNotFound"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
 
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
@@ -109,6 +130,38 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
 
 });
 
+/**
+ * @api {get} /profile/id/:id GET /profile/id/:id
+ * @apiGroup Profile
+ * @apiDescription Retrieve the user's profile based on the provided ID as a path parameter.
+ *
+ * @apiParam {String} id User's unique ID.
+ *
+ * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "12345",
+ *    "firstName": "Hackk",
+ *    "lastName": "Illinois",
+ *    "discord": "hackillinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "id": "abcde",
+ *    "foodWave": 0
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserNotFound):
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "UserNotFound"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+
 profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
@@ -126,6 +179,41 @@ profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Resp
 		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
 	}
 });
+
+/**
+ * @api {post} /profile POST /profile
+ * @apiGroup Profile
+ * @apiDescription Create a user profile based on their authentication.
+ *
+ * @apiBody {String} firstName User's first name.
+ * @apiBody {String} lastName User's last name.
+ * @apiBody {String} discord User's Discord username.
+ * @apiBody {String} avatarUrl User's avatar URL.
+ *
+ * @apiSuccess (200: Success) {Json} user Created user's profile information.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "abc12345",
+ *    "firstName": "Hack",
+ *    "lastName": "Illinois",
+ *    "discord": "HackIllinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "id": "12345",
+ *    "foodWave": 0
+ * }
+ *
+ * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserAlreadyExists):
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "UserAlreadyExists"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
 
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
@@ -153,6 +241,34 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 	}
 });
 
+/**
+ * @api {put} /profile PUT /profile
+ * @apiGroup Profile
+ * @apiDescription Update a user's profile based on their authentication. ADMIN and STAFF roles can edit `foodWave` and `points`.
+ *
+ * @apiBody {String} firstName New first name for the user.
+ * @apiBody {String} lastName New last name for the user.
+ * @apiBody {String} discord New Discord username for the user.
+ * @apiBody {String} avatarUrl New avatar URL for the user.
+ * @apiBody {Number} foodWave New food wave value (optional, only for ADMIN and STAFF).
+ * @apiBody {Number} points New points value (optional, only for ADMIN and STAFF).
+ *
+ * @apiSuccess (200: Success) {Json} profile Updated user's profile information.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "firstName": "HackUpdate",
+ *    "lastName": "IllinoisUpdate",
+ *    "discord": "HackIllinoisUpdate",
+ *    "avatarUrl": "an",
+ *    "id": "12345"
+ * }
+ *
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
 
 profileRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
@@ -208,8 +324,25 @@ profileRouter.put("/", strongJwtVerification, async (req: Request, res: Response
 
 });
 
+/**
+ * @api {delete} /profile DELETE /profile
+ * @apiGroup Profile
+ * @apiDescription Delete the user's profile based on their authentication.
+ *
+ * @apiSuccess (200: Success) {Json} success Indicates successful deletion of the user's profile.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "success": true
+ * }
+ *
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
-	// console.log(req.body);
 
 	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 	try {
