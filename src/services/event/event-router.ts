@@ -645,15 +645,11 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
 // Prototype error handler
 eventsRouter.use((err: Error, req: Request, res: Response) => {
 	if (!err) {
-		return res.status(Constants.SUCCESS).send({status: "OK"});
+		return res.status(Constants.SUCCESS).send({ status: "OK" });
 	}
 	
-	console.error("IN PROTOTYPE ERROR HANDLER!");
-	console.warn(req.body);
-	console.error(err);
-	res.status(Constants.INTERNAL_ERROR);
-	res.render( "PROTOerror", { error: err });
-	return;
+	console.error(err.stack, req.body);
+	return res.status(Constants.INTERNAL_ERROR).send({ error: err.message });
 });
 
 export default eventsRouter;
