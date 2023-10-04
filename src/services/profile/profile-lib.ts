@@ -30,18 +30,3 @@ export function isValidLimit(limit: number): boolean {
 	return limit > Constants.ZERO;
 }
 
-
-// export function errorHandler(res: Response, error: Error): void {
-// 	if (error instanceof MongoNetworkTimeoutError) {
-// 		res.status(Constants.INTERNAL_ERROR).send({ error: "MongoTimeoutError" });
-// 	} else if (error instanceof JWTError) {
-// 		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "InvalidJWT" });
-// 	}
-        
-// 	res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-// }
-
-// export function jwtHandler(req: Request): JwtPayload {
-// 	const jwtToken: string = req.headers.authorization as string;
-// 	return decodeJwtToken(jwtToken);
-// }
