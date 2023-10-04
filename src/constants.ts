@@ -3,6 +3,8 @@ import "dotenv";
 abstract class Constants {
 	// Status codes
 	static readonly SUCCESS:number = 200;
+	static readonly CREATED:number = 201;
+	static readonly NO_CONTENT:number = 204;
 	static readonly BAD_REQUEST:number = 400;
 	static readonly FAILURE:number = 400;
 	static readonly UNAUTHORIZED_REQUEST:number = 401;
@@ -48,9 +50,9 @@ abstract class Constants {
 
 	// Constants for general usage
 	static readonly ZERO: number = 0;
-	static readonly EVENT_ID_BYTES: number = 16;
-	static readonly EVENT_ID_LENGTH: number = 32;
+	static readonly EVENT_ID_LENGTH: number = 24;
 	static readonly MILLISECONDS_PER_SECOND:number = 1000;
+	static readonly DEFAULT_POINT_VALUE: number = 10;
 
 	// Constants for database names
 	static readonly AUTH_DB: string = "auth";

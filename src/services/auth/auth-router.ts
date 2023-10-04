@@ -137,7 +137,6 @@ authRouter.get("/:PROVIDER/callback/:DEVICE", (req: Request, res: Response, next
 		console.error(error);
 		return res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
 	}
-
 });
 
 

@@ -3,6 +3,12 @@ export interface ProfileData {
 	email: string,
 }
 
+export interface RoleData {
+	id: string,
+	provider: Provider | string,
+	roles: Role[]
+}
+
 export interface JwtPayload {
 	id: string,
 	email: string,

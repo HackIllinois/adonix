@@ -1,6 +1,6 @@
 import "dotenv";
 import ms from "ms";
-import { Collection, ObjectId, Filter, Document } from "mongodb";
+import { Collection, Filter, Document } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
@@ -9,7 +9,7 @@ import Constants from "../../constants.js";
 import databaseClient from "../../database.js";
 
 import { AuthDB, RolesSchema } from "./auth-schemas.js";
-import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation, RoleData } from "./auth-models.js";
 
 import { UserSchema } from "../user/user-schemas.js";
 import { getUser } from "../user/user-lib.js";
@@ -63,15 +63,12 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 		roles: [],
 	};
 
-	// Get roles, and assign those to payload.roles if they exist
+	// Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
 	try {
-		let roles: Role[] = await getRoles(userId);
-
-		// If roles don't exist already - initialize them for the user, and return the new set of roles
-		if (!roles.length) {
-			roles = await initializeRoles(userId, provider.toUpperCase() as Provider, email);
-		}
-		payload.roles = roles;
+		const oldRoles: Role[] = await getRoles(userId);
+		const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
+		payload.roles = [...new Set([ ...oldRoles, ...newRoles ])];
+		await updateUserRoles(userId, provider as Provider, payload.roles);
 	} catch (error) {
 		console.error(error);
 	}
@@ -86,19 +83,13 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
  * @returns Promise, containing either JWT payload or reason for failure
  */
 export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
-
 	let authInfo: RolesSchema | undefined;
 	let userInfo: UserSchema | undefined;
 
 	// Fill in auth info, used for provider and roles
-
-
-
 	try {
 		authInfo = await getAuthInfo(targetUser);
 		userInfo = await getUser(targetUser);
-		
-
 	} catch (error) {
 		console.error(error);
 	}
@@ -111,7 +102,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 	// Create and return new payload
 	const newPayload: JwtPayload = {
 		id: targetUser,
-		roles: authInfo.roles as Role[],
+		roles: authInfo.roles ,
 		email: userInfo.email,
 		provider: authInfo.provider,
 	};
@@ -171,18 +162,15 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * Create an auth database entry for the current user. Should be called whenever a user is created.
  * @param id UserID to create the entry for
  * @param provider Provider being used to create this entry
- * @param email Email address of current user
- * @returns Promise, containing list of user roles if valid. If invalid, error containing why.
+ * @param roles Array of roles that belong to the given user
+ * @returns Promise, containing nothing if valid. If invalid, error containing why.
  */
-export async function initializeRoles(id: string, provider: Provider, email: string): Promise<Role[]> {
-	const roles: Role[] = defineUserRoles(provider, email);
-
+export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
 	// Create a new rolesEntry for the database, and insert it into the collection
-	const newUser: RolesSchema = { _id: new ObjectId(), id: id, provider: provider, roles: roles };
+	const newUser: RoleData = { id: id, provider: provider.toUpperCase(), roles: roles };
 	const collection: Collection = databaseClient.db(Constants.AUTH_DB).collection(AuthDB.ROLES);
-	await collection.insertOne(newUser);
-
-	return roles;
+	await collection.updateOne({ id: id }, { $set: { ...newUser } }, { upsert: true });
+	return;
 }
 
 
@@ -192,7 +180,7 @@ export async function initializeRoles(id: string, provider: Provider, email: str
  * @param email Email address that the user signed up with
  * @returns List of roles that the uer containss
  */
-export function defineUserRoles(provider: Provider, email: string): Role[] {
+export function initializeUserRoles(provider: Provider, email: string): Role[] {
 	const roles: Role[] = [];
 
 	// Check if this is a staff email
@@ -228,6 +216,7 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 		if (!info) {
 			return Promise.reject("UserNotFound");
 		}
+		info.provider = info.provider.toLowerCase();
 
 		return info;
 	} catch {
@@ -237,20 +226,19 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
 
 
 /**
- * Calls the getAuthInfo function to get roles for a user
+ * Calls the getAuthInfo function to get roles for a user. If the user does not exist, we return an empty array as opposed to an error.
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
 export async function getRoles(id: string): Promise<Role[]> {
-	let roles: Role[] | undefined;
-	// Call helper function to get auth info, and return data from there
-	await getAuthInfo(id).then((user: RolesSchema) => {
-		roles = user.roles as Role[];
-	}).catch((error: string) => {
-		return Promise.reject(error);
-	});
+	let roles: Role[] = [];
+	try {
+		roles = (await getAuthInfo(id) ).roles ;
+	} catch (error) {
+		console.error(error);
+	}
 
-	return roles ?? Promise.reject("UserNotFound");
+	return roles;
 }
 
 
