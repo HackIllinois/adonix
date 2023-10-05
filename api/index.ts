@@ -9,6 +9,7 @@ import eventRouter from "../src/services/event/event-router.js";
 import profileRouter from "../src/services/profile/profile-router.js";
 import newsletterRouter from "../src/services/newsletter/newsletter-router.js";
 import staffRouter from "../src/services/staff/staff-router.js";
+import registrationRouter from "../src/services/registration/registration-router.js";
 
 const app: Application = express();
 
@@ -29,7 +30,7 @@ app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
 app.use("/profile/", profileRouter);
 app.use("/staff/", staffRouter);
-
+app.use("/registration/",registrationRouter);
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
 	res.end("API is working!");
