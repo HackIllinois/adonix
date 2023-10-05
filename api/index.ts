@@ -30,7 +30,7 @@ app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
 app.use("/profile/", profileRouter);
 app.use("/staff/", staffRouter);
-app.use("/registration/",registrationRouter);
+app.use("/registration/", registrationRouter);
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
 	res.end("API is working!");
