@@ -1,5 +1,5 @@
 import { prop, modelOptions } from "@typegoose/typegoose";
-import { GenericEventFormat } from "./event-formats";
+import { GenericEventFormat } from "./event-formats.js";
 import { ObjectId } from "mongodb";
 import Constants from "../../constants.js";
 

@@ -1,5 +1,5 @@
 import Constants from "../../constants.js";
-import { LeaderboardEntry } from "./profile-models";
+import { LeaderboardEntry } from "./profile-models.js";
 
 /**
  * Remove non-necessary fields from a leaderboardentry item
