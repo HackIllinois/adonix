@@ -24,7 +24,7 @@ const build = () =>
 let cleanup = null;
 const serveBuild = async () => {
     console.log("🚀 Starting server...");
-    const imported = await import("../out/app.js");
+    const imported = await import("../out/app.js" + `#${Math.random()}`); // dynamically reimport and break cache
     const startServer = imported["startServer"];
     const server = await startServer();
 
