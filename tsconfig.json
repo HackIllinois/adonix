@@ -3,16 +3,15 @@
     "compilerOptions": {
         // project options
         // "allowImportingTsExtensions": true,
-        "noEmit": true,
         "lib": ["ESNext"],
-        "outDir": "lib",
+        "outDir": "out",
         "removeComments": true,
         "target": "ES6",
-        "module": "ES6",
+        "module": "NodeNext",
         // Module resolution
         "baseUrl": "./src",
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "NodeNext",
         // Source Map
         "sourceMap": true,
         "sourceRoot": "./src",
@@ -31,6 +30,6 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
     },
-    "include": ["./**/*.ts", "./**/*.cjs"],
+    "include": ["src/app.ts"],
     "exclude": ["node_modules/**", "doc/", "docs/"]
 }

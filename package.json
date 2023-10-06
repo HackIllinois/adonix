@@ -9,12 +9,14 @@
     "apidocs": "apidoc -i . -o apidocs/",
     "docs": "npm run devdocs && npm run apidocs",
     "clean-docs": "rm -r apidocs/ devdocs/",
+    "gen-jwt": "node scripts/generate-jwt-token",
     "format:check": "yarn run prettier --check '**/*.{ts,js,cjs,json}'",
     "format": "yarn run prettier --write '**/*.{ts,js,cjs,json}'",
-    "lint:check": "yarn run eslint . --ext .js,.jsx,.ts,.tsx --check",
-    "lint": "yarn run eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:check": "yarn run eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint": "yarn run eslint src --ext .js,.jsx,.ts,.tsx --fix",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm run lint && vercel dev"
+    "build": "tsc",
+    "serve": "node scripts/serve.mjs"
   },
   "keywords": [],
   "author": "Aydan Pirani <aydanpirani@gmail.com>",
