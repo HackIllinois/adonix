@@ -1,5 +1,3 @@
-import "dotenv";
-
 import passport from "passport";
 import { NextFunction } from "express-serve-static-core";
 import express, { Request, Response, Router } from "express";

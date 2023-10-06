@@ -1,5 +1,4 @@
 import { IModelOptions } from "@typegoose/typegoose/lib/types.js";
-import "dotenv";
 import { MongoClient } from "mongodb";
 import mongoose from "mongoose";
 

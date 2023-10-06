@@ -1,4 +1,3 @@
-import "dotenv";
 import ms from "ms";
 import { Collection, Filter, Document } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";

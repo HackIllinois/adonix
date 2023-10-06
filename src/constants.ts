@@ -1,5 +1,3 @@
-import "dotenv";
-
 abstract class Constants {
     // Status codes
     static readonly SUCCESS: number = 200;
