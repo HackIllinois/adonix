@@ -1,8 +1,7 @@
 // GENERATED FROM https://gist.github.com/mtimbs/0eaf27df08cff8f4ca4303de60bf617b
 {
     "compilerOptions": {
-        // project options
-        // "allowImportingTsExtensions": true,
+        // Project options
         "lib": ["ESNext"],
         "outDir": "out",
         "removeComments": true,
@@ -28,8 +27,8 @@
         "noUnusedParameters": true,
         // Enabling these for mongoose
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        "emitDecoratorMetadata": true
     },
-    "include": ["src/app.ts"],
+    "include": ["src/**/*.ts"],
     "exclude": ["node_modules/**", "doc/", "docs/"]
 }
