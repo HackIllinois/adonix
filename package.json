@@ -16,7 +16,8 @@
         "lint": "yarn run eslint src --ext .js,.jsx,.ts,.tsx --fix",
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc",
-        "serve": "node scripts/serve.mjs"
+        "serve": "node scripts/serve.mjs",
+        "start": "vercel dev"
     },
     "keywords": [],
     "author": "Aydan Pirani <aydanpirani@gmail.com>",
