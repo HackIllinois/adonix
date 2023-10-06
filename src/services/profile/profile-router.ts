@@ -72,11 +72,9 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
         // Return the profiles, after mapping them to simple leaderboard entries
         const leaderboardProfiles: LeaderboardSchema[] =
             (await leaderboardCursor.toArray()) as LeaderboardSchema[];
-        return res
-            .status(Constants.SUCCESS)
-            .send({
-                profiles: leaderboardProfiles.map(castLeaderboardEntries),
-            });
+        return res.status(Constants.SUCCESS).send({
+            profiles: leaderboardProfiles.map(castLeaderboardEntries),
+        });
     } catch {
         return res
             .status(Constants.INTERNAL_ERROR)
