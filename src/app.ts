@@ -8,12 +8,11 @@ import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
 import profileRouter from "./services/profile/profile-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
-import helmet from "helmet";
 
 const app: Application = express();
 
 // Utility packages (detailed in the readme)
-app.use(helmet({ crossOriginResourcePolicy: false }));
+// app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
 
 // Use express.json only if we're not running locally
