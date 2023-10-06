@@ -1,21 +1,21 @@
 import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models";
 
-
 /**
  * Remove non-necessary fields from a leaderboardentry item
  * @param initial Initial entry with extra items
  * @returns New LeaderboardEntry, but this time with only the needed fields
  */
-export function castLeaderboardEntries(initial: LeaderboardEntry): LeaderboardEntry {
-	const final: LeaderboardEntry = {
-		id: initial.id,
-		points: initial.points,
-		discord: initial.discord,
-	};
-	return final;
+export function castLeaderboardEntries(
+    initial: LeaderboardEntry,
+): LeaderboardEntry {
+    const final: LeaderboardEntry = {
+        id: initial.id,
+        points: initial.points,
+        discord: initial.discord,
+    };
+    return final;
 }
-
 
 /**
  * Check if the limit is valid or not
@@ -23,5 +23,5 @@ export function castLeaderboardEntries(initial: LeaderboardEntry): LeaderboardEn
  * @returns True if limit is non-negative, else false
  */
 export function isValidLimit(limit: number): boolean {
-	return limit > Constants.ZERO;
+    return limit > Constants.ZERO;
 }
