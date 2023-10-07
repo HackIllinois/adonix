@@ -6,7 +6,11 @@ import Constants from "../../constants.js";
 
 // Collections within the staff database
 export enum StaffDB {
-	ATTENDANCE = "attendance",
+    ATTENDANCE = "attendance",
 }
 
-export const EventsAttendedByStaffModel: mongoose.Model<EventsAttendedByStaff> = getModelForClass(EventsAttendedByStaff, generateConfig(Constants.STAFF_DB, StaffDB.ATTENDANCE));
+export const EventsAttendedByStaffModel: mongoose.Model<EventsAttendedByStaff> =
+    getModelForClass(
+        EventsAttendedByStaff,
+        generateConfig(Constants.STAFF_DB, StaffDB.ATTENDANCE),
+    );

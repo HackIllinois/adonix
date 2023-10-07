@@ -16,8 +16,22 @@ Official repository for HackIllinois API redesign.
 
 ## To run locally
 
+Just run once with vercel:
+
 ```
-npm run start
+yarn start
+```
+
+Run & restart on any code changes:
+
+```
+yarn serve
+```
+
+Verify build compiles, linter passes, and formatter passes:
+
+```
+yarn verify
 ```
 
 ## To generate local developer docs
@@ -32,7 +46,7 @@ npm run devdocs
 npm run apidocs
 ```
 
-Important scripts can be found in the `package.json` file!
+Important scripts can be found in the `package.json` file under the `scripts` field!
 
 #### Default API Docs Documentation:
 
