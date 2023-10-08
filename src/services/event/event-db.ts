@@ -1,10 +1,5 @@
 import { Document, ObjectId, WithId } from "mongodb";
-import {
-    EventMetadata,
-    PublicEvent,
-    StaffEvent,
-    StaffAttendingEvent,
-} from "./event-models.js";
+import { EventMetadata, PublicEvent, StaffEvent, StaffAttendingEvent } from "./event-models.js";
 
 import { getModelForClass } from "@typegoose/typegoose";
 import mongoose from "mongoose";
@@ -36,13 +31,11 @@ export const PublicEventModel: mongoose.Model<PublicEvent> = getModelForClass(
     PublicEvent,
     generateConfig(Constants.EVENT_DB, EventDB.PUBLIC_EVENTS),
 );
-export const EventMetadataModel: mongoose.Model<EventMetadata> =
-    getModelForClass(
-        EventMetadata,
-        generateConfig(Constants.EVENT_DB, EventDB.METADATA),
-    );
-export const StaffAttendingEventModel: mongoose.Model<StaffAttendingEvent> =
-    getModelForClass(
-        StaffAttendingEvent,
-        generateConfig(Constants.EVENT_DB, EventDB.STAFF_ATTENDANCE),
-    );
+export const EventMetadataModel: mongoose.Model<EventMetadata> = getModelForClass(
+    EventMetadata,
+    generateConfig(Constants.EVENT_DB, EventDB.METADATA),
+);
+export const StaffAttendingEventModel: mongoose.Model<StaffAttendingEvent> = getModelForClass(
+    StaffAttendingEvent,
+    generateConfig(Constants.EVENT_DB, EventDB.STAFF_ATTENDANCE),
+);

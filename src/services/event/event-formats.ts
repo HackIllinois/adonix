@@ -1,9 +1,5 @@
 import Constants from "../../constants.js";
-import {
-    Location,
-    PUBLIC_EVENT_TYPE,
-    STAFF_EVENT_TYPE,
-} from "./event-models.js";
+import { Location, PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
 
 // Base format for the event - ALL events must have these
 export interface BaseEventFormat {
@@ -31,9 +27,7 @@ export interface PublicEventFormat extends BaseEventFormat {
 export interface StaffEventFormat extends BaseEventFormat {
     staffEventType: STAFF_EVENT_TYPE;
 }
-export interface GenericEventFormat
-    extends PublicEventFormat,
-        StaffEventFormat {}
+export interface GenericEventFormat extends PublicEventFormat, StaffEventFormat {}
 
 /**
  * Checks whether an object conforms to the structure of a Location.
@@ -64,10 +58,7 @@ function isLocation(loc: Location): boolean {
  */
 /* eslint-disable no-magic-numbers */
 function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
-    if (
-        typeof obj.eventId !== "string" ||
-        obj.eventId.length !== Constants.EVENT_ID_LENGTH
-    ) {
+    if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
         return false;
     }
     if (
@@ -143,10 +134,7 @@ export function isValidStaffFormat(baseEvent: BaseEventFormat): boolean {
     // Cast the object to AttendeeEventFormat
     const obj: StaffEventFormat = baseEvent as StaffEventFormat;
 
-    if (
-        typeof obj.staffEventType !== "string" ||
-        !Object.values(STAFF_EVENT_TYPE).includes(obj.staffEventType)
-    ) {
+    if (typeof obj.staffEventType !== "string" || !Object.values(STAFF_EVENT_TYPE).includes(obj.staffEventType)) {
         return false;
     }
 
@@ -165,10 +153,7 @@ export interface MetadataFormat {
  * @returns Boolean representing whether or not the object is a valid expiration object
  */
 export function isValidMetadataFormat(obj: MetadataFormat): boolean {
-    if (
-        typeof obj.eventId !== "string" ||
-        obj.eventId.length !== Constants.EVENT_ID_LENGTH
-    ) {
+    if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
         return false;
     }
 

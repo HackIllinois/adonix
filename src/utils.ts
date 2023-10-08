@@ -1,10 +1,7 @@
 import { Request, Response } from "express";
 
 // Type for arbitrary async REST handler type
-export type apiFunction = (
-    request: Request,
-    response: Response,
-) => Promise<void>;
+export type apiFunction = (request: Request, response: Response) => Promise<void>;
 
 /**
  * Check if a string falls in a set of regex patterns

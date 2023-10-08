@@ -10,9 +10,7 @@ import Constants from "../../constants.js";
  * @returns Promise, if successful then data about the user. If failed, contains error.
  */
 export async function getUser(userId: string): Promise<UserSchema> {
-    const collection: Collection = databaseClient
-        .db(Constants.USER_DB)
-        .collection(UserDB.INFO);
+    const collection: Collection = databaseClient.db(Constants.USER_DB).collection(UserDB.INFO);
     try {
         const user: UserSchema | null = (await collection.findOne({
             id: userId,
@@ -32,9 +30,7 @@ export async function getUser(userId: string): Promise<UserSchema> {
  * @returns Promise, containing nothing if successful but error if rejected.
  */
 export async function updateUser(userData: UserFormat): Promise<void> {
-    const collection: Collection = databaseClient
-        .db(Constants.USER_DB)
-        .collection(UserDB.INFO);
+    const collection: Collection = databaseClient.db(Constants.USER_DB).collection(UserDB.INFO);
 
     try {
         // Create the query to run the update, then perform the update operation

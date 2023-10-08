@@ -18,11 +18,7 @@ import jsonwebtoken from "jsonwebtoken";
  *     HTTP/1.1 400 Bad Request
  *     {"error": "NoToken"}
  */
-export function strongJwtVerification(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-): void {
+export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
     const token: string | undefined = req.headers.authorization;
 
     if (!token) {
@@ -54,11 +50,7 @@ export function strongJwtVerification(
  * @apiHeaderExample {json} Example Headers:
  *     {"Authorization": "loremipsumdolorsitamet"}
  */
-export function weakJwtVerification(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-): void {
+export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
     const token: string | undefined = req.headers.authorization;
 
     try {

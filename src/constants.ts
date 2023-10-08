@@ -13,16 +13,13 @@ abstract class Constants {
 
     // URLs
     private static readonly ADMIN_DEVICE: string = "admin";
-    private static readonly ADMIN_REDIRECT: string =
-        "https://admin.hackillinois.org/auth/";
+    private static readonly ADMIN_REDIRECT: string = "https://admin.hackillinois.org/auth/";
 
     private static readonly DEV_DEVICE: string = "dev";
-    private static readonly DEV_REDIRECT: string =
-        "https://adonix.hackillinois.org/auth/dev/";
+    private static readonly DEV_REDIRECT: string = "https://adonix.hackillinois.org/auth/dev/";
 
     private static readonly WEB_DEVICE: string = "web";
-    private static readonly WEB_REDIRECT: string =
-        "https://www.hackillinois.org/auth/";
+    private static readonly WEB_REDIRECT: string = "https://www.hackillinois.org/auth/";
 
     private static readonly IOS_DEVICE: string = "ios";
     private static readonly IOS_REDIRECT: string = "hackillinois://login/";
@@ -33,10 +30,7 @@ abstract class Constants {
     static readonly DEFAULT_DEVICE: string = this.WEB_DEVICE;
     static readonly DEFAULT_REDIRECT: string = this.WEB_REDIRECT;
 
-    static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<
-        string,
-        string
-    >([
+    static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<string, string>([
         [this.ADMIN_DEVICE, this.ADMIN_REDIRECT],
         [this.WEB_DEVICE, this.WEB_REDIRECT],
         [this.IOS_DEVICE, this.IOS_REDIRECT],
@@ -45,14 +39,10 @@ abstract class Constants {
         [this.DEV_DEVICE, this.DEV_REDIRECT],
     ]);
 
-    static readonly GITHUB_OAUTH_CALLBACK: string =
-        "https://adonix.hackillinois.org/auth/github/callback/";
-    static readonly GOOGLE_OAUTH_CALLBACK: string =
-        "https://adonix.hackillinois.org/auth/google/callback/";
+    static readonly GITHUB_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/github/callback/";
+    static readonly GOOGLE_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/google/callback/";
 
-    static readonly SYSTEM_ADMIN_LIST: string[] = (
-        process.env.SYSTEM_ADMINS ?? ""
-    ).split(",");
+    static readonly SYSTEM_ADMIN_LIST: string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
 
     static readonly DEFAULT_JWT_OFFSET: string = "48h";
 

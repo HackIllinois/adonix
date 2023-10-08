@@ -6,9 +6,7 @@ import { LeaderboardEntry } from "./profile-models.js";
  * @param initial Initial entry with extra items
  * @returns New LeaderboardEntry, but this time with only the needed fields
  */
-export function castLeaderboardEntries(
-    initial: LeaderboardEntry,
-): LeaderboardEntry {
+export function castLeaderboardEntries(initial: LeaderboardEntry): LeaderboardEntry {
     const final: LeaderboardEntry = {
         id: initial.id,
         points: initial.points,

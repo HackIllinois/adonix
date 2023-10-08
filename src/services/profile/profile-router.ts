@@ -44,41 +44,30 @@ profileRouter.use(cors({ origin: "*" }));
  *     {"error": "InvalidInput"}
  */
 profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
-    const collection: Collection = databaseClient
-        .db(Constants.PROFILE_DB)
-        .collection(ProfileDB.PROFILES);
-    const limitString: string | undefined = req.query.limit as
-        | string
-        | undefined;
+    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+    const limitString: string | undefined = req.query.limit as string | undefined;
 
     try {
         // Get collection from the database, and return it as an array
-        let leaderboardCursor: FindCursor<WithId<Document>> = collection
-            .find()
-            .sort({ points: -1 });
+        let leaderboardCursor: FindCursor<WithId<Document>> = collection.find().sort({ points: -1 });
 
         if (limitString) {
             const limit: number = parseInt(limitString);
 
             // If invalid limit - return InvalidInput
             if (!isValidLimit(limit)) {
-                return res
-                    .status(Constants.BAD_REQUEST)
-                    .send({ error: "InvalidInput" });
+                return res.status(Constants.BAD_REQUEST).send({ error: "InvalidInput" });
             }
             leaderboardCursor = leaderboardCursor.limit(limit);
         }
 
         // Return the profiles, after mapping them to simple leaderboard entries
-        const leaderboardProfiles: LeaderboardSchema[] =
-            (await leaderboardCursor.toArray()) as LeaderboardSchema[];
+        const leaderboardProfiles: LeaderboardSchema[] = (await leaderboardCursor.toArray()) as LeaderboardSchema[];
         return res.status(Constants.SUCCESS).send({
             profiles: leaderboardProfiles.map(castLeaderboardEntries),
         });
     } catch {
-        return res
-            .status(Constants.INTERNAL_ERROR)
-            .send({ error: "InternalError" });
+        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
     }
 });
 

@@ -9,8 +9,7 @@ export enum StaffDB {
     ATTENDANCE = "attendance",
 }
 
-export const EventsAttendedByStaffModel: mongoose.Model<EventsAttendedByStaff> =
-    getModelForClass(
-        EventsAttendedByStaff,
-        generateConfig(Constants.STAFF_DB, StaffDB.ATTENDANCE),
-    );
+export const EventsAttendedByStaffModel: mongoose.Model<EventsAttendedByStaff> = getModelForClass(
+    EventsAttendedByStaff,
+    generateConfig(Constants.STAFF_DB, StaffDB.ATTENDANCE),
+);

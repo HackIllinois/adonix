@@ -6,10 +6,7 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
-import {
-    EventMetadataModel,
-    StaffAttendingEventModel,
-} from "../event/event-db.js";
+import { EventMetadataModel, StaffAttendingEventModel } from "../event/event-db.js";
 import { EventsAttendedByStaffModel } from "./staff-db.js";
 import { EventMetadata } from "../event/event-models.js";
 
@@ -43,66 +40,49 @@ const staffRouter: Router = Router();
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-staffRouter.post(
-    "/attendance/",
-    strongJwtVerification,
-    async (req: Request, res: Response) => {
-        const payload: JwtPayload | undefined = res.locals
-            .payload as JwtPayload;
+staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
 
-        const eventId: string | undefined = (req.body as AttendanceFormat)
-            .eventId;
-        const userId: string = payload.id;
-        // Only staff can mark themselves as attending these events
-        if (!hasStaffPerms(payload)) {
-            return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+    const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
+    const userId: string = payload.id;
+    // Only staff can mark themselves as attending these events
+    if (!hasStaffPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+    }
+
+    if (!eventId) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
+
+    try {
+        const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+
+        if (!metadata) {
+            return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
         }
 
-        if (!eventId) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ error: "InvalidParams" });
+        const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
+        console.log(metadata.exp, timestamp);
+
+        if (metadata.exp <= timestamp) {
+            return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
         }
 
-        try {
-            const metadata: EventMetadata | null =
-                await EventMetadataModel.findById(eventId);
-
-            if (!metadata) {
-                return res
-                    .status(Constants.BAD_REQUEST)
-                    .send({ error: "EventNotFound" });
-            }
-
-            const timestamp: number = Math.round(
-                Date.now() / Constants.MILLISECONDS_PER_SECOND,
-            );
-            console.log(metadata.exp, timestamp);
-
-            if (metadata.exp <= timestamp) {
-                return res
-                    .status(Constants.BAD_REQUEST)
-                    .send({ error: "CodeExpired" });
-            }
-
-            await EventsAttendedByStaffModel.findByIdAndUpdate(
-                userId,
-                { $addToSet: { attendance: eventId } },
-                { upsert: true },
-            );
-            await StaffAttendingEventModel.findByIdAndUpdate(
-                eventId,
-                { $addToSet: { attendees: userId } },
-                { upsert: true },
-            );
-            return res.status(Constants.SUCCESS).send({ status: "Success" });
-        } catch (error) {
-            console.error(error);
-            return res
-                .status(Constants.INTERNAL_ERROR)
-                .send({ error: "InternalError" });
-        }
-    },
-);
+        await EventsAttendedByStaffModel.findByIdAndUpdate(
+            userId,
+            { $addToSet: { attendance: eventId } },
+            { upsert: true },
+        );
+        await StaffAttendingEventModel.findByIdAndUpdate(
+            eventId,
+            { $addToSet: { attendees: userId } },
+            { upsert: true },
+        );
+        return res.status(Constants.SUCCESS).send({ status: "Success" });
+    } catch (error) {
+        console.error(error);
+        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+    }
+});
 
 export default staffRouter;
