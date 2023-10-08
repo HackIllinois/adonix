@@ -4,8 +4,10 @@ import { RequestHandler } from "express-serve-static-core";
 import { authenticateFunction } from "../services/auth/auth-lib.js";
 import Constants from "../constants.js";
 
-
-const googleOptions: AuthenticateOptions = { session: false, scope: [ "profile", "email" ] };
+const googleOptions: AuthenticateOptions = {
+    session: false,
+    scope: ["profile", "email"],
+};
 const githubOptions: AuthenticateOptions = { session: false };
 
 type CustomOptions = AuthenticateOptions & {
@@ -20,18 +22,24 @@ type CustomOptions = AuthenticateOptions & {
  * @returns RequestHandler middleware, that's pre-configured for the provider
  */
 export function SelectAuthProvider(provider: string, device: string): RequestHandler {
-	if (provider == "google") {
-		const options: CustomOptions = { ...googleOptions, callbackURL: Constants.GOOGLE_OAUTH_CALLBACK };
-		options.callbackURL += `device=${device}`;
-		return authenticateFunction("google", options);
-	}
+    if (provider == "google") {
+        const options: CustomOptions = {
+            ...googleOptions,
+            callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
+        };
+        options.callbackURL += `device=${device}`;
+        return authenticateFunction("google", options);
+    }
 
-	if (provider == "github") {
-		const options: CustomOptions = { ...githubOptions, callbackURL: Constants.GITHUB_OAUTH_CALLBACK };
-		options.callbackURL += `device=${device}`;
+    if (provider == "github") {
+        const options: CustomOptions = {
+            ...githubOptions,
+            callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
+        };
+        options.callbackURL += `device=${device}`;
 
-		return authenticateFunction("github", options) ;
-	}
-	
-	throw new Error("Provider not found!");
+        return authenticateFunction("github", options);
+    }
+
+    throw new Error("Provider not found!");
 }

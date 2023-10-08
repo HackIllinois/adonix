@@ -10,7 +10,7 @@ export type apiFunction = (request: Request, response: Response) => Promise<void
  * @returns Whether or not the string fits AT LEAST one of the patterns
  */
 export function regexPasses(target: string, patterns: RegExp[]): boolean {
-	return patterns.some((pattern: RegExp) => {
-		return pattern.test(target);
-	});
+    return patterns.some((pattern: RegExp) => {
+        return pattern.test(target);
+    });
 }
