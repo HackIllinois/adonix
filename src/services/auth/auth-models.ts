@@ -1,6 +1,7 @@
 export interface ProfileData {
     id?: string;
     email: string;
+    displayName?: string;
 }
 
 export interface RoleData {

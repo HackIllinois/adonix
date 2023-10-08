@@ -21,10 +21,7 @@ type CustomOptions = AuthenticateOptions & {
  * @param device String representing the device that auth is being performed on
  * @returns RequestHandler middleware, that's pre-configured for the provider
  */
-export function SelectAuthProvider(
-    provider: string,
-    device: string,
-): RequestHandler {
+export function SelectAuthProvider(provider: string, device: string): RequestHandler {
     if (provider == "google") {
         const options: CustomOptions = {
             ...googleOptions,

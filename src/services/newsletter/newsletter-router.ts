@@ -4,25 +4,18 @@ import cors, { CorsOptions } from "cors";
 
 import Constants from "../../constants.js";
 
-import { Collection } from "mongodb";
-import databaseClient from "../../database.js";
 import { SubscribeRequest } from "./newsletter-formats.js";
-import { NewsletterDB } from "./newsletter-schemas.js";
+import { NewsletterSubscription, NewsletterSubscriptionModel } from "../../database/newsletter-db.js";
+import { UpdateQuery } from "mongoose";
 
 const newsletterRouter: Router = Router();
 
 // Only allow a certain set of regexes to be allowed via CORS
-const allowedOrigins: RegExp[] = [
-    new RegExp(process.env.PROD_REGEX ?? ""),
-    new RegExp(process.env.DEPLOY_REGEX ?? ""),
-];
+const allowedOrigins: RegExp[] = [new RegExp(process.env.PROD_REGEX ?? ""), new RegExp(process.env.DEPLOY_REGEX ?? "")];
 
 // CORS options configuration
 const corsOptions: CorsOptions = {
-    origin: (
-        origin: string | undefined,
-        callback: (error: Error | null, allow?: boolean) => void,
-    ) => {
+    origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
         if (!origin || regexPasses(origin, allowedOrigins)) {
             callback(null, true);
         } else {
@@ -56,37 +49,20 @@ newsletterRouter.use(cors(corsOptions));
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-newsletterRouter.post(
-    "/subscribe/",
-    async (request: Request, res: Response) => {
-        const requestBody: SubscribeRequest = request.body as SubscribeRequest;
-        const listName: string | undefined = requestBody.listName;
-        const emailAddress: string | undefined = requestBody.emailAddress;
+newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => {
+    const requestBody: SubscribeRequest = request.body as SubscribeRequest;
+    const listName: string | undefined = requestBody.listName;
+    const emailAddress: string | undefined = requestBody.emailAddress;
 
-        // Verify that both parameters do exist
-        if (!listName || !emailAddress) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ error: "InvalidParams" });
-        }
+    // Verify that both parameters do exist
+    if (!listName || !emailAddress) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
 
-        // Upsert to update the list - update document if possible, else add the document
-        const newsletterCollection: Collection = databaseClient
-            .db(Constants.NEWSLETTER_DB)
-            .collection(NewsletterDB.NEWSLETTERS);
-        try {
-            await newsletterCollection.updateOne(
-                { listName: listName },
-                { $addToSet: { subscribers: emailAddress } },
-                { upsert: true },
-            );
-            return res.status(Constants.SUCCESS).send({ status: "Success" });
-        } catch (error) {
-            res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
-        }
-
-        return res.status(Constants.SUCCESS).send({ status: "Successful" });
-    },
-);
+    // Perform a lazy delete
+    const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
+    await NewsletterSubscriptionModel.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
+    return res.status(Constants.SUCCESS).send({ status: "Success" });
+});
 
 export default newsletterRouter;

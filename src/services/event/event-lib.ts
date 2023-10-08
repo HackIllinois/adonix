@@ -1,8 +1,5 @@
-import {
-    PUBLIC_EVENT_TYPE,
-    FilteredEventView,
-    PublicEvent,
-} from "./event-models.js";
+import { PUBLIC_EVENT_TYPE, FilteredEventView } from "./event-models.js";
+import { PublicEvent } from "../../database/event-db.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting
@@ -11,9 +8,7 @@ import {
  * @param baseEvent The object to convert into a public event.
  * @returns The truncated ExternalEvent object.
  */
-export function createFilteredEventView(
-    baseEvent: PublicEvent,
-): FilteredEventView {
+export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventView {
     const publicEvent: FilteredEventView = {
         id: baseEvent.eventId,
         name: baseEvent.name,

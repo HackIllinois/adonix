@@ -13,16 +13,13 @@ abstract class Constants {
 
     // URLs
     private static readonly ADMIN_DEVICE: string = "admin";
-    private static readonly ADMIN_REDIRECT: string =
-        "https://admin.hackillinois.org/auth/";
+    private static readonly ADMIN_REDIRECT: string = "https://admin.hackillinois.org/auth/";
 
     private static readonly DEV_DEVICE: string = "dev";
-    private static readonly DEV_REDIRECT: string =
-        "https://adonix.hackillinois.org/auth/dev/";
+    private static readonly DEV_REDIRECT: string = "https://adonix.hackillinois.org/auth/dev/";
 
     private static readonly WEB_DEVICE: string = "web";
-    private static readonly WEB_REDIRECT: string =
-        "https://www.hackillinois.org/auth/";
+    private static readonly WEB_REDIRECT: string = "https://www.hackillinois.org/auth/";
 
     private static readonly IOS_DEVICE: string = "ios";
     private static readonly IOS_REDIRECT: string = "hackillinois://login/";
@@ -33,10 +30,7 @@ abstract class Constants {
     static readonly DEFAULT_DEVICE: string = this.WEB_DEVICE;
     static readonly DEFAULT_REDIRECT: string = this.WEB_REDIRECT;
 
-    static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<
-        string,
-        string
-    >([
+    static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<string, string>([
         [this.ADMIN_DEVICE, this.ADMIN_REDIRECT],
         [this.WEB_DEVICE, this.WEB_REDIRECT],
         [this.IOS_DEVICE, this.IOS_REDIRECT],
@@ -45,30 +39,21 @@ abstract class Constants {
         [this.DEV_DEVICE, this.DEV_REDIRECT],
     ]);
 
-    static readonly GITHUB_OAUTH_CALLBACK: string =
-        "https://adonix.hackillinois.org/auth/github/callback/";
-    static readonly GOOGLE_OAUTH_CALLBACK: string =
-        "https://adonix.hackillinois.org/auth/google/callback/";
+    static readonly GITHUB_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/github/callback/";
+    static readonly GOOGLE_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/google/callback/";
+    // static readonly GOOGLE_OAUTH_CALLBACK: string = "http://127.0.0.1:3000/auth/google/callback/";
+    // static readonly GITHUB_OAUTH_CALLBACK: string = "http://localhost:3000/auth/github/callback/";
 
-    static readonly SYSTEM_ADMIN_LIST: string[] = (
-        process.env.SYSTEM_ADMINS ?? ""
-    ).split(",");
+    static readonly SYSTEM_ADMIN_LIST: string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
 
     static readonly DEFAULT_JWT_OFFSET: string = "48h";
 
     // Constants for general usage
     static readonly ZERO: number = 0;
-    static readonly EVENT_ID_LENGTH: number = 24;
+    static readonly EVENT_ID_LENGTH: number = 32;
+    static readonly EVENT_BYTES_GEN: number = 16;
     static readonly MILLISECONDS_PER_SECOND: number = 1000;
-    static readonly DEFAULT_POINT_VALUE: number = 10;
-
-    // Constants for database names
-    static readonly AUTH_DB: string = "auth";
-    static readonly EVENT_DB: string = "event";
-    static readonly NEWSLETTER_DB: string = "newsletter";
-    static readonly PROFILE_DB: string = "profile";
-    static readonly STAFF_DB: string = "staff";
-    static readonly USER_DB: string = "user";
+    static readonly DEFAULT_POINT_VALUE: number = 0;
 }
 
 export default Constants;

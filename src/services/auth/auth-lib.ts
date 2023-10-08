@@ -1,40 +1,19 @@
 import ms from "ms";
-import { Collection, Filter, Document } from "mongodb";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
 import Constants from "../../constants.js";
-import databaseClient from "../../database.js";
 
-import { AuthDB, RolesSchema } from "./auth-schemas.js";
-import {
-    Role,
-    JwtPayload,
-    Provider,
-    ProfileData,
-    RoleOperation,
-    RoleData,
-} from "./auth-models.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
-import { UserSchema } from "../user/user-schemas.js";
-import { getUser } from "../user/user-lib.js";
+import { AuthInfo, AuthInfoModel } from "../../database/auth-db.js";
+import { UserInfoModel } from "../../database/user-db.js";
+import { UpdateQuery } from "mongoose";
 
-type AuthenticateFunction = (
-    strategies: string | string[],
-    options: AuthenticateOptions,
-) => RequestHandler;
-type VerifyCallback = (
-    err: Error | null,
-    user?: Profile | false,
-    info?: object,
-) => void;
-type VerifyFunction = (
-    accessToken: string,
-    refreshToken: string,
-    profile: Profile,
-    done: VerifyCallback,
-) => void;
+type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
+type VerifyCallback = (err: Error | null, user?: Profile | false, info?: object) => void;
+type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => void;
 
 /**
  * Perform authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website if successful or unsuccessful.
@@ -43,15 +22,8 @@ type VerifyFunction = (
  * @param options Set of options to be associated with these strategies
  * @returns Passport middleware that is used to perform authentication
  */
-export const authenticateFunction: AuthenticateFunction = (
-    strategies: string | string[],
-    options: AuthenticateOptions,
-) => {
-    return passport.authenticate(
-        strategies,
-        options,
-        undefined,
-    ) as RequestHandler;
+export const authenticateFunction: AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => {
+    return passport.authenticate(strategies, options, undefined) as RequestHandler;
 };
 
 /**
@@ -62,12 +34,7 @@ export const authenticateFunction: AuthenticateFunction = (
  * @param callback Function to verify if the actual authentication step worked
  * @returns Results of the callback function, after it's been called with the user
  */
-export const verifyFunction: VerifyFunction = (
-    _1: string,
-    _2: string,
-    user: Profile,
-    callback: VerifyCallback,
-) => {
+export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
     // Data manipulation to store types of parsable inputs
     return callback(null, user);
 };
@@ -78,10 +45,7 @@ export const verifyFunction: VerifyFunction = (
  * @param data ProfileData, returned from passport post-authentication step
  * @returns JwtPayload, which gets sent back to the user in the next step
  */
-export async function getJwtPayloadFromProfile(
-    provider: string,
-    data: ProfileData,
-): Promise<JwtPayload> {
+export async function getJwtPayloadFromProfile(provider: string, data: ProfileData): Promise<JwtPayload> {
     const userId: string = provider + data.id;
     const email: string = data.email;
 
@@ -95,11 +59,9 @@ export async function getJwtPayloadFromProfile(
 
     // Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
     try {
-        const oldRoles: Role[] = await getRoles(userId);
-        const newRoles: Role[] = initializeUserRoles(
-            provider as Provider,
-            data.email,
-        );
+        const oldRoles: Role[] = (await getRoles(userId)) as Role[];
+        console.log(oldRoles);
+        const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];
         await updateUserRoles(userId, provider as Provider, payload.roles);
     } catch (error) {
@@ -114,33 +76,29 @@ export async function getJwtPayloadFromProfile(
  * @param targetUser UserID of the user to return a JWT payload for.
  * @returns Promise, containing either JWT payload or reason for failure
  */
-export async function getJwtPayloadFromDB(
-    targetUser: string,
-): Promise<JwtPayload> {
-    let authInfo: RolesSchema | undefined;
-    let userInfo: UserSchema | undefined;
-
+export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
     // Fill in auth info, used for provider and roles
     try {
-        authInfo = await getAuthInfo(targetUser);
-        userInfo = await getUser(targetUser);
+        const authInfo = await AuthInfoModel.findOne({ userId: targetUser });
+        const userInfo = await UserInfoModel.findOne({ userId: targetUser });
+
+        if (!authInfo || !userInfo) {
+            return Promise.reject("UserNotFound");
+        }
+        // Create and return new payload
+        const newPayload: JwtPayload = {
+            id: targetUser,
+            roles: authInfo.roles as Role[],
+            email: userInfo.email,
+            provider: authInfo.provider,
+        };
+
+        return newPayload;
     } catch (error) {
         console.error(error);
     }
 
-    // If either one does not exist, the info doesn't exist in the database. Throw error
-    if (!authInfo || !userInfo) {
-        return Promise.reject("UserNotFound");
-    }
-
-    // Create and return new payload
-    const newPayload: JwtPayload = {
-        id: targetUser,
-        roles: authInfo.roles,
-        email: userInfo.email,
-        provider: authInfo.provider,
-    };
-    return newPayload;
+    return Promise.reject("UserNotFound");
 }
 
 /**
@@ -149,10 +107,7 @@ export async function getJwtPayloadFromDB(
  * @param expiration Offset-based expiration. If not provided, defaults to 2 days.
  * @returns Signed JWT token, to be returned to the user.
  */
-export function generateJwtToken(
-    payload?: JwtPayload,
-    expiration?: string,
-): string {
+export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
     if (!payload) {
         throw new Error("No JWT token passed in!");
     }
@@ -166,8 +121,7 @@ export function generateJwtToken(
     // // Appends an expiry field to the JWT token
     const options: SignOptions = {};
     const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
-    payload.exp =
-        Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
+    payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
 
     // Generate a token, and return it
     const token: string = jsonwebtoken.sign(payload, secret, options);
@@ -201,26 +155,15 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * @param roles Array of roles that belong to the given user
  * @returns Promise, containing nothing if valid. If invalid, error containing why.
  */
-export async function updateUserRoles(
-    id: string,
-    provider: Provider,
-    roles: Role[],
-): Promise<void> {
+export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    const newUser: RoleData = {
-        id: id,
-        provider: provider.toUpperCase(),
-        roles: roles,
-    };
-    const collection: Collection = databaseClient
-        .db(Constants.AUTH_DB)
-        .collection(AuthDB.ROLES);
-    await collection.updateOne(
-        { id: id },
-        { $set: { ...newUser } },
-        { upsert: true },
-    );
-    return;
+    await AuthInfoModel.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
+        .then(() => {
+            return;
+        })
+        .catch((error) => {
+            return error;
+        });
 }
 
 /**
@@ -236,11 +179,7 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
     if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
         roles.push(Role.STAFF);
         // If email in the system admin list, add the admin role
-        if (
-            Constants.SYSTEM_ADMIN_LIST.includes(
-                email.replace("@hackillinois.org", ""),
-            )
-        ) {
+        if (Constants.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
             roles.push(Role.ADMIN);
         }
     }
@@ -258,15 +197,9 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
  * @param id UserID of the user to return the info for
  * @returns Promise containing user, provider, email, and roles if valid. If invalid, error containing why.
  */
-export async function getAuthInfo(id: string): Promise<RolesSchema> {
-    const collection: Collection = databaseClient
-        .db(Constants.AUTH_DB)
-        .collection(AuthDB.ROLES);
-
+export async function getAuthInfo(id: string): Promise<AuthInfo> {
     try {
-        const info: RolesSchema | null = (await collection.findOne({
-            id: id,
-        })) as RolesSchema | null;
+        const info: AuthInfo | null = await AuthInfoModel.findOne({ userId: id });
 
         // Null check to ensure that we're not returning anything null
         if (!info) {
@@ -286,14 +219,14 @@ export async function getAuthInfo(id: string): Promise<RolesSchema> {
  * @returns Promise, containing array of roles for the user.
  */
 export async function getRoles(id: string): Promise<Role[]> {
-    let roles: Role[] = [];
-    try {
-        roles = (await getAuthInfo(id)).roles;
-    } catch (error) {
-        console.error(error);
-    }
-
-    return roles;
+    return getAuthInfo(id)
+        .then((authInfo) => {
+            return authInfo.roles as Role[];
+        })
+        .catch((error) => {
+            console.log(error);
+            return [] as Role[];
+        });
 }
 
 /**
@@ -303,28 +236,31 @@ export async function getRoles(id: string): Promise<Role[]> {
  * @param operation Operation to perform
  * @returns Promise - if valid, then update operation worked. If invalid, then contains why.
  */
-export async function updateRoles(
-    userId: string,
-    role: Role,
-    operation: RoleOperation,
-): Promise<void> {
-    let filter: Partial<RolesSchema> | undefined;
+export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<Role[]> {
+    let updateQuery: UpdateQuery<AuthInfo>;
 
     // Get filter, representing operation to perform on mongoDB
     switch (operation) {
         case RoleOperation.ADD:
-            filter = { $addToSet: { roles: role } };
+            updateQuery = { $addToSet: { roles: role } };
             break;
         case RoleOperation.REMOVE:
-            filter = { $pull: { roles: role } };
+            updateQuery = { $pull: { roles: role } };
             break;
+        default:
+            return Promise.reject("OperationNotFound");
     }
 
-    // Apply filter to roles collection, based on the operation
-    const collection: Collection = databaseClient
-        .db(Constants.AUTH_DB)
-        .collection(AuthDB.ROLES);
-    await collection.updateOne({ id: userId }, filter);
+    try {
+        const updatedInfo: AuthInfo | null = await AuthInfoModel.findOneAndUpdate({ userId: userId }, updateQuery);
+        if (updatedInfo) {
+            return updatedInfo.roles as Role[];
+        } else {
+            return Promise.reject("UserNotFound");
+        }
+    } catch (error) {
+        return Promise.reject(error);
+    }
 }
 
 /**
@@ -394,22 +330,13 @@ export function getDevice(kv?: string): string {
  * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
  */
 export async function getUsersWithRole(role: string): Promise<string[]> {
-    // Makes a reference to the roles collection
-    const collection: Collection = databaseClient
-        .db(Constants.AUTH_DB)
-        .collection(AuthDB.ROLES);
-
-    //Makes a mongodb query that iterates through the roles array for each user and selects ones that have wanted role
-    const queryCriteria: Filter<Document> = { roles: { $in: [role] } };
-
-    //Array of users as MongoDb schema that have role as one of its roles
-    const result: RolesSchema[] = (await collection
-        .find(queryCriteria)
-        .toArray()) as RolesSchema[];
-    //Array of strings for id, will be the return value of this funciton
-    const idArray: string[] = result.map((user: RolesSchema) => {
-        return user.id;
-    });
-
-    return idArray ?? Promise.reject("Unknown Error");
+    try {
+        //Array of users as MongoDb schema that have role as one of its roles
+        const queryResult: AuthInfo[] = await AuthInfoModel.find({ roles: { $in: [role] } }).select("userId");
+        return queryResult.map((user: AuthInfo) => {
+            return user.userId;
+        });
+    } catch (error) {
+        return Promise.reject(error);
+    }
 }

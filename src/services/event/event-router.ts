@@ -1,13 +1,10 @@
 import cors from "cors";
+import crypto from "crypto";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
-import { ObjectId } from "mongodb";
 
 import Constants from "../../constants.js";
-import {
-    strongJwtVerification,
-    weakJwtVerification,
-} from "../../middleware/verify-jwt.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
@@ -20,17 +17,17 @@ import {
     GenericEventFormat,
     isValidMetadataFormat,
 } from "./event-formats.js";
+import { FilteredEventView } from "./event-models.js";
+
 import {
     EventMetadata,
-    FilteredEventView,
     PublicEvent,
     StaffEvent,
-} from "./event-models.js";
-import {
     PublicEventModel,
     StaffEventModel,
     EventMetadataModel,
-} from "./event-db.js";
+} from "../../database/event-db.js";
+import { ObjectId } from "mongodb";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -70,24 +67,16 @@ eventsRouter.use(cors({ origin: "*" }));
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
  * */
-eventsRouter.get(
-    "/staff/",
-    strongJwtVerification,
-    async (_: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        if (!hasStaffPerms(payload)) {
-            return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
-        }
+    if (!hasStaffPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+    }
 
-        try {
-            const staffEvents: StaffEvent[] = await StaffEventModel.find();
-            return res.status(Constants.SUCCESS).send({ events: staffEvents });
-        } catch (error) {
-            return next(error);
-        }
-    },
-);
+    const staffEvents: StaffEvent[] = await StaffEventModel.find();
+    return res.status(Constants.SUCCESS).send({ events: staffEvents });
+});
 
 /**
  * @api {get} /event/:EVENTID/ GET /event/:EVENTID/
@@ -148,61 +137,43 @@ eventsRouter.get(
  *     HTTP/1.1 403 Forbidden
  *     {"error": "PrivateEvent"}
  */
-eventsRouter.get(
-    "/:EVENTID/",
-    weakJwtVerification,
-    async (req: Request, res: Response, next: NextFunction) => {
-        const eventId: string | undefined = req.params.EVENTID;
+eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const eventId: string | undefined = req.params.EVENTID;
 
-        if (!eventId) {
-            return res.redirect("/");
+    if (!eventId) {
+        return res.redirect("/");
+    }
+
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const isStaff: boolean = hasStaffPerms(payload);
+
+    const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventId });
+
+    if (!metadata) {
+        console.error("no metadata found!");
+        return next(new Error("no event found!"));
+    }
+
+    if (metadata.isStaff) {
+        if (!isStaff) {
+            return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
         }
 
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
-        try {
-            const isStaff: boolean = hasStaffPerms(payload);
+        const event: StaffEvent | null = await StaffEventModel.findOne({ eventId: eventId });
+        return res.status(Constants.SUCCESS).send({ event: event });
+    } else {
+        // Not a private event -> convert to Public event and return
+        const event: PublicEvent | null = await PublicEventModel.findOne({ eventId: eventId });
 
-            const metadata: EventMetadata | null =
-                await EventMetadataModel.findById(eventId);
-
-            if (!metadata) {
-                console.error("no metadata found!");
-                return next(new Error("no event found!"));
-            }
-
-            if (metadata.isStaff) {
-                if (!isStaff) {
-                    return res
-                        .status(Constants.FORBIDDEN)
-                        .send({ error: "PrivateEvent" });
-                }
-
-                const event: StaffEvent | null =
-                    await StaffEventModel.findById(eventId);
-                return res.status(Constants.SUCCESS).send({ event: event });
-            } else {
-                // Not a private event -> convert to Public event and return
-                const event: PublicEvent | null =
-                    await PublicEventModel.findById(eventId);
-
-                if (!event) {
-                    console.error("no metadata found!");
-                    return next(new Error("no event found!"));
-                }
-
-                const filteredEvent: FilteredEventView =
-                    createFilteredEventView(event);
-                return res
-                    .status(Constants.SUCCESS)
-                    .send({ event: filteredEvent });
-            }
-        } catch {
-            return res
-                .status(Constants.INTERNAL_ERROR)
-                .send({ error: "InternalError" });
+        if (!event) {
+            console.error("no metadata found!");
+            return next(new Error("no event found!"));
         }
-    },
-);
+
+        const filteredEvent: FilteredEventView = createFilteredEventView(event);
+        return res.status(Constants.SUCCESS).send({ event: filteredEvent });
+    }
+});
 
 /**
  * @api {get} /event/ GET /event/
@@ -265,33 +236,19 @@ eventsRouter.get(
  * @apiUse strongVerifyErrors
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
-eventsRouter.get(
-    "/",
-    weakJwtVerification,
-    async (_: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        try {
-            // Get collection from the database, and return it as an array
-            const publicEvents: PublicEvent[] = await PublicEventModel.find();
+    // Get collection from the database, and return it as an array
+    const publicEvents: PublicEvent[] = await PublicEventModel.find();
 
-            if (hasStaffPerms(payload)) {
-                return res
-                    .status(Constants.SUCCESS)
-                    .send({ events: publicEvents });
-            } else {
-                const filteredEvents: FilteredEventView[] = publicEvents.map(
-                    createFilteredEventView,
-                );
-                return res
-                    .status(Constants.SUCCESS)
-                    .send({ events: filteredEvents });
-            }
-        } catch (error) {
-            return next(error);
-        }
-    },
-);
+    if (hasStaffPerms(payload)) {
+        return res.status(Constants.SUCCESS).send({ events: publicEvents });
+    } else {
+        const filteredEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
+        return res.status(Constants.SUCCESS).send({ events: filteredEvents });
+    }
+});
 
 /**
  * @api {post} /event/ POST /event/
@@ -394,68 +351,49 @@ eventsRouter.get(
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
-eventsRouter.post(
-    "/",
-    strongJwtVerification,
-    async (req: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        // Check if the token has staff permissions
-        if (!hasAdminPerms(payload)) {
-            return res
-                .status(Constants.FORBIDDEN)
-                .send({ error: "InvalidPermission" });
+    // Check if the token has staff permissions
+    if (!hasAdminPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
+
+    // Convert event format into the base event format
+    const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
+
+    if (eventFormat.eventId) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "ExtraIdProvided" });
+    }
+
+    // Create the ID and process metadata for this event
+    const eventId: string = crypto.randomBytes(Constants.EVENT_BYTES_GEN).toString("hex");
+    const isStaffEvent: boolean = eventFormat.isStaff;
+    const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
+
+    // Populate the new eventFormat object with the needed params
+    eventFormat._id = new ObjectId().toString();
+    eventFormat.eventId = eventId;
+
+    // Try to upload the events if possible, else throw an error
+    let newEvent: PublicEvent | StaffEvent | null;
+    if (isStaffEvent) {
+        // If ID doesn't exist -> return the invalid parameters
+        if (!isValidStaffFormat(eventFormat)) {
+            return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
 
-        // Convert event format into the base event format
-        const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
-
-        if (eventFormat.eventId) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ error: "ExtraIdProvided" });
+        newEvent = await StaffEventModel.create(eventFormat);
+    } else {
+        if (!isValidPublicFormat(eventFormat)) {
+            return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
 
-        // Create the ID and process metadata for this event
-        const id: string = new ObjectId().toHexString();
-        const isStaffEvent: boolean = eventFormat.isStaff;
-        const metadata: EventMetadata = new EventMetadata(
-            id,
-            isStaffEvent,
-            eventFormat.endTime,
-        );
-        eventFormat._id = id;
-        eventFormat.eventId = id;
-
-        // Try to upload the events if possible, else throw an error
-        try {
-            if (isStaffEvent) {
-                // If ID doesn't exist -> return the invalid parameters
-                if (!isValidStaffFormat(eventFormat)) {
-                    return res
-                        .status(Constants.BAD_REQUEST)
-                        .send({ error: "InvalidParams" });
-                }
-
-                const staffEvent: StaffEvent = new StaffEvent(eventFormat);
-                await StaffEventModel.insertMany(staffEvent);
-            } else {
-                if (!isValidPublicFormat(eventFormat)) {
-                    return res
-                        .status(Constants.BAD_REQUEST)
-                        .send({ error: "InvalidParams" });
-                }
-                const publicEvent: PublicEvent = new PublicEvent(eventFormat);
-                await PublicEventModel.insertMany(publicEvent);
-            }
-            await EventMetadataModel.insertMany(metadata);
-        } catch (error) {
-            return next(error);
-        }
-
-        return res.status(Constants.CREATED).send(req.body);
-    },
-);
+        newEvent = await PublicEventModel.create(eventFormat);
+    }
+    await EventMetadataModel.create(metadata);
+    return res.status(Constants.CREATED).send(newEvent);
+});
 
 /**
  * @api {delete} /event/:EVENTID/ DELETE /event/:EVENTID/
@@ -473,41 +411,26 @@ eventsRouter.post(
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while deleting the event.
  */
-eventsRouter.delete(
-    "/:EVENTID/",
-    strongJwtVerification,
-    async (req: Request, res: Response) => {
-        const eventId: string | undefined = req.params.EVENTID;
+eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response) => {
+    const eventId: string | undefined = req.params.EVENTID;
 
-        // Check if request sender has permission to delete the event
-        if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
-            return res
-                .status(Constants.FORBIDDEN)
-                .send({ error: "InvalidPermission" });
-        }
+    // Check if request sender has permission to delete the event
+    if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
 
-        // Check if eventid field doesn't exist -> if not, returns error
-        if (!eventId) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ error: "InvalidParams" });
-        }
+    // Check if eventid field doesn't exist -> if not, returns error
+    if (!eventId) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
 
-        // Perform a lazy delete on both databases, and return true if the operation succeeds
-        try {
-            await StaffEventModel.findByIdAndDelete(eventId);
-            await PublicEventModel.findByIdAndDelete(eventId);
-            await EventMetadataModel.findByIdAndDelete(eventId);
+    // Perform a lazy delete on both databases, and return true if the operation succeeds
+    await StaffEventModel.findOneAndDelete({ eventId: eventId });
+    await PublicEventModel.findOneAndDelete({ eventId: eventId });
+    await EventMetadataModel.findOneAndDelete({ eventId: eventId });
 
-            return res.status(Constants.NO_CONTENT).send({ status: "Success" });
-        } catch (error) {
-            console.error(error);
-            return res
-                .status(Constants.INTERNAL_ERROR)
-                .send({ error: "InternalError" });
-        }
-    },
-);
+    return res.status(Constants.NO_CONTENT).send({ status: "Success" });
+});
 
 /**
  * @api {get} /event/metadata/:EVENTID/ GET /event/metadata/:EVENTID/
@@ -532,34 +455,21 @@ eventsRouter.delete(
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while fetching metadata.
  */
-eventsRouter.get(
-    "/metadata/:EVENTID",
-    strongJwtVerification,
-    async (req: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        if (!hasStaffPerms(payload)) {
-            return res
-                .status(Constants.FORBIDDEN)
-                .send({ error: "InvalidPermission" });
-        }
+    if (!hasStaffPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
 
-        // Check if the request information is valid
-        const eventId: string | undefined = req.params.EVENTID;
-        try {
-            const metadata: EventMetadata | null =
-                await EventMetadataModel.findById(eventId);
-            if (!metadata) {
-                return res
-                    .status(Constants.BAD_REQUEST)
-                    .send({ error: "EventNotFound" });
-            }
-            return res.status(Constants.SUCCESS).send(metadata);
-        } catch (error) {
-            return next(error);
-        }
-    },
-);
+    // Check if the request information is valid
+    const eventId: string | undefined = req.params.EVENTID;
+    const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventId });
+    if (!metadata) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
+    }
+    return res.status(Constants.SUCCESS).send(metadata);
+});
 
 /**
  * @api {put} /event/metadata/ PUT /event/metadata/
@@ -586,41 +496,31 @@ eventsRouter.get(
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while updating metadata.
  */
-eventsRouter.put(
-    "/metadata/",
-    strongJwtVerification,
-    async (req: Request, res: Response) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        if (!hasAdminPerms(payload)) {
-            return res
-                .status(Constants.FORBIDDEN)
-                .send({ error: "InvalidPermission" });
-        }
+    if (!hasAdminPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
 
-        // Check if the request information is valid
-        const metadata: MetadataFormat = req.body as MetadataFormat;
-        if (!isValidMetadataFormat(metadata)) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ error: "InvalidParams" });
-        }
+    // Check if the request information is valid
+    const metadata: MetadataFormat = req.body as MetadataFormat;
+    if (!isValidMetadataFormat(metadata)) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
 
-        // Update the database, and return true if it passes. Else, return false.
-        try {
-            await EventMetadataModel.findByIdAndUpdate(
-                metadata.eventId,
-                metadata,
-            );
-            return res.status(Constants.SUCCESS).send(metadata);
-        } catch (error) {
-            console.error(error);
-            return res
-                .status(Constants.INTERNAL_ERROR)
-                .send({ error: "InternalError" });
-        }
-    },
-);
+    // Update the database, and return true if it passes. Else, return false.
+    const updatedMetadata: EventMetadata | null = await EventMetadataModel.findOneAndUpdate(
+        { eventId: metadata.eventId },
+        metadata,
+    );
+
+    if (!metadata) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
+    }
+
+    return res.status(Constants.SUCCESS).send(updatedMetadata);
+});
 
 /**
  * @api {put} /event/ PUT /event/
@@ -689,68 +589,46 @@ eventsRouter.put(
  * @apiError (400: Bad Request) {String} Bad Request Invalid parameters or event format.
  * @apiError (500: Internal Server Error) {String} InternalError An internal error occurred.
  */
-eventsRouter.put(
-    "/",
-    strongJwtVerification,
-    async (req: Request, res: Response) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        // Check if the token has elevated permissions
-        if (!hasAdminPerms(payload)) {
-            return res
-                .status(Constants.FORBIDDEN)
-                .send({ error: "InvalidPermission" });
+    // Check if the token has elevated permissions
+    if (!hasAdminPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
+
+    // Verify that the input format is valid to create a new event
+    const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
+    const eventId: string = eventFormat.eventId;
+
+    console.log(eventFormat.eventId);
+    if (!eventId) {
+        return res.status(Constants.BAD_REQUEST).send({ message: "NoEventId" });
+    }
+
+    const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventFormat.eventId });
+
+    if (!metadata) {
+        return res.status(Constants.BAD_REQUEST).send({ message: "EventNotFound" });
+    }
+
+    if (metadata.isStaff) {
+        if (!isValidStaffFormat(eventFormat)) {
+            return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
 
-        // Verify that the input format is valid to create a new event
-        const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
-        const eventId: string = eventFormat.eventId;
-
-        console.log(eventFormat.eventId);
-        if (!eventId) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ message: "NoEventId" });
+        const event: StaffEvent = new StaffEvent(eventFormat, false);
+        const updatedEvent: StaffEvent | null = await StaffEventModel.findOneAndUpdate({ eventId: eventId }, event);
+        return res.status(Constants.SUCCESS).send(updatedEvent);
+    } else {
+        if (!isValidPublicFormat(eventFormat)) {
+            return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
-
-        const metadata: EventMetadata | null =
-            await EventMetadataModel.findById(eventFormat.eventId);
-
-        if (!metadata) {
-            return res
-                .status(Constants.BAD_REQUEST)
-                .send({ message: "EventNotFound" });
-        }
-
-        try {
-            if (metadata.isStaff) {
-                if (!isValidStaffFormat(eventFormat)) {
-                    return res
-                        .status(Constants.BAD_REQUEST)
-                        .send({ message: "InvalidParams" });
-                }
-
-                const event: StaffEvent = new StaffEvent(eventFormat, false);
-                await StaffEventModel.findByIdAndUpdate(eventId, event);
-                return res.status(Constants.SUCCESS).send(event);
-            } else {
-                if (!isValidPublicFormat(eventFormat)) {
-                    return res
-                        .status(Constants.BAD_REQUEST)
-                        .send({ message: "InvalidParams" });
-                }
-                const event: PublicEvent = new PublicEvent(eventFormat, false);
-                await PublicEventModel.findByIdAndUpdate(eventId, event);
-                return res.status(Constants.SUCCESS).send(event);
-            }
-        } catch (error) {
-            console.error(error);
-            return res
-                .status(Constants.INTERNAL_ERROR)
-                .send({ error: "InternalError" });
-        }
-    },
-);
+        const event: PublicEvent = new PublicEvent(eventFormat, false);
+        const updatedEvent: PublicEvent | null = await PublicEventModel.findOneAndUpdate({ eventId: eventId }, event);
+        return res.status(Constants.SUCCESS).send(updatedEvent);
+    }
+});
 
 // Prototype error handler
 eventsRouter.use((err: Error, req: Request, res: Response) => {

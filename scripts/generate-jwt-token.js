@@ -24,9 +24,7 @@ async function processChoice(choice) {
         default:
             return;
     }
-    await open(
-        `https://adonix.hackillinois.org/auth/login/${provider}/?device=dev`,
-    );
+    await open(`https://adonix.hackillinois.org/auth/login/${provider}/?device=dev`);
 }
 
 // Main function to do this
