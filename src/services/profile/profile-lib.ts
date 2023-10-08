@@ -23,4 +23,3 @@ export function castLeaderboardEntries(initial: AttendeeProfile): LeaderboardEnt
 export function isValidLimit(limit: number): boolean {
     return limit > Constants.ZERO;
 }
-

@@ -16,8 +16,6 @@ const profileRouter: Router = Router();
 
 profileRouter.use(cors({ origin: "*" }));
 
-
-
 /**
  * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
  * @apiGroup Profile
@@ -154,9 +152,9 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  */
 
 profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Response) => {
-	// const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+    // const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
-	const id: string | undefined = req.params.id;
+    const id: string | undefined = req.params.id;
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
 
@@ -203,17 +201,15 @@ profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Resp
  */
 
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-
     const profile: AttendeeProfile | null = req.body as AttendeeProfile;
     if (!profile) {
-        return res.status(Constants.BAD_REQUEST).send({error: "InvalidPostData"});
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
     }
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
     profile.userId = decodedData.id;
     profile.points = 0;
-    
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
 
@@ -226,11 +222,11 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     try {
         await AttendeeProfileModel.create(profile);
         await AttendeeMetadataModel.create(profileMetadata);
-    } catch(error) {
+    } catch (error) {
         console.error(error);
-        return res.status(Constants.FAILURE).send({error: "InvalidParams"});
+        return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
     }
-    
+
     return res.status(Constants.SUCCESS).send(profile);
 });
 
@@ -255,33 +251,30 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  */
 
 profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
-
-
-	const profile: AttendeeProfile | null = req.body as AttendeeProfile;
+    const profile: AttendeeProfile | null = req.body as AttendeeProfile;
     if (!profile) {
-        return res.status(Constants.BAD_REQUEST).send({error: "InvalidPutData"});
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
     }
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(decodedData)) {
-        return res.status(Constants.FORBIDDEN).send({error: "NotAuthorizedToUseEndpoint"})
+        return res.status(Constants.FORBIDDEN).send({ error: "NotAuthorizedToUseEndpoint" });
     }
-    
+
     // // eslint-disable-next-line @typescript-eslint/typedef
     const update = {
         $set: {
-            points: profile.points
-        }
-    }
+            points: profile.points,
+        },
+    };
 
     // eslint-disable-next-line @typescript-eslint/typedef
     const filter = { userId: decodedData.id };
 
     await AttendeeProfileModel.updateOne(filter, update);
 
-    return res.status(Constants.SUCCESS).send({points: profile.points});
-
+    return res.status(Constants.SUCCESS).send({ points: profile.points });
 });
 
 /**

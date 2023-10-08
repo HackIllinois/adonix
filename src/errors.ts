@@ -1,4 +1,3 @@
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // class JWTError extends Error {
 // 	constructor(message: string) {
