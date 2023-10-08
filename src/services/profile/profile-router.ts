@@ -45,6 +45,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     const limitString: string | undefined = req.query.limit as string | undefined;
 
     let limit: number = -1;
+    let metadata: AttendeeMetadata[] = [];
 
     if (limitString) {
         try {
@@ -53,20 +54,18 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
             if (!isValidLimit) {
                 return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
             }
+            metadata = await AttendeeMetadataModel.find().sort({ score: -1 }).limit(limit);
         } catch (error) {
             console.log(error);
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
         }
+    } else {
+        metadata = await AttendeeMetadataModel.find().sort({ score: -1 });
     }
 
-    const metadata: AttendeeMetadata[] | null = await AttendeeMetadataModel.find().sort({ score: -1 }).limit(limit);
-    // Return the profiles, after mapping them to simple leaderboard entries
-    let leaderboardProfiles: string[] = [];
-    if (metadata) {
-        leaderboardProfiles = metadata.map((profile) => {
-            return profile.userId;
-        });
-    }
+    const leaderboardProfiles: string[] = metadata.map((profile) => {
+        return profile.userId;
+    });
 
     return res.status(Constants.SUCCESS).send({
         profiles: leaderboardProfiles,
