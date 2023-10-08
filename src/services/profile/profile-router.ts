@@ -4,18 +4,19 @@ import { Response } from "express-serve-static-core";
 
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
-import { AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
+import { AttendeeMetadata, AttendeeMetadataModel, AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
 import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { Profile } from "./profile-models.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 const profileRouter: Router = Router();
 
 profileRouter.use(cors({ origin: "*" }));
+
+
 
 /**
  * @api {get} /profile/leaderboard/ GET /profile/leaderboard/
@@ -108,25 +109,16 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  */
 
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-	try {
-		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    const id: string = decodedData.id;
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
 
-		const id: string = decodedData.id;
-		const user: Profile | null = await collection.findOne({ id: id }) as Profile | null;
+    if (!user) {
+        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+    }
 
-		if (!user) {
-			return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
-		}
-
-		return res.status(Constants.SUCCESS).send(user);
-
-	} catch (error) {
-		console.log(error);
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	}
-
+    return res.status(Constants.SUCCESS).send(user);
 });
 
 /**
@@ -162,21 +154,17 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  */
 
 profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+	// const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
 
 	const id: string | undefined = req.params.id;
 
-	try {
-		const user: Profile | null = await collection.findOne({ id: id }) as Profile | null;
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
 
-		if (!user) {
-			return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
-		}
+    if (!user) {
+        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+    }
 
-		return res.status(Constants.SUCCESS).send(user);
-	} catch (error) {
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	}
+    return res.status(Constants.SUCCESS).send(user);
 });
 
 /**
@@ -215,52 +203,49 @@ profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Resp
  */
 
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
-	
-	try {
-		const profile: Profile = req.body as Profile;
 
-		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    const profile: AttendeeProfile | null = req.body as AttendeeProfile;
+    if (!profile) {
+        return res.status(Constants.BAD_REQUEST).send({error: "InvalidPostData"});
+    }
 
-		profile.id = decodedData.id;
-		profile.points = 0;
-		profile.foodWave = 0;
+    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-		const user: Profile | null = await collection.findOne({ id: profile.id }) as Profile | null;
-		if (user) {
-			return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
-		}
+    profile.userId = decodedData.id;
+    profile.points = 0;
+    
 
-		await collection.insertOne(profile);
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
 
-		return res.status(Constants.SUCCESS).send(profile);
-	} catch (error) {
-		console.log("err", error);
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	}
+    if (user) {
+        return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
+    }
+
+    const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, 0);
+
+    try {
+        await AttendeeProfileModel.create(profile);
+        await AttendeeMetadataModel.create(profileMetadata);
+    } catch(error) {
+        console.error(error);
+        return res.status(Constants.FAILURE).send({error: "InvalidParams"});
+    }
+    
+    return res.status(Constants.SUCCESS).send(profile);
 });
 
 /**
- * @api {put} /profile PUT /profile
+ * @api {put} /profile/points PUT /profile/points
  * @apiGroup Profile
- * @apiDescription Update a user's profile based on their authentication. ADMIN and STAFF roles can edit `foodWave` and `points`.
+ * @apiDescription Update a user's points. Only STAFF and ADMIN roles can edit this.
  *
- * @apiBody {String} firstName New first name for the user.
- * @apiBody {String} lastName New last name for the user.
- * @apiBody {String} discord New Discord username for the user.
- * @apiBody {String} avatarUrl New avatar URL for the user.
- * @apiBody {Number} foodWave New food wave value (optional, only for ADMIN and STAFF).
- * @apiBody {Number} points New points value (optional, only for ADMIN and STAFF).
+ * @apiBody {String} points new number of points
  *
- * @apiSuccess (200: Success) {Json} profile Updated user's profile information.
+ * @apiSuccess (200: Success) {Json} profile Updated user point number
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
- *    "firstName": "HackUpdate",
- *    "lastName": "IllinoisUpdate",
- *    "discord": "HackIllinoisUpdate",
- *    "avatarUrl": "an",
- *    "id": "12345"
+ *    "points": 5
  * }
  *
  * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
@@ -269,57 +254,33 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  *     {"error": "InternalError"}
  */
 
-profileRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
-	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
 
-	const profile: Profile = req.body as Profile;
 
-	try {
-		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
-        
-		profile.id = decodedData.id;
+	const profile: AttendeeProfile | null = req.body as AttendeeProfile;
+    if (!profile) {
+        return res.status(Constants.BAD_REQUEST).send({error: "InvalidPutData"});
+    }
 
-		// eslint-disable-next-line @typescript-eslint/typedef
-		const filter = { id: profile.id };
+    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-		// not an admin
-		if (!hasElevatedPerms(decodedData)) {
-			// eslint-disable-next-line @typescript-eslint/typedef
-			const update = {
-				$set: {
-					firstName: profile.firstName,
-					lastName: profile.lastName,
-					discord: profile.discord,
-					avatarUrl: profile.avatarUrl,
-				},
-			};
+    if (!hasElevatedPerms(decodedData)) {
+        return res.status(Constants.FORBIDDEN).send({error: "NotAuthorizedToUseEndpoint"})
+    }
+    
+    // // eslint-disable-next-line @typescript-eslint/typedef
+    const update = {
+        $set: {
+            points: profile.points
+        }
+    }
 
-			await collection.updateOne(filter, update);
-		} else {
-			const update: { $set: Partial<Profile> } = {
-				$set: {
-					firstName: profile.firstName,
-					lastName: profile.lastName,
-					discord: profile.discord,
-					avatarUrl: profile.avatarUrl,
-				},
-			};
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const filter = { userId: decodedData.id };
 
-			if (profile.foodWave) {
-				update.$set.foodWave = profile.foodWave;
-			}
-			if (profile.points) {
-				update.$set.points = profile.points;
-			}
+    await AttendeeProfileModel.updateOne(filter, update);
 
-			await collection.updateOne(filter, update);
-		}
-
-		return res.status(Constants.SUCCESS).send(profile);
-	} catch (error) {
-		console.log(error);
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	}
+    return res.status(Constants.SUCCESS).send({points: profile.points});
 
 });
 
@@ -342,20 +303,15 @@ profileRouter.put("/", strongJwtVerification, async (req: Request, res: Response
  */
 
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
+    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-	const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
-	try {
-		const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const filter = { userId: decodedData.id };
 
-		// eslint-disable-next-line @typescript-eslint/typedef
-		const filter = { id: decodedData.id };
+    await AttendeeProfileModel.deleteOne(filter);
+    await AttendeeMetadataModel.deleteOne(filter);
 
-		await collection.deleteOne(filter);
-		return res.status(Constants.SUCCESS).send({ success: true });
-
-	} catch (error) {
-		return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-	}
+    return res.status(Constants.SUCCESS).send({ success: true });
 });
 
 export default profileRouter;
