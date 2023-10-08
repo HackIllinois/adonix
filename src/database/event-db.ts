@@ -164,7 +164,7 @@ export const EventMetadataModel: mongoose.Model<EventMetadata> = getModelForClas
     generateConfig(Databases.EVENT_DB, EventDB.METADATA),
 );
 
-export const StaffAttendingEventModel: mongoose.Model<EventAttendance> = getModelForClass(
+export const EventAttendanceModel: mongoose.Model<EventAttendance> = getModelForClass(
     EventAttendance,
     generateConfig(Databases.EVENT_DB, EventDB.ATTENDANCE),
 );

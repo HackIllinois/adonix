@@ -33,7 +33,7 @@ export class UserAttendance {
             return String;
         },
     })
-    public events: string[];
+    public attendance: string[];
 }
 
 export const UserInfoModel: mongoose.Model<UserInfo> = getModelForClass(UserInfo, generateConfig(Databases.AUTH_DB, UserDB.INFO));

@@ -6,9 +6,9 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
-import { EventMetadataModel, StaffAttendingEventModel } from "../event/event-db.js";
-import { EventsAttendedByStaffModel } from "./staff-db.js";
-import { EventMetadata } from "../event/event-models.js";
+
+import { UserAttendanceModel } from "database/user-db.js";
+import { EventMetadataModel, EventMetadata, EventAttendanceModel } from "database/event-db.js";
 
 const staffRouter: Router = Router();
 
@@ -68,8 +68,8 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
             return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
         }
 
-        await EventsAttendedByStaffModel.findByIdAndUpdate(userId, { $addToSet: { attendance: eventId } }, { upsert: true });
-        await StaffAttendingEventModel.findByIdAndUpdate(eventId, { $addToSet: { attendees: userId } }, { upsert: true });
+        await UserAttendanceModel.findOneAndUpdate({userId: userId}, { $addToSet: { attendance: eventId } }, { upsert: true });
+        await EventAttendanceModel.findOneAndUpdate({eventId: eventId}, { $addToSet: { attendees: userId } }, { upsert: true });
         return res.status(Constants.SUCCESS).send({ status: "Success" });
     } catch (error) {
         console.error(error);
