@@ -33,8 +33,9 @@ export function generateConfig(database: string, collection: string): IModelOpti
 export enum Databases {
     AUTH_DB = "auth",
     USER_DB = "user",
-    REGISTRATION_DB = "registration",
+    EVENT_DB = "event",
     DECISION_DB = "decision",
     ATTENDEE_DB = "attendee",
-    EVENT_DB = "event",
+    NEWSLETTER_DB = "newsletter",
+    REGISTRATION_DB = "registration",
 }

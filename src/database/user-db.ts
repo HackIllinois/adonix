@@ -27,7 +27,12 @@ export class UserAttendance {
     @prop({ required: true })
     public userId: string;
 
-    @prop({ required: true })
+    @prop({
+        required: true,
+        type: () => {
+            return String;
+        },
+    })
     public events: string[];
 }
 

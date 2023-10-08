@@ -18,7 +18,12 @@ export class AuthInfo {
     @prop({ required: true })
     public provider: string;
 
-    @prop({ required: true })
+    @prop({
+        required: true,
+        type: () => {
+            return Role;
+        },
+    })
     public roles: Role[];
 }
 
