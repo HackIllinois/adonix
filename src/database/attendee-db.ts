@@ -13,6 +13,11 @@ export class AttendeeMetadata {
 
     @prop({ required: true })
     public foodWave: number;
+
+    constructor(id: string, wave: number) {
+        this.userId = id;
+        this.foodWave = wave;
+    }
 }
 
 export class AttendeeProfile {
