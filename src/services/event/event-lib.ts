@@ -1,4 +1,5 @@
-import { PUBLIC_EVENT_TYPE, FilteredEventView, PublicEvent } from "./event-models.js";
+import { PUBLIC_EVENT_TYPE, FilteredEventView } from "./event-models.js";
+import { PublicEvent } from "../../database/event-db.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting
@@ -8,17 +9,17 @@ import { PUBLIC_EVENT_TYPE, FilteredEventView, PublicEvent } from "./event-model
  * @returns The truncated ExternalEvent object.
  */
 export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventView {
-	const publicEvent: FilteredEventView = {
-		id: baseEvent.eventId,
-		name: baseEvent.name,
-		description: baseEvent.description,
-		startTime: baseEvent.startTime,
-		endTime: baseEvent.endTime,
-		locations: baseEvent.locations,
-		sponsor: baseEvent.sponsor,
-		eventType: baseEvent.eventType as PUBLIC_EVENT_TYPE,
-		points: baseEvent.points,
-		isAsync: baseEvent.isAsync,
-	};
-	return publicEvent;
+    const publicEvent: FilteredEventView = {
+        id: baseEvent.eventId,
+        name: baseEvent.name,
+        description: baseEvent.description,
+        startTime: baseEvent.startTime,
+        endTime: baseEvent.endTime,
+        locations: baseEvent.locations,
+        sponsor: baseEvent.sponsor,
+        eventType: baseEvent.eventType as PUBLIC_EVENT_TYPE,
+        points: baseEvent.points,
+        isAsync: baseEvent.isAsync,
+    };
+    return publicEvent;
 }

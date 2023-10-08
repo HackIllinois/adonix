@@ -19,29 +19,30 @@ import jsonwebtoken from "jsonwebtoken";
  *     {"error": "NoToken"}
  */
 export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
-	const token: string | undefined = req.headers.authorization;
+    const token: string | undefined = req.headers.authorization;
 
-	if (!token) {
-		res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "NoToken" });
-		next("router");
-		return;
-	}
+    if (!token) {
+        res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "NoToken" });
+        next("router");
+        return;
+    }
 
-	try {
-		res.locals.payload = decodeJwtToken(token);
-		next();
-	} catch (error) {
-		console.error(error);
-		if (error instanceof jsonwebtoken.TokenExpiredError) {
-			res.status(Constants.FORBIDDEN).send("TokenExpired");
-			next("router");
-		} else {
-			res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "InvalidToken" });
-			next("router");
-		}
-	}
+    try {
+        res.locals.payload = decodeJwtToken(token);
+        next();
+    } catch (error) {
+        console.error(error);
+        if (error instanceof jsonwebtoken.TokenExpiredError) {
+            res.status(Constants.FORBIDDEN).send("TokenExpired");
+            next("router");
+        } else {
+            res.status(Constants.UNAUTHORIZED_REQUEST).send({
+                error: "InvalidToken",
+            });
+            next("router");
+        }
+    }
 }
-
 
 /**
  * @apiDefine weakVerifyErrors
@@ -50,14 +51,13 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
  *     {"Authorization": "loremipsumdolorsitamet"}
  */
 export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
-	const token: string | undefined = req.headers.authorization;
+    const token: string | undefined = req.headers.authorization;
 
-	try {
-		res.locals.payload = decodeJwtToken(token);
-		next();
-	} catch (error) {
-		console.error(error);
-		next();
-	}
+    try {
+        res.locals.payload = decodeJwtToken(token);
+        next();
+    } catch (error) {
+        console.error(error);
+        next();
+    }
 }
- 
