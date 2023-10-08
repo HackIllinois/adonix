@@ -28,9 +28,6 @@ export class Location {
 // Interface for the actual event
 class BaseEvent {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public eventId: string;
 
     @prop({ required: true })
@@ -62,7 +59,6 @@ class BaseEvent {
     constructor(baseEvent: GenericEventFormat, setId: boolean = true) {
         const id: string = new ObjectId().toHexString();
         if (setId) {
-            this._id = id;
             this.eventId = id;
         }
         this.description = baseEvent.description;
@@ -76,9 +72,6 @@ class BaseEvent {
 
 export class EventMetadata {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public eventId: string;
 
     @prop({ required: true })
@@ -88,7 +81,6 @@ export class EventMetadata {
     public exp: number;
 
     constructor(eventId: string, isStaff: boolean, exp: number) {
-        this._id = new ObjectId().toString();
         this.eventId = eventId;
         this.isStaff = isStaff;
         this.exp = exp;
@@ -126,9 +118,6 @@ export class StaffEvent extends BaseEvent {
 }
 
 export class EventAttendance {
-    @prop({ required: true })
-    public _id: string;
-
     @prop({ required: true })
     public eventId: string;
 

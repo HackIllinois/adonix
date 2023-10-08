@@ -7,9 +7,6 @@ enum NewsletterDB {
 
 export class NewsletterSubscription {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public newsletterId: string;
 
     @prop({

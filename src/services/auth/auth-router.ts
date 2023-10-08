@@ -20,6 +20,7 @@ import {
     verifyFunction,
     getUsersWithRole,
 } from "./auth-lib.js";
+import { UserInfoModel } from "../../database/user-db.js";
 
 passport.use(
     Provider.GITHUB,
@@ -120,6 +121,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 authRouter.get(
     "/:PROVIDER/callback/:DEVICE",
     (req: Request, res: Response, next: NextFunction) => {
+        console.log("IN CALLBACK")
         const provider: string = req.params.PROVIDER ?? "";
         try {
             const device: string = getDevice(req.params.DEVICE);
@@ -140,11 +142,12 @@ authRouter.get(
         const redirect: string = Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT;
 
         data.id = data.id ?? user.id;
-        console.log("USERNAME", user.username);
+        data.displayName = user.displayName;
 
         try {
             // Load in the payload with the actual values stored in the database
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
+            await UserInfoModel.findOneAndUpdate({userId: data.id}, {email: data.email, name: data.displayName, userId: payload.id}, {upsert: true});
 
             // Generate the token, and return it
             const token: string = generateJwtToken(payload);

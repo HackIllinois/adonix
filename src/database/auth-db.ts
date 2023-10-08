@@ -3,14 +3,11 @@ import { Databases, generateConfig } from "../database.js";
 
 // Collections within the auth database
 enum AuthDB {
-    ROLES = "roles",
+    INFO = "info",
 }
 
 // Class containing auth info
 export class AuthInfo {
-    @prop({ required: true })
-    public _id: string;
-
     @prop({ required: true })
     public userId: string;
 
@@ -28,5 +25,5 @@ export class AuthInfo {
 
 export const AuthInfoModel: mongoose.Model<AuthInfo> = getModelForClass(
     AuthInfo,
-    generateConfig(Databases.AUTH_DB, AuthDB.ROLES),
+    generateConfig(Databases.AUTH_DB, AuthDB.INFO),
 );

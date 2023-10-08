@@ -59,7 +59,8 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
     // Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
     try {
-        const oldRoles: Role[] = await getRoles(userId);
+        const oldRoles: Role[] = await getRoles(userId) as Role[];
+        console.log(oldRoles);
         const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];
         await updateUserRoles(userId, provider as Provider, payload.roles);
@@ -198,7 +199,7 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
  */
 export async function getAuthInfo(id: string): Promise<AuthInfo> {
     try {
-        const info: AuthInfo | null = await AuthInfoModel.findOne({ id: id });
+        const info: AuthInfo | null = await AuthInfoModel.findOne({ userId: id });
 
         // Null check to ensure that we're not returning anything null
         if (!info) {
@@ -219,11 +220,12 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
  */
 export async function getRoles(id: string): Promise<Role[]> {
     return getAuthInfo(id)
-        .then((roles) => {
-            return roles;
+        .then((authInfo) => {
+            return authInfo.roles as Role[];
         })
         .catch((error) => {
-            return error;
+            console.log(error);
+            return [] as Role[];
         });
 }
 

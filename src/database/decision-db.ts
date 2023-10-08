@@ -21,9 +21,6 @@ enum DecisionResponse {
 
 export class DecisionInfo {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public userId: string;
 
     @prop({ required: true })
@@ -34,9 +31,6 @@ export class DecisionInfo {
 }
 
 export class DecisionEntry {
-    @prop({ required: true })
-    public _id: string;
-
     @prop({ required: true })
     public userId: string;
 

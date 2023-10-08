@@ -8,9 +8,6 @@ enum UserDB {
 
 export class UserInfo {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public userId: string;
 
     @prop({ required: true })
@@ -21,9 +18,6 @@ export class UserInfo {
 }
 
 export class UserAttendance {
-    @prop({ required: true })
-    public _id: string;
-
     @prop({ required: true })
     public userId: string;
 
@@ -36,9 +30,9 @@ export class UserAttendance {
     public attendance: string[];
 }
 
-export const UserInfoModel: mongoose.Model<UserInfo> = getModelForClass(UserInfo, generateConfig(Databases.AUTH_DB, UserDB.INFO));
+export const UserInfoModel: mongoose.Model<UserInfo> = getModelForClass(UserInfo, generateConfig(Databases.USER_DB, UserDB.INFO));
 
 export const UserAttendanceModel: mongoose.Model<UserAttendance> = getModelForClass(
     UserAttendance,
-    generateConfig(Databases.AUTH_DB, UserDB.ATTENDANCE),
+    generateConfig(Databases.USER_DB, UserDB.ATTENDANCE),
 );

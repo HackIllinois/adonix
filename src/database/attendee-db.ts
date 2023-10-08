@@ -9,9 +9,6 @@ enum AttendeeDB {
 
 export class AttendeeMetadata {
     @prop({ required: true })
-    public _id: string;
-
-    @prop({ required: true })
     public userId: string;
 
     @prop({ required: true })
@@ -19,9 +16,6 @@ export class AttendeeMetadata {
 }
 
 export class AttendeeProfile {
-    @prop({ required: true })
-    public _id: string;
-
     @prop({ required: true })
     public userId: string;
 

@@ -382,6 +382,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
         if (!isValidStaffFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
+
         newEvent = await StaffEventModel.create(eventFormat);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
