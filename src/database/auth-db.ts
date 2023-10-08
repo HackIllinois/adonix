@@ -1,6 +1,5 @@
 import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import Constants from "constants.js";
-import { generateConfig } from "database.js";
+import { Databases, generateConfig } from "database.js";
 import { Role } from "services/auth/auth-models.js";
 
 // Collections within the auth database
@@ -25,5 +24,5 @@ export class AuthInfo {
 
 export const AuthInfoModel: mongoose.Model<AuthInfo> = getModelForClass(
     AuthInfo,
-    generateConfig(Constants.AUTH_DB, AuthDB.ROLES),
+    generateConfig(Databases.AUTH_DB, AuthDB.ROLES),
 );

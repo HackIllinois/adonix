@@ -1,6 +1,5 @@
 import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import Constants from "constants.js";
-import { generateConfig } from "database.js";
+import { Databases, generateConfig } from "database.js";
 
 enum UserDB {
     INFO = "users",
@@ -21,7 +20,7 @@ export class UserInfo {
     public name: string;
 }
 
-export class Attendance {
+export class UserAttendance {
     @prop({ required: true })
     public _id: string;
 
@@ -32,12 +31,12 @@ export class Attendance {
     public events: string[];
 }
 
-export const UserModel: mongoose.Model<UserInfo> = getModelForClass(
+export const UserInfoModel: mongoose.Model<UserInfo> = getModelForClass(
     UserInfo,
-    generateConfig(Constants.AUTH_DB, UserDB.INFO),
+    generateConfig(Databases.AUTH_DB, UserDB.INFO),
 );
 
-export const AttendanceModel: mongoose.Model<Attendance> = getModelForClass(
-    Attendance,
-    generateConfig(Constants.AUTH_DB, UserDB.ATTENDANCE),
+export const UserAttendanceModel: mongoose.Model<UserAttendance> = getModelForClass(
+    UserAttendance,
+    generateConfig(Databases.AUTH_DB, UserDB.ATTENDANCE),
 );

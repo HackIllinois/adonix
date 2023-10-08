@@ -51,14 +51,6 @@ abstract class Constants {
     static readonly EVENT_ID_LENGTH: number = 24;
     static readonly MILLISECONDS_PER_SECOND: number = 1000;
     static readonly DEFAULT_POINT_VALUE: number = 10;
-
-    // Constants for database names
-    static readonly AUTH_DB: string = "auth";
-    static readonly EVENT_DB: string = "event";
-    static readonly NEWSLETTER_DB: string = "newsletter";
-    static readonly PROFILE_DB: string = "profile";
-    static readonly STAFF_DB: string = "staff";
-    static readonly USER_DB: string = "user";
 }
 
 export default Constants;

@@ -29,3 +29,12 @@ export function generateConfig(database: string, collection: string): IModelOpti
         schemaOptions: { collection: collection, versionKey: false },
     };
 }
+
+export enum Databases {
+    AUTH_DB = "auth",
+    USER_DB = "user",
+    REGISTRATION_DB = "registration",
+    DECISION_DB = "decision",
+    ATTENDEE_DB = "attendee",
+    EVENT_DB = "event",
+}
