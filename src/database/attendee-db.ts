@@ -16,9 +16,6 @@ export class AttendeeMetadata {
 
     @prop({ required: true })
     public foodWave: number;
-
-    @prop({ required: true })
-    public score: number;
 }
 
 export class AttendeeProfile {
@@ -29,16 +26,16 @@ export class AttendeeProfile {
     public userId: string;
 
     @prop({ required: true })
-    public preferredName: string;
-
-    @prop({ required: true })
-    public legalName: string;
+    public displayName: string;
 
     @prop({ required: true })
     public avatarUrl: string;
 
     @prop({ required: true })
     public discordName: string;
+
+    @prop({ required: true })
+    public points: number;
 }
 
 export const AttendeeMetadataModel: mongoose.Model<AttendeeMetadata> = getModelForClass(

@@ -4,7 +4,9 @@ import { Response } from "express-serve-static-core";
 
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
-import { AttendeeMetadata, AttendeeMetadataModel } from "database/attendee-db.js";
+import { AttendeeProfile, AttendeeProfileModel } from "database/attendee-db.js";
+import { Query } from "mongoose";
+import { LeaderboardEntry } from "./profile-models.js";
 
 const profileRouter: Router = Router();
 profileRouter.use(cors({ origin: "*" }));
@@ -44,32 +46,31 @@ profileRouter.use(cors({ origin: "*" }));
 profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     const limitString: string | undefined = req.query.limit as string | undefined;
 
-    let limit: number = -1;
-    let metadata: AttendeeMetadata[] = [];
+    // Initialize the metadata
+    let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = AttendeeProfileModel.find().sort({ points: -1 });
 
+    // Returns NaN if invalid input is passed in
     if (limitString) {
-        try {
-            limit = parseInt(limitString);
-
-            if (!isValidLimit) {
-                return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
-            }
-            metadata = await AttendeeMetadataModel.find().sort({ score: -1 }).limit(limit);
-        } catch (error) {
-            console.log(error);
+        const limit = parseInt(limitString);
+        
+        // Check for limit validity
+        if (!limit || !isValidLimit) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
         }
-    } else {
-        metadata = await AttendeeMetadataModel.find().sort({ score: -1 });
+
+        leaderboardQuery = leaderboardQuery.limit(limit);
     }
 
-    const leaderboardProfiles: string[] = metadata.map((profile) => {
-        return profile.userId;
+    // Perform the actual query, filter, and return the results
+    const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
+    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
+        return {displayName: profile.displayName, points: profile.points};
     });
 
     return res.status(Constants.SUCCESS).send({
-        profiles: leaderboardProfiles,
+        profiles: filteredLeaderboardEntried,
     });
 });
+
 
 export default profileRouter;

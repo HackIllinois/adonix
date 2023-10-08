@@ -51,7 +51,7 @@ abstract class Constants {
     static readonly EVENT_ID_LENGTH: number = 32;
     static readonly EVENT_BYTES_GEN: number = 16;
     static readonly MILLISECONDS_PER_SECOND: number = 1000;
-    static readonly DEFAULT_POINT_VALUE: number = 10;
+    static readonly DEFAULT_POINT_VALUE: number = 0;
 }
 
 export default Constants;
