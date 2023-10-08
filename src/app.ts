@@ -9,6 +9,7 @@ import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
 import profileRouter from "./services/profile/profile-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
+import rsvpRouter from "./services/rsvp/rsvp-router.js";
 
 const app: Application = express();
 
@@ -28,6 +29,7 @@ app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
 app.use("/profile/", profileRouter);
+app.use("/rsvp/", rsvpRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
