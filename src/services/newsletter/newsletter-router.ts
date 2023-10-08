@@ -5,7 +5,7 @@ import cors, { CorsOptions } from "cors";
 import Constants from "../../constants.js";
 
 import { SubscribeRequest } from "./newsletter-formats.js";
-import { NewsletterSubscription, NewsletterSubscriptionModel } from "database/newsletter-db.js";
+import { NewsletterSubscription, NewsletterSubscriptionModel } from "../../database/newsletter-db.js";
 import { UpdateQuery } from "mongoose";
 
 const newsletterRouter: Router = Router();

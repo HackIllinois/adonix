@@ -1,6 +1,5 @@
 import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import { Databases, generateConfig } from "database.js";
-import { Role } from "services/auth/auth-models.js";
+import { Databases, generateConfig } from "../database.js";
 
 // Collections within the auth database
 enum AuthDB {
@@ -21,10 +20,10 @@ export class AuthInfo {
     @prop({
         required: true,
         type: () => {
-            return Role;
+            return String;
         },
     })
-    public roles: Role[];
+    public roles: string[];
 }
 
 export const AuthInfoModel: mongoose.Model<AuthInfo> = getModelForClass(

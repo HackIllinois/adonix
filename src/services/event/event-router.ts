@@ -26,7 +26,7 @@ import {
     PublicEventModel,
     StaffEventModel,
     EventMetadataModel,
-} from "database/event-db.js";
+} from "../../database/event-db.js";
 import { ObjectId } from "mongodb";
 
 const eventsRouter: Router = Router();

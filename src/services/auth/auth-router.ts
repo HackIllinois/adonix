@@ -140,6 +140,7 @@ authRouter.get(
         const redirect: string = Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT;
 
         data.id = data.id ?? user.id;
+        console.log("USERNAME", user.username);
 
         try {
             // Load in the payload with the actual values stored in the database

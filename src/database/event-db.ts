@@ -1,8 +1,8 @@
 import { getModelForClass, modelOptions, mongoose, prop } from "@typegoose/typegoose";
-import Constants from "constants.js";
-import { Databases, generateConfig } from "database.js";
+import Constants from "../constants.js";
+import { Databases, generateConfig } from "../database.js";
 import { ObjectId } from "mongodb";
-import { GenericEventFormat } from "services/event/event-formats.js";
+import { GenericEventFormat } from "../services/event/event-formats.js";
 
 // Interface for the location of the event
 @modelOptions({ schemaOptions: { _id: false } })

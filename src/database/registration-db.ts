@@ -1,5 +1,5 @@
 import { prop, getModelForClass, mongoose } from "@typegoose/typegoose";
-import { Databases, generateConfig } from "database.js";
+import { Databases, generateConfig } from "../database.js";
 
 enum RegistrationDB {
     INFO = "info",

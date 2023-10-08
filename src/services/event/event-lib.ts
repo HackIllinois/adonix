@@ -1,5 +1,5 @@
 import { PUBLIC_EVENT_TYPE, FilteredEventView } from "./event-models.js";
-import { PublicEvent } from "database/event-db.js";
+import { PublicEvent } from "../../database/event-db.js";
 
 /**
  * Truncates a InternalEvent object to create an ExternalEvent by omitting

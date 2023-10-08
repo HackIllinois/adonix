@@ -1,6 +1,6 @@
 import Constants from "../../constants.js";
 import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
-import { Location } from "database/event-db.js";
+import { Location } from "../../database/event-db.js";
 
 // Base format for the event - ALL events must have these
 export interface BaseEventFormat {

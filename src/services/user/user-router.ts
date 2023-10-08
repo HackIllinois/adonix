@@ -7,7 +7,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
 import { UserFormat } from "./user-formats.js";
-import { UserInfo, UserInfoModel } from "database/user-db.js";
+import { UserInfo, UserInfoModel } from "../../database/user-db.js";
 
 const userRouter: Router = Router();
 

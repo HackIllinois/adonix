@@ -7,8 +7,8 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
 
-import { UserAttendanceModel } from "database/user-db.js";
-import { EventMetadataModel, EventMetadata, EventAttendanceModel } from "database/event-db.js";
+import { UserAttendanceModel } from "../../database/user-db.js";
+import { EventMetadataModel, EventMetadata, EventAttendanceModel } from "../../database/event-db.js";
 
 const staffRouter: Router = Router();
 

@@ -4,7 +4,7 @@ import { Response } from "express-serve-static-core";
 
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
-import { AttendeeProfile, AttendeeProfileModel } from "database/attendee-db.js";
+import { AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
 import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 

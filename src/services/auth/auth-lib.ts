@@ -7,8 +7,8 @@ import Constants from "../../constants.js";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
-import { AuthInfo, AuthInfoModel } from "database/auth-db.js";
-import { UserInfoModel } from "database/user-db.js";
+import { AuthInfo, AuthInfoModel } from "../../database/auth-db.js";
+import { UserInfoModel } from "../../database/user-db.js";
 import { UpdateQuery } from "mongoose";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
@@ -87,7 +87,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
         // Create and return new payload
         const newPayload: JwtPayload = {
             id: targetUser,
-            roles: authInfo.roles,
+            roles: authInfo.roles as Role[],
             email: userInfo.email,
             provider: authInfo.provider,
         };
@@ -252,7 +252,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
     try {
         const updatedInfo: AuthInfo | null = await AuthInfoModel.findOneAndUpdate({ userId: userId }, updateQuery);
         if (updatedInfo) {
-            return updatedInfo.roles;
+            return updatedInfo.roles as Role[];
         } else {
             return Promise.reject("UserNotFound");
         }
