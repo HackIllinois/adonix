@@ -17,8 +17,9 @@ import {
     GenericEventFormat,
     isValidMetadataFormat,
 } from "./event-formats.js";
-import { EventMetadata, FilteredEventView, PublicEvent, StaffEvent } from "./event-models.js";
-import { PublicEventModel, StaffEventModel, EventMetadataModel } from "./event-db.js";
+import { FilteredEventView,  } from "./event-models.js";
+
+import { EventMetadata, PublicEvent, StaffEvent, PublicEventModel, StaffEventModel, EventMetadataModel } from "database/event-db.js";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
