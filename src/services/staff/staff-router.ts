@@ -68,16 +68,8 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
             return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
         }
 
-        await EventsAttendedByStaffModel.findByIdAndUpdate(
-            userId,
-            { $addToSet: { attendance: eventId } },
-            { upsert: true },
-        );
-        await StaffAttendingEventModel.findByIdAndUpdate(
-            eventId,
-            { $addToSet: { attendees: userId } },
-            { upsert: true },
-        );
+        await EventsAttendedByStaffModel.findByIdAndUpdate(userId, { $addToSet: { attendance: eventId } }, { upsert: true });
+        await StaffAttendingEventModel.findByIdAndUpdate(eventId, { $addToSet: { attendees: userId } }, { upsert: true });
         return res.status(Constants.SUCCESS).send({ status: "Success" });
     } catch (error) {
         console.error(error);

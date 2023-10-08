@@ -1,7 +1,7 @@
 import cors from "cors";
+import crypto from "crypto";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
-import { ObjectId } from "mongodb";
 
 import Constants from "../../constants.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
@@ -17,9 +17,17 @@ import {
     GenericEventFormat,
     isValidMetadataFormat,
 } from "./event-formats.js";
-import { FilteredEventView,  } from "./event-models.js";
+import { FilteredEventView } from "./event-models.js";
 
-import { EventMetadata, PublicEvent, StaffEvent, PublicEventModel, StaffEventModel, EventMetadataModel } from "database/event-db.js";
+import {
+    EventMetadata,
+    PublicEvent,
+    StaffEvent,
+    PublicEventModel,
+    StaffEventModel,
+    EventMetadataModel,
+} from "database/event-db.js";
+import { ObjectId } from "mongodb";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -144,7 +152,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
     try {
         const isStaff: boolean = hasStaffPerms(payload);
 
-        const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+        const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventId });
 
         if (!metadata) {
             console.error("no metadata found!");
@@ -156,11 +164,11 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
                 return res.status(Constants.FORBIDDEN).send({ error: "PrivateEvent" });
             }
 
-            const event: StaffEvent | null = await StaffEventModel.findById(eventId);
+            const event: StaffEvent | null = await StaffEventModel.findOne({ eventId: eventId });
             return res.status(Constants.SUCCESS).send({ event: event });
         } else {
             // Not a private event -> convert to Public event and return
-            const event: PublicEvent | null = await PublicEventModel.findById(eventId);
+            const event: PublicEvent | null = await PublicEventModel.findOne({ eventId: eventId });
 
             if (!event) {
                 console.error("no metadata found!");
@@ -371,35 +379,35 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     }
 
     // Create the ID and process metadata for this event
-    const id: string = new ObjectId().toHexString();
+    const eventId: string = crypto.randomBytes(Constants.EVENT_BYTES_GEN).toString("hex");
     const isStaffEvent: boolean = eventFormat.isStaff;
-    const metadata: EventMetadata = new EventMetadata(id, isStaffEvent, eventFormat.endTime);
-    eventFormat._id = id;
-    eventFormat.eventId = id;
+    const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
+
+    // Populate the new eventFormat object with the needed params
+    eventFormat._id = new ObjectId().toString();
+    eventFormat.eventId = eventId;
 
     // Try to upload the events if possible, else throw an error
     try {
+        let newEvent: PublicEvent | StaffEvent | null;
         if (isStaffEvent) {
             // If ID doesn't exist -> return the invalid parameters
             if (!isValidStaffFormat(eventFormat)) {
                 return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
             }
-
-            const staffEvent: StaffEvent = new StaffEvent(eventFormat);
-            await StaffEventModel.insertMany(staffEvent);
+            newEvent = await StaffEventModel.create(eventFormat);
         } else {
             if (!isValidPublicFormat(eventFormat)) {
                 return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
             }
-            const publicEvent: PublicEvent = new PublicEvent(eventFormat);
-            await PublicEventModel.insertMany(publicEvent);
+
+            newEvent = await PublicEventModel.create(eventFormat);
         }
-        await EventMetadataModel.insertMany(metadata);
+        await EventMetadataModel.create(metadata);
+        return res.status(Constants.CREATED).send(newEvent);
     } catch (error) {
         return next(error);
     }
-
-    return res.status(Constants.CREATED).send(req.body);
 });
 
 /**
@@ -433,9 +441,9 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
 
     // Perform a lazy delete on both databases, and return true if the operation succeeds
     try {
-        await StaffEventModel.findByIdAndDelete(eventId);
-        await PublicEventModel.findByIdAndDelete(eventId);
-        await EventMetadataModel.findByIdAndDelete(eventId);
+        await StaffEventModel.findOneAndDelete({ eventId: eventId });
+        await PublicEventModel.findOneAndDelete({ eventId: eventId });
+        await EventMetadataModel.findOneAndDelete({ eventId: eventId });
 
         return res.status(Constants.NO_CONTENT).send({ status: "Success" });
     } catch (error) {
@@ -467,29 +475,25 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while fetching metadata.
  */
-eventsRouter.get(
-    "/metadata/:EVENTID",
-    strongJwtVerification,
-    async (req: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        if (!hasStaffPerms(payload)) {
-            return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
-        }
+    if (!hasStaffPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "InvalidPermission" });
+    }
 
-        // Check if the request information is valid
-        const eventId: string | undefined = req.params.EVENTID;
-        try {
-            const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
-            if (!metadata) {
-                return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
-            }
-            return res.status(Constants.SUCCESS).send(metadata);
-        } catch (error) {
-            return next(error);
+    // Check if the request information is valid
+    const eventId: string | undefined = req.params.EVENTID;
+    try {
+        const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventId });
+        if (!metadata) {
+            return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
         }
-    },
-);
+        return res.status(Constants.SUCCESS).send(metadata);
+    } catch (error) {
+        return next(error);
+    }
+});
 
 /**
  * @api {put} /event/metadata/ PUT /event/metadata/
@@ -531,8 +535,11 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
 
     // Update the database, and return true if it passes. Else, return false.
     try {
-        await EventMetadataModel.findByIdAndUpdate(metadata.eventId, metadata);
-        return res.status(Constants.SUCCESS).send(metadata);
+        const updatedMetadata: EventMetadata | null = await EventMetadataModel.findOneAndUpdate(
+            { eventId: metadata.eventId },
+            metadata,
+        );
+        return res.status(Constants.SUCCESS).send(updatedMetadata);
     } catch (error) {
         console.error(error);
         return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
@@ -623,7 +630,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
         return res.status(Constants.BAD_REQUEST).send({ message: "NoEventId" });
     }
 
-    const metadata: EventMetadata | null = await EventMetadataModel.findById(eventFormat.eventId);
+    const metadata: EventMetadata | null = await EventMetadataModel.findOne({ eventId: eventFormat.eventId });
 
     if (!metadata) {
         return res.status(Constants.BAD_REQUEST).send({ message: "EventNotFound" });
@@ -636,15 +643,15 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
             }
 
             const event: StaffEvent = new StaffEvent(eventFormat, false);
-            await StaffEventModel.findByIdAndUpdate(eventId, event);
-            return res.status(Constants.SUCCESS).send(event);
+            const updatedEvent: StaffEvent | null = await StaffEventModel.findOneAndUpdate({ eventId: eventId }, event);
+            return res.status(Constants.SUCCESS).send(updatedEvent);
         } else {
             if (!isValidPublicFormat(eventFormat)) {
                 return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
             }
             const event: PublicEvent = new PublicEvent(eventFormat, false);
-            await PublicEventModel.findByIdAndUpdate(eventId, event);
-            return res.status(Constants.SUCCESS).send(event);
+            const updatedEvent: PublicEvent | null = await PublicEventModel.findOneAndUpdate({ eventId: eventId }, event);
+            return res.status(Constants.SUCCESS).send(updatedEvent);
         }
     } catch (error) {
         console.error(error);

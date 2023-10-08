@@ -61,9 +61,7 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
     }
 
     // Upsert to update the list - update document if possible, else add the document
-    const newsletterCollection: Collection = databaseClient
-        .db(Constants.NEWSLETTER_DB)
-        .collection(NewsletterDB.NEWSLETTERS);
+    const newsletterCollection: Collection = databaseClient.db(Constants.NEWSLETTER_DB).collection(NewsletterDB.NEWSLETTERS);
     try {
         await newsletterCollection.updateOne(
             { listName: listName },

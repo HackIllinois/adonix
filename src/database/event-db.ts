@@ -60,7 +60,7 @@ class BaseEvent {
     public isAsync: boolean;
 
     constructor(baseEvent: GenericEventFormat, setId: boolean = true) {
-        const id: string = baseEvent._id ?? new ObjectId().toHexString();
+        const id: string = new ObjectId().toHexString();
         if (setId) {
             this._id = id;
             this.eventId = id;
@@ -79,13 +79,17 @@ export class EventMetadata {
     public _id: string;
 
     @prop({ required: true })
+    public eventId: string;
+
+    @prop({ required: true })
     public isStaff: boolean;
 
     @prop({ required: true })
     public exp: number;
 
-    constructor(_id: string, isStaff: boolean, exp: number) {
-        this._id = _id;
+    constructor(eventId: string, isStaff: boolean, exp: number) {
+        this._id = new ObjectId().toString();
+        this.eventId = eventId;
         this.isStaff = isStaff;
         this.exp = exp;
     }

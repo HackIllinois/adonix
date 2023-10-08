@@ -22,10 +22,7 @@ type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profi
  * @param options Set of options to be associated with these strategies
  * @returns Passport middleware that is used to perform authentication
  */
-export const authenticateFunction: AuthenticateFunction = (
-    strategies: string | string[],
-    options: AuthenticateOptions,
-) => {
+export const authenticateFunction: AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => {
     return passport.authenticate(strategies, options, undefined) as RequestHandler;
 };
 
@@ -159,11 +156,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    await AuthInfoModel.findOneAndUpdate(
-        { userId: id },
-        { provider: provider.toUpperCase(), roles: roles },
-        { upsert: true },
-    )
+    await AuthInfoModel.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
         .then(() => {
             return;
         })
