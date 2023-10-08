@@ -4,10 +4,9 @@ import cors, { CorsOptions } from "cors";
 
 import Constants from "../../constants.js";
 
-import { Collection } from "mongodb";
-import databaseClient from "../../database.js";
 import { SubscribeRequest } from "./newsletter-formats.js";
-import { NewsletterDB } from "./newsletter-schemas.js";
+import { NewsletterSubscription, NewsletterSubscriptionModel } from "database/newsletter-db.js";
+import { UpdateQuery } from "mongoose";
 
 const newsletterRouter: Router = Router();
 
@@ -60,20 +59,13 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    // Upsert to update the list - update document if possible, else add the document
-    const newsletterCollection: Collection = databaseClient.db(Constants.NEWSLETTER_DB).collection(NewsletterDB.NEWSLETTERS);
     try {
-        await newsletterCollection.updateOne(
-            { listName: listName },
-            { $addToSet: { subscribers: emailAddress } },
-            { upsert: true },
-        );
+        const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
+        await NewsletterSubscriptionModel.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
         return res.status(Constants.SUCCESS).send({ status: "Success" });
     } catch (error) {
-        res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
     }
-
-    return res.status(Constants.SUCCESS).send({ status: "Successful" });
 });
 
 export default newsletterRouter;
