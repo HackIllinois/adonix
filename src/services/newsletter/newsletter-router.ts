@@ -59,13 +59,10 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    try {
-        const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
-        await NewsletterSubscriptionModel.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
-        return res.status(Constants.SUCCESS).send({ status: "Success" });
-    } catch (error) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "ListNotFound" });
-    }
+    // Perform a lazy delete
+    const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
+    await NewsletterSubscriptionModel.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
+    return res.status(Constants.SUCCESS).send({ status: "Success" });
 });
 
 export default newsletterRouter;

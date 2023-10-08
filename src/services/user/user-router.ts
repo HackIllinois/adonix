@@ -125,15 +125,15 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     if (payload.id == targetUser || hasElevatedPerms(payload)) {
         // Authorized -> return the user object
-        const userInfo: UserInfo | null = await UserInfoModel.findOne({userId: targetUser});
+        const userInfo: UserInfo | null = await UserInfoModel.findOne({ userId: targetUser });
         if (userInfo) {
             return res.status(Constants.SUCCESS).send(userInfo);
         } else {
-            return res.status(Constants.INTERNAL_ERROR).send({error: "UserNotFound"});
+            return res.status(Constants.INTERNAL_ERROR).send({ error: "UserNotFound" });
         }
     }
 
-    return res.status(Constants.FORBIDDEN).send({ error: "Forbidden"});
+    return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
 });
 
 /**
@@ -161,12 +161,12 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     // Get payload, return user's values
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const user: UserInfo | null = await UserInfoModel.findOne({userId: payload.id});
+    const user: UserInfo | null = await UserInfoModel.findOne({ userId: payload.id });
 
     if (user) {
         return res.status(Constants.SUCCESS).send(user);
     } else {
-        return res.status(Constants.BAD_REQUEST).send({error: "UserNotFound"});
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 });
 
@@ -217,7 +217,11 @@ userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) 
     }
 
     // Update the given user
-    const updatedUser: UserInfo | null = await UserInfoModel.findOneAndUpdate({userId: userData.id}, {$set: userData}, {upsert: true});
+    const updatedUser: UserInfo | null = await UserInfoModel.findOneAndUpdate(
+        { userId: userData.id },
+        { $set: userData },
+        { upsert: true },
+    );
 
     if (updatedUser) {
         return res.status(Constants.SUCCESS).send(updatedUser);

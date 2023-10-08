@@ -54,27 +54,22 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    try {
-        const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+    const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
 
-        if (!metadata) {
-            return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
-        }
-
-        const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
-        console.log(metadata.exp, timestamp);
-
-        if (metadata.exp <= timestamp) {
-            return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
-        }
-
-        await UserAttendanceModel.findOneAndUpdate({userId: userId}, { $addToSet: { attendance: eventId } }, { upsert: true });
-        await EventAttendanceModel.findOneAndUpdate({eventId: eventId}, { $addToSet: { attendees: userId } }, { upsert: true });
-        return res.status(Constants.SUCCESS).send({ status: "Success" });
-    } catch (error) {
-        console.error(error);
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+    if (!metadata) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
     }
+
+    const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
+    console.log(metadata.exp, timestamp);
+
+    if (metadata.exp <= timestamp) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
+    }
+
+    await UserAttendanceModel.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
+    await EventAttendanceModel.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
+    return res.status(Constants.SUCCESS).send({ status: "Success" });
 });
 
 export default staffRouter;

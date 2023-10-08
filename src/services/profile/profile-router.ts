@@ -1,12 +1,10 @@
 import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
-import { Collection, Document, FindCursor, WithId } from "mongodb";
 
 import Constants from "../../constants.js";
-import databaseClient from "../../database.js";
-import { LeaderboardSchema, ProfileDB } from "./profile-schemas.js";
-import { castLeaderboardEntries, isValidLimit } from "./profile-lib.js";
+import { isValidLimit } from "./profile-lib.js";
+import { AttendeeMetadata, AttendeeMetadataModel } from "database/attendee-db.js";
 
 const profileRouter: Router = Router();
 profileRouter.use(cors({ origin: "*" }));
@@ -44,31 +42,35 @@ profileRouter.use(cors({ origin: "*" }));
  *     {"error": "InvalidInput"}
  */
 profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
-    const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
     const limitString: string | undefined = req.query.limit as string | undefined;
 
-    try {
-        // Get collection from the database, and return it as an array
-        let leaderboardCursor: FindCursor<WithId<Document>> = collection.find().sort({ points: -1 });
+    let limit: number = -1;
 
-        if (limitString) {
-            const limit: number = parseInt(limitString);
+    if (limitString) {
+        try {
+            limit = parseInt(limitString);
 
-            // If invalid limit - return InvalidInput
-            if (!isValidLimit(limit)) {
-                return res.status(Constants.BAD_REQUEST).send({ error: "InvalidInput" });
+            if (!isValidLimit) {
+                return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
             }
-            leaderboardCursor = leaderboardCursor.limit(limit);
+        } catch (error) {
+            console.log(error);
+            return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
         }
-
-        // Return the profiles, after mapping them to simple leaderboard entries
-        const leaderboardProfiles: LeaderboardSchema[] = (await leaderboardCursor.toArray()) as LeaderboardSchema[];
-        return res.status(Constants.SUCCESS).send({
-            profiles: leaderboardProfiles.map(castLeaderboardEntries),
-        });
-    } catch {
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
     }
+
+    const metadata: AttendeeMetadata[] | null = await AttendeeMetadataModel.find().sort({ score: -1 }).limit(limit);
+    // Return the profiles, after mapping them to simple leaderboard entries
+    let leaderboardProfiles: string[] = [];
+    if (metadata) {
+        leaderboardProfiles = metadata.map((profile) => {
+            return profile.userId;
+        });
+    }
+
+    return res.status(Constants.SUCCESS).send({
+        profiles: leaderboardProfiles,
+    });
 });
 
 export default profileRouter;
