@@ -59,7 +59,7 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
     // Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
     try {
-        const oldRoles: Role[] = await getRoles(userId) as Role[];
+        const oldRoles: Role[] = (await getRoles(userId)) as Role[];
         console.log(oldRoles);
         const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];

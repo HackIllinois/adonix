@@ -23,7 +23,4 @@ export class AuthInfo {
     public roles: string[];
 }
 
-export const AuthInfoModel: mongoose.Model<AuthInfo> = getModelForClass(
-    AuthInfo,
-    generateConfig(Databases.AUTH_DB, AuthDB.INFO),
-);
+export const AuthInfoModel: mongoose.Model<AuthInfo> = getModelForClass(AuthInfo, generateConfig(Databases.AUTH_DB, AuthDB.INFO));

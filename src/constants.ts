@@ -43,7 +43,7 @@ abstract class Constants {
     // static readonly GITHUB_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/github/callback/";
     // static readonly GOOGLE_OAUTH_CALLBACK: string = "https://adonix.hackillinois.org/auth/google/callback/";
     static readonly GOOGLE_OAUTH_CALLBACK: string = "http://127.0.0.1:3000/auth/google/callback/";
-    
+
     static readonly SYSTEM_ADMIN_LIST: string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
 
     static readonly DEFAULT_JWT_OFFSET: string = "48h";

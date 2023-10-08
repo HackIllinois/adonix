@@ -121,7 +121,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 authRouter.get(
     "/:PROVIDER/callback/:DEVICE",
     (req: Request, res: Response, next: NextFunction) => {
-        console.log("IN CALLBACK")
+        console.log("IN CALLBACK");
         const provider: string = req.params.PROVIDER ?? "";
         try {
             const device: string = getDevice(req.params.DEVICE);
@@ -147,7 +147,11 @@ authRouter.get(
         try {
             // Load in the payload with the actual values stored in the database
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
-            await UserInfoModel.findOneAndUpdate({userId: data.id}, {email: data.email, name: data.displayName, userId: payload.id}, {upsert: true});
+            await UserInfoModel.findOneAndUpdate(
+                { userId: data.id },
+                { email: data.email, name: data.displayName, userId: payload.id },
+                { upsert: true },
+            );
 
             // Generate the token, and return it
             const token: string = generateJwtToken(payload);

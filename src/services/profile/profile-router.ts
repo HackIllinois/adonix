@@ -52,7 +52,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     // Returns NaN if invalid input is passed in
     if (limitString) {
         const limit = parseInt(limitString);
-        
+
         // Check for limit validity
         if (!limit || !isValidLimit) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
@@ -64,13 +64,12 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     // Perform the actual query, filter, and return the results
     const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
     const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
-        return {displayName: profile.displayName, points: profile.points};
+        return { displayName: profile.displayName, points: profile.points };
     });
 
     return res.status(Constants.SUCCESS).send({
         profiles: filteredLeaderboardEntried,
     });
 });
-
 
 export default profileRouter;
