@@ -8,7 +8,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import {
     hasElevatedPerms,
 } from "../auth/auth-lib.js";
-import { DecisionInfo, DecisionInfoModel } from "database/decision-db.js";
+import { DecisionInfo, DecisionInfoModel } from "../../database/decision-db.js";
 
 
 const rsvpRouter: Router = Router();
