@@ -135,3 +135,5 @@ dist
 docs/
 apidocs/
 devdocs/
+
+.vercel
