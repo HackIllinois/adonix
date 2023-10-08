@@ -221,7 +221,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
     }
 
-    const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, 0);
+    const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
 
     try {
         await AttendeeProfileModel.create(profile);
