@@ -248,18 +248,11 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // Try to update roles, if possible
     try {
-        await updateRoles(data.id, role, op);
+        const newRoles: Role[] = await updateRoles(data.id, role, op);
+        return res.status(Constants.SUCCESS).send({ id: data.id, roles: newRoles });
     } catch (error) {
         console.error(error);
         return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
-    }
-
-    try {
-        const roles: Role[] = await getRoles(data.id);
-        return res.status(Constants.SUCCESS).send({ id: data.id, roles: roles });
-    } catch (error) {
-        console.error(error);
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 });
 

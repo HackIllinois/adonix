@@ -234,7 +234,7 @@ export async function getRoles(id: string): Promise<Role[]> {
  * @param operation Operation to perform
  * @returns Promise - if valid, then update operation worked. If invalid, then contains why.
  */
-export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<void> {
+export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<Role[]> {
     let updateQuery: UpdateQuery<AuthInfo>;
 
     // Get filter, representing operation to perform on mongoDB
@@ -249,13 +249,16 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
             return Promise.reject("OperationNotFound");
     }
 
-    return await AuthInfoModel.findOneAndUpdate({ userId: userId }, updateQuery)
-        .then(() => {
-            return;
-        })
-        .catch((error) => {
-            return error;
-        });
+    try {
+        const updatedInfo: AuthInfo | null = await AuthInfoModel.findOneAndUpdate({ userId: userId }, updateQuery);
+        if (updatedInfo) {
+            return updatedInfo.roles;
+        } else {
+            return Promise.reject("UserNotFound");
+        }
+    } catch (error) {
+        return Promise.reject(error);
+    }
 }
 
 /**
