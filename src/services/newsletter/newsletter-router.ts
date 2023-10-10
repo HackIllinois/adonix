@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import { regexPasses } from "../../utils.js";
+import { regexPasses } from "./newsletter-lib.js";
 import cors, { CorsOptions } from "cors";
 
 import Constants from "../../constants.js";
