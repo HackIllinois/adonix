@@ -17,10 +17,13 @@ const app: Application = express();
 app.use(morgan("dev"));
 
 // Use express.json only if we're not running locally
-const env: string = process.env?.VERCEL_ENV ?? "";
-if (env == "preview" || env == "production") {
-    app.use(express.json());
-}
+// const env: string = process.env?.VERCEL_ENV ?? "";
+// if (env == "preview" || env == "production") {
+//     console.log("here");
+//     app.use(express.json());
+// } else {
+app.use(express.json()); 
+// }
 
 // Add routers for each sub-service
 app.use("/auth/", authRouter);
