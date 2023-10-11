@@ -5,12 +5,13 @@ import { Response } from "express-serve-static-core";
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeMetadataModel, AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
-import { Query } from "mongoose";
+import { Query, UpdateQuery } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { isValidProfileModel } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
 
@@ -120,7 +121,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
 });
 
 /**
- * @api {get} /profile/id/:id GET /profile/id/:id
+ * @api {get} /profile/userid/:USERID GET /profile/userid/:USERID
  * @apiGroup Profile
  * @apiDescription Retrieve the user's profile based on the provided ID as a path parameter.
  *
@@ -151,10 +152,10 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Response) => {
-    // const collection: Collection = databaseClient.db(Constants.PROFILE_DB).collection(ProfileDB.PROFILES);
+profileRouter.get("/userid/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
 
-    const id: string | undefined = req.params.id;
+    const id: string | undefined = req.params.USERID;
+    console.log(id);
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
 
@@ -201,15 +202,16 @@ profileRouter.get("/id/:id", weakJwtVerification, async (req: Request, res: Resp
  */
 
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-    const profile: AttendeeProfile | null = req.body as AttendeeProfile;
-    if (!profile) {
+
+    const profile: AttendeeProfile = req.body as AttendeeProfile;
+
+    if (!isValidProfileModel(profile))
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
-    }
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
     profile.userId = decodedData.id;
-    profile.points = 0;
+    profile.points = Constants.DEFAULT_POINT_VALUE;
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
 
@@ -252,9 +254,9 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 
 profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
     const profile: AttendeeProfile | null = req.body as AttendeeProfile;
-    if (!profile) {
+
+    if (!isValidProfileModel(profile))
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
-    }
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -262,17 +264,14 @@ profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Re
         return res.status(Constants.FORBIDDEN).send({ error: "NotAuthorizedToUseEndpoint" });
     }
 
-    // // eslint-disable-next-line @typescript-eslint/typedef
-    const update = {
+    const update: UpdateQuery<AttendeeProfile> = {
         $set: {
             points: profile.points,
         },
     };
 
-    // eslint-disable-next-line @typescript-eslint/typedef
-    const filter = { userId: decodedData.id };
 
-    await AttendeeProfileModel.updateOne(filter, update);
+    await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
 
     return res.status(Constants.SUCCESS).send({ points: profile.points });
 });
@@ -298,11 +297,8 @@ profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Re
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    // eslint-disable-next-line @typescript-eslint/typedef
-    const filter = { userId: decodedData.id };
-
-    await AttendeeProfileModel.deleteOne(filter);
-    await AttendeeMetadataModel.deleteOne(filter);
+    await AttendeeProfileModel.deleteOne({ userId: decodedData.id });
+    await AttendeeMetadataModel.deleteOne({ userId: decodedData.id });
 
     return res.status(Constants.SUCCESS).send({ success: true });
 });
