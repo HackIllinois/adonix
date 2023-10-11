@@ -22,7 +22,7 @@ app.use(morgan("dev"));
 //     console.log("here");
 //     app.use(express.json());
 // } else {
-app.use(express.json()); 
+app.use(express.json());
 // }
 
 // Add routers for each sub-service

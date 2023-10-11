@@ -153,7 +153,6 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  */
 
 profileRouter.get("/userid/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
-
     const id: string | undefined = req.params.USERID;
     console.log(id);
 
@@ -202,11 +201,9 @@ profileRouter.get("/userid/:USERID", weakJwtVerification, async (req: Request, r
  */
 
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-
     const profile: AttendeeProfile = req.body as AttendeeProfile;
 
-    if (!isValidProfileModel(profile))
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
+    if (!isValidProfileModel(profile)) return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -255,8 +252,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
     const profile: AttendeeProfile | null = req.body as AttendeeProfile;
 
-    if (!isValidProfileModel(profile))
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
+    if (!isValidProfileModel(profile)) return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
 
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -269,7 +265,6 @@ profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Re
             points: profile.points,
         },
     };
-
 
     await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
 
