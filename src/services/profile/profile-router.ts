@@ -152,7 +152,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/userid/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
+profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
     const id: string | undefined = req.params.USERID;
     console.log(id);
 
