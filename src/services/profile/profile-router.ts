@@ -125,7 +125,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  * @apiGroup Profile
  * @apiDescription Retrieve the user's profile based on the provided ID as a path parameter.
  *
- * @apiParam {String} id User's unique ID.
+ * @apiParam {String} USERID User's unique ID.
  *
  * @apiSuccess (200: Success) {Json} user User's profile information.
  * @apiSuccessExample Example Success Response:
