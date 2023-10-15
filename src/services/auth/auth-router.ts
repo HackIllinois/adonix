@@ -333,7 +333,7 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiGroup Auth
  * @apiDescription Get all users that have a certain role.
  *
- * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONsOR
+ * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
  * 
  * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
  * @apiSuccessExample Example Success Response:
