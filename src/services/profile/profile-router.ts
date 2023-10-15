@@ -34,11 +34,7 @@ profileRouter.use(cors({ origin: "*" }));
             "points": 2021,
         },
         {
-<<<<<<< HEAD
             "displayName": "patrick"
-=======
-            "displayName": "test2"
->>>>>>> main
             "points": 2020,
         },
     ]
@@ -92,20 +88,11 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
-<<<<<<< HEAD
  *    "userId": "google12345"
  *    "displayName": "hackillinois",
  *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
-=======
- *    "displayName": "Illinois",
- *    "discordName": "hackillinois",
- *    "avatarUrl": "na",
- *    "points": 0,
- *    "userId": "abcde",
- *    "foodWave": 0
->>>>>>> main
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -149,19 +136,11 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
-<<<<<<< HEAD
  *    "userId": "google12345",
  *    "displayName": "Hack",
  *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
-=======
- *    "displayName": "Hackk",
- *    "discordName": "hackillinois",
- *    "avatarUrl": "na",
- *    "points": 0,
- *    "userId": "abcde",
->>>>>>> main
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -211,19 +190,11 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "abc12345",
-<<<<<<< HEAD
  *    "userId": "github12345",
  *    "displayName": "Hack",
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
-=======
- *    "displayName": "Illinois",
- *    "discordName": "HackIllinois",
- *    "avatarUrl": "na",
- *    "points": 0,
- *    "userId": "12345",
->>>>>>> main
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -265,55 +236,6 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         console.error(error);
         return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
     }
-<<<<<<< HEAD
-
-    return res.status(Constants.SUCCESS).send(profile);
-});
-
-/**
- * @api {put} /profile/points PUT /profile/points
- * @apiGroup Profile
- * @apiDescription Update a user's points. Only STAFF and ADMIN roles can edit this.
- *
- * @apiBody {String} points new number of points
- *
- * @apiSuccess (200: Success) {string} UserId ID of the user to be updated
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
- *    "points": 5
- * }
- *
- * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
- */
-
-profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
-    const profile: AttendeeProfile | null = req.body as AttendeeProfile;
-
-    if (!isValidProfileModel(profile)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
-    }
-
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
-
-    if (!hasElevatedPerms(decodedData)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "NotAuthorizedToUseEndpoint" });
-    }
-
-    const update: UpdateQuery<AttendeeProfile> = {
-        $set: {
-            points: profile.points,
-        },
-    };
-
-    await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
-
-    return res.status(Constants.SUCCESS).send({ points: profile.points });
-=======
->>>>>>> main
 });
 
 /**
