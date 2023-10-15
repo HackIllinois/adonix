@@ -114,7 +114,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     // If no target user, exact same as next route
     if (!req.params.USERID) {
-        res.redirect("/");
+        return res.redirect("/");
     }
 
     const targetUser: string = req.params.USERID ?? "";
