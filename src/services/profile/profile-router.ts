@@ -9,7 +9,7 @@ import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { strongJwtVerification, } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
@@ -75,7 +75,6 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     });
 });
 
-
 /**
  * @api {get} /profile/ GET /profile/
  * @apiGroup Profile
@@ -122,7 +121,6 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     return res.status(Constants.SUCCESS).send(user);
 });
 
-
 /**
  * @api {get} /profile/userid/:USERID GET /profile/userid/:USERID
  * @apiGroup Profile
@@ -135,7 +133,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
  * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
- * 
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
@@ -161,14 +159,14 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
 profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    
+
     if (!userId) {
         return res.redirect("/user/");
     }
 
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
     if (userId != payload.id && !hasElevatedPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({error: "Forbidden"});
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
@@ -179,7 +177,6 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
 
     return res.status(Constants.SUCCESS).send(user);
 });
-
 
 /**
  * @api {post} /profile POST /profile
@@ -270,6 +267,5 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
 
     return res.status(Constants.SUCCESS).send({ success: true });
 });
-
 
 export default profileRouter;
