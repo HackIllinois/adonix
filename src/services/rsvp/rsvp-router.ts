@@ -1,5 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import Constants from "../../constants.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DecisionInfo, DecisionInfoModel } from "../../database/decision-db.js";
@@ -26,7 +27,7 @@ rsvpRouter.get("/test/", (_: Request, res: Response) => {
  *
  * @apiUse strongVerifyErrors
  */
-rsvpRouter.get("/:USERID/", async (req: Request, res: Response) => {
+rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const userid: string | undefined = req.params.USERID;
 
     //Returns error if userid parameter is empty
@@ -34,10 +35,9 @@ rsvpRouter.get("/:USERID/", async (req: Request, res: Response) => {
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    const token: JwtPayload = res.locals.payload as JwtPayload;
-
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
     //Returns error if caller doesn't have elevated perms
-    if (!hasElevatedPerms(token)) {
+    if (!hasElevatedPerms(payload)) {
         return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
     }
 
@@ -45,7 +45,7 @@ rsvpRouter.get("/:USERID/", async (req: Request, res: Response) => {
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
     const rsvpDecision: boolean = queryResult.status === "ACCEPTED" && queryResult.response === "ACCEPTED";
@@ -67,7 +67,7 @@ rsvpRouter.get("/:USERID/", async (req: Request, res: Response) => {
  *
  * @apiUse strongVerifyErrors
  */
-rsvpRouter.get("/", async (_: Request, res: Response) => {
+rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     const userid: string | undefined = payload.id;
@@ -109,7 +109,7 @@ rsvpRouter.get("/", async (_: Request, res: Response) => {
  *
  * @apiUse strongVerifyErrors
  */
-rsvpRouter.put("/", async (req: Request, res: Response) => {
+rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
     const rsvp: boolean | undefined = req.body.isAttending;
 
     //Returns error if request body has no isAttending parameter
