@@ -26,7 +26,6 @@ abstract class Constants {
     private static readonly ANDROID_REDIRECT: string = "hackillinois://login/";
     static readonly DEFAULT_REDIRECT: string = this.WEB_REDIRECT;
 
-
     static readonly REDIRECT_MAPPINGS: Map<string, string> = new Map<string, string>([
         [this.ADMIN_DEVICE, this.ADMIN_REDIRECT],
         [this.WEB_DEVICE, this.WEB_REDIRECT],
