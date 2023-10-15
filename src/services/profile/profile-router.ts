@@ -226,50 +226,6 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     }
 });
 
-/**
- * @api {put} /profile/points PUT /profile/points
- * @apiGroup Profile
- * @apiDescription Update a user's points. Only STAFF and ADMIN roles can edit this.
- *
- * @apiBody {String} points new number of points
- *
- * @apiSuccess (200: Success) {Json} profile Updated user point number
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
- *    "userId": aabbbcc,
- *    "points": 5
- * }
- *
- * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
- */
-
-profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Response) => {
-    const profile: AttendeeProfile | null = req.body as AttendeeProfile;
-
-    if (!isValidProfileModel(profile)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPutData" });
-    }
-
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
-
-    if (!hasElevatedPerms(decodedData)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "NotAuthorizedToUseEndpoint" });
-    }
-
-    const update: UpdateQuery<AttendeeProfile> = {
-        $set: {
-            points: profile.points,
-        },
-    };
-
-    await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
-
-    return res.status(Constants.SUCCESS).send({ userId: decodedData.id, points: profile.points });
-});
 
 /**
  * @api {delete} /profile DELETE /profile

@@ -1,6 +1,7 @@
-import { AttendeeProfile } from "../../database/attendee-db.js";
+import { AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
 import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models.js";
+import { UpdateQuery } from "mongoose";
 
 /**
  * Remove non-necessary fields from a leaderboardentry item
@@ -22,4 +23,21 @@ export function castLeaderboardEntries(initial: AttendeeProfile): LeaderboardEnt
  */
 export function isValidLimit(limit: number): boolean {
     return limit > Constants.ZERO;
+}
+
+
+/**
+ * Change a user's points by a specific amount.
+ * @param userId ID of the user to modify
+ * @param amount Amount of points to change (note that this can be a negative number too!)
+ * @returns Promise containing the new user, or the actual attendee profile
+ */
+export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
+    const updateQuery: UpdateQuery<AttendeeProfile> = {
+        $inc: {
+            points: amount,
+        }
+    };
+
+    return AttendeeProfileModel.findOneAndUpdate({userId: userId}, updateQuery);
 }
