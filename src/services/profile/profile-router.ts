@@ -31,14 +31,12 @@ profileRouter.use(cors({ origin: "*" }));
  * {
     "profiles": [
         {
-            "id": "profileid123456",
+            "displayName": "profileid123456",
             "points": 2021,
-            "discord": "patrick#1234"
         },
         {
-            "id": "profileid123456",
-            "points": 2021,
-            "discord": "patrick#1234"
+            "displayName": "patrick"
+            "points": 2020,
         },
     ]
  }
@@ -82,18 +80,20 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  * @apiGroup Profile
  * @apiDescription Retrieve the user profile based on their authentication.
  *
- * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "firstName": "Hackk",
- *    "lastName": "Illinois",
- *    "discord": "hackillinois",
+ *    "userId": "google12345"
+ *    "displayName": "hackillinois",
+ *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "abcde",
- *    "foodWave": 0
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -127,18 +127,21 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *
  * @apiParam {String} USERID User's unique ID.
  *
- * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ * 
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "firstName": "Hackk",
- *    "lastName": "Illinois",
- *    "discord": "hackillinois",
+ *    "userId": "google12345",
+ *    "displayName": "Hack",
+ *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "abcde",
- *    "foodWave": 0
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -175,18 +178,21 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  * @apiBody {String} discord User's Discord username.
  * @apiBody {String} avatarUrl User's avatar URL.
  *
- * @apiSuccess (200: Success) {Json} user Created user's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "abc12345",
- *    "firstName": "Hack",
- *    "lastName": "Illinois",
+ *    "userId": "github12345",
+ *    "displayName": "Hack",
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "12345",
- *    "foodWave": 0
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -238,7 +244,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  *
  * @apiBody {String} points new number of points
  *
- * @apiSuccess (200: Success) {Json} profile Updated user point number
+ * @apiSuccess (200: Success) {string} UserId ID of the user to be updated
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
