@@ -4,11 +4,11 @@ export function isValidProfileModel(profile: AttendeeProfile): boolean {
     if (!profile) {
         return false;
     }
-    if (!profile.avatarUrl || !profile.discordName || !profile.displayName) {
+    if (!profile.avatarUrl || !profile.discordTag || !profile.displayName) {
         return false;
     }
     if (
-        typeof profile.discordName !== "string" ||
+        typeof profile.discordTag !== "string" ||
         typeof profile.displayName !== "string" ||
         typeof profile.avatarUrl !== "string"
     ) {

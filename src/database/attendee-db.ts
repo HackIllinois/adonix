@@ -31,7 +31,7 @@ export class AttendeeProfile {
     public avatarUrl: string;
 
     @prop({ required: true })
-    public discordName: string;
+    public discordTag: string;
 
     @prop({ required: true })
     public points: number;

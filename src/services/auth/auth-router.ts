@@ -142,11 +142,12 @@ authRouter.get(
         const redirect: string = Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT;
 
         data.id = data.id ?? user.id;
-        data.displayName = user.displayName;
+        data.displayName = data.displayName ?? data.login;
 
         try {
             // Load in the payload with the actual values stored in the database
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
+            console.log(data, payload);
             const userId: string = payload.id;
             await UserInfoModel.findOneAndUpdate(
                 { userId: userId },
