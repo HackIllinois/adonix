@@ -25,7 +25,6 @@ export function isValidLimit(limit: number): boolean {
     return limit > Constants.ZERO;
 }
 
-
 /**
  * Change a user's points by a specific amount.
  * @param userId ID of the user to modify
@@ -36,8 +35,8 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
     const updateQuery: UpdateQuery<AttendeeProfile> = {
         $inc: {
             points: amount,
-        }
+        },
     };
 
-    return AttendeeProfileModel.findOneAndUpdate({userId: userId}, updateQuery);
+    return AttendeeProfileModel.findOneAndUpdate({ userId: userId }, updateQuery);
 }

@@ -5,12 +5,11 @@ import { Response } from "express-serve-static-core";
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeMetadataModel, AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
-import { Query, UpdateQuery } from "mongoose";
+import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { isValidProfileModel } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
@@ -225,7 +224,6 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
     }
 });
-
 
 /**
  * @api {delete} /profile DELETE /profile
