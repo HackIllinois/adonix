@@ -9,11 +9,16 @@ import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
 import profileRouter from "./services/profile/profile-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
+import versionRouter from "./services/version/version-router.js";
+
+import { InitializeConfigReader } from "./middleware/config-reader.js";
 
 const app: Application = express();
 
 // Utility packages (detailed in the readme)
 // app.use(helmet({ crossOriginResourcePolicy: false }));
+
+app.use(InitializeConfigReader);
 app.use(morgan("dev"));
 
 app.use(express.json());
@@ -24,6 +29,7 @@ app.use("/user/", userRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
 app.use("/profile/", profileRouter);
+app.use("/version/", versionRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
