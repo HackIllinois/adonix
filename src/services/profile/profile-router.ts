@@ -31,14 +31,12 @@ profileRouter.use(cors({ origin: "*" }));
  * {
     "profiles": [
         {
-            "id": "profileid123456",
+            "displayName": "profileid123456",
             "points": 2021,
-            "discord": "patrick#1234"
         },
         {
-            "id": "profileid123456",
-            "points": 2021,
-            "discord": "patrick#1234"
+            "displayName": "test2"
+            "points": 2020,
         },
     ]
  }
@@ -87,12 +85,11 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "firstName": "Hackk",
- *    "lastName": "Illinois",
- *    "discord": "hackillinois",
+ *    "displayName": "Illinois",
+ *    "discordName": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "abcde",
+ *    "userId": "abcde",
  *    "foodWave": 0
  * }
  *
@@ -110,8 +107,8 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    const id: string = decodedData.id;
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
+    const userId: string = decodedData.id;
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
@@ -132,13 +129,11 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "firstName": "Hackk",
- *    "lastName": "Illinois",
- *    "discord": "hackillinois",
+ *    "displayName": "Hackk",
+ *    "discordName": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "abcde",
- *    "foodWave": 0
+ *    "userId": "abcde",
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -153,10 +148,13 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  */
 
 profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
-    const id: string | undefined = req.params.USERID;
-    console.log(id);
+    const userId: string | undefined = req.params.USERID;
 
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
+    if (!userId) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
+
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
@@ -180,13 +178,11 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "abc12345",
- *    "firstName": "Hack",
- *    "lastName": "Illinois",
- *    "discord": "HackIllinois",
+ *    "displayName": "Illinois",
+ *    "discordName": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "id": "12345",
- *    "foodWave": 0
+ *    "userId": "12345",
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -221,14 +217,13 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
 
     try {
-        await AttendeeProfileModel.create(profile);
+        const newProfile = await AttendeeProfileModel.create(profile);
         await AttendeeMetadataModel.create(profileMetadata);
+        return res.status(Constants.SUCCESS).send(newProfile);
     } catch (error) {
         console.error(error);
         return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
     }
-
-    return res.status(Constants.SUCCESS).send(profile);
 });
 
 /**
@@ -242,6 +237,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
+ *    "userId": aabbbcc,
  *    "points": 5
  * }
  *
@@ -272,7 +268,7 @@ profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Re
 
     await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
 
-    return res.status(Constants.SUCCESS).send({ points: profile.points });
+    return res.status(Constants.SUCCESS).send({ userId: decodedData.id, points: profile.points });
 });
 
 /**
