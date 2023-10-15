@@ -42,7 +42,7 @@ abstract class Constants {
 
     static readonly SYSTEM_ADMIN_LIST: string[] = (process.env.SYSTEM_ADMINS ?? "").split(",");
 
-    static readonly DEFAULT_JWT_OFFSET: string = "1h";
+    static readonly DEFAULT_JWT_OFFSET: string = "24h";
 
     // Constants for general usage
     static readonly ZERO: number = 0;
