@@ -1,14 +1,23 @@
-import { AttendeeProfile } from "../../database/attendee-db.js";
+export interface ProfileFormat {
+    userId: string;
+    avatarUrl: string;
+    discordTag: string;
+    displayName: string;
+    points: number;
+}
 
-export function isValidProfileModel(profile: AttendeeProfile): boolean {
+export function isValidProfileFormat(profile: ProfileFormat): boolean {
     if (!profile) {
         return false;
     }
-    if (!profile.avatarUrl || !profile.discordName || !profile.displayName) {
+
+    if (!profile.userId || !profile.avatarUrl || !profile.discordTag || !profile.displayName) {
         return false;
     }
+
     if (
-        typeof profile.discordName !== "string" ||
+        typeof profile.userId !== "string" ||
+        typeof profile.discordTag !== "string" ||
         typeof profile.displayName !== "string" ||
         typeof profile.avatarUrl !== "string"
     ) {

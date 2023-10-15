@@ -9,8 +9,9 @@ import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { isValidProfileModel } from "./profile-formats.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 const profileRouter: Router = Router();
 
@@ -34,7 +35,7 @@ profileRouter.use(cors({ origin: "*" }));
             "points": 2021,
         },
         {
-            "displayName": "test2"
+            "displayName": "patrick"
             "points": 2020,
         },
     ]
@@ -79,17 +80,20 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  * @apiGroup Profile
  * @apiDescription Retrieve the user profile based on their authentication.
  *
- * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "displayName": "Illinois",
- *    "discordName": "hackillinois",
+ *    "userId": "google12345"
+ *    "displayName": "hackillinois",
+ *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "userId": "abcde",
- *    "foodWave": 0
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -104,13 +108,14 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  */
 
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const userId: string = decodedData.id;
+    const userId: string = payload.id;
+    console.log(userId);
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
@@ -123,16 +128,21 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *
  * @apiParam {String} USERID User's unique ID.
  *
- * @apiSuccess (200: Success) {Json} user User's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
- *    "displayName": "Hackk",
- *    "discordName": "hackillinois",
+ *    "userId": "google12345",
+ *    "displayName": "Hack",
+ *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "userId": "abcde",
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -146,17 +156,23 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
+profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const userId: string | undefined = req.params.USERID;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!userId) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.redirect("/user/");
+    }
+
+    // Trying to perform elevated operation (getting someone else's profile without elevated perms)
+    if (userId != payload.id && !hasElevatedPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
@@ -172,16 +188,21 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  * @apiBody {String} discord User's Discord username.
  * @apiBody {String} avatarUrl User's avatar URL.
  *
- * @apiSuccess (200: Success) {Json} user Created user's profile information.
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    "_id": "abc12345",
- *    "displayName": "Illinois",
- *    "discordName": "HackIllinois",
+ *    "userId": "github12345",
+ *    "displayName": "Hack",
+ *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
- *    "userId": "12345",
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -194,28 +215,23 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-    const profile: AttendeeProfile = req.body as AttendeeProfile;
-
-    if (!isValidProfileModel(profile)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
-    }
-
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
-
-    profile.userId = decodedData.id;
+    const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Constants.DEFAULT_POINT_VALUE;
 
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
+    if (!isValidProfileFormat(profile)) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
 
+    // Ensure that user doesn't already exist before creating
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
     if (user) {
         return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
     }
 
-    const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
-
+    // Create a metadata object, and return it
     try {
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
         const newProfile = await AttendeeProfileModel.create(profile);
         await AttendeeMetadataModel.create(profileMetadata);
         return res.status(Constants.SUCCESS).send(newProfile);
