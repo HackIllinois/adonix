@@ -5,12 +5,11 @@ import { Response } from "express-serve-static-core";
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeMetadataModel, AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
-import { Query, UpdateQuery } from "mongoose";
+import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { isValidProfileModel } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
@@ -35,7 +34,11 @@ profileRouter.use(cors({ origin: "*" }));
             "points": 2021,
         },
         {
+<<<<<<< HEAD
             "displayName": "patrick"
+=======
+            "displayName": "test2"
+>>>>>>> main
             "points": 2020,
         },
     ]
@@ -89,11 +92,20 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
+<<<<<<< HEAD
  *    "userId": "google12345"
  *    "displayName": "hackillinois",
  *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
+=======
+ *    "displayName": "Illinois",
+ *    "discordName": "hackillinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "userId": "abcde",
+ *    "foodWave": 0
+>>>>>>> main
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -110,8 +122,8 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    const id: string = decodedData.id;
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
+    const userId: string = decodedData.id;
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
@@ -137,11 +149,19 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "12345",
+<<<<<<< HEAD
  *    "userId": "google12345",
  *    "displayName": "Hack",
  *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
+=======
+ *    "displayName": "Hackk",
+ *    "discordName": "hackillinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "userId": "abcde",
+>>>>>>> main
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -156,10 +176,13 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  */
 
 profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
-    const id: string | undefined = req.params.USERID;
-    console.log(id);
+    const userId: string | undefined = req.params.USERID;
 
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: id });
+    if (!userId) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
+
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
@@ -188,11 +211,19 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  * HTTP/1.1 200 OK
  * {
  *    "_id": "abc12345",
+<<<<<<< HEAD
  *    "userId": "github12345",
  *    "displayName": "Hack",
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
+=======
+ *    "displayName": "Illinois",
+ *    "discordName": "HackIllinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ *    "userId": "12345",
+>>>>>>> main
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -227,12 +258,14 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
 
     try {
-        await AttendeeProfileModel.create(profile);
+        const newProfile = await AttendeeProfileModel.create(profile);
         await AttendeeMetadataModel.create(profileMetadata);
+        return res.status(Constants.SUCCESS).send(newProfile);
     } catch (error) {
         console.error(error);
         return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
     }
+<<<<<<< HEAD
 
     return res.status(Constants.SUCCESS).send(profile);
 });
@@ -279,6 +312,8 @@ profileRouter.put("/points", strongJwtVerification, async (req: Request, res: Re
     await AttendeeProfileModel.updateOne({ userId: decodedData.id }, update);
 
     return res.status(Constants.SUCCESS).send({ points: profile.points });
+=======
+>>>>>>> main
 });
 
 /**
