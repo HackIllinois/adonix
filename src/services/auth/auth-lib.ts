@@ -107,7 +107,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
  * @param expiration Offset-based expiration. If not provided, defaults to 2 days.
  * @returns Signed JWT token, to be returned to the user.
  */
-export function generateJwtToken(payload?: JwtPayload, expiration?: string): string {
+export function generateJwtToken(payload?: JwtPayload, shouldNotExpire?: boolean, expiration?: string): string {
     if (!payload) {
         throw new Error("No JWT token passed in!");
     }
@@ -120,8 +120,10 @@ export function generateJwtToken(payload?: JwtPayload, expiration?: string): str
 
     // // Appends an expiry field to the JWT token
     const options: SignOptions = {};
-    const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
-    payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
+    if (!shouldNotExpire) {
+        const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
+        payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
+    }
 
     // Generate a token, and return it
     const token: string = jsonwebtoken.sign(payload, secret, options);

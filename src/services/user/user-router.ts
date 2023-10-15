@@ -32,7 +32,7 @@ const userRouter: Router = Router();
 userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     // Return the same payload, but with a shorter expiration time
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, "20s");
+    const token: string = generateJwtToken(payload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
     res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
 });
@@ -84,7 +84,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
     }
 
     // Generate the token
-    const token: string = generateJwtToken(newPayload, "20s");
+    const token: string = generateJwtToken(newPayload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
     return res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
 });

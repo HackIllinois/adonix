@@ -154,7 +154,8 @@ authRouter.get(
             );
 
             // Generate the token, and return it
-            const token: string = generateJwtToken(payload);
+            const isMobile: boolean = device == Constants.ANDROID_DEVICE || device == Constants.IOS_DEVICE;
+            const token: string = generateJwtToken(payload, isMobile);
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
