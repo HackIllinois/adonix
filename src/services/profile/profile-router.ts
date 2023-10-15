@@ -9,8 +9,9 @@ import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { isValidProfileModel } from "./profile-formats.js";
+import { strongJwtVerification, } from "../../middleware/verify-jwt.js";
+import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 const profileRouter: Router = Router();
 
@@ -74,6 +75,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     });
 });
 
+
 /**
  * @api {get} /profile/ GET /profile/
  * @apiGroup Profile
@@ -107,17 +109,19 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  */
 
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const userId: string = decodedData.id;
+    const userId: string = payload.id;
+    console.log(userId);
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
 });
+
 
 /**
  * @api {get} /profile/userid/:USERID GET /profile/userid/:USERID
@@ -154,21 +158,28 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: Response) => {
+profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const userId: string | undefined = req.params.USERID;
-
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    
     if (!userId) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.redirect("/user/");
+    }
+
+    // Trying to perform elevated operation (getting someone else's profile without elevated perms)
+    if (userId != payload.id && !hasElevatedPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({error: "Forbidden"});
     }
 
     const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
 });
+
 
 /**
  * @api {post} /profile POST /profile
@@ -207,28 +218,23 @@ profileRouter.get("/id/:USERID", weakJwtVerification, async (req: Request, res: 
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-    const profile: AttendeeProfile = req.body as AttendeeProfile;
-
-    if (!isValidProfileModel(profile)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidPostData" });
-    }
-
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
-
-    profile.userId = decodedData.id;
+    const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Constants.DEFAULT_POINT_VALUE;
 
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
+    if (!isValidProfileFormat(profile)) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
 
+    // Ensure that user doesn't already exist before creating
+    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
     if (user) {
         return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
     }
 
-    const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
-
+    // Create a metadata object, and return it
     try {
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
         const newProfile = await AttendeeProfileModel.create(profile);
         await AttendeeMetadataModel.create(profileMetadata);
         return res.status(Constants.SUCCESS).send(newProfile);
@@ -264,5 +270,6 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
 
     return res.status(Constants.SUCCESS).send({ success: true });
 });
+
 
 export default profileRouter;
