@@ -48,7 +48,8 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
-    const rsvpDecision: boolean = queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
+    const rsvpDecision: boolean =
+        queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
     return res.status(Constants.SUCCESS).send({ userId: userId, isAttending: rsvpDecision });
 });
 
@@ -78,7 +79,8 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
-    const rsvpDecision: boolean = queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
+    const rsvpDecision: boolean =
+        queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
     return res.status(Constants.SUCCESS).send({ isAttending: rsvpDecision });
 });
 
@@ -138,12 +140,11 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
             status: queryResult.status,
             response: rsvp ? DecisionResponse.ACCEPTED : DecisionResponse.DECLINED,
         },
-        { new: true } 
+        { new: true },
     );
 
-    
     if (updatedDecision) {
-        return res.status(Constants.SUCCESS).send( updatedDecision );
+        return res.status(Constants.SUCCESS).send(updatedDecision);
     } else {
         return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
     }
