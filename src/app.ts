@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { TEST } from "./env.js";
 
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
@@ -12,6 +12,7 @@ import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import versionRouter from "./services/version/version-router.js";
 
 import { InitializeConfigReader } from "./middleware/config-reader.js";
+import Models from "./database/models.js";
 
 const app: Application = express();
 
@@ -19,8 +20,13 @@ const app: Application = express();
 // app.use(helmet({ crossOriginResourcePolicy: false }));
 
 app.use(InitializeConfigReader);
-app.use(morgan("dev"));
 
+// Enable request output when not a test
+if (!TEST) {
+    app.use(morgan("dev"));
+}
+
+// Automatically convert requests from json
 app.use(express.json());
 
 // Add routers for each sub-service
@@ -41,11 +47,19 @@ app.use("/", (_: Request, res: Response) => {
     res.status(Constants.NOT_FOUND).end("API endpoint does not exist!");
 });
 
+export function setupServer(): void {
+    // Initialize models
+    Models.initialize();
+}
+
 export function startServer(): Promise<Express.Application> {
     // eslint-disable-next-line no-magic-numbers
     const port = process.env.PORT || 3000;
 
     return new Promise((resolve) => {
+        // Setup server
+        setupServer();
+        // Connect express server
         const server = app.listen(port, () => {
             console.log(`✅ Server served on http://localhost:${port}...`);
             resolve(server);

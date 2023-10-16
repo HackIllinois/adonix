@@ -7,8 +7,8 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 import { AttendanceFormat } from "./staff-formats.js";
 import Constants from "../../constants.js";
 
-import { UserAttendanceModel } from "../../database/user-db.js";
-import { EventMetadataModel, EventMetadata, EventAttendanceModel } from "../../database/event-db.js";
+import { EventMetadata } from "../../database/event-db.js";
+import Models from "../../database/models.js";
 
 const staffRouter: Router = Router();
 
@@ -54,7 +54,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    const metadata: EventMetadata | null = await EventMetadataModel.findById(eventId);
+    const metadata: EventMetadata | null = await Models.EventMetadata.findById(eventId);
 
     if (!metadata) {
         return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
@@ -67,8 +67,8 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
     }
 
-    await UserAttendanceModel.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
-    await EventAttendanceModel.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
+    await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
+    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
     return res.status(Constants.SUCCESS).send({ status: "Success" });
 });
 

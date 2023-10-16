@@ -1,15 +1,12 @@
 import { IModelOptions } from "@typegoose/typegoose/lib/types.js";
+import { getBaseURL } from "./database/base-url.js";
 import mongoose from "mongoose";
-
-const username: string | undefined = process.env.DB_USERNAME;
-const password: string | undefined = process.env.DB_PASSWORD;
-const server: string | undefined = process.env.DB_SERVER;
 
 const params: string = "?retryWrites=true&w=majority";
 const existingConnections: Map<string, mongoose.Connection> = new Map();
 
 export function connectToMongoose(dbName: string): mongoose.Connection {
-    const url: string = `mongodb+srv://${username}:${password}@${server}/${dbName}${params}`;
+    const url: string = `${getBaseURL()}${dbName}${params}`;
 
     let database: mongoose.Connection | undefined = existingConnections.get(dbName);
 
@@ -30,12 +27,12 @@ export function generateConfig(database: string, collection: string): IModelOpti
     };
 }
 
-export enum Databases {
-    AUTH_DB = "auth",
-    USER_DB = "user",
-    EVENT_DB = "event",
-    DECISION_DB = "decision",
-    ATTENDEE_DB = "attendee",
-    NEWSLETTER_DB = "newsletter",
-    REGISTRATION_DB = "registration",
+export enum Database {
+    AUTH = "auth",
+    USER = "user",
+    EVENT = "event",
+    DECISION = "decision",
+    ATTENDEE = "attendee",
+    NEWSLETTER = "newsletter",
+    REGISTRATION = "registration",
 }

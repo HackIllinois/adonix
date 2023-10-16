@@ -5,7 +5,8 @@ import cors, { CorsOptions } from "cors";
 import Constants from "../../constants.js";
 
 import { SubscribeRequest } from "./newsletter-formats.js";
-import { NewsletterSubscription, NewsletterSubscriptionModel } from "../../database/newsletter-db.js";
+import { NewsletterSubscription } from "../../database/newsletter-db.js";
+import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 
 const newsletterRouter: Router = Router();
@@ -61,7 +62,7 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
 
     // Perform a lazy delete
     const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
-    await NewsletterSubscriptionModel.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
+    await Models.NewsletterSubscription.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
     return res.status(Constants.SUCCESS).send({ status: "Success" });
 });
 

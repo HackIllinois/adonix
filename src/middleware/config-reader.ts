@@ -25,7 +25,6 @@ export class ConfigReader {
         const response: AxiosResponse = await axios.get(url);
         const configData: ConfigFormat = response.data as ConfigFormat;
 
-        console.log(configData);
         if (!configData || !isValidConfigFormat(configData)) {
             return Promise.reject("InvalidConfigFormat");
         }

@@ -7,8 +7,8 @@ import Constants from "../../constants.js";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
-import { AuthInfo, AuthInfoModel } from "../../database/auth-db.js";
-import { UserInfoModel } from "../../database/user-db.js";
+import Models from "../../database/models.js";
+import { AuthInfo } from "../../database/auth-db.js";
 import { UpdateQuery } from "mongoose";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
@@ -79,8 +79,8 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayload> {
     // Fill in auth info, used for provider and roles
     try {
-        const authInfo = await AuthInfoModel.findOne({ userId: targetUser });
-        const userInfo = await UserInfoModel.findOne({ userId: targetUser });
+        const authInfo = await Models.AuthInfo.findOne({ userId: targetUser });
+        const userInfo = await Models.UserInfo.findOne({ userId: targetUser });
 
         if (!authInfo || !userInfo) {
             return Promise.reject("UserNotFound");
@@ -159,7 +159,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    await AuthInfoModel.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
+    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
         .then(() => {
             return;
         })
@@ -201,7 +201,7 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
  */
 export async function getAuthInfo(id: string): Promise<AuthInfo> {
     try {
-        const info: AuthInfo | null = await AuthInfoModel.findOne({ userId: id });
+        const info: AuthInfo | null = await Models.AuthInfo.findOne({ userId: id });
 
         // Null check to ensure that we're not returning anything null
         if (!info) {
@@ -254,7 +254,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
     }
 
     try {
-        const updatedInfo: AuthInfo | null = await AuthInfoModel.findOneAndUpdate({ userId: userId }, updateQuery);
+        const updatedInfo: AuthInfo | null = await Models.AuthInfo.findOneAndUpdate({ userId: userId }, updateQuery);
         if (updatedInfo) {
             return updatedInfo.roles as Role[];
         } else {
@@ -334,7 +334,7 @@ export function getDevice(kv?: string): string {
 export async function getUsersWithRole(role: string): Promise<string[]> {
     try {
         //Array of users as MongoDb schema that have role as one of its roles
-        const queryResult: AuthInfo[] = await AuthInfoModel.find({ roles: { $in: [role] } }).select("userId");
+        const queryResult: AuthInfo[] = await Models.AuthInfo.find({ roles: { $in: [role] } }).select("userId");
         return queryResult.map((user: AuthInfo) => {
             return user.userId;
         });

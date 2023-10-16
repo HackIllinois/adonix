@@ -4,7 +4,8 @@ import { Response } from "express-serve-static-core";
 
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
-import { AttendeeMetadata, AttendeeMetadataModel, AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
+import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
+import Models from "../../database/models.js";
 import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
@@ -51,7 +52,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     const limitString: string | undefined = req.query.limit as string | undefined;
 
     // Initialize the metadata
-    let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = AttendeeProfileModel.find().sort({ points: -1 });
+    let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = Models.AttendeeProfile.find().sort({ points: -1 });
 
     // Returns NaN if invalid input is passed in
     if (limitString) {
@@ -112,7 +113,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
 
     const userId: string = payload.id;
     console.log(userId);
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
@@ -169,7 +170,7 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
         return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: userId });
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
@@ -224,7 +225,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     }
 
     // Ensure that user doesn't already exist before creating
-    const user: AttendeeProfile | null = await AttendeeProfileModel.findOne({ userId: profile.userId });
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
     if (user) {
         return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
     }
@@ -232,8 +233,8 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     // Create a metadata object, and return it
     try {
         const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
-        const newProfile = await AttendeeProfileModel.create(profile);
-        await AttendeeMetadataModel.create(profileMetadata);
+        const newProfile = await Models.AttendeeProfile.create(profile);
+        await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(Constants.SUCCESS).send(newProfile);
     } catch (error) {
         console.error(error);
@@ -262,8 +263,8 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    await AttendeeProfileModel.deleteOne({ userId: decodedData.id });
-    await AttendeeMetadataModel.deleteOne({ userId: decodedData.id });
+    await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
+    await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
     return res.status(Constants.SUCCESS).send({ success: true });
 });
