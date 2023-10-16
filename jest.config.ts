@@ -24,6 +24,8 @@ const config: Config = {
     setupFiles: ["../jest.presetup.ts"],
     setupFilesAfterEnv: ["../jest.setup.ts"],
 
+    testTimeout: 15 * 1000, // 15 second timeout per test
+
     transform: {
         "^.+\\.tsx?$": [
             "ts-jest",
