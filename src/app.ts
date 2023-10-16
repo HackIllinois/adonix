@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { TEST } from "./env.js";
 
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
@@ -20,8 +20,13 @@ const app: Application = express();
 // app.use(helmet({ crossOriginResourcePolicy: false }));
 
 app.use(InitializeConfigReader);
-app.use(morgan("dev"));
 
+// Enable request output when not a test
+if (!TEST) {
+    app.use(morgan("dev"));
+}
+
+// Automatically convert requests from json
 app.use(express.json());
 
 // Add routers for each sub-service
