@@ -3,53 +3,53 @@ import Constants from "../../constants.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { DecisionInfo, DecisionInfoModel } from "../../database/decision-db.js";
+import { DecisionStatus, DecisionResponse, DecisionInfo, DecisionInfoModel } from "../../database/decision-db.js";
 
 const rsvpRouter: Router = Router();
 rsvpRouter.use(express.urlencoded({ extended: false }));
 
 rsvpRouter.get("/test/", (_: Request, res: Response) => {
-    res.end("Auth endpoint is working!");
+    res.end("RSVP endpoint is working!");
 });
 
 /**
- * @api {get} /rsvp/USERID/ GET /rsvp/USERID/
+ * @api {get} /rsvp/:USERID/ GET /rsvp/:USERID/
  * @apiGroup rsvp
- * @apiDescription Check RSVP decision for a given USERID, provided that the current user has elevated perms
+ * @apiDescription Check RSVP decision for a given userId, provided that the current user has elevated perms
  *
  * @apiSuccess (200: Success) { string, boolean } usedId and whether they are/aren't attending
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"id": "github0000001",
+ *		"userId": "github0000001",
  *      "isAttending": true
  * 	}
  *
  * @apiUse strongVerifyErrors
  */
 rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
-    const userid: string | undefined = req.params.USERID;
+    const userId: string | undefined = req.params.USERID;
 
     //Returns error if userid parameter is empty
-    if (!userid) {
+    if (!userId) {
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     //Returns error if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
+        return res.redirect("/");
     }
 
-    const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userid });
+    const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
         return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
-    const rsvpDecision: boolean = queryResult.status === "ACCEPTED" && queryResult.response === "ACCEPTED";
-    return res.status(Constants.SUCCESS).send({ id: userid, isAttending: rsvpDecision });
+    const rsvpDecision: boolean = queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
+    return res.status(Constants.SUCCESS).send({ userId: userId, isAttending: rsvpDecision });
 });
 
 /**
@@ -61,7 +61,6 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"id": "github0000001",
  *      "isAttending": true
  * 	}
  *
@@ -70,21 +69,16 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const userid: string | undefined = payload.id;
-
-    //Returns error if payload has no userid parameter
-    if (!userid) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-    }
+    const userid: string = payload.id;
 
     const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userid });
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
-    const rsvpDecision: boolean = queryResult.status === "ACCEPTED" && queryResult.response === "ACCEPTED";
+    const rsvpDecision: boolean = queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
     return res.status(Constants.SUCCESS).send({ isAttending: rsvpDecision });
 });
 
@@ -99,12 +93,16 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  *      "isAttending": true
  * }
  *
- * @apiSuccess (200: Success) { string, boolean } usedId and whether they are/aren't attending
+ * @apiSuccess (200: Success) { string, string, string, string, string, boolean } Updated decision info for currently authenticated user
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"id": "github0000001",
- *      "isAttending": true
+ *      "_id": "652c311b6e283244d2ef4c29",
+ *      "userId": "github0000001",
+ *      "status": "ACCEPTED",
+ *      "response": "ACCEPTED",
+ *      "reviewer": "reviewer1",
+ *      "emailSent": true
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -119,12 +117,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const userid: string | undefined = payload.id;
-
-    //Returns error if payload has no userid parameter
-    if (!userid) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-    }
+    const userid: string = payload.id;
 
     const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userid });
 
@@ -134,8 +127,8 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     }
 
     //If the current user has not been accepted, send an error
-    if (queryResult.status != "ACCEPTED") {
-        return res.status(Constants.BAD_REQUEST).send({ error: "User has not been accepted to the hackathon" });
+    if (queryResult.status != DecisionStatus.ACCEPTED) {
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
     //If current user has been accepted, update their RSVP decision to "ACCEPTED"/"DECLINED" acoordingly
@@ -143,12 +136,14 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
         { userId: queryResult.userId },
         {
             status: queryResult.status,
-            response: rsvp ? "ACCEPTED" : "DECLINED",
+            response: rsvp ? DecisionResponse.ACCEPTED : DecisionResponse.DECLINED,
         },
+        { new: true } 
     );
 
+    
     if (updatedDecision) {
-        return res.status(Constants.SUCCESS).send({ id: userid, isAttending: rsvp });
+        return res.status(Constants.SUCCESS).send( updatedDecision );
     } else {
         return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
     }
