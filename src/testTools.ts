@@ -9,13 +9,15 @@ export const TESTER = {
 };
 
 const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
-    [Role.APPLICANT]: [Role.APPLICANT],
     [Role.USER]: [Role.USER],
-    [Role.ATTENDEE]: [Role.ATTENDEE],
-    [Role.STAFF]: [Role.ATTENDEE, Role.STAFF],
-    [Role.ADMIN]: [Role.ATTENDEE, Role.STAFF, Role.ADMIN],
+    [Role.APPLICANT]: [Role.USER, Role.APPLICANT],
+    [Role.ATTENDEE]: [Role.USER, Role.APPLICANT, Role.ATTENDEE],
 
-    [Role.MENTOR]: [Role.MENTOR],
+    [Role.STAFF]: [Role.USER, Role.STAFF],
+    [Role.ADMIN]: [Role.USER, Role.STAFF, Role.ADMIN],
+
+    [Role.MENTOR]: [Role.USER, Role.MENTOR],
+
     [Role.SPONSOR]: [Role.SPONSOR],
     [Role.BLOBSTORE]: [Role.BLOBSTORE],
 };
