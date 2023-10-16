@@ -20,7 +20,7 @@ import {
     verifyFunction,
     getUsersWithRole,
 } from "./auth-lib.js";
-import { UserInfoModel } from "../../database/user-db.js";
+import Models from "../../database/models.js";
 
 passport.use(
     Provider.GITHUB,
@@ -149,7 +149,7 @@ authRouter.get(
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
             console.log(data, payload);
             const userId: string = payload.id;
-            await UserInfoModel.findOneAndUpdate(
+            await Models.UserInfo.findOneAndUpdate(
                 { userId: userId },
                 { email: data.email, name: data.displayName, userId: userId },
                 { upsert: true },

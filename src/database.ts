@@ -30,12 +30,12 @@ export function generateConfig(database: string, collection: string): IModelOpti
     };
 }
 
-export enum Databases {
-    AUTH_DB = "auth",
-    USER_DB = "user",
-    EVENT_DB = "event",
-    DECISION_DB = "decision",
-    ATTENDEE_DB = "attendee",
-    NEWSLETTER_DB = "newsletter",
-    REGISTRATION_DB = "registration",
+export enum Database {
+    AUTH = "auth",
+    USER = "user",
+    EVENT = "event",
+    DECISION = "decision",
+    ATTENDEE = "attendee",
+    NEWSLETTER = "newsletter",
+    REGISTRATION = "registration",
 }

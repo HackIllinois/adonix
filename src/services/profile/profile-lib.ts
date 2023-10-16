@@ -1,7 +1,8 @@
-import { AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
+import { AttendeeProfile } from "../../database/attendee-db.js";
 import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models.js";
 import { UpdateQuery } from "mongoose";
+import Models from "../../database/models.js";
 
 /**
  * Remove non-necessary fields from a leaderboardentry item
@@ -38,5 +39,5 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
         },
     };
 
-    return AttendeeProfileModel.findOneAndUpdate({ userId: userId }, updateQuery);
+    return Models.AttendeeProfile.findOneAndUpdate({ userId: userId }, updateQuery);
 }

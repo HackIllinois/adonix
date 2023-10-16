@@ -7,7 +7,8 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
 import { UserFormat, isValidUserFormat } from "./user-formats.js";
-import { UserInfo, UserInfoModel } from "../../database/user-db.js";
+import { UserInfo } from "../../database/user-db.js";
+import Models from "../../database/models.js";
 
 const userRouter: Router = Router();
 
@@ -123,7 +124,7 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     if (payload.id == targetUser || hasElevatedPerms(payload)) {
         // Authorized -> return the user object
-        const userInfo: UserInfo | null = await UserInfoModel.findOne({ userId: targetUser });
+        const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
         if (userInfo) {
             return res.status(Constants.SUCCESS).send(userInfo);
         } else {
@@ -157,7 +158,7 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     // Get payload, return user's values
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const user: UserInfo | null = await UserInfoModel.findOne({ userId: payload.id });
+    const user: UserInfo | null = await Models.UserInfo.findOne({ userId: payload.id });
 
     if (user) {
         return res.status(Constants.SUCCESS).send(user);
@@ -209,7 +210,7 @@ userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) 
     }
 
     // Update the given user
-    const updatedUser: UserInfo | null = await UserInfoModel.findOneAndUpdate(
+    const updatedUser: UserInfo | null = await Models.UserInfo.findOneAndUpdate(
         { userId: userData.userId },
         { $set: userData },
         { upsert: true },

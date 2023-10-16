@@ -1,7 +1,7 @@
-import { getModelForClass, modelOptions, mongoose, prop } from "@typegoose/typegoose";
-import Constants from "../constants.js";
-import { Databases, generateConfig } from "../database.js";
+import { modelOptions, prop } from "@typegoose/typegoose";
 import { ObjectId } from "mongodb";
+
+import Constants from "../constants.js";
 import { GenericEventFormat } from "../services/event/event-formats.js";
 
 // Interface for the location of the event
@@ -129,31 +129,3 @@ export class EventAttendance {
     })
     public attendees: string[];
 }
-
-// Collections within the event database
-export enum EventDB {
-    METADATA = "metadata",
-    ATTENDANCE = "attendance",
-    STAFF_EVENTS = "staffevents",
-    PUBLIC_EVENTS = "publicevents",
-}
-
-export const StaffEventModel: mongoose.Model<StaffEvent> = getModelForClass(
-    StaffEvent,
-    generateConfig(Databases.EVENT_DB, EventDB.STAFF_EVENTS),
-);
-
-export const PublicEventModel: mongoose.Model<PublicEvent> = getModelForClass(
-    PublicEvent,
-    generateConfig(Databases.EVENT_DB, EventDB.PUBLIC_EVENTS),
-);
-
-export const EventMetadataModel: mongoose.Model<EventMetadata> = getModelForClass(
-    EventMetadata,
-    generateConfig(Databases.EVENT_DB, EventDB.METADATA),
-);
-
-export const EventAttendanceModel: mongoose.Model<EventAttendance> = getModelForClass(
-    EventAttendance,
-    generateConfig(Databases.EVENT_DB, EventDB.ATTENDANCE),
-);

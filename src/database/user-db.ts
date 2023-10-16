@@ -1,10 +1,4 @@
-import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import { Databases, generateConfig } from "../database.js";
-
-enum UserDB {
-    INFO = "users",
-    ATTENDANCE = "attendance",
-}
+import { prop } from "@typegoose/typegoose";
 
 export class UserInfo {
     @prop({ required: true })
@@ -29,10 +23,3 @@ export class UserAttendance {
     })
     public attendance: string[];
 }
-
-export const UserInfoModel: mongoose.Model<UserInfo> = getModelForClass(UserInfo, generateConfig(Databases.USER_DB, UserDB.INFO));
-
-export const UserAttendanceModel: mongoose.Model<UserAttendance> = getModelForClass(
-    UserAttendance,
-    generateConfig(Databases.USER_DB, UserDB.ATTENDANCE),
-);
