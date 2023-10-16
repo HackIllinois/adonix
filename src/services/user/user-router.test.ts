@@ -5,7 +5,6 @@ import Models from "../../database/models.js";
 
 // Before each test, add the tester to the user model
 beforeEach(async () => {
-    console.log("run init user");
     Models.initialize();
     await Models.UserInfo.create({
         userId: TESTER.id,

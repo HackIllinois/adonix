@@ -21,7 +21,6 @@ beforeEach(async () => {
 
     servers.set(id, mongod);
 
-    console.log("mock with", mongod.getUri());
     jest.spyOn(baseUrl, "getBaseURL").mockReturnValue(mongod.getUri());
 });
 
