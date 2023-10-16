@@ -17,10 +17,10 @@ const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.APPLICANT]: [Role.USER, Role.APPLICANT],
     [Role.ATTENDEE]: [Role.USER, Role.APPLICANT, Role.ATTENDEE],
 
+    [Role.MENTOR]: [Role.USER, Role.MENTOR],
+
     [Role.STAFF]: [Role.USER, Role.STAFF],
     [Role.ADMIN]: [Role.USER, Role.STAFF, Role.ADMIN],
-
-    [Role.MENTOR]: [Role.USER, Role.MENTOR],
 
     [Role.SPONSOR]: [Role.SPONSOR],
     [Role.BLOBSTORE]: [Role.BLOBSTORE],
@@ -72,6 +72,38 @@ export function del(url: string, role?: Role): request.Test {
 
 // Helpers that are nicer to use
 
+export function getAsUser(url: string): request.Test {
+    return get(url, Role.USER);
+}
+
+export function postAsUser(url: string): request.Test {
+    return post(url, Role.USER);
+}
+
+export function putAsUser(url: string): request.Test {
+    return put(url, Role.USER);
+}
+
+export function delAsUser(url: string): request.Test {
+    return del(url, Role.USER);
+}
+
+export function getAsApplicant(url: string): request.Test {
+    return get(url, Role.APPLICANT);
+}
+
+export function postAsApplicant(url: string): request.Test {
+    return post(url, Role.APPLICANT);
+}
+
+export function putAsApplicant(url: string): request.Test {
+    return put(url, Role.APPLICANT);
+}
+
+export function delAsApplicant(url: string): request.Test {
+    return del(url, Role.APPLICANT);
+}
+
 export function getAsAttendee(url: string): request.Test {
     return get(url, Role.ATTENDEE);
 }
@@ -86,6 +118,22 @@ export function putAsAttendee(url: string): request.Test {
 
 export function delAsAttendee(url: string): request.Test {
     return del(url, Role.ATTENDEE);
+}
+
+export function getAsMentor(url: string): request.Test {
+    return get(url, Role.MENTOR);
+}
+
+export function postAsMentor(url: string): request.Test {
+    return post(url, Role.MENTOR);
+}
+
+export function putAsMentor(url: string): request.Test {
+    return put(url, Role.MENTOR);
+}
+
+export function delAsMentor(url: string): request.Test {
+    return del(url, Role.MENTOR);
 }
 
 export function getAsStaff(url: string): request.Test {
