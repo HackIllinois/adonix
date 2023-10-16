@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { TESTER, get, getAsAdmin, getAsAttendee, getAsStaff } from "../../testTools.js";
-console.log("models loaded from user test");
 import Models from "../../database/models.js";
 
 // Before each test, add the tester to the user model
