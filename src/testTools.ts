@@ -2,12 +2,16 @@ import request from "supertest";
 
 import { Provider, Role } from "./services/auth/auth-models.js";
 
+// The tester is the user that will be making requests
+// We provide this object so you can do proper testing based on JWT auth
+// and not have to hardcode values, aka TESTER is the data used to create the JWT
 export const TESTER = {
     id: "bob-the-tester101010101011",
     email: "bob-the-tester@hackillinois.org",
     name: "Bob Tester",
 };
 
+// A mapping of role to roles they have, used for JWT generation
 const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.USER]: [Role.USER],
     [Role.APPLICANT]: [Role.USER, Role.APPLICANT],
@@ -42,6 +46,7 @@ function setAuth(request: request.Test, role?: Role): request.Test {
     return request.set("Authorization", jwt as string);
 }
 
+// Dynamically require app so it's always the freshest version
 function app(): Express.Application {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const appExports = require("./app.js");
