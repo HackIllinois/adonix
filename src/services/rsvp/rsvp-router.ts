@@ -3,7 +3,8 @@ import Constants from "../../constants.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { DecisionStatus, DecisionResponse, DecisionInfo, DecisionInfoModel } from "../../database/decision-db.js";
+import { DecisionStatus, DecisionResponse, DecisionInfo } from "../../database/decision-db.js";
+import Models from "../../database/models.js";
 
 const rsvpRouter: Router = Router();
 rsvpRouter.use(express.urlencoded({ extended: false }));
@@ -41,7 +42,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         return res.redirect("/");
     }
 
-    const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userId });
+    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -72,7 +73,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
 
     const userid: string = payload.id;
 
-    const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userid });
+    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userid });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -121,7 +122,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     const userid: string = payload.id;
 
-    const queryResult: DecisionInfo | null = await DecisionInfoModel.findOne({ userId: userid });
+    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userid });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -134,7 +135,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     }
 
     //If current user has been accepted, update their RSVP decision to "ACCEPTED"/"DECLINED" acoordingly
-    const updatedDecision: DecisionInfo | null = await DecisionInfoModel.findOneAndUpdate(
+    const updatedDecision: DecisionInfo | null = await Models.DecisionInfo.findOneAndUpdate(
         { userId: queryResult.userId },
         {
             status: queryResult.status,
