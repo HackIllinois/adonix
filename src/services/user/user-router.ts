@@ -6,8 +6,9 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { UserFormat } from "./user-formats.js";
-import { UserInfo, UserInfoModel } from "../../database/user-db.js";
+import { UserFormat, isValidUserFormat } from "./user-formats.js";
+import { UserInfo } from "../../database/user-db.js";
+import Models from "../../database/models.js";
 
 const userRouter: Router = Router();
 
@@ -17,13 +18,13 @@ const userRouter: Router = Router();
  * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
  *
- * @apiSuccess (200: Success) {String} id User to generate a QR code for
+ * @apiSuccess (200: Success) {String} userId User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the given user
 
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"id": "provider000001",
+ *		"userId": "provider000001",
  * 		"qrinfo": "hackillinois://user?userToken=loremipsumdolorsitamet"
  * 	}
  *
@@ -32,9 +33,9 @@ const userRouter: Router = Router();
 userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     // Return the same payload, but with a shorter expiration time
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, "20s");
+    const token: string = generateJwtToken(payload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
-    res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
+    res.status(Constants.SUCCESS).send({ userId: payload.id, qrInfo: uri });
 });
 
 /**
@@ -43,15 +44,15 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
  * @apiDescription Get a QR code with a pre-defined expiration for a particular user, provided that the JWT token's user has elevated perms. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
  *
- * @apiParam {String} USERID to generate the QR code for.
+ * @apiParam {String} USERID Id to generate the QR code for.
  *
- * @apiSuccess (200: Success) {String} id User to generate a QR code for
+ * @apiSuccess (200: Success) {String} userId User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the user to be used
 
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"id": "provider000001",
+ *		"userId": "provider000001",
  * 		"qrinfo": "hackillinois://user?userToken=loremipsumdolorsitamet"
  * 	}
  *
@@ -84,9 +85,9 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
     }
 
     // Generate the token
-    const token: string = generateJwtToken(newPayload, "20s");
+    const token: string = generateJwtToken(newPayload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
-    return res.status(Constants.SUCCESS).send({ id: payload.id, qrInfo: uri });
+    return res.status(Constants.SUCCESS).send({ userId: payload.id, qrInfo: uri });
 });
 
 /**
@@ -95,17 +96,15 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  * @apiDescription Get user data for a particular user, provided that the JWT token's user has elevated perms.
  * @apiParam {String} USERID to generate the QR code for.
  *
- * @apiSuccess (200: Success) {String} id UserID
- * @apiSuccess (200: Success) {String} firstname User's first name.
- * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} userId UserID
+ * @apiSuccess (200: Success) {String} name User's name.
  * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
 
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
-		"id": "provider00001",
-		"firstname": "john",
-		"lastname": "doe",
+		"userId": "provider00001",
+		"name": "john doe",
 		"email": "johndoe@provider.com"
  * 	}
  *
@@ -116,7 +115,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     // If no target user, exact same as next route
     if (!req.params.USERID) {
-        res.redirect("/");
+        return res.redirect("/");
     }
 
     const targetUser: string = req.params.USERID ?? "";
@@ -125,7 +124,7 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     if (payload.id == targetUser || hasElevatedPerms(payload)) {
         // Authorized -> return the user object
-        const userInfo: UserInfo | null = await UserInfoModel.findOne({ userId: targetUser });
+        const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
         if (userInfo) {
             return res.status(Constants.SUCCESS).send(userInfo);
         } else {
@@ -141,17 +140,15 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  * @apiGroup User
  * @apiDescription Get user data for the current user in the JWT token.
  *
- * @apiSuccess (200: Success) {String} id UserID
- * @apiSuccess (200: Success) {String} firstname User's first name.
- * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} userId UserID
+ * @apiSuccess (200: Success) {String} name User's name.
  * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
 
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
-		"id": "provider00001",
-		"firstname": "john",
-		"lastname": "doe",
+		"userId": "provider00001",
+		"name": "john doe",
 		"email": "johndoe@provider.com"
  * 	}
  *
@@ -161,7 +158,7 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     // Get payload, return user's values
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const user: UserInfo | null = await UserInfoModel.findOne({ userId: payload.id });
+    const user: UserInfo | null = await Models.UserInfo.findOne({ userId: payload.id });
 
     if (user) {
         return res.status(Constants.SUCCESS).send(user);
@@ -175,29 +172,25 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  * @apiGroup User
  * @apiDescription Update a given user
  *
- * @apiBody {String} id UserID
- * @apiBody {String} firstname User's first name.
- * @apiBody {String} lastname User's last name.
+ * @apiBody {String} userId UserID
+ * @apiBody {String} name User's name.
  * @apiBody {String} email Email address (staff gmail or Github email).
  * @apiParamExample {json} Example Request:
  *	{
-		"id": "provider00001",
-		"firstname": "john",
-		"lastname": "doe",
+		"userId": "provider00001",
+		"name": "john doe",
 		"email": "johndoe@provider.com"
  * 	}
  *
- * @apiSuccess (200: Success) {String} id UserID
- * @apiSuccess (200: Success) {String} firstname User's first name.
- * @apiSuccess (200: Success) {String} lastname User's last name.
+ * @apiSuccess (200: Success) {String} userId UserID
+ * @apiSuccess (200: Success) {String} name User's name.
  * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
 		
  * @apiSuccessExample Example Success Response:
 		* 	HTTP/1.1 200 OK
 		*	{
-			"id": "provider00001",
-			"firstname": "john",
-			"lastname": "doe",
+			"userId": "provider00001",
+			"name": "john",
 			"email": "johndoe@provider.com"
  		* 	}
  * @apiUse strongVerifyErrors
@@ -212,13 +205,13 @@ userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) 
     // Get userData from the request, and print to output
     const userData: UserFormat = req.body as UserFormat;
 
-    if (!userData.id || !userData.email || !userData.firstname || !userData.lastname || !userData.username) {
+    if (!isValidUserFormat(userData)) {
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
     // Update the given user
-    const updatedUser: UserInfo | null = await UserInfoModel.findOneAndUpdate(
-        { userId: userData.id },
+    const updatedUser: UserInfo | null = await Models.UserInfo.findOneAndUpdate(
+        { userId: userData.userId },
         { $set: userData },
         { upsert: true },
     );

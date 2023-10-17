@@ -20,7 +20,7 @@ import {
     verifyFunction,
     getUsersWithRole,
 } from "./auth-lib.js";
-import { UserInfoModel } from "../../database/user-db.js";
+import Models from "../../database/models.js";
 
 passport.use(
     Provider.GITHUB,
@@ -142,19 +142,22 @@ authRouter.get(
         const redirect: string = Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT;
 
         data.id = data.id ?? user.id;
-        data.displayName = user.displayName;
+        data.displayName = data.displayName ?? data.login;
 
         try {
             // Load in the payload with the actual values stored in the database
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
-            await UserInfoModel.findOneAndUpdate(
-                { userId: data.id },
-                { email: data.email, name: data.displayName, userId: payload.id },
+            console.log(data, payload);
+            const userId: string = payload.id;
+            await Models.UserInfo.findOneAndUpdate(
+                { userId: userId },
+                { email: data.email, name: data.displayName, userId: userId },
                 { upsert: true },
             );
 
             // Generate the token, and return it
-            const token: string = generateJwtToken(payload);
+            const isMobile: boolean = device == Constants.ANDROID_DEVICE || device == Constants.IOS_DEVICE;
+            const token: string = generateJwtToken(payload, isMobile);
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
@@ -328,9 +331,11 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
 });
 
 /**
- * @api {get} /auth/roles/list/:role GET /auth/roles/list/:role
+ * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
  * @apiGroup Auth
  * @apiDescription Get all users that have a certain role.
+ *
+ * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
  *
  * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
  * @apiSuccessExample Example Success Response:
