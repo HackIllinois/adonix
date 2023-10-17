@@ -1,9 +1,4 @@
-import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import { Databases, generateConfig } from "../database.js";
-
-enum NewsletterDB {
-    SUBSCRIPTIONS = "subscriptions",
-}
+import { prop } from "@typegoose/typegoose";
 
 export class NewsletterSubscription {
     @prop({ required: true })
@@ -17,8 +12,3 @@ export class NewsletterSubscription {
     })
     public subscribers: string[];
 }
-
-export const NewsletterSubscriptionModel: mongoose.Model<NewsletterSubscription> = getModelForClass(
-    NewsletterSubscription,
-    generateConfig(Databases.NEWSLETTER_DB, NewsletterDB.SUBSCRIPTIONS),
-);

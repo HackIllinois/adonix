@@ -1,10 +1,4 @@
-import { getModelForClass, mongoose, prop } from "@typegoose/typegoose";
-import { Databases, generateConfig } from "../database.js";
-
-enum DecisionDB {
-    INFO = "info",
-    ENTRIES = "entries",
-}
+import { prop } from "@typegoose/typegoose";
 
 export enum DecisionStatus {
     TBD = "TBD",
@@ -46,13 +40,3 @@ export class DecisionEntry {
     @prop({ required: true })
     public decision: DecisionStatus;
 }
-
-export const DecisionInfoModel: mongoose.Model<DecisionInfo> = getModelForClass(
-    DecisionInfo,
-    generateConfig(Databases.DECISION_DB, DecisionDB.INFO),
-);
-
-export const DecisionEntryModel: mongoose.Model<DecisionEntry> = getModelForClass(
-    DecisionEntry,
-    generateConfig(Databases.DECISION_DB, DecisionDB.ENTRIES),
-);

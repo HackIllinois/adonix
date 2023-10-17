@@ -1,5 +1,6 @@
 export interface ProfileData {
     id?: string;
+    login?: string;
     email: string;
     displayName?: string;
 }

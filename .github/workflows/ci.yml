@@ -38,3 +38,18 @@ jobs:
       run: yarn
     - name: Run formatter
       run: yarn run format:check
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+        cache: 'yarn'
+    - name: Install modules
+      run: yarn
+    - name: Get number of CPU cores
+      id: cpu-cores
+      uses: SimenB/github-actions-cpu-cores@v2
+    - name: Run tests
+      run: yarn run test --max-workers ${{ steps.cpu-cores.outputs.count }} --reporters github-actions summary

@@ -4,11 +4,18 @@ import { Response } from "express-serve-static-core";
 
 import Constants from "../../constants.js";
 import { isValidLimit } from "./profile-lib.js";
-import { AttendeeProfile, AttendeeProfileModel } from "../../database/attendee-db.js";
+import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
+import Models from "../../database/models.js";
 import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
 
+import { JwtPayload } from "../auth/auth-models.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
+
 const profileRouter: Router = Router();
+
 profileRouter.use(cors({ origin: "*" }));
 
 /**
@@ -25,14 +32,12 @@ profileRouter.use(cors({ origin: "*" }));
  * {
     "profiles": [
         {
-            "id": "profileid123456",
+            "displayName": "profileid123456",
             "points": 2021,
-            "discord": "patrick#1234"
         },
         {
-            "id": "profileid123456",
-            "points": 2021,
-            "discord": "patrick#1234"
+            "displayName": "patrick"
+            "points": 2020,
         },
     ]
  }
@@ -47,7 +52,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     const limitString: string | undefined = req.query.limit as string | undefined;
 
     // Initialize the metadata
-    let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = AttendeeProfileModel.find().sort({ points: -1 });
+    let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = Models.AttendeeProfile.find().sort({ points: -1 });
 
     // Returns NaN if invalid input is passed in
     if (limitString) {
@@ -60,7 +65,6 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
         leaderboardQuery = leaderboardQuery.limit(limit);
     }
-
     // Perform the actual query, filter, and return the results
     const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
     const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
@@ -70,6 +74,199 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
     return res.status(Constants.SUCCESS).send({
         profiles: filteredLeaderboardEntried,
     });
+});
+
+/**
+ * @api {get} /profile/ GET /profile/
+ * @apiGroup Profile
+ * @apiDescription Retrieve the user profile based on their authentication.
+ *
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "12345",
+ *    "userId": "google12345"
+ *    "displayName": "hackillinois",
+ *    "discordTag": "discordtag",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserNotFound):
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "UserNotFound"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+
+profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    const userId: string = payload.id;
+    console.log(userId);
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+
+    if (!user) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+    }
+
+    return res.status(Constants.SUCCESS).send(user);
+});
+
+/**
+ * @api {get} /profile/userid/:USERID GET /profile/userid/:USERID
+ * @apiGroup Profile
+ * @apiDescription Retrieve the user's profile based on the provided ID as a path parameter.
+ *
+ * @apiParam {String} USERID User's unique ID.
+ *
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "12345",
+ *    "userId": "google12345",
+ *    "displayName": "Hack",
+ *    "discordTag": "hackillinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserNotFound):
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "UserNotFound"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+
+profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+    const userId: string | undefined = req.params.USERID;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    if (!userId) {
+        return res.redirect("/user/");
+    }
+
+    // Trying to perform elevated operation (getting someone else's profile without elevated perms)
+    if (userId != payload.id && !hasElevatedPerms(payload)) {
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+    }
+
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+
+    if (!user) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+    }
+
+    return res.status(Constants.SUCCESS).send(user);
+});
+
+/**
+ * @api {post} /profile POST /profile
+ * @apiGroup Profile
+ * @apiDescription Create a user profile based on their authentication.
+ *
+ * @apiBody {String} firstName User's first name.
+ * @apiBody {String} lastName User's last name.
+ * @apiBody {String} discord User's Discord username.
+ * @apiBody {String} avatarUrl User's avatar URL.
+ *
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "abc12345",
+ *    "userId": "github12345",
+ *    "displayName": "Hack",
+ *    "discord": "HackIllinois",
+ *    "avatarUrl": "na",
+ *    "points": 0,
+ * }
+ *
+ * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (UserAlreadyExists):
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "UserAlreadyExists"}
+ *
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+    const profile: ProfileFormat = req.body as ProfileFormat;
+    profile.points = Constants.DEFAULT_POINT_VALUE;
+
+    if (!isValidProfileFormat(profile)) {
+        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+    }
+
+    // Ensure that user doesn't already exist before creating
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
+    if (user) {
+        return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
+    }
+
+    // Create a metadata object, and return it
+    try {
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
+        const newProfile = await Models.AttendeeProfile.create(profile);
+        await Models.AttendeeMetadata.create(profileMetadata);
+        return res.status(Constants.SUCCESS).send(newProfile);
+    } catch (error) {
+        console.error(error);
+        return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
+    }
+});
+
+/**
+ * @api {delete} /profile DELETE /profile
+ * @apiGroup Profile
+ * @apiDescription Delete the user's profile based on their authentication.
+ *
+ * @apiSuccess (200: Success) {Json} success Indicates successful deletion of the user's profile.
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "success": true
+ * }
+ *
+ * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
+ * @apiErrorExample Example Error Response (InternalError):
+ *     HTTP/1.1 500 Internal Server Error
+ *     {"error": "InternalError"}
+ */
+
+profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
+    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+
+    await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
+    await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
+
+    return res.status(Constants.SUCCESS).send({ success: true });
 });
 
 export default profileRouter;
