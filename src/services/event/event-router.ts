@@ -371,19 +371,20 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
     // Try to upload the events if possible, else throw an error
     let newEvent: PublicEvent | StaffEvent | null;
+
     if (isStaffEvent) {
         // If ID doesn't exist -> return the invalid parameters
         if (!isValidStaffFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
-
-        newEvent = await Models.StaffEvent.create(eventFormat);
+        const event: StaffEvent = new StaffEvent(eventFormat);
+        newEvent = await Models.StaffEvent.create(event);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
-
-        newEvent = await Models.PublicEvent.create(eventFormat);
+        const event: PublicEvent = new PublicEvent(eventFormat);
+        newEvent = await Models.PublicEvent.create(event);
     }
     await Models.EventMetadata.create(metadata);
     return res.status(Constants.CREATED).send(newEvent);
