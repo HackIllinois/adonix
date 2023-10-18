@@ -23,7 +23,11 @@ export class DecisionInfo {
     @prop({ required: true })
     public response: DecisionResponse;
 
+    @prop({required: true})
+    public reviewer: string;
 
+    @prop({required: true})
+    public emailSent: boolean;
 }
 
 export class DecisionEntry {
@@ -42,3 +46,5 @@ export class DecisionEntry {
     @prop({ required: true })
     public decision: DecisionStatus;
 }
+
+
