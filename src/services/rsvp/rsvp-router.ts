@@ -18,7 +18,8 @@ rsvpRouter.get("/test/", (_: Request, res: Response) => {
  * @apiGroup rsvp
  * @apiDescription Check RSVP decision for a given userId, provided that the current user has elevated perms
  *
- * @apiSuccess (200: Success) { string, boolean } usedId and whether they are/aren't attending
+ * @apiSuccess (200: Success) {string} userId
+ * @apiSuccess (200: Success) {boolean} whether they are/aren't attending
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
@@ -46,7 +47,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     const rsvpDecision: boolean =
@@ -59,7 +60,8 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  * @apiGroup rsvp
  * @apiDescription Check RSVP decision for current user
  *
- * @apiSuccess (200: Success) { string, boolean } usedid and whether they are/aren't attending
+ * @apiSuccess (200: Success) {string} userId
+ * @apiSuccess (200: Success) {boolean} whether they are/aren't attending
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
@@ -71,9 +73,9 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const userid: string = payload.id;
+    const userId: string = payload.id;
 
-    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userid });
+    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -96,7 +98,12 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  *      "isAttending": true
  * }
  *
- * @apiSuccess (200: Success) { string, string, string, string, string, boolean } Updated decision info for currently authenticated user
+ * @apiSuccess (200: Success) {string} MongoDB object ID
+ * @apiSuccess (200: Success) {string} userId
+ * @apiSuccess (200: Success) {string} User's applicatoin status
+ * @apiSuccess (200: Success) {string} User's Response
+ * @apiSuccess (200: Success) {string} Reviwer
+ * @apiSuccess (200: Success) {boolean} Whether email has been sent
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
@@ -126,7 +133,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UnknownError" });
     }
 
     //If the current user has not been accepted, send an error
