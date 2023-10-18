@@ -22,6 +22,8 @@ export class DecisionInfo {
 
     @prop({ required: true })
     public response: DecisionResponse;
+
+
 }
 
 export class DecisionEntry {
