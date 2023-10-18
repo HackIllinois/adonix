@@ -7,7 +7,6 @@ import { DecisionStatus, DecisionResponse, DecisionInfo } from "../../database/d
 import Models from "../../database/models.js";
 
 const rsvpRouter: Router = Router();
-rsvpRouter.use(express.urlencoded({ extended: false }));
 
 rsvpRouter.get("/test/", (_: Request, res: Response) => {
     res.end("RSVP endpoint is working!");
