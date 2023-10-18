@@ -614,14 +614,14 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
             return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
 
-        const event: StaffEvent = new StaffEvent(eventFormat, false);
+        const event: StaffEvent = new StaffEvent(eventFormat);
         const updatedEvent: StaffEvent | null = await Models.StaffEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(Constants.SUCCESS).send(updatedEvent);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
-        const event: PublicEvent = new PublicEvent(eventFormat, false);
+        const event: PublicEvent = new PublicEvent(eventFormat);
         const updatedEvent: PublicEvent | null = await Models.PublicEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(Constants.SUCCESS).send(updatedEvent);
     }
