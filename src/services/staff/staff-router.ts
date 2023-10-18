@@ -54,7 +54,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
 
-    const metadata: EventMetadata | null = await Models.EventMetadata.findById(eventId);
+    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
 
     if (!metadata) {
         return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
