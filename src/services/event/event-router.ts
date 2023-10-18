@@ -364,7 +364,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     const eventId: string = crypto.randomBytes(Constants.EVENT_BYTES_GEN).toString("hex");
     const isStaffEvent: boolean = eventFormat.isStaff;
     const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
-
+    console.log(eventId);
     // Populate the new eventFormat object with the needed params
     eventFormat._id = new ObjectId().toString();
     eventFormat.eventId = eventId;
@@ -378,12 +378,14 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
         const event: StaffEvent = new StaffEvent(eventFormat);
+        console.log(event, metadata);
         newEvent = await Models.StaffEvent.create(event);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
         const event: PublicEvent = new PublicEvent(eventFormat);
+        console.log(event, metadata);
         newEvent = await Models.PublicEvent.create(event);
     }
     await Models.EventMetadata.create(metadata);
