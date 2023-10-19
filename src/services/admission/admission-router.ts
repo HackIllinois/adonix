@@ -11,7 +11,6 @@ import * as console from "console";
 
 const admissionRouter: Router = Router();
 
-
 admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
@@ -36,7 +35,7 @@ admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Respon
         for (const entry of updateEntries.entries) {
             const updatedDecision: DecisionInfo | null = await Models.DecisionInfo.findOneAndUpdate(
                 { userId: entry.userId },
-                {$set: {status: entry.status}}
+                { $set: { status: entry.status } },
             );
             if (updatedDecision?.status != entry.status) {
                 return res.status(Constants.INTERNAL_ERROR).send({ error: "NotUpdated" });

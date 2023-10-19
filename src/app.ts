@@ -32,13 +32,13 @@ if (!TEST) {
 app.use(express.json());
 
 // Add routers for each sub-service
+app.use("/admission/", admissionRouter);
 app.use("/auth/", authRouter);
 app.use("/event/", eventRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
 app.use("/staff/", staffRouter);
 app.use("/user/", userRouter);
-app.use("/admission/", admissionRouter)
 app.use("/version/", versionRouter);
 
 // Ensure that API is running
