@@ -17,13 +17,22 @@ rsvpRouter.get("/test/", (_: Request, res: Response) => {
  * @apiGroup rsvp
  * @apiDescription Check RSVP decision for a given userId, provided that the current user has elevated perms
  *
+ *
+ * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {boolean} whether they are/aren't attending
+ * @apiSuccess (200: Success) {string} User's applicatoin status
+ * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {string} Reviwer
+ * @apiSuccess (200: Success) {boolean} Whether email has been sent
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *		"userId": "github0000001",
- *      "isAttending": true
+ *      "_id": "652c311b6e283244d2ef4c29",
+ *      "userId": "github0000001",
+ *      "status": "ACCEPTED",
+ *      "response": "PENDING",
+ *      "reviewer": "reviewer1",
+ *      "emailSent": true
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -49,9 +58,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
-    const rsvpDecision: boolean =
-        queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
-    return res.status(Constants.SUCCESS).send({ userId: userId, isAttending: rsvpDecision });
+    return res.status(Constants.SUCCESS).send({ queryResult });
 });
 
 /**
@@ -59,12 +66,22 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  * @apiGroup rsvp
  * @apiDescription Check RSVP decision for current user
  *
+ *
+ * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {boolean} whether they are/aren't attending
+ * @apiSuccess (200: Success) {string} User's applicatoin status
+ * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {string} Reviwer
+ * @apiSuccess (200: Success) {boolean} Whether email has been sent
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *      "isAttending": true
+ *      "_id": "652c311b6e283244d2ef4c29",
+ *      "userId": "github0000001",
+ *      "status": "ACCEPTED",
+ *      "response": "ACCEPTED",
+ *      "reviewer": "reviewer1",
+ *      "emailSent": true
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -81,9 +98,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
     }
 
-    const rsvpDecision: boolean =
-        queryResult.status === DecisionStatus.ACCEPTED && queryResult.response === DecisionResponse.ACCEPTED;
-    return res.status(Constants.SUCCESS).send({ isAttending: rsvpDecision });
+    return res.status(Constants.SUCCESS).send({ queryResult });
 });
 
 /**
@@ -94,13 +109,13 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  * @apiBody {boolean} isAttending Whether or whether not the currently authenticated user is attending
  * @apiParamExample {json} Example Request:
  * {
- *      "isAttending": true
+ *      "isAttending": false
  * }
  *
  * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} User's applicatoin status
- * @apiSuccess (200: Success) {string} User's Response
+ * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
  * @apiSuccess (200: Success) {string} Reviwer
  * @apiSuccess (200: Success) {boolean} Whether email has been sent
  * @apiSuccessExample Example Success Response:
@@ -109,7 +124,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  *      "_id": "652c311b6e283244d2ef4c29",
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
- *      "response": "ACCEPTED",
+ *      "response": "DECLINED",
  *      "reviewer": "reviewer1",
  *      "emailSent": true
  * 	}
