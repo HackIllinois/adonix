@@ -128,7 +128,7 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         if (userInfo) {
             return res.status(Constants.SUCCESS).send(userInfo);
         } else {
-            return res.status(Constants.INTERNAL_ERROR).send({ error: "UserNotFound" });
+            return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
         }
     }
 
@@ -163,7 +163,7 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     if (user) {
         return res.status(Constants.SUCCESS).send(user);
     } else {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
     }
 });
 
