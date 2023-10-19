@@ -270,7 +270,10 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
     const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
     const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
-    if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
+    if (
+        attendeeMetadataDeleteResponse.deletedCount == Constants.ZERO ||
+        attendeeProfileDeleteResponse.deletedCount == Constants.ZERO
+    ) {
         return res.status(Constants.NOT_FOUND).send({ success: false, error: "AttendeeNotFound" });
     }
     return res.status(Constants.SUCCESS).send({ success: true });

@@ -7,7 +7,7 @@ beforeEach(async () => {
     Models.initialize();
 });
 
-let profile: ProfileFormat = {
+const profile: ProfileFormat = {
     userId: TESTER.id,
     displayName: TESTER.name,
     avatarUrl: TESTER.avatarUrl,
