@@ -364,26 +364,29 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     const eventId: string = crypto.randomBytes(Constants.EVENT_BYTES_GEN).toString("hex");
     const isStaffEvent: boolean = eventFormat.isStaff;
     const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
-
+    console.log(eventId);
     // Populate the new eventFormat object with the needed params
     eventFormat._id = new ObjectId().toString();
     eventFormat.eventId = eventId;
 
     // Try to upload the events if possible, else throw an error
     let newEvent: PublicEvent | StaffEvent | null;
+
     if (isStaffEvent) {
         // If ID doesn't exist -> return the invalid parameters
         if (!isValidStaffFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
-
-        newEvent = await Models.StaffEvent.create(eventFormat);
+        const event: StaffEvent = new StaffEvent(eventFormat);
+        console.log(event, metadata);
+        newEvent = await Models.StaffEvent.create(event);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
         }
-
-        newEvent = await Models.PublicEvent.create(eventFormat);
+        const event: PublicEvent = new PublicEvent(eventFormat);
+        console.log(event, metadata);
+        newEvent = await Models.PublicEvent.create(event);
     }
     await Models.EventMetadata.create(metadata);
     return res.status(Constants.CREATED).send(newEvent);
@@ -611,14 +614,15 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
             return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
 
-        const event: StaffEvent = new StaffEvent(eventFormat, false);
+        const event: StaffEvent = new StaffEvent(eventFormat);
         const updatedEvent: StaffEvent | null = await Models.StaffEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(Constants.SUCCESS).send(updatedEvent);
     } else {
         if (!isValidPublicFormat(eventFormat)) {
             return res.status(Constants.BAD_REQUEST).send({ message: "InvalidParams" });
         }
-        const event: PublicEvent = new PublicEvent(eventFormat, false);
+
+        const event: PublicEvent = new PublicEvent(eventFormat);
         const updatedEvent: PublicEvent | null = await Models.PublicEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(Constants.SUCCESS).send(updatedEvent);
     }
