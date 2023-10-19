@@ -14,6 +14,7 @@ import versionRouter from "./services/version/version-router.js";
 
 import { InitializeConfigReader } from "./middleware/config-reader.js";
 import Models from "./database/models.js";
+import admissionRouter from "./services/admission/admission-router.js";
 
 const app: Application = express();
 
@@ -37,6 +38,7 @@ app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
 app.use("/staff/", staffRouter);
 app.use("/user/", userRouter);
+app.use("/admission/", admissionRouter)
 app.use("/version/", versionRouter);
 
 // Ensure that API is running
