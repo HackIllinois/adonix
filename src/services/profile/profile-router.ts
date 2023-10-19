@@ -13,6 +13,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { DeleteResult } from "mongodb";
 
 const profileRouter: Router = Router();
 
@@ -112,11 +113,11 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     const userId: string = payload.id;
-    console.log(userId);
+
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
@@ -173,7 +174,7 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send(user);
@@ -220,6 +221,9 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Constants.DEFAULT_POINT_VALUE;
 
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    profile.userId = payload.id;
+
     if (!isValidProfileFormat(profile)) {
         return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
     }
@@ -263,9 +267,12 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
-    await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
+    const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
+    const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
+    if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
+        return res.status(Constants.NOT_FOUND).send({ success: false, error: "AttendeeNotFound" });
+    }
     return res.status(Constants.SUCCESS).send({ success: true });
 });
 
