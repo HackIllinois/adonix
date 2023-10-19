@@ -210,11 +210,10 @@ userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) 
     }
 
     // Update the given user
-    const updatedUser: UserInfo | null = await Models.UserInfo.findOneAndUpdate(
-        { userId: userData.userId },
-        { $set: userData },
-        { upsert: true },
-    );
+    const updatedUser: UserInfo | null = await Models.UserInfo.findOneAndUpdate({ userId: userData.userId }, userData, {
+        upsert: true,
+        new: true,
+    });
 
     if (updatedUser) {
         return res.status(Constants.SUCCESS).send(updatedUser);
