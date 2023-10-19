@@ -9,6 +9,12 @@ const TESTER_USER_WITH_NEW_EMAIL: Record<string, unknown> = {
     name: TESTER.name,
 } satisfies UserInfo;
 
+const OTHER_USER: Record<string, unknown> = {
+    userId: "other-user",
+    email: `other-user@hackillinois.org`,
+    name: "Other User",
+} satisfies UserInfo;
+
 const NEW_USER: Record<string, unknown> = {
     userId: "new-user",
     email: `new-user@hackillinois.org`,
@@ -23,6 +29,7 @@ beforeEach(async () => {
         name: TESTER.name,
         email: TESTER.email,
     });
+    await Models.UserInfo.create(OTHER_USER);
 });
 
 describe("GET /", () => {
@@ -37,7 +44,7 @@ describe("GET /", () => {
             userId: TESTER.id,
         });
 
-        const response = await getAsAttendee("/user/").expect(400);
+        const response = await getAsAttendee("/user/").expect(404);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
@@ -70,6 +77,40 @@ describe("GET /", () => {
             name: TESTER.name,
             email: TESTER.email,
         });
+    });
+});
+
+describe("GET /:USERID/", () => {
+    it("gives an forbidden error for a non-staff user", async () => {
+        const response = await getAsAttendee(`/user/${OTHER_USER.userId}/`).expect(403);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("gives an not found error for a non-existent user", async () => {
+        await Models.UserInfo.deleteOne({
+            userId: OTHER_USER.userId,
+        });
+
+        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(404);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    });
+
+    it("works for a non-staff user requesting themselves", async () => {
+        const response = await getAsAttendee(`/user/${TESTER.id}/`).expect(200);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER.id,
+            name: TESTER.name,
+            email: TESTER.email,
+        });
+    });
+
+    it("works for a staff user", async () => {
+        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(200);
+
+        expect(JSON.parse(response.text)).toMatchObject(OTHER_USER);
     });
 });
 
