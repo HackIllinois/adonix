@@ -3,6 +3,12 @@ import { TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, postAsAttendee, pos
 import Models from "../../database/models.js";
 import { UserInfo } from "../../database/user-db.js";
 
+const TESTER_USER = {
+    userId: TESTER.id,
+    name: TESTER.name,
+    email: TESTER.email,
+} satisfies UserInfo;
+
 const TESTER_USER_WITH_NEW_EMAIL: Record<string, unknown> = {
     userId: TESTER.id,
     email: `${TESTER.email}-with-new-email.com`,
@@ -24,11 +30,7 @@ const NEW_USER: Record<string, unknown> = {
 // Before each test, add the tester to the user model
 beforeEach(async () => {
     Models.initialize();
-    await Models.UserInfo.create({
-        userId: TESTER.id,
-        name: TESTER.name,
-        email: TESTER.email,
-    });
+    await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
 });
 
@@ -41,7 +43,7 @@ describe("GET /", () => {
 
     it("gives an not found error for an non-existent user", async () => {
         await Models.UserInfo.deleteOne({
-            userId: TESTER.id,
+            userId: TESTER_USER.userId,
         });
 
         const response = await getAsAttendee("/user/").expect(404);
@@ -52,31 +54,19 @@ describe("GET /", () => {
     it("works for an attendee user", async () => {
         const response = await getAsAttendee("/user/").expect(200);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            name: TESTER.name,
-            email: TESTER.email,
-        });
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for an staff user", async () => {
         const response = await getAsStaff("/user/").expect(200);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            name: TESTER.name,
-            email: TESTER.email,
-        });
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for an admin user", async () => {
         const response = await getAsAdmin("/user/").expect(200);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            name: TESTER.name,
-            email: TESTER.email,
-        });
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 });
 
@@ -98,13 +88,9 @@ describe("GET /:USERID/", () => {
     });
 
     it("works for a non-staff user requesting themselves", async () => {
-        const response = await getAsAttendee(`/user/${TESTER.id}/`).expect(200);
+        const response = await getAsAttendee(`/user/${TESTER_USER.userId}/`).expect(200);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            name: TESTER.name,
-            email: TESTER.email,
-        });
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for a staff user", async () => {
