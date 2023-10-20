@@ -1,7 +1,10 @@
-import { describe, expect, it, beforeEach } from "@jest/globals";
+import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, postAsAttendee, postAsStaff } from "../../testTools.js";
 import Models from "../../database/models.js";
 import { UserInfo } from "../../database/user-db.js";
+import * as authLib from "../auth/auth-lib.js";
+import Constants from "../../constants.js";
+import { SpiedFunction } from "jest-mock";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -27,11 +30,46 @@ const NEW_USER: Record<string, unknown> = {
     name: "New User",
 } satisfies UserInfo;
 
-// Before each test, add the tester to the user model
+// Before each test, initialize database with tester & other users
 beforeEach(async () => {
     Models.initialize();
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
+});
+
+/*
+ * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
+ */
+function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.generateJwtToken> {
+    const mockedAuthLib = require("../auth/auth-lib.js") as typeof authLib;
+    const mockedGenerateJwtToken = jest.spyOn(mockedAuthLib, "generateJwtToken");
+    mockedGenerateJwtToken.mockImplementation((payload, shouldNotExpire, expiration) => {
+        return authLib.generateJwtToken(payload, shouldNotExpire, expiration);
+    });
+    return mockedGenerateJwtToken;
+}
+
+describe("GET /qr/", () => {
+    it("works for a attendee", async () => {
+        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+
+        const response = await getAsAttendee("/user/qr/").expect(200);
+
+        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER_USER.userId,
+            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
+        });
+
+        expect(mockedGenerateJwtToken).toBeCalledWith(
+            expect.objectContaining({
+                id: TESTER_USER.userId,
+            }),
+            false,
+            Constants.QR_EXPIRY_TIME,
+        );
+    });
 });
 
 describe("GET /", () => {
