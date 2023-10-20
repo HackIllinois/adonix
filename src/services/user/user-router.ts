@@ -81,13 +81,13 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 
     // Return false if we haven't created a payload yet
     if (!newPayload) {
-        return res.status(Constants.FORBIDDEN).send("Forbidden");
+        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
     // Generate the token
     const token: string = generateJwtToken(newPayload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
-    return res.status(Constants.SUCCESS).send({ userId: payload.id, qrInfo: uri });
+    return res.status(Constants.SUCCESS).send({ userId: newPayload.id, qrInfo: uri });
 });
 
 /**

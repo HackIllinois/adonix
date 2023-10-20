@@ -12,7 +12,7 @@ export const TESTER = {
 };
 
 // A mapping of role to roles they have, used for JWT generation
-const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
+export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.USER]: [Role.USER],
     [Role.APPLICANT]: [Role.USER, Role.APPLICANT],
     [Role.ATTENDEE]: [Role.USER, Role.APPLICANT, Role.ATTENDEE],

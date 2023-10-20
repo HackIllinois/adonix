@@ -1,8 +1,19 @@
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
-import { TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, postAsAttendee, postAsStaff } from "../../testTools.js";
+import {
+    AUTH_ROLE_TO_ROLES,
+    TESTER,
+    get,
+    getAsAdmin,
+    getAsAttendee,
+    getAsStaff,
+    postAsAttendee,
+    postAsStaff,
+} from "../../testTools.js";
 import Models from "../../database/models.js";
 import { UserInfo } from "../../database/user-db.js";
+import { AuthInfo } from "../../database/auth-db.js";
 import * as authLib from "../auth/auth-lib.js";
+import { Role } from "../auth/auth-models.js";
 import Constants from "../../constants.js";
 import { SpiedFunction } from "jest-mock";
 
@@ -12,19 +23,25 @@ const TESTER_USER = {
     email: TESTER.email,
 } satisfies UserInfo;
 
-const TESTER_USER_WITH_NEW_EMAIL: Record<string, unknown> = {
+const TESTER_USER_WITH_NEW_EMAIL = {
     userId: TESTER.id,
     email: `${TESTER.email}-with-new-email.com`,
     name: TESTER.name,
 } satisfies UserInfo;
 
-const OTHER_USER: Record<string, unknown> = {
+const OTHER_USER = {
     userId: "other-user",
     email: `other-user@hackillinois.org`,
     name: "Other User",
 } satisfies UserInfo;
 
-const NEW_USER: Record<string, unknown> = {
+const OTHER_USER_AUTH = {
+    userId: OTHER_USER.userId,
+    provider: "github",
+    roles: AUTH_ROLE_TO_ROLES[Role.ATTENDEE],
+} satisfies AuthInfo;
+
+const NEW_USER = {
     userId: "new-user",
     email: `new-user@hackillinois.org`,
     name: "New User",
@@ -35,6 +52,7 @@ beforeEach(async () => {
     Models.initialize();
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
+    await Models.AuthInfo.create(OTHER_USER_AUTH);
 });
 
 /*
@@ -65,6 +83,56 @@ describe("GET /qr/", () => {
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
                 id: TESTER_USER.userId,
+            }),
+            false,
+            Constants.QR_EXPIRY_TIME,
+        );
+    });
+});
+
+describe("GET /qr/:USERID/", () => {
+    it("gives a forbidden error for a non-staff user", async () => {
+        const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(403);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("works for a non-staff user requesting their qr code", async () => {
+        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+
+        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(200);
+
+        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER_USER.userId,
+            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
+        });
+
+        expect(mockedGenerateJwtToken).toBeCalledWith(
+            expect.objectContaining({
+                id: TESTER_USER.userId,
+            }),
+            false,
+            Constants.QR_EXPIRY_TIME,
+        );
+    });
+
+    it("works for a staff user", async () => {
+        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+
+        const response = await getAsStaff(`/user/qr/${OTHER_USER.userId}/`).expect(200);
+
+        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: OTHER_USER.userId,
+            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
+        });
+
+        expect(mockedGenerateJwtToken).toBeCalledWith(
+            expect.objectContaining({
+                id: OTHER_USER.userId,
             }),
             false,
             Constants.QR_EXPIRY_TIME,
