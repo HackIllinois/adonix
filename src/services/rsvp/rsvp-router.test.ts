@@ -3,7 +3,7 @@ import { TESTER, get, getAsAdmin, getAsAttendee, getAsStaff } from "../../testTo
 import { DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
 import Models from "../../database/models.js";
 
-// Before each test, add the tester to the user model
+// Before each test it'll add this to the database
 beforeEach(async () => {
     Models.initialize();
     await Models.DecisionInfo.create({
@@ -13,14 +13,14 @@ beforeEach(async () => {
     });
 });
 
-describe("GET /", () => {
+describe("GET /rsvp", () => {
     //i need to test
     // get /rsvp, gets own rsvp data
     // get /rsvp/:user, test w/ without perms, nonexistent user
     // put /rsvp w/ json req
 
     //good
-    it("gives an not found error for an non-existent user", async () => {
+    it("gives a UserNotFound error for an non-existent user", async () => {
         await Models.UserInfo.deleteOne({
             userId: TESTER.id,
         });
@@ -62,22 +62,39 @@ describe("GET /", () => {
 });
 
 
-describe("GET /:USERID", () => {
-    //i need to test
-    // get /rsvp, gets own rsvp data
-    // get /rsvp/:user, test w/ without perms, nonexistent user
-    // put /rsvp w/ json req
-    
-    //delete later
-    it("gives an unauthorized error for an unauthenticated user", async () => {
-        const response = await get("/rsvp/").expect(401);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NoToken");
+describe("GET /rsvp/:USERID", () => {
+    it("redirects to / if caller doesn't have elevated perms", async () => {
+        const response = await getAsAttendee("/rsvp/user1").expect(200);
+
+        expect(response.text).toBe("API is working!!!");
+    });
+
+    it("gets if caller has elevated perms (Staff)", async () => {
+        const response = await getAsStaff("/rsvp/user1").expect(200);
+
+        expect(JSON.parse(response.text)).toHaveProperty("userId", "user1");
+        expect(JSON.parse(response.text)).toHaveProperty("status");
+        expect(JSON.parse(response.text)).toHaveProperty("response");
+    });
+
+    it("gets if caller has elevated perms (Admin)", async () => {
+        const response = await getAsAdmin("/rsvp/user1").expect(200);
+
+        expect(JSON.parse(response.text)).toHaveProperty("userId", "user1");
+        expect(JSON.parse(response.text)).toHaveProperty("status");
+        expect(JSON.parse(response.text)).toHaveProperty("response");
+    });
+
+    it("returns UserNotFound error if user doesn't exist", async () => {
+        const response = await getAsStaff("/rsvp/idontexist").expect(400);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 });
 
 
-describe("PUT /", () => {
+describe("PUT /rsvp", () => {
     //i need to test
     // get /rsvp, gets own rsvp data
     // get /rsvp/:user, test w/ without perms, nonexistent user

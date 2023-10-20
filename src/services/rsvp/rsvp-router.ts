@@ -46,7 +46,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     }
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    //Returns error if caller doesn't have elevated perms
+    //Redirects if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
         return res.redirect("/");
     }
