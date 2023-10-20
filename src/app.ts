@@ -8,6 +8,7 @@ import authRouter from "./services/auth/auth-router.js";
 import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
 import profileRouter from "./services/profile/profile-router.js";
+import staffRouter from "./services/staff/staff-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import rsvpRouter from "./services/rsvp/rsvp-router.js";
 import versionRouter from "./services/version/version-router.js";
@@ -32,11 +33,12 @@ app.use(express.json());
 
 // Add routers for each sub-service
 app.use("/auth/", authRouter);
-app.use("/user/", userRouter);
-app.use("/newsletter/", newsletterRouter);
 app.use("/event/", eventRouter);
+app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
 app.use("/rsvp/", rsvpRouter);
+app.use("/staff/", staffRouter);
+app.use("/user/", userRouter);
 app.use("/version/", versionRouter);
 
 // Ensure that API is running

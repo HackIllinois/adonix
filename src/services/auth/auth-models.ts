@@ -3,6 +3,7 @@ export interface ProfileData {
     login?: string;
     email: string;
     displayName?: string;
+    name?: string;
 }
 
 export interface RoleData {
