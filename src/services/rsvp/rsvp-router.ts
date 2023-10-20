@@ -95,7 +95,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "User not found!" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     return res.status(Constants.SUCCESS).send({ queryResult });
