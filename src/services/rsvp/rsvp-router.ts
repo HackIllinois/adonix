@@ -57,8 +57,8 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     if (!queryResult) {
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
-
-    return res.status(Constants.SUCCESS).send({ queryResult });
+    
+    return res.status(Constants.SUCCESS).send(queryResult.toObject());
 });
 
 /**
@@ -98,7 +98,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
-    return res.status(Constants.SUCCESS).send({ queryResult });
+    return res.status(Constants.SUCCESS).send(queryResult.toObject());
 });
 
 /**
@@ -166,7 +166,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     );
 
     if (updatedDecision) {
-        return res.status(Constants.SUCCESS).send(updatedDecision);
+        return res.status(Constants.SUCCESS).send(updatedDecision.toObject());
     } else {
         return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
     }

@@ -1,4 +1,5 @@
 import { prop } from "@typegoose/typegoose";
+import { Document } from 'mongoose'; // Import Mongoose's Document interface
 
 export enum DecisionStatus {
     TBD = "TBD",
@@ -13,7 +14,7 @@ export enum DecisionResponse {
     DECLINED = "DECLINED",
 }
 
-export class DecisionInfo {
+export class DecisionInfo extends Document {
     @prop({ required: true })
     public userId: string;
 
@@ -24,7 +25,7 @@ export class DecisionInfo {
     public response: DecisionResponse;
 }
 
-export class DecisionEntry {
+export class DecisionEntry extends Document {
     @prop({ required: true })
     public userId: string;
 
