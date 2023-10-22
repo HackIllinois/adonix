@@ -53,6 +53,7 @@ abstract class Constants {
     static readonly MILLISECONDS_PER_SECOND: number = 1000;
     static readonly DEFAULT_POINT_VALUE: number = 0;
     static readonly DEFAULT_FOOD_WAVE: number = 0;
+    static readonly LEADERBOARD_QUERY_LIMIT: number = 25;
 }
 
 export default Constants;
