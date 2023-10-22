@@ -7,6 +7,7 @@ import * as authLib from "../auth/auth-lib.js";
 import { Role } from "../auth/auth-models.js";
 import Constants from "../../constants.js";
 import { SpiedFunction } from "jest-mock";
+import { StatusCode } from "status-code-enum";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -46,11 +47,11 @@ function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.generat
     return mockedGenerateJwtToken;
 }
 
-describe("GET /qr/", () => {
+describe("GET /user/qr/", () => {
     it("works for a attendee", async () => {
         const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
 
-        const response = await getAsAttendee("/user/qr/").expect(200);
+        const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
 
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
 
@@ -69,9 +70,9 @@ describe("GET /qr/", () => {
     });
 });
 
-describe("GET /qr/:USERID/", () => {
+describe("GET /user/qr/:USERID/", () => {
     it("gives a forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(403);
+        const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
@@ -79,7 +80,7 @@ describe("GET /qr/:USERID/", () => {
     it("works for a non-staff user requesting their qr code", async () => {
         const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
 
-        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(200);
+        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
 
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
 
@@ -100,7 +101,7 @@ describe("GET /qr/:USERID/", () => {
     it("works for a staff user", async () => {
         const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
 
-        const response = await getAsStaff(`/user/qr/${OTHER_USER.userId}/`).expect(200);
+        const response = await getAsStaff(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.SuccessOK);
 
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
 
@@ -119,9 +120,9 @@ describe("GET /qr/:USERID/", () => {
     });
 });
 
-describe("GET /", () => {
+describe("GET /user/", () => {
     it("gives an unauthorized error for an unauthenticated user", async () => {
-        const response = await get("/user/").expect(401);
+        const response = await get("/user/").expect(StatusCode.ClientErrorUnauthorized);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NoToken");
     });
@@ -131,33 +132,33 @@ describe("GET /", () => {
             userId: TESTER_USER.userId,
         });
 
-        const response = await getAsAttendee("/user/").expect(404);
+        const response = await getAsAttendee("/user/").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
     it("works for an attendee user", async () => {
-        const response = await getAsAttendee("/user/").expect(200);
+        const response = await getAsAttendee("/user/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for an staff user", async () => {
-        const response = await getAsStaff("/user/").expect(200);
+        const response = await getAsStaff("/user/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for an admin user", async () => {
-        const response = await getAsAdmin("/user/").expect(200);
+        const response = await getAsAdmin("/user/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 });
 
-describe("GET /:USERID/", () => {
+describe("GET /user/:USERID/", () => {
     it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/user/${OTHER_USER.userId}/`).expect(403);
+        const response = await getAsAttendee(`/user/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
@@ -167,19 +168,19 @@ describe("GET /:USERID/", () => {
             userId: OTHER_USER.userId,
         });
 
-        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(404);
+        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
     it("works for a non-staff user requesting themselves", async () => {
-        const response = await getAsAttendee(`/user/${TESTER_USER.userId}/`).expect(200);
+        const response = await getAsAttendee(`/user/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
 
     it("works for a staff user", async () => {
-        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(200);
+        const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(OTHER_USER);
     });
