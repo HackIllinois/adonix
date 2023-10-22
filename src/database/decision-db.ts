@@ -1,5 +1,5 @@
 import { prop } from "@typegoose/typegoose";
-import { Document } from 'mongoose'; // Import Mongoose's Document interface
+import { Document } from "mongoose"; // Import Mongoose's Document interface
 
 export enum DecisionStatus {
     TBD = "TBD",

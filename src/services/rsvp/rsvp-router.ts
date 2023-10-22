@@ -57,7 +57,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     if (!queryResult) {
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
-    
+
     return res.status(Constants.SUCCESS).send(queryResult.toObject());
 });
 

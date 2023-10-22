@@ -13,7 +13,6 @@ beforeEach(async () => {
     });
 });
 
-
 describe("GET /rsvp", () => {
     //i need to test
     // get /rsvp, gets own rsvp data
@@ -36,7 +35,6 @@ describe("GET /rsvp", () => {
 
         expect(JSON.parse(response.text)).toHaveProperty("userId", TESTER.id);
     });
-    
 
     it("works for an staff user", async () => {
         const response = await getAsStaff("/rsvp/").expect(200);
@@ -51,11 +49,9 @@ describe("GET /rsvp", () => {
     });
 });
 
-
-
 describe("GET /rsvp/:USERID", () => {
     it("redirects to / if caller doesn't have elevated perms", async () => {
-        const response = await getAsAttendee("/rsvp/" +  + TESTER.id).expect(302);
+        const response = await getAsAttendee("/rsvp/" + +TESTER.id).expect(302);
 
         expect(response.text).toBe("Found. Redirecting to /");
     });
@@ -70,7 +66,7 @@ describe("GET /rsvp/:USERID", () => {
 
     //By the way this test fails - I don't think the hasElevatedPerms functions checks for admin
     it("gets if caller has elevated perms (Admin)", async () => {
-        const response = await getAsAdmin("/rsvp/" +  + TESTER.id).expect(200);
+        const response = await getAsAdmin("/rsvp/" + +TESTER.id).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("userId", TESTER.id);
         expect(JSON.parse(response.text)).toHaveProperty("status");
@@ -83,7 +79,6 @@ describe("GET /rsvp/:USERID", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 });
-
 
 describe("PUT /rsvp", () => {
     //i need to test
@@ -105,22 +100,15 @@ describe("PUT /rsvp", () => {
     });
 
     it("works (REJECTED -> ACCEPT OFFER)", async () => {
-        await Models.DecisionInfo.findOneAndUpdate(
-            { userId: TESTER.id },
-            { status: DecisionStatus.REJECTED },
-        );
+        await Models.DecisionInfo.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
 
-        
         const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(403);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("works (REJECTED -> DECLINE OFFER)", async () => {
-        await Models.DecisionInfo.findOneAndUpdate(
-            { userId: TESTER.id },
-            { status: DecisionStatus.REJECTED },
-        );
+        await Models.DecisionInfo.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
 
         const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(403);
 
