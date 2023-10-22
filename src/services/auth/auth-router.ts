@@ -5,6 +5,7 @@ import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
 import Constants from "../../constants.js";
+import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
 
@@ -56,10 +57,10 @@ authRouter.get("/test/", (_: Request, res: Response) => {
 authRouter.get("/dev/", (req: Request, res: Response) => {
     const token: string | undefined = req.query.token as string | undefined;
     if (!token) {
-        res.status(Constants.BAD_REQUEST).send({ error: "NoToken" });
+        res.status(StatusCode.ClientErrorBadRequest).send({ error: "NoToken" });
     }
 
-    res.status(Constants.SUCCESS).send({ token: token });
+    res.status(StatusCode.SuccessOK).send({ token: token });
 });
 
 /**
@@ -85,7 +86,7 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
     const device: string = (req.query.device as string | undefined) ?? Constants.DEFAULT_DEVICE;
 
     if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
     }
     return SelectAuthProvider("github", device)(req, res, next);
 });
@@ -113,7 +114,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
     const device: string = (req.query.device as string | undefined) ?? Constants.DEFAULT_DEVICE;
 
     if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "BadDevice" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
     }
     return SelectAuthProvider("google", device)(req, res, next);
 });
@@ -133,7 +134,7 @@ authRouter.get(
     },
     async (req: Request, res: Response) => {
         if (!req.isAuthenticated()) {
-            return res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "FailedAuth" });
+            return res.status(StatusCode.ClientErrorUnauthorized).send({ error: "FailedAuth" });
         }
 
         const device: string = (res.locals.device ?? Constants.DEFAULT_DEVICE) as string;
@@ -162,7 +163,7 @@ authRouter.get(
             return res.redirect(url);
         } catch (error) {
             console.error(error);
-            return res.status(Constants.BAD_REQUEST).send({ error: "InvalidData" });
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidData" });
         }
     },
 );
@@ -199,17 +200,17 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
 
     // Cases: Target user already logged in, auth user is admin
     if (payload.id == targetUser) {
-        return res.status(Constants.SUCCESS).send({ id: payload.id, roles: payload.roles });
+        return res.status(StatusCode.SuccessOK).send({ id: payload.id, roles: payload.roles });
     } else if (hasElevatedPerms(payload)) {
         try {
             const roles: Role[] = await getRoles(targetUser);
-            return res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
+            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         } catch (error) {
             console.error(error);
-            return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
         }
     } else {
-        return res.status(Constants.FORBIDDEN).send("Forbidden");
+        return res.status(StatusCode.ClientErrorForbidden).send("Forbidden");
     }
 });
 
@@ -239,7 +240,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // Not authenticated with modify roles perms
     if (!hasElevatedPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     // Parse to get operation type
@@ -247,23 +248,23 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // No operation - fail out
     if (!op) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidOperation" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidOperation" });
     }
 
     // Check if role to add/remove actually exists
     const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
     const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
     if (!role) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidRole" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidRole" });
     }
 
     // Try to update roles, if possible
     try {
         const newRoles: Role[] = await updateRoles(data.id, role, op);
-        return res.status(Constants.SUCCESS).send({ id: data.id, roles: newRoles });
+        return res.status(StatusCode.SuccessOK).send({ id: data.id, roles: newRoles });
     } catch (error) {
         console.error(error);
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
     }
 });
 
@@ -289,7 +290,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
 
     // Check if current user should be able to access all roles
     if (!hasElevatedPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     // Filter enum to get all possible string keys
@@ -297,7 +298,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
         return isNaN(Number(item));
     });
 
-    return res.status(Constants.SUCCESS).send({ roles: roles });
+    return res.status(StatusCode.SuccessOK).send({ roles: roles });
 });
 
 /**
@@ -322,11 +323,11 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
 
     await getRoles(targetUser)
         .then((roles: Role[]) => {
-            return res.status(Constants.SUCCESS).send({ id: targetUser, roles: roles });
+            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         })
         .catch((error: Error) => {
             console.error(error);
-            return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
         });
 });
 
@@ -351,16 +352,16 @@ authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
 
     //Returns error if role parameter is empty
     if (!role) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 
     return await getUsersWithRole(role)
         .then((users: string[]) => {
-            return res.status(Constants.SUCCESS).send({ userIds: users });
+            return res.status(StatusCode.SuccessOK).send({ userIds: users });
         })
         .catch((error: Error) => {
             console.error(error);
-            return res.status(Constants.BAD_REQUEST).send({ error: "Unknown Error" });
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Unknown Error" });
         });
 });
 
@@ -392,10 +393,10 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
 
         // Create and return a new token with the payload
         const newToken: string = generateJwtToken(newPayload);
-        return res.status(Constants.SUCCESS).send({ token: newToken });
+        return res.status(StatusCode.SuccessOK).send({ token: newToken });
     } catch (error) {
         console.error(error);
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
     }
 });
 

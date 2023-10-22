@@ -1,7 +1,7 @@
-import Constants from "../../constants.js";
 import { Router } from "express";
 import { Request, Response } from "express-serve-static-core";
 import { ConfigReader } from "../../middleware/config-reader.js";
+import { StatusCode } from "status-code-enum";
 
 const versionRouter: Router = Router();
 
@@ -20,7 +20,7 @@ const versionRouter: Router = Router();
 
 versionRouter.get("/android/", (_: Request, res: Response) => {
     const androidVersion: string = ConfigReader.androidVersion;
-    res.status(Constants.SUCCESS).send({ version: androidVersion });
+    res.status(StatusCode.SuccessOK).send({ version: androidVersion });
 });
 
 /**
@@ -37,7 +37,7 @@ versionRouter.get("/android/", (_: Request, res: Response) => {
  */
 versionRouter.get("/ios/", (_: Request, res: Response) => {
     const iosVersion: string = ConfigReader.iosVersion;
-    res.status(Constants.SUCCESS).send({ version: iosVersion });
+    res.status(StatusCode.SuccessOK).send({ version: iosVersion });
 });
 
 export default versionRouter;
