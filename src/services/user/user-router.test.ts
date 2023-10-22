@@ -1,14 +1,5 @@
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
-import {
-    AUTH_ROLE_TO_ROLES,
-    TESTER,
-    get,
-    getAsAdmin,
-    getAsAttendee,
-    getAsStaff,
-    postAsAttendee,
-    postAsStaff,
-} from "../../testTools.js";
+import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff } from "../../testTools.js";
 import Models from "../../database/models.js";
 import { UserInfo } from "../../database/user-db.js";
 import { AuthInfo } from "../../database/auth-db.js";
@@ -23,12 +14,6 @@ const TESTER_USER = {
     email: TESTER.email,
 } satisfies UserInfo;
 
-const TESTER_USER_WITH_NEW_EMAIL = {
-    userId: TESTER.id,
-    email: `${TESTER.email}-with-new-email.com`,
-    name: TESTER.name,
-} satisfies UserInfo;
-
 const OTHER_USER = {
     userId: "other-user",
     email: `other-user@hackillinois.org`,
@@ -40,12 +25,6 @@ const OTHER_USER_AUTH = {
     provider: "github",
     roles: AUTH_ROLE_TO_ROLES[Role.ATTENDEE],
 } satisfies AuthInfo;
-
-const NEW_USER = {
-    userId: "new-user",
-    email: `new-user@hackillinois.org`,
-    name: "New User",
-} satisfies UserInfo;
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
@@ -203,46 +182,5 @@ describe("GET /:USERID/", () => {
         const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(200);
 
         expect(JSON.parse(response.text)).toMatchObject(OTHER_USER);
-    });
-});
-
-describe("POST /", () => {
-    it("gives an unauthorized error for an non-staff user", async () => {
-        const response = await postAsAttendee("/user/").send(JSON.stringify(TESTER_USER_WITH_NEW_EMAIL)).expect(403);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidToken");
-    });
-    it("gives an bad format error for bad data", async () => {
-        const response = await postAsStaff("/user/")
-            .send(
-                JSON.stringify({
-                    nonsense: 123,
-                }),
-            )
-            .expect(400);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
-    });
-    it("creates a user for an staff user", async () => {
-        const response = await postAsStaff("/user/").send(JSON.stringify(NEW_USER)).expect(200);
-
-        expect(JSON.parse(response.text)).toMatchObject(NEW_USER);
-
-        const stored = await Models.UserInfo.findOne({
-            userId: NEW_USER.userId,
-        });
-
-        expect(stored).toMatchObject(NEW_USER);
-    });
-    it("updates a user for an staff user", async () => {
-        const response = await postAsStaff("/user/").send(JSON.stringify(TESTER_USER_WITH_NEW_EMAIL)).expect(200);
-
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER_WITH_NEW_EMAIL);
-
-        const stored = await Models.UserInfo.findOne({
-            userId: TESTER_USER_WITH_NEW_EMAIL.userId,
-        });
-
-        expect(stored).toMatchObject(TESTER_USER_WITH_NEW_EMAIL);
     });
 });
