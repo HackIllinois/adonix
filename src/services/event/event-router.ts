@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
@@ -362,7 +362,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     }
 
     // Create the ID and process metadata for this event
-    const eventId: string = crypto.randomBytes(Constants.EVENT_BYTES_GEN).toString("hex");
+    const eventId: string = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
     const isStaffEvent: boolean = eventFormat.isStaff;
     const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
     console.log(eventId);

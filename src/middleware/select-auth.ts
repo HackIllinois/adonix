@@ -2,7 +2,7 @@ import { AuthenticateOptions } from "passport";
 import { RequestHandler } from "express-serve-static-core";
 
 import { authenticateFunction } from "../services/auth/auth-lib.js";
-import Constants from "../constants.js";
+import Config from "../config.js";
 
 const googleOptions: AuthenticateOptions = {
     session: false,
@@ -25,7 +25,7 @@ export function SelectAuthProvider(provider: string, device: string): RequestHan
     if (provider == "google") {
         const options: CustomOptions = {
             ...googleOptions,
-            callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
+            callbackURL: Config.CALLBACK_URLS.GOOGLE,
         };
         options.callbackURL += `device=${device}`;
         return authenticateFunction("google", options);
@@ -34,7 +34,7 @@ export function SelectAuthProvider(provider: string, device: string): RequestHan
     if (provider == "github") {
         const options: CustomOptions = {
             ...githubOptions,
-            callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
+            callbackURL: Config.CALLBACK_URLS.GITHUB,
         };
         options.callbackURL += `device=${device}`;
 

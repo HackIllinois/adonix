@@ -1,5 +1,4 @@
 import { AttendeeProfile } from "../../database/attendee-db.js";
-import Constants from "../../constants.js";
 import { LeaderboardEntry } from "./profile-models.js";
 import { UpdateQuery } from "mongoose";
 import Models from "../../database/models.js";
@@ -23,7 +22,7 @@ export function castLeaderboardEntries(initial: AttendeeProfile): LeaderboardEnt
  * @returns True if limit is non-negative, else false
  */
 export function isValidLimit(limit: number): boolean {
-    return limit > Constants.ZERO;
+    return limit > 0;
 }
 
 /**

@@ -2,7 +2,7 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { isValidLimit } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
@@ -219,7 +219,7 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
-    profile.points = Constants.DEFAULT_POINT_VALUE;
+    profile.points = Config.DEFAULT_POINT_VALUE;
 
     if (!isValidProfileFormat(profile)) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
@@ -233,7 +233,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 
     // Create a metadata object, and return it
     try {
-        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
         await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);

@@ -8,7 +8,7 @@ import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms 
 
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 
 const userRouter: Router = Router();
 
@@ -33,7 +33,7 @@ const userRouter: Router = Router();
 userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     // Return the same payload, but with a shorter expiration time
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, false, Constants.QR_EXPIRY_TIME);
+    const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
     const uri: string = `hackillinois://user?userToken=${token}`;
     res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
 });

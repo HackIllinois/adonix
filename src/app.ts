@@ -1,5 +1,3 @@
-import { TEST } from "./env.js";
-
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
 
@@ -14,6 +12,7 @@ import versionRouter from "./services/version/version-router.js";
 import { InitializeConfigReader } from "./middleware/config-reader.js";
 import Models from "./database/models.js";
 import { StatusCode } from "status-code-enum";
+import Config from "./config.js";
 
 const app: Application = express();
 
@@ -23,7 +22,7 @@ const app: Application = express();
 app.use(InitializeConfigReader);
 
 // Enable request output when not a test
-if (!TEST) {
+if (!Config.TEST) {
     app.use(morgan("dev"));
 }
 
@@ -56,7 +55,7 @@ export function setupServer(): void {
 
 export function startServer(): Promise<Express.Application> {
     // eslint-disable-next-line no-magic-numbers
-    const port = process.env.PORT || 3000;
+    const port = Config.PORT;
 
     return new Promise((resolve) => {
         // Setup server

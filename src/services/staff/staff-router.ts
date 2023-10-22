@@ -5,7 +5,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat } from "./staff-formats.js";
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 
 import { EventMetadata } from "../../database/event-db.js";
 import Models from "../../database/models.js";
@@ -61,7 +61,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "EventNotFound" });
     }
 
-    const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
+    const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
     console.log(metadata.exp, timestamp);
 
     if (metadata.exp <= timestamp) {

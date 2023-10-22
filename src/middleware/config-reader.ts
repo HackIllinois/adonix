@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import Constants from "../constants.js";
+import Config from "../config.js";
 import axios, { AxiosResponse } from "axios";
 
 interface ConfigFormat {
@@ -20,7 +20,7 @@ export class ConfigReader {
     static androidVersion: string;
 
     async initialize(): Promise<void> {
-        const url: string = Constants.METADATA_URL;
+        const url: string = Config.METADATA_URL;
 
         const response: AxiosResponse = await axios.get(url);
         const configData: ConfigFormat = response.data as ConfigFormat;

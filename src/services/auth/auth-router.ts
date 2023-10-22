@@ -4,7 +4,7 @@ import express, { Request, Response, Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import Constants from "../../constants.js";
+import Config, { Device } from "../../config.js";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { SelectAuthProvider } from "../../middleware/select-auth.js";
@@ -27,9 +27,9 @@ passport.use(
     Provider.GITHUB,
     new GitHubStrategy(
         {
-            clientID: process.env.GITHUB_OAUTH_ID ?? "",
-            clientSecret: process.env.GITHUB_OAUTH_SECRET ?? "",
-            callbackURL: Constants.GITHUB_OAUTH_CALLBACK,
+            clientID: Config.GITHUB_OAUTH_ID,
+            clientSecret: Config.GITHUB_OAUTH_SECRET,
+            callbackURL: Config.CALLBACK_URLS.GITHUB,
         },
         verifyFunction,
     ),
@@ -39,9 +39,9 @@ passport.use(
     Provider.GOOGLE,
     new GoogleStrategy(
         {
-            clientID: process.env.GOOGLE_OAUTH_ID ?? "",
-            clientSecret: process.env.GOOGLE_OAUTH_SECRET ?? "",
-            callbackURL: Constants.GOOGLE_OAUTH_CALLBACK,
+            clientID: Config.GOOGLE_OAUTH_ID,
+            clientSecret: Config.GOOGLE_OAUTH_SECRET,
+            callbackURL: Config.CALLBACK_URLS.GOOGLE,
         },
         verifyFunction,
     ),
@@ -83,9 +83,9 @@ authRouter.get("/dev/", (req: Request, res: Response) => {
  *     {"error": "InvalidParams"}
  */
 authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunction) => {
-    const device: string = (req.query.device as string | undefined) ?? Constants.DEFAULT_DEVICE;
+    const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
-    if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
+    if (device && !Config.REDIRECT_URLS.has(device)) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
     }
     return SelectAuthProvider("github", device)(req, res, next);
@@ -111,9 +111,9 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
  *     {"error": "InvalidParams"}
  */
 authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunction) => {
-    const device: string = (req.query.device as string | undefined) ?? Constants.DEFAULT_DEVICE;
+    const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
-    if (device && !Constants.REDIRECT_MAPPINGS.has(device)) {
+    if (device && !Config.REDIRECT_URLS.has(device)) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
     }
     return SelectAuthProvider("google", device)(req, res, next);
@@ -137,10 +137,10 @@ authRouter.get(
             return res.status(StatusCode.ClientErrorUnauthorized).send({ error: "FailedAuth" });
         }
 
-        const device: string = (res.locals.device ?? Constants.DEFAULT_DEVICE) as string;
+        const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
         const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
         const data: ProfileData = user._json as ProfileData;
-        const redirect: string = Constants.REDIRECT_MAPPINGS.get(device) ?? Constants.DEFAULT_REDIRECT;
+        const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
 
         data.id = data.id ?? user.id;
         data.displayName = data.name ?? data.displayName ?? data.login;
@@ -157,7 +157,7 @@ authRouter.get(
             );
 
             // Generate the token, and return it
-            const isMobile: boolean = device == Constants.ANDROID_DEVICE || device == Constants.IOS_DEVICE;
+            const isMobile: boolean = device == Device.ANDROID || device == Device.IOS;
             const token: string = generateJwtToken(payload, isMobile);
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);

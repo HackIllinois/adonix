@@ -5,7 +5,7 @@ import { UserInfo } from "../../database/user-db.js";
 import { AuthInfo } from "../../database/auth-db.js";
 import * as authLib from "../auth/auth-lib.js";
 import { Role } from "../auth/auth-models.js";
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { SpiedFunction } from "jest-mock";
 import { StatusCode } from "status-code-enum";
 
@@ -65,7 +65,7 @@ describe("GET /user/qr/", () => {
                 id: TESTER_USER.userId,
             }),
             false,
-            Constants.QR_EXPIRY_TIME,
+            Config.QR_EXPIRY_TIME,
         );
     });
 });
@@ -94,7 +94,7 @@ describe("GET /user/qr/:USERID/", () => {
                 id: TESTER_USER.userId,
             }),
             false,
-            Constants.QR_EXPIRY_TIME,
+            Config.QR_EXPIRY_TIME,
         );
     });
 
@@ -115,7 +115,7 @@ describe("GET /user/qr/:USERID/", () => {
                 id: OTHER_USER.userId,
             }),
             false,
-            Constants.QR_EXPIRY_TIME,
+            Config.QR_EXPIRY_TIME,
         );
     });
 });

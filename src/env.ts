@@ -1,5 +1,10 @@
-import { configDotenv } from "dotenv";
+import dotenv from "dotenv";
+import { readFileSync } from "fs";
+import path from "path";
 
-export const TEST = false;
+const rawEnv = readFileSync(path.join(process.cwd(), ".env"));
+const env = dotenv.parse(rawEnv);
 
-configDotenv();
+console.log("default env runs");
+
+export default env;

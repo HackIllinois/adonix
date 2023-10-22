@@ -3,7 +3,7 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
 
@@ -113,7 +113,7 @@ export function generateJwtToken(payload?: JwtPayload, shouldNotExpire?: boolean
     }
 
     // Ensure that the secret actually exists
-    const secret: string | undefined = process.env.JWT_SECRET;
+    const secret: string | undefined = Config.JWT_SECRET;
     if (!secret) {
         throw new Error("No secret provided for signing!");
     }
@@ -121,8 +121,8 @@ export function generateJwtToken(payload?: JwtPayload, shouldNotExpire?: boolean
     // // Appends an expiry field to the JWT token
     const options: SignOptions = {};
     if (!shouldNotExpire) {
-        const offset: number = ms(expiration ?? Constants.DEFAULT_JWT_OFFSET);
-        payload.exp = Math.floor(Date.now() + offset) / Constants.MILLISECONDS_PER_SECOND;
+        const offset: number = ms(expiration ?? Config.DEFAULT_JWT_EXPIRY_TIME);
+        payload.exp = Math.floor(Date.now() + offset) / Config.MILLISECONDS_PER_SECOND;
     }
 
     // Generate a token, and return it
@@ -141,7 +141,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
     }
 
     // Ensure that we have a secret to parse token
-    const secret: string | undefined = process.env.JWT_SECRET;
+    const secret: string | undefined = Config.JWT_SECRET;
     if (!secret) {
         throw new Error("NoSecret");
     }
@@ -181,7 +181,7 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
     if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
         roles.push(Role.STAFF);
         // If email in the system admin list, add the admin role
-        if (Constants.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
+        if (Config.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
             roles.push(Role.ADMIN);
         }
     }
@@ -319,7 +319,7 @@ export function getDevice(kv?: string): string {
         throw new Error("NoKey");
     }
 
-    if (!value || !Constants.REDIRECT_MAPPINGS.has(value)) {
+    if (!value || !Config.REDIRECT_URLS.has(key)) {
         throw new Error("NoValue");
     }
 
