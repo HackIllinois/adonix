@@ -57,12 +57,19 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
     // Returns NaN if invalid input is passed in
     if (limitString) {
-        const limit = parseInt(limitString);
+        let limit = parseInt(limitString);
 
         // Check for limit validity
         if (!limit || !isValidLimit) {
             return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
         }
+
+        // if the limit is above the leaderboard query limit, set it to the query limit
+        limit = Math.min(limit, Constants.LEADERBOARD_QUERY_LIMIT);
+
+        leaderboardQuery = leaderboardQuery.limit(limit);
+    } else {
+        const limit = Constants.LEADERBOARD_QUERY_LIMIT;
 
         leaderboardQuery = leaderboardQuery.limit(limit);
     }
@@ -162,10 +169,6 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!userId) {
-        return res.redirect("/user/");
-    }
-
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
     if (userId != payload.id && !hasElevatedPerms(payload)) {
         return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
@@ -178,6 +181,11 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     }
 
     return res.status(Constants.SUCCESS).send(user);
+});
+
+profileRouter.get("/id", (_: Request, res: Response) => {
+    // Redirect to the root URL
+    return res.redirect("/user");
 });
 
 /**
