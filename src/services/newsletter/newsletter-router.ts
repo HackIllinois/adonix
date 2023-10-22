@@ -2,12 +2,11 @@ import { Request, Response, Router } from "express";
 import { regexPasses } from "./newsletter-lib.js";
 import cors, { CorsOptions } from "cors";
 
-import Constants from "../../constants.js";
-
 import { SubscribeRequest } from "./newsletter-formats.js";
 import { NewsletterSubscription } from "../../database/newsletter-db.js";
 import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
+import { StatusCode } from "status-code-enum";
 
 const newsletterRouter: Router = Router();
 
@@ -57,13 +56,13 @@ newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => 
 
     // Verify that both parameters do exist
     if (!listName || !emailAddress) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 
     // Perform a lazy delete
     const updateQuery: UpdateQuery<NewsletterSubscription> = { $addToSet: { subscribers: emailAddress } };
     await Models.NewsletterSubscription.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
-    return res.status(Constants.SUCCESS).send({ status: "Success" });
+    return res.status(StatusCode.SuccessOK).send({ status: "Success" });
 });
 
 export default newsletterRouter;

@@ -3,7 +3,6 @@ import { TEST } from "./env.js";
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
 
-import Constants from "./constants.js";
 import authRouter from "./services/auth/auth-router.js";
 import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
@@ -14,6 +13,7 @@ import versionRouter from "./services/version/version-router.js";
 
 import { InitializeConfigReader } from "./middleware/config-reader.js";
 import Models from "./database/models.js";
+import { StatusCode } from "status-code-enum";
 
 const app: Application = express();
 
@@ -46,7 +46,7 @@ app.get("/", (_: Request, res: Response) => {
 
 // Throw an error if call is made to the wrong API endpoint
 app.use("/", (_: Request, res: Response) => {
-    res.status(Constants.NOT_FOUND).end("API endpoint does not exist!");
+    res.status(StatusCode.ClientErrorNotFound).end("API endpoint does not exist!");
 });
 
 export function setupServer(): void {
