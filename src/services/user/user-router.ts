@@ -6,7 +6,6 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { UserFormat, isValidUserFormat } from "./user-formats.js";
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
 
@@ -63,11 +62,6 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
 userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const targetUser: string | undefined = req.params.USERID as string;
 
-    // If target user -> redirect to base function
-    if (!targetUser) {
-        return res.redirect("/user/qr/");
-    }
-
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     let newPayload: JwtPayload | undefined;
 
@@ -113,11 +107,6 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  * @apiUse strongVerifyErrors
  */
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
-    // If no target user, exact same as next route
-    if (!req.params.USERID) {
-        return res.redirect("/");
-    }
-
     const targetUser: string = req.params.USERID ?? "";
 
     // Get payload, and check if authorized
