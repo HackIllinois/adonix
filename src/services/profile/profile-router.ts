@@ -283,7 +283,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
         attendeeMetadataDeleteResponse.deletedCount == Constants.ZERO ||
         attendeeProfileDeleteResponse.deletedCount == Constants.ZERO
     ) {
-        return res.status(Constants.NOT_FOUND).send({ success: false, error: "AttendeeNotFound" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ success: false, error: "AttendeeNotFound" });
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
