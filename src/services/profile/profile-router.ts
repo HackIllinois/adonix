@@ -14,6 +14,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
+import { StatusCode } from "status-code-enum";
 
 const profileRouter: Router = Router();
 
@@ -61,7 +62,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
         // Check for limit validity
         if (!limit || !isValidLimit) {
-            return res.status(Constants.BAD_REQUEST).send({ error: "InvalidLimit" });
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidLimit" });
         }
 
         // if the limit is above the leaderboard query limit, set it to the query limit
@@ -79,7 +80,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
         return { displayName: profile.displayName, points: profile.points };
     });
 
-    return res.status(Constants.SUCCESS).send({
+    return res.status(StatusCode.SuccessOK).send({
         profiles: filteredLeaderboardEntried,
     });
 });
@@ -124,10 +125,10 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res.status(Constants.SUCCESS).send(user);
+    return res.status(StatusCode.SuccessOK).send(user);
 });
 
 /**
@@ -171,16 +172,16 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
 
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
     if (!hasElevatedPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(Constants.NOT_FOUND).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res.status(Constants.SUCCESS).send(user);
+    return res.status(StatusCode.SuccessOK).send(user);
 });
 
 profileRouter.get("/id", (_: Request, res: Response) => {
@@ -233,13 +234,13 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     profile.userId = payload.id;
 
     if (!isValidProfileFormat(profile)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 
     // Ensure that user doesn't already exist before creating
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
     if (user) {
-        return res.status(Constants.FAILURE).send({ error: "UserAlreadyExists" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserAlreadyExists" });
     }
 
     // Create a metadata object, and return it
@@ -247,10 +248,10 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
         await Models.AttendeeMetadata.create(profileMetadata);
-        return res.status(Constants.SUCCESS).send(newProfile);
+        return res.status(StatusCode.SuccessOK).send(newProfile);
     } catch (error) {
         console.error(error);
-        return res.status(Constants.FAILURE).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 });
 
@@ -284,7 +285,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
     ) {
         return res.status(Constants.NOT_FOUND).send({ success: false, error: "AttendeeNotFound" });
     }
-    return res.status(Constants.SUCCESS).send({ success: true });
+    return res.status(StatusCode.SuccessOK).send({ success: true });
 });
 
 export default profileRouter;

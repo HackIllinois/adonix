@@ -14,7 +14,7 @@ export const TESTER = {
 };
 
 // A mapping of role to roles they have, used for JWT generation
-const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
+export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.USER]: [Role.USER],
     [Role.APPLICANT]: [Role.USER, Role.APPLICANT],
     [Role.ATTENDEE]: [Role.USER, Role.APPLICANT, Role.ATTENDEE],
@@ -28,7 +28,10 @@ const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.BLOBSTORE]: [Role.BLOBSTORE],
 };
 
-function setAuth(request: request.Test, role?: Role): request.Test {
+/*
+ * Set auth header & misc headers
+ */
+function setHeaders(request: request.Test, role?: Role): request.Test {
     if (!role) {
         return request;
     }
@@ -45,7 +48,10 @@ function setAuth(request: request.Test, role?: Role): request.Test {
         roles: AUTH_ROLE_TO_ROLES[role],
     });
 
-    return request.set("Authorization", jwt as string);
+    return request
+        .set("Authorization", jwt as string)
+        .set("Accept", "application/json")
+        .set("Content-Type", "application/json");
 }
 
 // Dynamically require app so it's always the freshest version
@@ -57,19 +63,19 @@ function app(): Express.Application {
 }
 
 export function get(url: string, role?: Role): request.Test {
-    return setAuth(request(app()).get(url), role);
+    return setHeaders(request(app()).get(url), role);
 }
 
 export function post(url: string, role?: Role): request.Test {
-    return setAuth(request(app()).post(url), role);
+    return setHeaders(request(app()).post(url), role);
 }
 
 export function put(url: string, role?: Role): request.Test {
-    return setAuth(request(app()).put(url), role);
+    return setHeaders(request(app()).put(url), role);
 }
 
 export function del(url: string, role?: Role): request.Test {
-    return setAuth(request(app()).delete(url), role);
+    return setHeaders(request(app()).delete(url), role);
 }
 
 // Helpers that are nicer to use
