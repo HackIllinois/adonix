@@ -170,7 +170,7 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
-    if (userId != payload.id && !hasElevatedPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
     }
 
