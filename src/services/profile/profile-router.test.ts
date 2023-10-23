@@ -7,7 +7,6 @@ import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
 
 beforeEach(async () => {
     Models.initialize();
-
 });
 
 const TESTER_USER = {
@@ -94,14 +93,13 @@ describe("GET /profile", () => {
 
 describe("GET /profile/id/:USERID", () => {
     it("fails with no id provided", async () => {
-
         await getAsUser("/profile/id").expect(302);
     });
 
     it("fails to get a profile as a user", async () => {
         await Models.AttendeeProfile.create(TESTER_USER);
 
-        const response = await getAsUser("/profile/id/"+TESTER.id).expect(403);
+        const response = await getAsUser("/profile/id/" + TESTER.id).expect(403);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
@@ -109,7 +107,7 @@ describe("GET /profile/id/:USERID", () => {
     it("gets with an admin", async () => {
         await Models.AttendeeProfile.create(TESTER_USER);
 
-        const response = await getAsAdmin("/profile/id/"+TESTER.id).expect(200);
+        const response = await getAsAdmin("/profile/id/" + TESTER.id).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
@@ -141,7 +139,6 @@ describe("DELETE /profile/", () => {
 
 describe("GET /profile/leaderboard", () => {
     it("gets 3 entries when no limit is set", async () => {
-
         await Models.AttendeeProfile.create(TESTER_USER);
 
         await Models.AttendeeProfile.create(TESTER_USER_2);
@@ -159,7 +156,7 @@ describe("GET /profile/leaderboard", () => {
         await Models.AttendeeProfile.create(TESTER_USER_3);
 
         const response = await getAsUser("/profile/leaderboard?limit=2").expect(200);
-        
+
         const responseArray = JSON.parse(response.text);
         expect(responseArray.profiles.length).toBeLessThan(3);
     });
