@@ -125,7 +125,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
@@ -178,7 +178,7 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
