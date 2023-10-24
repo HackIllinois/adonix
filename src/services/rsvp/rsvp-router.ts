@@ -8,9 +8,6 @@ import Models from "../../database/models.js";
 
 const rsvpRouter: Router = Router();
 
-rsvpRouter.get("/test/", (_: Request, res: Response) => {
-    res.end("RSVP endpoint is working!");
-});
 
 /**
  * @api {get} /rsvp/:USERID/ GET /rsvp/:USERID/
@@ -39,11 +36,6 @@ rsvpRouter.get("/test/", (_: Request, res: Response) => {
  */
 rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const userId: string | undefined = req.params.USERID;
-
-    //Returns error if userid parameter is empty
-    if (!userId) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-    }
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     //Redirects if caller doesn't have elevated perms
@@ -147,7 +139,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UnknownError" });
+        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
     //If the current user has not been accepted, send an error
