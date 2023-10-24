@@ -7,11 +7,11 @@ const TESTER_DECISION_INFO = {
     userId: TESTER.id,
     status: DecisionStatus.ACCEPTED,
     response: DecisionResponse.PENDING,
-}
+};
 
 beforeEach(async () => {
     Models.initialize();
-    await Models.DecisionInfo.create( TESTER_DECISION_INFO );
+    await Models.DecisionInfo.create(TESTER_DECISION_INFO);
 });
 
 describe("GET /rsvp", () => {
@@ -30,7 +30,6 @@ describe("GET /rsvp", () => {
 
         expect(JSON.parse(response.text)).toHaveProperty("userId", TESTER.id);
     });
-
 });
 
 describe("GET /rsvp/:USERID", () => {
@@ -64,7 +63,7 @@ describe("GET /rsvp/:USERID", () => {
 
 describe("PUT /rsvp", () => {
     it("error checking for empty query works", async () => {
-        const response = await putAsApplicant("/rsvp/").send({ }).expect(400);
+        const response = await putAsApplicant("/rsvp/").send({}).expect(400);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
     });

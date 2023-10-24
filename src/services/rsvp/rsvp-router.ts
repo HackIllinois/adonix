@@ -8,7 +8,6 @@ import Models from "../../database/models.js";
 
 const rsvpRouter: Router = Router();
 
-
 /**
  * @api {get} /rsvp/:USERID/ GET /rsvp/:USERID/
  * @apiGroup rsvp
