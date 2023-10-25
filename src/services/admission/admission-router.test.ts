@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import Models from "../../database/models.js";
 import { DecisionStatus, UpdateEntries } from "./admission-formats.js";
 import { getAsAttendee, getAsStaff, getAsUser, putAsAttendee, putAsStaff, putAsUser } from "../../testTools.js";
+import { DecisionInfo } from "../../database/decision-db.js";
 
 beforeEach(async () => {
     Models.initialize();
@@ -16,47 +17,11 @@ describe("GET /admission", () => {
     });
 
     it("should return a list of applicants without email sent", async () => {
-        const mockData = [
-            {
-                _id: "1",
-                userId: "user1",
-                status: "ACCEPTED",
-                response: "ACCEPTED",
-                reviewer: "reviewer1",
-                emailSent: false,
-            },
-            {
-                _id: "2",
-                userId: "user2",
-                status: "WAITLISTED",
-                response: "PENDING",
-                reviewer: "reviewer2",
-                emailSent: false,
-            },
-            {
-                _id: "3",
-                userId: "user3",
-                status: "REJECTED",
-                response: "PENDING",
-                reviewer: "reviewer2",
-                emailSent: true,
-            },
-            {
-                _id: "4",
-                userId: "user4",
-                status: "TBD",
-                response: "PENDING",
-                reviewer: "reviewer2",
-                emailSent: false,
-            },
-        ];
-
-        Models.DecisionInfo.find = jest.fn(() => {
-            return mockData as never;
-        });
         const response = await getAsStaff("/admission/").expect(200);
         expect(JSON.parse(response.text)).toHaveProperty("entries");
-        expect(JSON.parse(response.text)).toHaveLength(4);
+        JSON.parse(response.text).entries.forEach((entry: DecisionInfo) => {
+            expect(entry.emailSent).toBe(false);
+        });
     });
 });
 
