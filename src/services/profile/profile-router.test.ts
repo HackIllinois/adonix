@@ -5,10 +5,6 @@ import { ProfileFormat } from "./profile-formats.js";
 import Constants from "../../constants.js";
 import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
 
-beforeEach(async () => {
-    Models.initialize();
-});
-
 const TESTER_USER = {
     userId: TESTER.id,
     displayName: TESTER.name,
@@ -46,14 +42,24 @@ const profile: ProfileFormat = {
     points: 0,
 };
 
+beforeEach(async () => {
+    Models.initialize();
+    await Models.AttendeeProfile.create(TESTER_USER);
+    await Models.AttendeeMetadata.create(TESTER_METADATA);
+    await Models.AttendeeProfile.create(TESTER_USER_2);
+    await Models.AttendeeProfile.create(TESTER_USER_3);
+});
+
 describe("POST /profile", () => {
     it("posts for an attendee", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
         const response = await postAsAttendee("/profile/").send(profile).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 
     it("posts for a user", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
         const response = await postAsUser("/profile/").send(profile).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
@@ -78,43 +84,37 @@ describe("POST /profile", () => {
 
 describe("GET /profile", () => {
     it("fails to get a profile that doesn't exist", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
+
         const response = await getAsUser("/profile/").expect(404);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
     it("gets a profile that exists", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
         const response = await getAsUser("/profile/").expect(200);
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 });
 
 describe("GET /profile/id/:USERID", () => {
-    it("fails with no id provided", async () => {
+    it("redirects with no id provided", async () => {
         await getAsUser("/profile/id").expect(302);
     });
 
     it("fails to get a profile as a user", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
         const response = await getAsUser("/profile/id/" + TESTER.id).expect(403);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gets with an admin", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
         const response = await getAsAdmin("/profile/id/" + TESTER.id).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 
     it("gets a user that doesnt exist", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
         const response = await getAsAdmin("/profile/id/doesnotexist").expect(404);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
@@ -123,15 +123,12 @@ describe("GET /profile/id/:USERID", () => {
 
 describe("DELETE /profile/", () => {
     it("fails to delete a profile that doesn't exist", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
         const response = await delAsUser("/profile").expect(404);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AttendeeNotFound");
     });
 
     it("deletes a profile", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
-        await Models.AttendeeMetadata.create(TESTER_METADATA);
-
         const response = await delAsUser("/profile").expect(200);
         expect(JSON.parse(response.text)).toHaveProperty("success", true);
     });
@@ -139,22 +136,10 @@ describe("DELETE /profile/", () => {
 
 describe("GET /profile/leaderboard", () => {
     it("gets 3 entries when no limit is set", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
-        await Models.AttendeeProfile.create(TESTER_USER_2);
-
-        await Models.AttendeeProfile.create(TESTER_USER_3);
-
         await getAsUser("/profile/leaderboard").expect(200);
     });
 
     it("gets with a limit of 2", async () => {
-        await Models.AttendeeProfile.create(TESTER_USER);
-
-        await Models.AttendeeProfile.create(TESTER_USER_2);
-
-        await Models.AttendeeProfile.create(TESTER_USER_3);
-
         const response = await getAsUser("/profile/leaderboard?limit=2").expect(200);
 
         const responseArray = JSON.parse(response.text);
