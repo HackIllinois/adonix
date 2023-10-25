@@ -51,14 +51,14 @@ beforeEach(async () => {
 });
 
 describe("POST /profile", () => {
-    it("posts for an attendee", async () => {
+    it("works for an attendee", async () => {
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
         const response = await postAsAttendee("/profile/").send(profile).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 
-    it("posts for a user", async () => {
+    it("fails when a profile is already created", async () => {
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
         const response = await postAsUser("/profile/").send(profile).expect(200);
 
@@ -69,7 +69,7 @@ describe("POST /profile", () => {
         expect(JSON.parse(response2.text)).toHaveProperty("error", "UserAlreadyExists");
     });
 
-    it("posts with invalid data", async () => {
+    it("fails when invalid data is provided", async () => {
         const response = await postAsUser("/profile/")
             .send({
                 displayName: 123,
@@ -108,7 +108,7 @@ describe("GET /profile/id/:USERID", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
-    it("gets with an admin", async () => {
+    it("gets a profile as an admin", async () => {
         const response = await getAsAdmin("/profile/id/" + TESTER.id).expect(200);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
