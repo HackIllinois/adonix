@@ -24,11 +24,11 @@ export class DecisionInfo extends Document {
     @prop({ required: true })
     public response: DecisionResponse;
 
-    @prop( { required: true} )
-    public reviewer:  string;
-    
-    @prop( { required: true} )
-    public emailSent:  boolean;
+    @prop({ required: true })
+    public reviewer: string;
+
+    @prop({ required: true })
+    public emailSent: boolean;
 }
 
 export class DecisionEntry extends Document {
