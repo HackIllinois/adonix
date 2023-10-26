@@ -42,7 +42,8 @@ build/Release
 node_modules/
 jspm_packages/
 
-# Snowpack dependency directory (https://snowpack.dev/)
+# Snowpack d:
+ependency directory (https://snowpack.dev/)
 web_modules/
 
 # TypeScript cache
@@ -135,5 +136,3 @@ dist
 docs/
 apidocs/
 devdocs/
-
-.idea/

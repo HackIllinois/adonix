@@ -4,13 +4,15 @@ export interface ApplicantDecisionFormat {
     name: string;
     status: DecisionStatus;
 }
-export interface UpdateEntries {
-    entries: ApplicantDecisionFormat[];
-}
 
 export enum DecisionStatus {
     TBD = "TBD",
     ACCEPTED = "ACCEPTED",
     REJECTED = "REJECTED",
     WAITLISTED = "WAITLISTED",
+}
+export enum DecisionResponse {
+    PENDING = "PENDING",
+    ACCEPTED = "ACCEPTED",
+    DECLINED = "DECLINED",
 }

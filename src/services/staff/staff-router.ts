@@ -9,6 +9,7 @@ import Constants from "../../constants.js";
 
 import { EventMetadata } from "../../database/event-db.js";
 import Models from "../../database/models.js";
+import { StatusCode } from "status-code-enum";
 
 const staffRouter: Router = Router();
 
@@ -47,29 +48,29 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     const userId: string = payload.id;
     // Only staff can mark themselves as attending these events
     if (!hasStaffPerms(payload)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     if (!eventId) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 
     const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
 
     if (!metadata) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "EventNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "EventNotFound" });
     }
 
     const timestamp: number = Math.round(Date.now() / Constants.MILLISECONDS_PER_SECOND);
     console.log(metadata.exp, timestamp);
 
     if (metadata.exp <= timestamp) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "CodeExpired" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "CodeExpired" });
     }
 
     await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
-    return res.status(Constants.SUCCESS).send({ status: "Success" });
+    return res.status(StatusCode.SuccessOK).send({ status: "Success" });
 });
 
 export default staffRouter;

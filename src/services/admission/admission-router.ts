@@ -4,10 +4,9 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { DecisionInfo } from "../../database/decision-db.js";
 import Models from "../../database/models.js";
-import Constants from "../../constants.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { UpdateEntries } from "./admission-formats.js";
-import * as console from "console";
+import { ApplicantDecisionFormat } from "./admission-formats.js";
+import { StatusCode } from "status-code-enum";
 
 const admissionRouter: Router = Router();
 
@@ -19,8 +18,7 @@ const admissionRouter: Router = Router();
  * @apiSuccess (200: Success) {Json} entries The list of applicants without email sent
  * @apiSuccessExample Example Success Response (Staff POV)
  * HTTP/1.1 200 OK
- * {
- *     "entries": [
+ * [
  *         {
  *             "_id": "652c2f0f923bd80603c992f9",
  *             "userId": "user1",
@@ -46,7 +44,6 @@ const admissionRouter: Router = Router();
  *             "emailSent": false
  *         }
  *     ]
- * }
  * @apiUser strongVerifyErrors
  * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
@@ -54,15 +51,15 @@ const admissionRouter: Router = Router();
 admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "InvalidToken" });
     }
     try {
         const filteredEntries: DecisionInfo[] = await Models.DecisionInfo.find({ emailSent: false });
-        return res.status(Constants.SUCCESS).send({ entries: filteredEntries });
+        return res.status(StatusCode.SuccessOK).send(filteredEntries);
     } catch (error) {
         console.error(error);
     }
-    return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+    return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InternalError" });
 });
 /**
  * @api {put} /admission/ PUT /admission/
@@ -104,18 +101,18 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
 admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "InvalidToken" });
     }
-    const updateEntries: UpdateEntries = req.body as UpdateEntries;
-    const ops = updateEntries.entries.map((entry) => {
+    const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
+    const ops = updateEntries.map((entry) => {
         return Models.DecisionInfo.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status } });
     });
     try {
         await Promise.all(ops);
-        return res.status(Constants.SUCCESS).send({ message: "StatusSuccess" });
+        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
     } catch (error) {
         console.log(error);
     }
-    return res.status(Constants.INTERNAL_ERROR).send("InternalError");
+    return res.status(StatusCode.ClientErrorBadRequest).send("InternalError");
 });
 export default admissionRouter;
