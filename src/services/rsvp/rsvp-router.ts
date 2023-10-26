@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import Constants from "../../constants.js";
+import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
@@ -46,10 +46,10 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res.status(Constants.SUCCESS).send(queryResult.toObject());
+    return res.status(StatusCode.SuccessOK).send(queryResult.toObject());
 });
 
 /**
@@ -93,7 +93,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
     const toReturn = queryResult.toObject();
@@ -104,7 +104,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         delete toReturn.emailSent;
     }
 
-    return res.status(Constants.SUCCESS).send(toReturn);
+    return res.status(StatusCode.SuccessOK).send(toReturn);
 });
 
 /**
@@ -142,7 +142,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     //Returns error if request body has no isAttending parameter
     if (rsvp === undefined) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
     }
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -153,12 +153,12 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     //Returns error if query is empty
     if (!queryResult) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
     //If the current user has not been accepted, send an error
     if (queryResult.status != DecisionStatus.ACCEPTED) {
-        return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     //If current user has been accepted, update their RSVP decision to "ACCEPTED"/"DECLINED" acoordingly
@@ -172,9 +172,9 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     );
 
     if (updatedDecision) {
-        return res.status(Constants.SUCCESS).send(updatedDecision.toObject());
+        return res.status(StatusCode.SuccessOK).send(updatedDecision.toObject());
     } else {
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
     }
 });
 
