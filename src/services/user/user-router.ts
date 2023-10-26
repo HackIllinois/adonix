@@ -1,14 +1,14 @@
 import { Router, Request, Response } from "express";
+import { StatusCode } from "status-code-enum";
 
-import Constants from "../../constants.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { UserFormat, isValidUserFormat } from "./user-formats.js";
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
+import Constants from "../../constants.js";
 
 const userRouter: Router = Router();
 
@@ -33,9 +33,9 @@ const userRouter: Router = Router();
 userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     // Return the same payload, but with a shorter expiration time
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, false, "20s");
+    const token: string = generateJwtToken(payload, false, Constants.QR_EXPIRY_TIME);
     const uri: string = `hackillinois://user?userToken=${token}`;
-    res.status(Constants.SUCCESS).send({ userId: payload.id, qrInfo: uri });
+    res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
 });
 
 /**
@@ -63,11 +63,6 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
 userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
     const targetUser: string | undefined = req.params.USERID as string;
 
-    // If target user -> redirect to base function
-    if (!targetUser) {
-        return res.redirect("/user/qr/");
-    }
-
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     let newPayload: JwtPayload | undefined;
 
@@ -81,13 +76,13 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 
     // Return false if we haven't created a payload yet
     if (!newPayload) {
-        return res.status(Constants.FORBIDDEN).send("Forbidden");
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     // Generate the token
     const token: string = generateJwtToken(newPayload, false, "20s");
     const uri: string = `hackillinois://user?userToken=${token}`;
-    return res.status(Constants.SUCCESS).send({ userId: payload.id, qrInfo: uri });
+    return res.status(StatusCode.SuccessOK).send({ userId: newPayload.id, qrInfo: uri });
 });
 
 /**
@@ -113,11 +108,6 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  * @apiUse strongVerifyErrors
  */
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
-    // If no target user, exact same as next route
-    if (!req.params.USERID) {
-        return res.redirect("/");
-    }
-
     const targetUser: string = req.params.USERID ?? "";
 
     // Get payload, and check if authorized
@@ -126,13 +116,13 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         // Authorized -> return the user object
         const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
         if (userInfo) {
-            return res.status(Constants.SUCCESS).send(userInfo);
+            return res.status(StatusCode.SuccessOK).send(userInfo);
         } else {
-            return res.status(Constants.INTERNAL_ERROR).send({ error: "UserNotFound" });
+            return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
         }
     }
 
-    return res.status(Constants.FORBIDDEN).send({ error: "Forbidden" });
+    return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
 });
 
 /**
@@ -161,65 +151,9 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     const user: UserInfo | null = await Models.UserInfo.findOne({ userId: payload.id });
 
     if (user) {
-        return res.status(Constants.SUCCESS).send(user);
+        return res.status(StatusCode.SuccessOK).send(user);
     } else {
-        return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
-    }
-});
-
-/**
- * @api {post} /user/ POST /user/
- * @apiGroup User
- * @apiDescription Update a given user
- *
- * @apiBody {String} userId UserID
- * @apiBody {String} name User's name.
- * @apiBody {String} email Email address (staff gmail or Github email).
- * @apiParamExample {json} Example Request:
- *	{
-		"userId": "provider00001",
-		"name": "john doe",
-		"email": "johndoe@provider.com"
- * 	}
- *
- * @apiSuccess (200: Success) {String} userId UserID
- * @apiSuccess (200: Success) {String} name User's name.
- * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
-		
- * @apiSuccessExample Example Success Response:
-		* 	HTTP/1.1 200 OK
-		*	{
-			"userId": "provider00001",
-			"name": "john",
-			"email": "johndoe@provider.com"
- 		* 	}
- * @apiUse strongVerifyErrors
- */
-userRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
-    const token: JwtPayload = res.locals.payload as JwtPayload;
-
-    if (!hasElevatedPerms(token)) {
-        return res.status(Constants.FORBIDDEN).send({ error: "InvalidToken" });
-    }
-
-    // Get userData from the request, and print to output
-    const userData: UserFormat = req.body as UserFormat;
-
-    if (!isValidUserFormat(userData)) {
-        return res.status(Constants.BAD_REQUEST).send({ error: "InvalidParams" });
-    }
-
-    // Update the given user
-    const updatedUser: UserInfo | null = await Models.UserInfo.findOneAndUpdate(
-        { userId: userData.userId },
-        { $set: userData },
-        { upsert: true },
-    );
-
-    if (updatedUser) {
-        return res.status(Constants.SUCCESS).send(updatedUser);
-    } else {
-        return res.status(Constants.INTERNAL_ERROR).send({ error: "InternalError" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
     }
 });
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import Constants from "../constants.js";
 import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
+import { StatusCode } from "status-code-enum";
 
 /**
  * @apiDefine strongVerifyErrors
@@ -22,7 +22,7 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
     const token: string | undefined = req.headers.authorization;
 
     if (!token) {
-        res.status(Constants.UNAUTHORIZED_REQUEST).send({ error: "NoToken" });
+        res.status(StatusCode.ClientErrorUnauthorized).send({ error: "NoToken" });
         next("router");
         return;
     }
@@ -33,10 +33,10 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
     } catch (error) {
         console.error(error);
         if (error instanceof jsonwebtoken.TokenExpiredError) {
-            res.status(Constants.FORBIDDEN).send("TokenExpired");
+            res.status(StatusCode.ClientErrorForbidden).send("TokenExpired");
             next("router");
         } else {
-            res.status(Constants.UNAUTHORIZED_REQUEST).send({
+            res.status(StatusCode.ClientErrorUnauthorized).send({
                 error: "InvalidToken",
             });
             next("router");

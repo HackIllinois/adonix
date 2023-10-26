@@ -40,6 +40,7 @@ module.exports = {
             files: ["**/*.test.ts"], // Disable specific rules for tests
             rules: {
                 "no-magic-numbers": "off",
+                "@typescript-eslint/no-var-requires": "off", // Required for jest
             },
         },
     ],

@@ -3,6 +3,7 @@
 import { describe, expect, test, it } from "@jest/globals";
 
 import { get } from "./testTools.js";
+import { StatusCode } from "status-code-enum";
 
 describe("sanity tests for app", () => {
     test("life is not a lie", () => {
@@ -10,7 +11,7 @@ describe("sanity tests for app", () => {
     });
 
     it("should run", async () => {
-        const response = await get("/").expect(200);
+        const response = await get("/").expect(StatusCode.SuccessOK);
 
         expect(response.text).toBe("API is working!!!");
     });
