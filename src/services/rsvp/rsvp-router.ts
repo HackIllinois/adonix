@@ -55,16 +55,23 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
 /**
  * @api {get} /rsvp/ GET /rsvp/
  * @apiGroup rsvp
- * @apiDescription Check RSVP decision for current user
+ * @apiDescription Check RSVP decision for current user, returns filtered info for attendees and unfiltered info for staff/admin
  *
  *
  * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} User's applicatoin status
  * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {string} Reviwer
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
- * @apiSuccessExample Example Success Response:
+ * @apiSuccessExample Example Success Response (caller is a user):
+ * 	HTTP/1.1 200 OK
+ *	{
+ *      "_id": "652c311b6e283244d2ef4c29",
+ *      "userId": "github0000001",
+ *      "status": "ACCEPTED",
+ *      "response": "ACCEPTED",
+ * 	}
+ *
+ *  @apiSuccessExample Example Success Response (caller is a staff/admin):
  * 	HTTP/1.1 200 OK
  *	{
  *      "_id": "652c311b6e283244d2ef4c29",
@@ -72,7 +79,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  *      "status": "ACCEPTED",
  *      "response": "ACCEPTED",
  *      "reviewer": "reviewer1",
- *      "emailSent": true
+ *      "emailSent": true,
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -89,7 +96,15 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(Constants.BAD_REQUEST).send({ error: "UserNotFound" });
     }
 
-    return res.status(Constants.SUCCESS).send(queryResult.toObject());
+    const toReturn = queryResult.toObject();
+
+    //Filters data if caller doesn't have elevated perms
+    if (!hasElevatedPerms(payload)) {
+        delete toReturn.reviewer;
+        delete toReturn.emailSent;
+    }
+
+    return res.status(Constants.SUCCESS).send(toReturn);
 });
 
 /**

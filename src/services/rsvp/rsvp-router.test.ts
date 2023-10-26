@@ -2,11 +2,14 @@ import { describe, expect, it, beforeEach } from "@jest/globals";
 import { TESTER, getAsAttendee, getAsStaff, putAsApplicant, getAsAdmin } from "../../testTools.js";
 import { DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
 import Models from "../../database/models.js";
+import Constants from "../../constants.js";
 
 const TESTER_DECISION_INFO = {
     userId: TESTER.id,
     status: DecisionStatus.ACCEPTED,
     response: DecisionResponse.PENDING,
+    reviewer: "reviewer1",
+    emailSent: true,
 };
 
 beforeEach(async () => {
@@ -20,15 +23,25 @@ describe("GET /rsvp", () => {
             userId: TESTER.id,
         });
 
-        const response = await getAsAttendee("/rsvp/").expect(400);
+        const response = await getAsAttendee("/rsvp/").expect(Constants.BAD_REQUEST);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("works for an attendee user", async () => {
-        const response = await getAsAttendee("/rsvp/").expect(200);
+    it("works for an attendee user and returns filtered data", async () => {
+        const response = await getAsAttendee("/rsvp/").expect(Constants.SUCCESS);
 
-        expect(JSON.parse(response.text)).toHaveProperty("userId", TESTER.id);
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER.id,
+            status: DecisionStatus.ACCEPTED,
+            response: DecisionResponse.PENDING,
+        });
+    });
+
+    it("works for a staff user and returns unfiltered data", async () => {
+        const response = await getAsStaff("/rsvp/").expect(Constants.SUCCESS);
+
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION_INFO);
     });
 });
 
@@ -40,13 +53,13 @@ describe("GET /rsvp/:USERID", () => {
     });
 
     it("gets if caller has elevated perms (Staff)", async () => {
-        const response = await getAsStaff(`/rsvp/${TESTER.id}`).expect(200);
+        const response = await getAsStaff(`/rsvp/${TESTER.id}`).expect(Constants.SUCCESS);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION_INFO);
     });
 
     it("gets if caller has elevated perms (Admin)", async () => {
-        const response = await getAsAdmin("/rsvp/" + TESTER.id).expect(200);
+        const response = await getAsAdmin("/rsvp/" + TESTER.id).expect(Constants.SUCCESS);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION_INFO);
     });
@@ -55,7 +68,7 @@ describe("GET /rsvp/:USERID", () => {
         await Models.DecisionInfo.deleteOne({
             userId: TESTER.id,
         });
-        const response = await getAsStaff("/rsvp/idontexist").expect(400);
+        const response = await getAsStaff("/rsvp/idontexist").expect(Constants.BAD_REQUEST);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
@@ -63,7 +76,7 @@ describe("GET /rsvp/:USERID", () => {
 
 describe("PUT /rsvp", () => {
     it("error checking for empty query works", async () => {
-        const response = await putAsApplicant("/rsvp/").send({}).expect(400);
+        const response = await putAsApplicant("/rsvp/").send({}).expect(Constants.BAD_REQUEST);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
     });
@@ -72,35 +85,27 @@ describe("PUT /rsvp", () => {
         await Models.DecisionInfo.deleteOne({
             userId: TESTER.id,
         });
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(400);
+        const response = await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(Constants.BAD_REQUEST);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("applicant accepts accepted decision", async () => {
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(200);
+    it("lets applicant accept accepted decision", async () => {
+        const response = await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(Constants.SUCCESS);
 
         expect(JSON.parse(response.text)).toHaveProperty("response", DecisionResponse.ACCEPTED);
     });
 
-    it("applicant rejects accepted decision", async () => {
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(200);
+    it("lets applicant reject accepted decision", async () => {
+        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(Constants.SUCCESS);
 
         expect(JSON.parse(response.text)).toHaveProperty("response", DecisionResponse.DECLINED);
     });
 
-    it("applicant tries to accept rejected decision (shouldn't work)", async () => {
+    it("doesn't let applicant accept rejected decision", async () => {
         await Models.DecisionInfo.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
 
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(403);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
-
-    it("applicant rejects rejected decision", async () => {
-        await Models.DecisionInfo.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
-
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(403);
+        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(Constants.FORBIDDEN);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
