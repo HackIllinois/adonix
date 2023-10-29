@@ -47,9 +47,9 @@ describe("GET /rsvp", () => {
 
 describe("GET /rsvp/:USERID", () => {
     it("redirects to / if caller doesn't have elevated perms", async () => {
-        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).expect(302);
+        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).expect(StatusCode.RedirectFound);
 
-        expect(response.text).toBe("Found. Redirecting to /");
+        expect(response.text).toBe("");
     });
 
     it("gets if caller has elevated perms (Staff)", async () => {
