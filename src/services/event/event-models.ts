@@ -19,13 +19,13 @@ export enum STAFF_EVENT_TYPE {
 }
 
 export interface FilteredEventView {
-    id: string;
+    eventId: string;
     name: string;
     description: string;
     startTime: number;
     endTime: number;
     locations: Location[];
-    sponsor: string;
+    sponsor?: string;
     eventType: PUBLIC_EVENT_TYPE;
     points: number;
     isAsync: boolean;

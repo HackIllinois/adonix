@@ -6,12 +6,6 @@ export interface ProfileData {
     name?: string;
 }
 
-export interface RoleData {
-    id: string;
-    provider: Provider | string;
-    roles: Role[];
-}
-
 export interface JwtPayload {
     id: string;
     email: string;
