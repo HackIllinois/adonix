@@ -240,7 +240,11 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     if (hasStaffPerms(payload)) {
         return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
     } else {
-        const filteredEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
+        const filteredEvents: FilteredEventView[] = publicEvents
+            .filter((event: PublicEvent) => {
+                return !event.isPrivate;
+            })
+            .map(createFilteredEventView);
         return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
     }
 });
