@@ -70,7 +70,7 @@ describe("PUT /admission", () => {
         const retrievedEntries = await Promise.all(ops);
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
-                updateData.map((item) => expect.objectContaining({ status: item.status, userId: item.userId })),
+                updateData.map((item) => {return expect.objectContaining({ status: item.status, userId: item.userId })}),
             ),
         );
     });
