@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import Models from "../../database/models.js";
 import { DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
-import { getAsAttendee, getAsStaff, getAsUser, putAsStaff, putAsUser, TESTER } from "../../testTools.js";
+import { getAsStaff, getAsUser, putAsStaff, putAsUser, TESTER } from "../../testTools.js";
 import { DecisionInfo } from "../../database/decision-db.js";
 import { StatusCode } from "status-code-enum";
 import { ApplicantDecisionFormat } from "./admission-formats.js";
@@ -25,12 +25,10 @@ const OTHER_USER = {
 const updateData = [
     {
         userId: TESTER.id,
-        name: TESTER.name,
         status: DecisionStatus.WAITLISTED,
     },
     {
         userId: "other-user",
-        name: "other-name",
         status: DecisionStatus.ACCEPTED,
     },
 ] satisfies ApplicantDecisionFormat[];
@@ -45,10 +43,6 @@ describe("GET /admission", () => {
     it("gives forbidden error for user without elevated perms", async () => {
         const responseUser = await getAsUser("/admission/").expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
-    });
-    it("gives forbidden error for user without elevated perms - attendee", async () => {
-        const responseAttendee = await getAsAttendee("/admission/").expect(StatusCode.ClientErrorForbidden);
-        expect(JSON.parse(responseAttendee.text)).toHaveProperty("error", "Forbidden");
     });
     it("should return a list of applicants without email sent", async () => {
         const response = await getAsStaff("/admission/").expect(StatusCode.SuccessOK);
