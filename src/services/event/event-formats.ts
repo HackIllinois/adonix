@@ -105,8 +105,11 @@ export function isValidPublicFormat(baseEvent: BaseEventFormat): boolean {
     // Cast the object to AttendeeEventFormat
     const obj: PublicEventFormat = baseEvent as PublicEventFormat;
 
+    if (obj.sponsor && typeof obj.sponsor !== "string") {
+        return false;
+    }
+
     if (
-        typeof obj.sponsor !== "string" ||
         typeof obj.publicEventType !== "string" ||
         !Object.values(PUBLIC_EVENT_TYPE).includes(obj.publicEventType) ||
         typeof obj.points !== "number" ||
