@@ -20,7 +20,6 @@ const admissionRouter: Router = Router();
  * HTTP/1.1 200 OK
  * [
  *         {
- *             "_id": "652c2f0f923bd80603c992f9",
  *             "userId": "user1",
  *             "status": "ACCEPTED",
  *             "response": "ACCEPTED",
@@ -28,7 +27,6 @@ const admissionRouter: Router = Router();
  *             "emailSent": false
  *         },
  *         {
- *             "_id": "652c2f4a4e5cf39082bbaad8",
  *             "userId": "user3",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
@@ -36,14 +34,13 @@ const admissionRouter: Router = Router();
  *             "emailSent": false
  *         },
  *         {
- *             "_id": "652c2f65867cc5b6728ee48c",
  *             "userId": "user4",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
  *             "reviewer": "reviewer1",
  *             "emailSent": false
  *         }
- *     ]
+ * ]
  * @apiUser strongVerifyErrors
  * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
@@ -51,7 +48,7 @@ const admissionRouter: Router = Router();
 admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "InvalidToken" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
     try {
         const filteredEntries: DecisionInfo[] = await Models.DecisionInfo.find({ emailSent: false });
@@ -72,8 +69,7 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
  *
  * @apiParamExample Example Request (Staff):
  * HTTP/1.1 PUT /admission/
- * {
- *   "entries": [
+ * [
  *     {
  *       "userId": "user1",
  *       "name": "Jason",
@@ -89,8 +85,7 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
  *       "name": "John",
  *       "status": "WAITLISTED"
  *     }
- *   ]
- * }
+ * ]
  *
  * @apiSuccess (200: Success) {String} StatusSuccess
  *
@@ -101,7 +96,7 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
 admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "InvalidToken" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
     const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
     const ops = updateEntries.map((entry) => {

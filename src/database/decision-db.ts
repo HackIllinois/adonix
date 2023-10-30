@@ -1,13 +1,13 @@
 import { prop } from "@typegoose/typegoose";
 
-enum DecisionStatus {
+export enum DecisionStatus {
     TBD = "TBD",
     ACCEPTED = "ACCEPTED",
     REJECTED = "REJECTED",
     WAITLISTED = "WAITLISTED",
 }
 
-enum DecisionResponse {
+export enum DecisionResponse {
     PENDING = "PENDING",
     ACCEPTED = "ACCEPTED",
     DECLINED = "DECLINED",
