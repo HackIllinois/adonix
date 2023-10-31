@@ -10,6 +10,7 @@ import profileRouter from "./services/profile/profile-router.js";
 import staffRouter from "./services/staff/staff-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import versionRouter from "./services/version/version-router.js";
+import admissionRouter from "./services/admission/admission-router.js";
 
 import { InitializeConfigReader } from "./middleware/config-reader.js";
 import Models from "./database/models.js";
@@ -37,6 +38,7 @@ app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
 app.use("/staff/", staffRouter);
 app.use("/user/", userRouter);
+app.use("/admission/", admissionRouter);
 app.use("/version/", versionRouter);
 
 // Ensure that API is running
