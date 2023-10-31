@@ -72,17 +72,14 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
  * [
  *     {
  *       "userId": "user1",
- *       "name": "Jason",
  *       "status": "ACCEPTED"
  *     },
  *     {
  *       "userId": "user2",
- *       "name": "Fred",
  *       "status": "REJECTED"
  *     },
  *     {
  *       "userId": "user3",
- *       "name": "John",
  *       "status": "WAITLISTED"
  *     }
  * ]

@@ -51,7 +51,7 @@ describe("GET /admission", () => {
 });
 
 describe("PUT /admission", () => {
-    it("gives forbidden error for user without elevated perms (As Attendee)", async () => {
+    it("gives forbidden error for user without elevated perms", async () => {
         const responseUser = await putAsUser("/admission/").send(updateData).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
     });
