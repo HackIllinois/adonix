@@ -14,7 +14,6 @@ const rsvpRouter: Router = Router();
  * @apiDescription Check RSVP decision for a given userId, provided that the current user has elevated perms
  *
  *
- * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} User's applicatoin status
  * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
@@ -23,7 +22,6 @@ const rsvpRouter: Router = Router();
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *      "_id": "652c311b6e283244d2ef4c29",
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "PENDING",
@@ -49,7 +47,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res.status(StatusCode.SuccessOK).send(queryResult.toObject());
+    return res.status(StatusCode.SuccessOK).send(queryResult);
 });
 
 /**
@@ -58,14 +56,12 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  * @apiDescription Check RSVP decision for current user, returns filtered info for attendees and unfiltered info for staff/admin
  *
  *
- * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} User's applicatoin status
  * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
  * @apiSuccessExample Example Success Response (caller is a user):
  * 	HTTP/1.1 200 OK
  *	{
- *      "_id": "652c311b6e283244d2ef4c29",
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "ACCEPTED",
@@ -74,7 +70,6 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  *  @apiSuccessExample Example Success Response (caller is a staff/admin):
  * 	HTTP/1.1 200 OK
  *	{
- *      "_id": "652c311b6e283244d2ef4c29",
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "ACCEPTED",
@@ -96,15 +91,16 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    const toReturn = queryResult.toObject();
+    
 
     //Filters data if caller doesn't have elevated perms
-    if (!hasElevatedPerms(payload)) {
-        delete toReturn.reviewer;
-        delete toReturn.emailSent;
+    if (!hasElevatedPerms(payload)) {  
+        return res.status(StatusCode.SuccessOK).send({userId: queryResult.userId,
+            status: queryResult.status, 
+            response: queryResult.response});
     }
 
-    return res.status(StatusCode.SuccessOK).send(toReturn);
+    return res.status(StatusCode.SuccessOK).send(queryResult);
 });
 
 /**
@@ -118,7 +114,6 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  *      "isAttending": false
  * }
  *
- * @apiSuccess (200: Success) {string} MongoDB object ID
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} User's applicatoin status
  * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
@@ -127,7 +122,6 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
- *      "_id": "652c311b6e283244d2ef4c29",
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "DECLINED",
@@ -158,7 +152,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     //If the current user has not been accepted, send an error
     if (queryResult.status != DecisionStatus.ACCEPTED) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "NotAccepted" });
     }
 
     //If current user has been accepted, update their RSVP decision to "ACCEPTED"/"DECLINED" acoordingly
@@ -172,7 +166,8 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     );
 
     if (updatedDecision) {
-        return res.status(StatusCode.SuccessOK).send(updatedDecision.toObject());
+        //return res.status(StatusCode.SuccessOK).send(updatedDecision.toObject());
+        return res.status(StatusCode.SuccessOK).send(updatedDecision);
     } else {
         return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
     }

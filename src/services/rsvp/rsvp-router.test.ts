@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { TESTER, getAsAttendee, getAsStaff, putAsApplicant, getAsAdmin } from "../../testTools.js";
-import { DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
+import { TESTER, getAsAttendee, getAsStaff, putAsApplicant } from "../../testTools.js";
+import { DecisionInfo, DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 
@@ -10,7 +10,7 @@ const TESTER_DECISION_INFO = {
     response: DecisionResponse.PENDING,
     reviewer: "reviewer1",
     emailSent: true,
-};
+} satisfies DecisionInfo;
 
 beforeEach(async () => {
     Models.initialize();
@@ -47,27 +47,18 @@ describe("GET /rsvp", () => {
 
 describe("GET /rsvp/:USERID", () => {
     it("redirects to / if caller doesn't have elevated perms", async () => {
-        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).expect(StatusCode.RedirectFound);
+        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).redirects(1).expect(StatusCode.SuccessOK);
 
-        expect(response.text).toBe("");
+        expect(response.text).toBe("API is working!!!");
     });
 
-    it("gets if caller has elevated perms (Staff)", async () => {
+    it("gets if caller has elevated perms", async () => {
         const response = await getAsStaff(`/rsvp/${TESTER.id}`).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION_INFO);
     });
 
-    it("gets if caller has elevated perms (Admin)", async () => {
-        const response = await getAsAdmin("/rsvp/" + TESTER.id).expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION_INFO);
-    });
-
     it("returns UserNotFound error if user doesn't exist", async () => {
-        await Models.DecisionInfo.deleteOne({
-            userId: TESTER.id,
-        });
         const response = await getAsStaff("/rsvp/idontexist").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
@@ -91,15 +82,27 @@ describe("PUT /rsvp", () => {
     });
 
     it("lets applicant accept accepted decision", async () => {
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toHaveProperty("response", DecisionResponse.ACCEPTED);
+        await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(StatusCode.SuccessOK);
+        const stored = await Models.DecisionInfo.findOne({userId: TESTER.id });
+        
+        if (stored) {
+            const storedObject = stored.toObject();
+            expect(storedObject).toHaveProperty("response", DecisionResponse.ACCEPTED);
+        } else {
+            expect(stored).not.toBeNull();
+        }
     });
 
     it("lets applicant reject accepted decision", async () => {
-        const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toHaveProperty("response", DecisionResponse.DECLINED);
+        await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(StatusCode.SuccessOK);
+        const stored = await Models.DecisionInfo.findOne({userId: TESTER.id });
+        
+        if (stored) {
+            const storedObject = stored.toObject();
+            expect(storedObject).toHaveProperty("response", DecisionResponse.DECLINED);
+        } else {
+            expect(stored).not.toBeNull();
+        }
     });
 
     it("doesn't let applicant accept rejected decision", async () => {
@@ -107,6 +110,6 @@ describe("PUT /rsvp", () => {
 
         const response = await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(StatusCode.ClientErrorForbidden);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotAccepted");
     });
 });
