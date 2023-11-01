@@ -91,13 +91,11 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    
-
     //Filters data if caller doesn't have elevated perms
-    if (!hasElevatedPerms(payload)) {  
-        return res.status(StatusCode.SuccessOK).send({userId: queryResult.userId,
-            status: queryResult.status, 
-            response: queryResult.response});
+    if (!hasElevatedPerms(payload)) {
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ userId: queryResult.userId, status: queryResult.status, response: queryResult.response });
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);

@@ -83,8 +83,8 @@ describe("PUT /rsvp", () => {
 
     it("lets applicant accept accepted decision", async () => {
         await putAsApplicant("/rsvp/").send({ isAttending: true }).expect(StatusCode.SuccessOK);
-        const stored = await Models.DecisionInfo.findOne({userId: TESTER.id });
-        
+        const stored = await Models.DecisionInfo.findOne({ userId: TESTER.id });
+
         if (stored) {
             const storedObject = stored.toObject();
             expect(storedObject).toHaveProperty("response", DecisionResponse.ACCEPTED);
@@ -95,8 +95,8 @@ describe("PUT /rsvp", () => {
 
     it("lets applicant reject accepted decision", async () => {
         await putAsApplicant("/rsvp/").send({ isAttending: false }).expect(StatusCode.SuccessOK);
-        const stored = await Models.DecisionInfo.findOne({userId: TESTER.id });
-        
+        const stored = await Models.DecisionInfo.findOne({ userId: TESTER.id });
+
         if (stored) {
             const storedObject = stored.toObject();
             expect(storedObject).toHaveProperty("response", DecisionResponse.DECLINED);
