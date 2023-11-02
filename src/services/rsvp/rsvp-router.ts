@@ -35,9 +35,10 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     const userId: string | undefined = req.params.USERID;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
+
     //Redirects if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        return res.redirect("/");
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userId });

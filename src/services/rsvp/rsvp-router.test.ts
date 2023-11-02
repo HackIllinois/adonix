@@ -46,10 +46,10 @@ describe("GET /rsvp", () => {
 });
 
 describe("GET /rsvp/:USERID", () => {
-    it("redirects to / if caller doesn't have elevated perms", async () => {
-        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).redirects(1).expect(StatusCode.SuccessOK);
+    it("returns forbidden error if caller doesn't have elevated perms", async () => {
+        const response = await getAsAttendee(`/rsvp/${TESTER.id}`).expect(StatusCode.ClientErrorForbidden);
 
-        expect(response.text).toBe("API is working!!!");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gets if caller has elevated perms", async () => {
