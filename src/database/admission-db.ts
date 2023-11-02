@@ -13,7 +13,7 @@ export enum DecisionResponse {
     DECLINED = "DECLINED",
 }
 
-export class DecisionInfo {
+export class AdmissionDecision {
     @prop({ required: true })
     public userId: string;
 
@@ -30,7 +30,7 @@ export class DecisionInfo {
     public emailSent: boolean;
 }
 
-export class DecisionEntry {
+export class AdmissionEntry {
     @prop({ required: true })
     public userId: string;
 

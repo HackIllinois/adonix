@@ -1,4 +1,4 @@
-import { DecisionStatus } from "database/decision-db.js";
+import { DecisionStatus } from "database/admission-db.js";
 
 export interface ApplicantDecisionFormat {
     userId: string;

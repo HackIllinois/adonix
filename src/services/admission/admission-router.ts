@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
-import { DecisionInfo } from "../../database/decision-db.js";
+import { AdmissionDecision } from "../../database/admission-db.js";
 import Models from "../../database/models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { ApplicantDecisionFormat } from "./admission-formats.js";
@@ -51,7 +51,7 @@ admissionRouter.get("/", strongJwtVerification, async (_: Request, res: Response
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
     try {
-        const filteredEntries: DecisionInfo[] = await Models.DecisionInfo.find({ emailSent: false });
+        const filteredEntries: AdmissionDecision[] = await Models.AdmissionDecision.find({ emailSent: false });
         return res.status(StatusCode.SuccessOK).send(filteredEntries);
     } catch (error) {
         console.error(error);
@@ -97,7 +97,7 @@ admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Respon
     }
     const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
     const ops = updateEntries.map((entry) => {
-        return Models.DecisionInfo.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status } });
+        return Models.AdmissionDecision.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status } });
     });
     try {
         await Promise.all(ops);

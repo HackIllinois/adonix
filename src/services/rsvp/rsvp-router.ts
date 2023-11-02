@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { DecisionStatus, DecisionResponse, DecisionInfo } from "../../database/decision-db.js";
+import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
 import Models from "../../database/models.js";
 
 const rsvpRouter: Router = Router();
@@ -41,7 +41,7 @@ rsvpRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
-    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userId });
+    const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -85,7 +85,7 @@ rsvpRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
 
     const userId: string = payload.id;
 
-    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userId });
+    const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -142,7 +142,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
 
     const userid: string = payload.id;
 
-    const queryResult: DecisionInfo | null = await Models.DecisionInfo.findOne({ userId: userid });
+    const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userid });
 
     //Returns error if query is empty
     if (!queryResult) {
@@ -155,7 +155,7 @@ rsvpRouter.put("/", strongJwtVerification, async (req: Request, res: Response) =
     }
 
     //If current user has been accepted, update their RSVP decision to "ACCEPTED"/"DECLINED" acoordingly
-    const updatedDecision: DecisionInfo | null = await Models.DecisionInfo.findOneAndUpdate(
+    const updatedDecision: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
         { userId: queryResult.userId },
         {
             status: queryResult.status,

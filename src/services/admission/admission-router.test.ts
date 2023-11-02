@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import Models from "../../database/models.js";
-import { DecisionStatus, DecisionResponse } from "../../database/decision-db.js";
+import { DecisionStatus, DecisionResponse } from "../../database/admission-db.js";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, TESTER } from "../../testTools.js";
-import { DecisionInfo } from "../../database/decision-db.js";
+import { AdmissionDecision } from "../../database/admission-db.js";
 import { StatusCode } from "status-code-enum";
 import { ApplicantDecisionFormat } from "./admission-formats.js";
 
@@ -12,7 +12,7 @@ const TESTER_USER = {
     response: DecisionResponse.PENDING,
     emailSent: false,
     reviewer: "tester-reviewer",
-} satisfies DecisionInfo;
+} satisfies AdmissionDecision;
 
 const OTHER_USER = {
     userId: "other-user",
@@ -20,7 +20,7 @@ const OTHER_USER = {
     response: DecisionResponse.DECLINED,
     emailSent: true,
     reviewer: "other-reviewer",
-} satisfies DecisionInfo;
+} satisfies AdmissionDecision;
 
 const updateData = [
     {
@@ -35,8 +35,8 @@ const updateData = [
 
 beforeEach(async () => {
     Models.initialize();
-    await Models.DecisionInfo.create(TESTER_USER);
-    await Models.DecisionInfo.create(OTHER_USER);
+    await Models.AdmissionDecision.create(TESTER_USER);
+    await Models.AdmissionDecision.create(OTHER_USER);
 });
 
 describe("GET /admission", () => {
@@ -59,7 +59,7 @@ describe("PUT /admission", () => {
         const response = await putAsStaff("/admission/").send(updateData).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const ops = updateData.map((entry) => {
-            return Models.DecisionInfo.findOne({ userId: entry.userId });
+            return Models.AdmissionDecision.findOne({ userId: entry.userId });
         });
         const retrievedEntries = await Promise.all(ops);
         expect(retrievedEntries).toMatchObject(

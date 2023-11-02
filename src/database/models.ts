@@ -5,10 +5,10 @@ import { Database, generateConfig } from "../database.js";
 
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
-import { DecisionEntry, DecisionInfo } from "./decision-db.js";
+import { AdmissionEntry, AdmissionDecision } from "./admission-db.js";
 import { EventAttendance, EventMetadata, PublicEvent, StaffEvent } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
-import { Application, RegistrationInfo } from "./registration-db.js";
+import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
 
@@ -22,8 +22,8 @@ enum AuthCollection {
     INFO = "info",
 }
 
-enum DecisionCollection {
-    INFO = "info",
+enum AdmissionCollection {
+    DECISION = "decision",
     ENTRIES = "entries",
 }
 
@@ -61,9 +61,9 @@ export default class Models {
     static AttendeeProfile: mongoose.Model<AttendeeProfile> = undefined!;
     // Auth
     static AuthInfo: mongoose.Model<AuthInfo> = undefined!;
-    // Decision
-    static DecisionInfo: mongoose.Model<DecisionInfo> = undefined!;
-    static DecisionEntry: mongoose.Model<DecisionEntry> = undefined!;
+    // Admission
+    static AdmissionDecision: mongoose.Model<AdmissionDecision> = undefined!;
+    static AdmissionEntry: mongoose.Model<AdmissionEntry> = undefined!;
     // Event
     static StaffEvent: mongoose.Model<StaffEvent> = undefined!;
     static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
@@ -73,7 +73,7 @@ export default class Models {
     static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
     // Registration
     static RegistrationInfo: mongoose.Model<RegistrationInfo> = undefined!;
-    static Application: mongoose.Model<Application> = undefined!;
+    static RegistrationApplication: mongoose.Model<RegistrationApplication> = undefined!;
     // User
     static UserInfo: mongoose.Model<UserInfo> = undefined!;
     static UserAttendance: mongoose.Model<UserAttendance> = undefined!;
@@ -82,15 +82,19 @@ export default class Models {
         this.AttendeeMetadata = getModel(AttendeeMetadata, Database.ATTENDEE, AttendeeCollection.METADATA);
         this.AttendeeProfile = getModel(AttendeeProfile, Database.ATTENDEE, AttendeeCollection.PROFILE);
         this.AuthInfo = getModel(AuthInfo, Database.AUTH, AuthCollection.INFO);
-        this.DecisionInfo = getModel(DecisionInfo, Database.DECISION, DecisionCollection.INFO);
-        this.DecisionEntry = getModel(DecisionEntry, Database.DECISION, DecisionCollection.ENTRIES);
+        this.AdmissionDecision = getModel(AdmissionDecision, Database.ADMISSION, AdmissionCollection.DECISION);
+        this.AdmissionEntry = getModel(AdmissionEntry, Database.ADMISSION, AdmissionCollection.ENTRIES);
         this.StaffEvent = getModel(StaffEvent, Database.EVENT, EventCollection.STAFF_EVENTS);
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
         this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
-        this.RegistrationInfo = getModel(RegistrationInfo, Database.DECISION, RegistrationCollection.INFO);
-        this.Application = getModel(Application, Database.DECISION, RegistrationCollection.APPLICATION);
+        this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
+        this.RegistrationApplication = getModel(
+            RegistrationApplication,
+            Database.REGISTRATION,
+            RegistrationCollection.APPLICATION,
+        );
         this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
         this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
     }
