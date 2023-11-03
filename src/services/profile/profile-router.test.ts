@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "@jest/globals";
 import Models from "../../database/models.js";
 import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsUser } from "../../testTools.js";
 import { ProfileFormat } from "./profile-formats.js";
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
 import { StatusCode } from "status-code-enum";
 
@@ -148,7 +148,7 @@ describe("GET /profile/leaderboard", () => {
     });
 
     it("only gets the max limit when no limit is set", async () => {
-        for (let i = 0; i < Constants.LEADERBOARD_QUERY_LIMIT + 15; i++) {
+        for (let i = 0; i < Config.LEADERBOARD_QUERY_LIMIT + 15; i++) {
             await Models.AttendeeProfile.create({
                 userId: TESTER.id + " " + i,
                 displayName: TESTER.name + " " + i,
@@ -162,7 +162,7 @@ describe("GET /profile/leaderboard", () => {
 
         const responseArray = JSON.parse(response.text);
 
-        expect(responseArray.profiles.length).toBeLessThan(Constants.LEADERBOARD_QUERY_LIMIT + 1);
+        expect(responseArray.profiles.length).toBeLessThan(Config.LEADERBOARD_QUERY_LIMIT + 1);
     });
 
     it("fails when an invalid limit is set", async () => {

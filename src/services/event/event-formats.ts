@@ -1,4 +1,4 @@
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
 import { Location } from "../../database/event-db.js";
 
@@ -59,7 +59,7 @@ function isLocation(loc: Location): boolean {
  */
 /* eslint-disable no-magic-numbers */
 function isValidBaseEventFormat(obj: BaseEventFormat): boolean {
-    if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
+    if (typeof obj.eventId !== "string" || obj.eventId.length !== Config.EVENT_ID_LENGTH) {
         return false;
     }
     if (
@@ -157,7 +157,7 @@ export interface MetadataFormat {
  * @returns Boolean representing whether or not the object is a valid expiration object
  */
 export function isValidMetadataFormat(obj: MetadataFormat): boolean {
-    if (typeof obj.eventId !== "string" || obj.eventId.length !== Constants.EVENT_ID_LENGTH) {
+    if (typeof obj.eventId !== "string" || obj.eventId.length !== Config.EVENT_ID_LENGTH) {
         return false;
     }
 

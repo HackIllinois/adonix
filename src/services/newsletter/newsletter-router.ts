@@ -7,11 +7,12 @@ import { NewsletterSubscription } from "../../database/newsletter-db.js";
 import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
+import Config from "../../config.js";
 
 const newsletterRouter: Router = Router();
 
 // Only allow a certain set of regexes to be allowed via CORS
-const allowedOrigins: RegExp[] = [new RegExp(process.env.PROD_REGEX ?? ""), new RegExp(process.env.DEPLOY_REGEX ?? "")];
+const allowedOrigins: RegExp[] = [new RegExp(Config.NEWSLETTER_CORS.PROD_REGEX), new RegExp(Config.NEWSLETTER_CORS.DEPLOY_REGEX)];
 
 // CORS options configuration
 const corsOptions: CorsOptions = {

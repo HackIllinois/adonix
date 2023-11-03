@@ -27,7 +27,7 @@ module.exports = {
         "arrow-body-style": ["error", "always"],
         curly: ["error", "all"],
         "no-lonely-if": ["error"],
-        "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true }],
+        "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true, ignore: [0] }],
         "no-multi-assign": ["error"],
         "no-nested-ternary": ["error"],
         "no-var": ["error"],
@@ -41,6 +41,12 @@ module.exports = {
             rules: {
                 "no-magic-numbers": "off",
                 "@typescript-eslint/no-var-requires": "off", // Required for jest
+            },
+        },
+        {
+            files: ["src/config.ts"], // Disable specific rules for config
+            rules: {
+                "no-magic-numbers": "off",
             },
         },
     ],

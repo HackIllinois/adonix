@@ -1,6 +1,6 @@
 import { modelOptions, prop } from "@typegoose/typegoose";
 
-import Constants from "../constants.js";
+import Config from "../config.js";
 import { GenericEventFormat } from "../services/event/event-formats.js";
 
 // Interface for the location of the event
@@ -102,7 +102,7 @@ export class PublicEvent extends BaseEvent {
         this.isPrivate = baseEvent.isPrivate ?? false;
         this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
         this.sponsor = baseEvent.sponsor ?? "";
-        this.points = baseEvent.points ?? Constants.DEFAULT_POINT_VALUE;
+        this.points = baseEvent.points ?? Config.DEFAULT_POINT_VALUE;
     }
 }
 

@@ -2,7 +2,7 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { Response } from "express-serve-static-core";
 
-import Constants from "../../constants.js";
+import Config from "../../config.js";
 import { isValidLimit } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
@@ -66,11 +66,11 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
         }
 
         // if the limit is above the leaderboard query limit, set it to the query limit
-        limit = Math.min(limit, Constants.LEADERBOARD_QUERY_LIMIT);
+        limit = Math.min(limit, Config.LEADERBOARD_QUERY_LIMIT);
 
         leaderboardQuery = leaderboardQuery.limit(limit);
     } else {
-        const limit = Constants.LEADERBOARD_QUERY_LIMIT;
+        const limit = Config.LEADERBOARD_QUERY_LIMIT;
 
         leaderboardQuery = leaderboardQuery.limit(limit);
     }
@@ -228,7 +228,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
-    profile.points = Constants.DEFAULT_POINT_VALUE;
+    profile.points = Config.DEFAULT_POINT_VALUE;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
@@ -245,7 +245,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 
     // Create a metadata object, and return it
     try {
-        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Constants.DEFAULT_FOOD_WAVE);
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
         await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);
@@ -279,10 +279,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
     const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
     const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
-    if (
-        attendeeMetadataDeleteResponse.deletedCount == Constants.ZERO ||
-        attendeeProfileDeleteResponse.deletedCount == Constants.ZERO
-    ) {
+    if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
         return res.status(StatusCode.ClientErrorNotFound).send({ success: false, error: "AttendeeNotFound" });
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
