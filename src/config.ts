@@ -1,3 +1,10 @@
+/*
+ * This file defines all config used anywhere in the api. These values need to be defined on import.
+ *
+ * By moving all env variable usage to one place, we also make managing their usage much easier, and
+ * can error if they are not defined.
+ */
+
 import env from "./env.js";
 
 export enum Device {
@@ -45,7 +52,6 @@ const Config = {
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
 
     /* OAuth, Keys, & Permissions */
-
     DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/`,
 
     GITHUB_OAUTH_ID: requireEnv("GITHUB_OAUTH_ID"),
