@@ -10,7 +10,7 @@ import { PublicEvent } from "../../database/event-db.js";
  */
 export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventView {
     const publicEvent: FilteredEventView = {
-        id: baseEvent.eventId,
+        eventId: baseEvent.eventId,
         name: baseEvent.name,
         description: baseEvent.description,
         startTime: baseEvent.startTime,

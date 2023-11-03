@@ -90,7 +90,7 @@ export class PublicEvent extends BaseEvent {
     @prop({ required: true })
     public displayOnStaffCheckIn: boolean;
 
-    @prop({ required: true })
+    @prop()
     public sponsor: string;
 
     @prop({ required: true })
@@ -101,7 +101,7 @@ export class PublicEvent extends BaseEvent {
         this.eventType = baseEvent.publicEventType ?? "OTHER";
         this.isPrivate = baseEvent.isPrivate ?? false;
         this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
-        this.sponsor = baseEvent.sponsor ?? "None";
+        this.sponsor = baseEvent.sponsor ?? "";
         this.points = baseEvent.points ?? Config.DEFAULT_POINT_VALUE;
     }
 }

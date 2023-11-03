@@ -11,7 +11,7 @@ export class RegistrationInfo {
     public userName: string;
 }
 
-export class Application {
+export class RegistrationApplication {
     @prop({ required: true })
     public _id: string;
 

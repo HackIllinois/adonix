@@ -13,6 +13,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
 const profileRouter: Router = Router();
@@ -57,12 +58,19 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
     // Returns NaN if invalid input is passed in
     if (limitString) {
-        const limit = parseInt(limitString);
+        let limit = parseInt(limitString);
 
         // Check for limit validity
         if (!limit || !isValidLimit) {
             return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidLimit" });
         }
+
+        // if the limit is above the leaderboard query limit, set it to the query limit
+        limit = Math.min(limit, Config.LEADERBOARD_QUERY_LIMIT);
+
+        leaderboardQuery = leaderboardQuery.limit(limit);
+    } else {
+        const limit = Config.LEADERBOARD_QUERY_LIMIT;
 
         leaderboardQuery = leaderboardQuery.limit(limit);
     }
@@ -113,11 +121,11 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     const userId: string = payload.id;
-    console.log(userId);
+
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
@@ -162,22 +170,23 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!userId) {
-        return res.redirect("/user/");
-    }
-
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
-    if (userId != payload.id && !hasElevatedPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
+});
+
+profileRouter.get("/id", (_: Request, res: Response) => {
+    // Redirect to the root URL
+    return res.redirect("/user");
 });
 
 /**
@@ -220,6 +229,9 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Config.DEFAULT_POINT_VALUE;
+
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    profile.userId = payload.id;
 
     if (!isValidProfileFormat(profile)) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
@@ -264,9 +276,12 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
-    await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
-    await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
+    const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
+    const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
+    if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
+        return res.status(StatusCode.ClientErrorNotFound).send({ success: false, error: "AttendeeNotFound" });
+    }
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
 

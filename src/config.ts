@@ -72,6 +72,9 @@ const Config = {
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
 
+    /* Limits */
+    LEADERBOARD_QUERY_LIMIT: 25,
+
     /* Misc */
     EVENT_ID_LENGTH: 32,
     EVENT_BYTES_GEN: 16,
