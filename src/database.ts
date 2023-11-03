@@ -31,7 +31,7 @@ export enum Database {
     AUTH = "auth",
     USER = "user",
     EVENT = "event",
-    DECISION = "decision",
+    ADMISSION = "admission",
     ATTENDEE = "attendee",
     NEWSLETTER = "newsletter",
     REGISTRATION = "registration",

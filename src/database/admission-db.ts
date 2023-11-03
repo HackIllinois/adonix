@@ -13,7 +13,7 @@ export enum DecisionResponse {
     DECLINED = "DECLINED",
 }
 
-export class DecisionInfo {
+export class AdmissionDecision {
     @prop({ required: true })
     public userId: string;
 
@@ -28,21 +28,4 @@ export class DecisionInfo {
 
     @prop({ required: true })
     public emailSent: boolean;
-}
-
-export class DecisionEntry {
-    @prop({ required: true })
-    public userId: string;
-
-    @prop({ required: true })
-    public wave: number;
-
-    @prop({ required: true })
-    public reviewer: string;
-
-    @prop({ required: true })
-    public timestamp: number;
-
-    @prop({ required: true })
-    public decision: DecisionStatus;
 }

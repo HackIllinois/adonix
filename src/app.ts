@@ -9,7 +9,6 @@ import eventRouter from "./services/event/event-router.js";
 import profileRouter from "./services/profile/profile-router.js";
 import staffRouter from "./services/staff/staff-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
-import rsvpRouter from "./services/rsvp/rsvp-router.js";
 import versionRouter from "./services/version/version-router.js";
 import admissionRouter from "./services/admission/admission-router.js";
 
@@ -37,7 +36,6 @@ app.use("/auth/", authRouter);
 app.use("/event/", eventRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
-app.use("/rsvp/", rsvpRouter);
 app.use("/staff/", staffRouter);
 app.use("/user/", userRouter);
 app.use("/admission/", admissionRouter);
