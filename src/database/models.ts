@@ -5,7 +5,7 @@ import { Database, generateConfig } from "../database.js";
 
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
-import { AdmissionEntry, AdmissionDecision } from "./admission-db.js";
+import { AdmissionDecision } from "./admission-db.js";
 import { EventAttendance, EventMetadata, PublicEvent, StaffEvent } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
@@ -24,7 +24,6 @@ enum AuthCollection {
 
 enum AdmissionCollection {
     DECISION = "decision",
-    ENTRIES = "entries",
 }
 
 enum EventCollection {
@@ -63,7 +62,6 @@ export default class Models {
     static AuthInfo: mongoose.Model<AuthInfo> = undefined!;
     // Admission
     static AdmissionDecision: mongoose.Model<AdmissionDecision> = undefined!;
-    static AdmissionEntry: mongoose.Model<AdmissionEntry> = undefined!;
     // Event
     static StaffEvent: mongoose.Model<StaffEvent> = undefined!;
     static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
@@ -83,7 +81,6 @@ export default class Models {
         this.AttendeeProfile = getModel(AttendeeProfile, Database.ATTENDEE, AttendeeCollection.PROFILE);
         this.AuthInfo = getModel(AuthInfo, Database.AUTH, AuthCollection.INFO);
         this.AdmissionDecision = getModel(AdmissionDecision, Database.ADMISSION, AdmissionCollection.DECISION);
-        this.AdmissionEntry = getModel(AdmissionEntry, Database.ADMISSION, AdmissionCollection.ENTRIES);
         this.StaffEvent = getModel(StaffEvent, Database.EVENT, EventCollection.STAFF_EVENTS);
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);

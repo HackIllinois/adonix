@@ -29,20 +29,3 @@ export class AdmissionDecision {
     @prop({ required: true })
     public emailSent: boolean;
 }
-
-export class AdmissionEntry {
-    @prop({ required: true })
-    public userId: string;
-
-    @prop({ required: true })
-    public wave: number;
-
-    @prop({ required: true })
-    public reviewer: string;
-
-    @prop({ required: true })
-    public timestamp: number;
-
-    @prop({ required: true })
-    public decision: DecisionStatus;
-}
