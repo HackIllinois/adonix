@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 
-const rawEnv = readFileSync(path.join(process.cwd(), ".env"));
+const envFilePath = path.join(process.cwd(), ".env");
+const rawEnv = existsSync(envFilePath) ? readFileSync(envFilePath) : "";
 const env = dotenv.parse(rawEnv);
 
 for (const key in process.env) {
