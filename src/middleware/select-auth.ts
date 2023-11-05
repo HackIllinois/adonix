@@ -27,7 +27,7 @@ export function SelectAuthProvider(provider: string, device: string): RequestHan
             ...googleOptions,
             callbackURL: Config.CALLBACK_URLS.GOOGLE,
         };
-        options.callbackURL += `device=${device}`;
+        options.callbackURL += device;
         return authenticateFunction("google", options);
     }
 
@@ -36,7 +36,7 @@ export function SelectAuthProvider(provider: string, device: string): RequestHan
             ...githubOptions,
             callbackURL: Config.CALLBACK_URLS.GITHUB,
         };
-        options.callbackURL += `device=${device}`;
+        options.callbackURL += device;
 
         return authenticateFunction("github", options);
     }
