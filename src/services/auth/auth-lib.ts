@@ -319,7 +319,7 @@ export function getDevice(kv?: string): string {
         throw new Error("NoKey");
     }
 
-    if (!value || !Config.REDIRECT_URLS.has(key)) {
+    if (!value || !Config.REDIRECT_URLS.has(value)) {
         throw new Error("NoValue");
     }
 
