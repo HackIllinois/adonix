@@ -35,6 +35,13 @@ const config: Config = {
             },
         ],
     },
+
+    verbose: true,
 };
+
+/* CI specific config */
+if (process.env.CI != undefined && process.env.CI != "0" && process.env.CI != "") {
+    config.reporters = [["github-actions", { silent: false }], "summary"];
+}
 
 export default config;
