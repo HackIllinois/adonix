@@ -49,10 +49,6 @@ passport.use(
 const authRouter: Router = Router();
 authRouter.use(express.urlencoded({ extended: false }));
 
-authRouter.get("/test/", (_: Request, res: Response) => {
-    res.end("Auth endpoint is working!");
-});
-
 authRouter.get("/dev/", (req: Request, res: Response) => {
     const token: string | undefined = req.query.token as string | undefined;
     if (!token) {
