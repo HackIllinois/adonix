@@ -313,17 +313,17 @@ export function getDevice(kv?: string): string {
 
     // Replace everything before/after the first equal with nothing, to get KV pairs
     const key: string = kv.replace(/=.*/, "");
-    const value: string = kv.replace(/.*=/, "");
+    const possibleDevice: string = kv.replace(/.*=/, "");
 
     if (!key || key != "device") {
         throw new Error("NoKey");
     }
 
-    if (!value || !Config.REDIRECT_URLS.has(key)) {
+    if (!possibleDevice || !Config.REDIRECT_URLS.has(possibleDevice)) {
         throw new Error("NoValue");
     }
 
-    return value;
+    return possibleDevice;
 }
 
 /**
