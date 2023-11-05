@@ -302,31 +302,6 @@ export function hasAdminPerms(payload?: JwtPayload): boolean {
 }
 
 /**
- * Given a string of the format device=DEVICENAME, verify that the string is actually valid and contains a device name.
- * @param k Key-value pair, representing the parameter.
- * @returns Device type if valid, else throws an error
- */
-export function getDevice(kv?: string): string {
-    if (!kv) {
-        throw new Error("NoInput");
-    }
-
-    // Replace everything before/after the first equal with nothing, to get KV pairs
-    const key: string = kv.replace(/=.*/, "");
-    const possibleDevice: string = kv.replace(/.*=/, "");
-
-    if (!key || key != "device") {
-        throw new Error("NoKey");
-    }
-
-    if (!possibleDevice || !Config.REDIRECT_URLS.has(possibleDevice)) {
-        throw new Error("NoValue");
-    }
-
-    return possibleDevice;
-}
-
-/**
  * Get all id of users that have a particular role within the database.
  * @param role role that we want to filter for
  * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".

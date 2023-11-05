@@ -13,7 +13,6 @@ import { ModifyRoleRequest } from "./auth-formats.js";
 import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
 import {
     generateJwtToken,
-    getDevice,
     getJwtPayloadFromProfile,
     getRoles,
     hasElevatedPerms,
@@ -125,7 +124,12 @@ authRouter.get(
         console.log("IN CALLBACK");
         const provider: string = req.params.PROVIDER ?? "";
         try {
-            const device: string = getDevice(req.params.DEVICE);
+            const device = req.params.DEVICE;
+
+            if (!device || !Config.REDIRECT_URLS.has(device)) {
+                throw Error(`Bad device ${device}`);
+            }
+
             res.locals.device = device;
             SelectAuthProvider(provider, device)(req, res, next);
         } catch (error) {
