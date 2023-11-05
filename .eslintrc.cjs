@@ -13,6 +13,7 @@ module.exports = {
     },
     plugins: ["@typescript-eslint"],
     rules: {
+        "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }], // Allow prefixing unused args with _ to ignore error
         "@typescript-eslint/no-misused-promises": [
             "error",
             {
