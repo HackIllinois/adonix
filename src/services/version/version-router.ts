@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Request, Response } from "express-serve-static-core";
-import { ConfigReader } from "../../middleware/config-reader.js";
+import Metadata from "../../metadata.js";
 import { StatusCode } from "status-code-enum";
 
 const versionRouter: Router = Router();
@@ -18,8 +18,8 @@ const versionRouter: Router = Router();
  * }
  */
 
-versionRouter.get("/android/", (_: Request, res: Response) => {
-    const androidVersion: string = ConfigReader.androidVersion;
+versionRouter.get("/android/", async (_: Request, res: Response) => {
+    const androidVersion: string = await Metadata.load("androidVersion");
     res.status(StatusCode.SuccessOK).send({ version: androidVersion });
 });
 
@@ -35,8 +35,8 @@ versionRouter.get("/android/", (_: Request, res: Response) => {
  *   "version": "2024.1.1"
  * }
  */
-versionRouter.get("/ios/", (_: Request, res: Response) => {
-    const iosVersion: string = ConfigReader.iosVersion;
+versionRouter.get("/ios/", async (_: Request, res: Response) => {
+    const iosVersion: string = await Metadata.load("iosVersion");
     res.status(StatusCode.SuccessOK).send({ version: iosVersion });
 });
 
