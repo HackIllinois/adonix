@@ -23,8 +23,6 @@ export default class Metadata {
 
         this.metadata = loaded;
 
-        console.log(this.metadata);
-
         return this.metadata[key];
     }
 }
