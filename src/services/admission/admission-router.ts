@@ -8,7 +8,7 @@ import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { ApplicantDecisionFormat } from "./admission-formats.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
-import { RouterError } from "../../middleware/error-handler.js"
+import { RouterError } from "../../middleware/error-handler.js";
 
 const admissionRouter: Router = Router();
 
@@ -56,7 +56,7 @@ admissionRouter.get("/not-sent/", strongJwtVerification, async (_: Request, res:
         const filteredEntries: AdmissionDecision[] = await Models.AdmissionDecision.find({ emailSent: false });
         return res.status(StatusCode.SuccessOK).send(filteredEntries);
     } catch (error) {
-        return next(new RouterError(undefined,undefined,undefined,error));
+        return next(new RouterError(undefined, undefined, undefined, error));
     }
 });
 
@@ -105,7 +105,7 @@ admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Respon
         await Promise.all(ops);
         return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
     } catch (error) {
-        return next(new RouterError(undefined,undefined,undefined,error))
+        return next(new RouterError(undefined, undefined, undefined, error));
     }
 });
 

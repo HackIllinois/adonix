@@ -8,7 +8,7 @@ import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
-import { RouterError } from "../../middleware/error-handler.js"
+import { RouterError } from "../../middleware/error-handler.js";
 import { NextFunction } from "express-serve-static-core";
 
 const newsletterRouter: Router = Router();

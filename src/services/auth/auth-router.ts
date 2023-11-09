@@ -134,7 +134,7 @@ authRouter.get(
             res.locals.device = device;
             SelectAuthProvider(provider, device)(req, res, next);
         } catch (error) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, `Bad device ${error}`))
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, `Bad device ${error}`));
         }
     },
     async (req: Request, res: Response, next: NextFunction) => {

@@ -16,7 +16,7 @@ import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
-import { RouterError } from "../../middleware/error-handler.js"
+import { RouterError } from "../../middleware/error-handler.js";
 
 const profileRouter: Router = Router();
 

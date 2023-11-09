@@ -24,7 +24,7 @@ import Models from "../../database/models.js";
 import { ObjectId } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
-import { RouterError } from "../../middleware/error-handler.js"
+import { RouterError } from "../../middleware/error-handler.js";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -364,7 +364,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
 
     if (eventFormat.eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", {extraEventId: eventFormat.eventId}));
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraEventId: eventFormat.eventId }));
     }
 
     // Create the ID and process metadata for this event

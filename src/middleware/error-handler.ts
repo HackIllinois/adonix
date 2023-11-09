@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import { StatusCode } from "status-code-enum";
 
 export class RouterError {
@@ -28,7 +28,7 @@ export function ErrorHandler(error: RouterError, _req: Request, resp: Response, 
 
     let jsonData: { [key: string]: any } = {
         success: statusCode === StatusCode.SuccessOK ? true : false,
-        error: message
+        error: message,
     };
     if (data) jsonData["data"] = data;
     if (catchErrorMessage) jsonData["error_message"] = catchErrorMessage;
