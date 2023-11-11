@@ -10,7 +10,6 @@ import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import versionRouter from "./services/version/version-router.js";
 import admissionRouter from "./services/admission/admission-router.js";
 
-import { InitializeConfigReader } from "./middleware/config-reader.js";
 import Models from "./database/models.js";
 import { StatusCode } from "status-code-enum";
 import Config from "./config.js";
@@ -19,8 +18,6 @@ const app: Application = express();
 
 // Utility packages (detailed in the readme)
 // app.use(helmet({ crossOriginResourcePolicy: false }));
-
-app.use(InitializeConfigReader);
 
 // Enable request output when not a test
 if (!Config.TEST) {
