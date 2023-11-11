@@ -37,17 +37,16 @@ const EXTERNAL_STAFF_EVENT = {
     endTime: 1532212702,
     locations: [],
     eventType: "OTHER",
-    
 };
 
 const INTERNAL_STAFF_EVENT = {
-    ...EXTERNAL_STAFF_EVENT, 
+    ...EXTERNAL_STAFF_EVENT,
     sponsor: "Example sponsor",
     displayOnStaffCheckIn: false,
     isPrivate: false,
     isAsync: false,
-    isStaff: true
-}
+    isStaff: true,
+};
 
 const METADATA = {
     eventId: "22222c072182654f163f5f0f9a621d72",
@@ -104,12 +103,12 @@ describe("GET /event/metadata/:EVENTID", () => {
     it("returns metadata for a particular eventId", async () => {
         const eventId = METADATA.eventId;
         const response = await getAsStaff(`/event/metadata/${eventId}`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(METADATA);       
+        expect(JSON.parse(response.text)).toMatchObject(METADATA);
     });
 
     it("throws an error if a bad eventId is passed in", async () => {
         const eventId = "badEventId";
         const response = await getAsStaff(`/event/metadata/${eventId}`).expect(StatusCode.ClientErrorBadRequest);
-        expect(JSON.parse(response.text)).toHaveProperty("error");       
+        expect(JSON.parse(response.text)).toHaveProperty("error");
     });
 });
