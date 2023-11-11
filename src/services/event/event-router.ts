@@ -140,7 +140,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
     const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
 
     if (!metadata) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({error: "EventNotFound"});
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "EventNotFound" });
     }
 
     if (metadata.isStaff) {
@@ -150,7 +150,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
 
         const event: StaffEvent | null = await Models.StaffEvent.findOne({ eventId: eventId });
         if (!event) {
-            return res.status(StatusCode.ServerErrorInternal).send({error: "InternalDatabaseError"});
+            return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalDatabaseError" });
         }
 
         return res.status(StatusCode.SuccessOK).send(event);
@@ -158,9 +158,9 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
         const event: PublicEvent | null = await Models.PublicEvent.findOne({ eventId: eventId });
 
         if (!event) {
-            return res.status(StatusCode.ServerErrorInternal).send({error: "InternalDatabaseError"});
+            return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalDatabaseError" });
         }
-        
+
         if (isStaff) {
             return res.status(StatusCode.SuccessOK).send(event);
         }

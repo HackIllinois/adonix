@@ -53,13 +53,12 @@ const PUBLIC_METADATA = {
     isStaff: false,
     exp: 1234567890,
 };
-    
+
 const STAFF_METADATA = {
     eventId: "00000c072182654f163f5f0f9a621d72",
     isStaff: true,
     exp: 1234567890,
 };
-   
 
 beforeEach(async () => {
     Models.initialize();
@@ -112,18 +111,18 @@ describe("GET /event/:EVENTID", () => {
         const eventId = STAFF_METADATA.eventId;
         const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.ClientErrorForbidden);
         expect(response).toHaveProperty("error");
-    })
+    });
 
     it("throws an error if it cannot find a staff event", async () => {
         const eventId = STAFF_METADATA.eventId;
-        await Models.StaffEvent.deleteOne({eventId: eventId});
+        await Models.StaffEvent.deleteOne({ eventId: eventId });
         const response = await getAsStaff(`/event/${eventId}`).expect(StatusCode.ServerErrorInternal);
         expect(response).toHaveProperty("error");
     });
 
     it("throws an error if it cannot find a public event", async () => {
         const eventId = PUBLIC_METADATA.eventId;
-        await Models.PublicEvent.deleteOne({eventId: eventId});
+        await Models.PublicEvent.deleteOne({ eventId: eventId });
         const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.ServerErrorInternal);
         expect(response).toHaveProperty("error");
     });
@@ -138,16 +137,14 @@ describe("GET /event/:EVENTID", () => {
         const eventId = PUBLIC_METADATA.eventId;
         const response = await getAsStaff(`/event/${eventId}`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(INTERNAL_PUBLIC_EVENT);
-    })
+    });
 
     it("successfully filters and returns a public event for attendees", async () => {
         const eventId = PUBLIC_METADATA.eventId;
         const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(EXTERNAL_PUBLIC_EVENT);
-    })
-
+    });
 });
-
 
 describe("GET /event/metadata/:EVENTID", () => {
     it("cannot be accessed by a non-staff user", async () => {
