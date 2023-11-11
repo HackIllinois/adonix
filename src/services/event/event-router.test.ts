@@ -48,17 +48,25 @@ const INTERNAL_STAFF_EVENT = {
     isStaff: true,
 };
 
-const METADATA = {
-    eventId: "22222c072182654f163f5f0f9a621d72",
+const PUBLIC_METADATA = {
+    eventId: "11111c072182654f163f5f0f9a621d72",
     isStaff: false,
     exp: 1234567890,
 };
+    
+const STAFF_METADATA = {
+    eventId: "00000c072182654f163f5f0f9a621d72",
+    isStaff: true,
+    exp: 1234567890,
+};
+   
 
 beforeEach(async () => {
     Models.initialize();
     await Models.StaffEvent.create(INTERNAL_STAFF_EVENT);
     await Models.PublicEvent.create(INTERNAL_PUBLIC_EVENT);
-    await Models.EventMetadata.create(METADATA);
+    await Models.EventMetadata.create(PUBLIC_METADATA);
+    await Models.EventMetadata.create(STAFF_METADATA);
 });
 
 describe("GET /event/", () => {
@@ -93,17 +101,65 @@ describe("GET /event/staff/", () => {
     });
 });
 
+describe("GET /event/:EVENTID", () => {
+    it("throws an error if the event doesn't exist", async () => {
+        const eventId = "00000";
+        const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.ClientErrorBadRequest);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("throws an error if attendees try to access staff events", async () => {
+        const eventId = STAFF_METADATA.eventId;
+        const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.ClientErrorForbidden);
+        expect(response).toHaveProperty("error");
+    })
+
+    it("throws an error if it cannot find a staff event", async () => {
+        const eventId = STAFF_METADATA.eventId;
+        await Models.StaffEvent.deleteOne({eventId: eventId});
+        const response = await getAsStaff(`/event/${eventId}`).expect(StatusCode.ServerErrorInternal);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("throws an error if it cannot find a public event", async () => {
+        const eventId = PUBLIC_METADATA.eventId;
+        await Models.PublicEvent.deleteOne({eventId: eventId});
+        const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.ServerErrorInternal);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("successfully returns staff events", async () => {
+        const eventId = STAFF_METADATA.eventId;
+        const response = await getAsStaff(`/event/${eventId}`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(EXTERNAL_STAFF_EVENT);
+    });
+
+    it("successfully filters and returns a public event for staff", async () => {
+        const eventId = PUBLIC_METADATA.eventId;
+        const response = await getAsStaff(`/event/${eventId}`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(INTERNAL_PUBLIC_EVENT);
+    })
+
+    it("successfully filters and returns a public event for attendees", async () => {
+        const eventId = PUBLIC_METADATA.eventId;
+        const response = await getAsAttendee(`/event/${eventId}`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(EXTERNAL_PUBLIC_EVENT);
+    })
+
+});
+
+
 describe("GET /event/metadata/:EVENTID", () => {
     it("cannot be accessed by a non-staff user", async () => {
-        const eventId = METADATA.eventId;
+        const eventId = PUBLIC_METADATA.eventId;
         const response = await getAsAttendee(`/event/metadata/${eventId}`).expect(StatusCode.ClientErrorForbidden);
         expect(response).toHaveProperty("error");
     });
 
     it("returns metadata for a particular eventId", async () => {
-        const eventId = METADATA.eventId;
+        const eventId = PUBLIC_METADATA.eventId;
         const response = await getAsStaff(`/event/metadata/${eventId}`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(METADATA);
+        expect(JSON.parse(response.text)).toMatchObject(PUBLIC_METADATA);
     });
 
     it("throws an error if a bad eventId is passed in", async () => {
