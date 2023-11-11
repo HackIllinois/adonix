@@ -633,14 +633,4 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response)
     }
 });
 
-// Prototype error handler
-eventsRouter.use((err: Error, req: Request, res: Response) => {
-    if (!err) {
-        return res.status(StatusCode.SuccessOK).send({ status: "OK" });
-    }
-
-    console.error(err.stack, req.body);
-    return res.status(StatusCode.ServerErrorInternal).send({ error: err.message });
-});
-
 export default eventsRouter;
