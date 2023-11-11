@@ -4,8 +4,8 @@ import Models from "../../database/models.js";
 import { getAsAttendee, getAsStaff } from "../../testTools.js";
 
 const EXTERNAL_PUBLIC_EVENT = {
-    eventId: "52fdfc072182654f163f5f0f9a621d72",
-    name: "Example Event 10",
+    eventId: "11111c072182654f163f5f0f9a621d72",
+    name: "Example Pub Event 10",
     description: "This is a description",
     startTime: 1532202702,
     endTime: 1532212702,
@@ -18,7 +18,7 @@ const EXTERNAL_PUBLIC_EVENT = {
         },
     ],
     sponsor: "Example sponsor",
-    eventType: "WORKSHOP",
+    eventType: "OTHER",
     points: 0,
 };
 
@@ -29,24 +29,29 @@ const INTERNAL_PUBLIC_EVENT = {
     isAsync: false,
 };
 
-const STAFF_EVENT = {
-    eventId: "52fdfc072182654f163f5f0f9a621d72",
-    name: "Example Event 10",
+const EXTERNAL_STAFF_EVENT = {
+    eventId: "00000c072182654f163f5f0f9a621d72",
+    name: "Example Staff Event 10",
     description: "This is a description",
     startTime: 1532202702,
     endTime: 1532212702,
     locations: [],
-    sponsor: "Example sponsor",
-    eventType: "WORKSHOP",
-    isStaff: true,
-    isPrivate: true,
-    isAsync: true,
-    displayOnStaffCheckIn: true,
+    eventType: "OTHER",
+    
 };
+
+const INTERNAL_STAFF_EVENT = {
+    ...EXTERNAL_STAFF_EVENT, 
+    sponsor: "Example sponsor",
+    displayOnStaffCheckIn: false,
+    isPrivate: false,
+    isAsync: false,
+    isStaff: true
+}
 
 beforeEach(async () => {
     Models.initialize();
-    await Models.StaffEvent.create(STAFF_EVENT);
+    await Models.StaffEvent.create(INTERNAL_STAFF_EVENT);
     await Models.PublicEvent.create(INTERNAL_PUBLIC_EVENT);
 });
 
@@ -76,9 +81,8 @@ describe("GET /staff/", () => {
 
     it("returns staff events for staff endpoint", async () => {
         const response = await getAsStaff("/event/staff/").expect(StatusCode.SuccessOK);
-
         expect(JSON.parse(response.text)).toMatchObject({
-            events: [STAFF_EVENT],
+            events: [EXTERNAL_STAFF_EVENT],
         });
     });
 });
