@@ -51,15 +51,13 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res
-        .status(StatusCode.SuccessOK)
-        .send({
-            userId: queryResultInfo.userId,
-            preferredName: queryResultInfo.preferredName,
-            userName: queryResultInfo.userName,
-            resume: queryResultApp.resume,
-            essays: queryResultApp.essays,
-        });
+    return res.status(StatusCode.SuccessOK).send({
+        userId: queryResultInfo.userId,
+        preferredName: queryResultInfo.preferredName,
+        userName: queryResultInfo.userName,
+        resume: queryResultApp.resume,
+        essays: queryResultApp.essays,
+    });
 });
 
 /**
@@ -108,15 +106,13 @@ registrationRouter.get("/:USERID", strongJwtVerification, async (req: Request, r
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
-    return res
-        .status(StatusCode.SuccessOK)
-        .send({
-            userId: queryResultInfo.userId,
-            preferredName: queryResultInfo.preferredName,
-            userName: queryResultInfo.userName,
-            resume: queryResultApp.resume,
-            essays: queryResultApp.essays,
-        });
+    return res.status(StatusCode.SuccessOK).send({
+        userId: queryResultInfo.userId,
+        preferredName: queryResultInfo.preferredName,
+        userName: queryResultInfo.userName,
+        resume: queryResultApp.resume,
+        essays: queryResultApp.essays,
+    });
 });
 
 /**
