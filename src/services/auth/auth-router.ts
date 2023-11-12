@@ -184,12 +184,12 @@ authRouter.get(
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
-    const role: string | undefined = req.params.ROLE;
+authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, res: Response) => {
+    const role = req.params.ROLE as string;
+    const payload = res.locals.payload as JwtPayload;
 
-    //Returns error if role parameter is empty
-    if (!role) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+    if (!hasElevatedPerms(payload)) {
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     return await getUsersWithRole(role)

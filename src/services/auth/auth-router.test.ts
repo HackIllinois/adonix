@@ -2,13 +2,33 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import { TESTER, get, getAsUser } from "../../testTools.js";
+import { TESTER, get, getAsAttendee, getAsStaff, getAsUser } from "../../testTools.js";
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
 import { mockGenerateJwtTokenWithWrapper } from "./auth-lib.test.js";
-import { ProfileData } from "./auth-models.js";
+import { ProfileData, Role } from "./auth-models.js";
+import Models from "../../database/models.js";
+import { AuthInfo } from "../../database/auth-db.js";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
+
+const USER = {
+    userId: "user",
+    provider: "github",
+    roles: [Role.USER],
+} satisfies AuthInfo;
+
+const USER_ATTENDEE = {
+    userId: "attendee",
+    provider: "github",
+    roles: [Role.USER, Role.ATTENDEE],
+} satisfies AuthInfo;
+
+const USER_STAFF = {
+    userId: "staff",
+    provider: "github",
+    roles: [Role.USER, Role.ATTENDEE, Role.STAFF],
+} satisfies AuthInfo;
 
 describe("GET /auth/dev/", () => {
     it("errors when a token is not provided", async () => {
@@ -139,5 +159,44 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
         // Expect redirect to be to the right url & contain token
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
         expect(response.headers["location"]).toBe(`${Config.REDIRECT_URLS.get(device)}?token=${jwtReturned}`);
+    });
+});
+
+describe("GET /auth/roles/list/:ROLE", () => {
+    beforeEach(async () => {
+        await Models.initialize();
+        await Models.AuthInfo.create(USER);
+        await Models.AuthInfo.create(USER_ATTENDEE);
+        await Models.AuthInfo.create(USER_STAFF);
+    });
+
+    it("provides an error for an non-staff user", async () => {
+        const response = await getAsAttendee(`/auth/roles/list/USER`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("gets all the users", async () => {
+        const response = await getAsStaff(`/auth/roles/list/USER`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userIds: expect.arrayContaining([USER.userId, USER_ATTENDEE.userId, USER_STAFF.userId]),
+        });
+    });
+
+    it("gets all the attendees", async () => {
+        const response = await getAsStaff(`/auth/roles/list/ATTENDEE`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userIds: expect.arrayContaining([USER_ATTENDEE.userId, USER_STAFF.userId]),
+        });
+    });
+
+    it("gets all the staff", async () => {
+        const response = await getAsStaff(`/auth/roles/list/STAFF`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userIds: expect.arrayContaining([USER_STAFF.userId]),
+        });
     });
 });
