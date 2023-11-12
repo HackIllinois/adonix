@@ -169,36 +169,6 @@ authRouter.get(
 );
 
 /**
- * @api {get} /auth/roles/ GET /auth/roles/
- * @apiGroup Auth
- * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
- *
- * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
- * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"id": "provider0000001",
- * 		"roles": ["Admin", "Staff", "Mentor"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- */
-authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
-
-    await getRoles(targetUser)
-        .then((roles: Role[]) => {
-            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
-        })
-        .catch((error: Error) => {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
-        });
-});
-
-/**
  * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
  * @apiGroup Auth
  * @apiDescription Get all users that have a certain role.
@@ -229,6 +199,36 @@ authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
         .catch((error: Error) => {
             console.error(error);
             return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Unknown Error" });
+        });
+});
+
+/**
+ * @api {get} /auth/roles/ GET /auth/roles/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
+ *
+ * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const targetUser: string = payload.id;
+
+    await getRoles(targetUser)
+        .then((roles: Role[]) => {
+            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
+        })
+        .catch((error: Error) => {
+            console.error(error);
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
         });
 });
 
