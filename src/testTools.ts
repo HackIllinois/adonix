@@ -11,6 +11,7 @@ export const TESTER = {
     name: "Bob Tester",
     avatarUrl: "https://www.hackillinois.org",
     discordTag: "hackillinoistest",
+    userName: "bobster_the_mobster",
 };
 
 // A mapping of role to roles they have, used for JWT generation
