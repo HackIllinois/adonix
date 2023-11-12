@@ -275,7 +275,6 @@ admissionRouter.put("/rsvp/", strongJwtVerification, async (req: Request, res: R
     );
 
     if (updatedDecision) {
-        //return res.status(StatusCode.SuccessOK).send(updatedDecision.toObject());
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
     } else {
         return next(new RouterError());

@@ -283,7 +283,6 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
 
     if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeNotFound"));
-        // return res.status(StatusCode.ClientErrorNotFound).send({ success: false, error: "AttendeeNotFound" });
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
