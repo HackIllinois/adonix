@@ -59,7 +59,7 @@ admissionRouter.get("/not-sent/", strongJwtVerification, async (_: Request, res:
         if (error instanceof Error) {
             return next(new RouterError(undefined, undefined, undefined, error.message));
         } else {
-            return next(new RouterError());
+            return next(new RouterError(undefined, undefined, undefined, `${error}`));
         }
     }
 });
@@ -112,7 +112,7 @@ admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Respon
         if (error instanceof Error) {
             return next(new RouterError(undefined, undefined, undefined, error.message));
         } else {
-            return next(new RouterError());
+            return next(new RouterError(undefined, undefined, undefined, `${error}`));
         }
     }
 });
