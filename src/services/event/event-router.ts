@@ -509,7 +509,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
         metadata,
     );
 
-    if (!metadata) {
+    if (!updatedMetadata) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "EventNotFound" });
     }
 

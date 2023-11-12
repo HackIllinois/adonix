@@ -1,7 +1,16 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
-import { delAsAdmin, delAsAttendee, delAsStaff, getAsAttendee, getAsStaff } from "../../testTools.js";
+import {
+    delAsAdmin,
+    delAsAttendee,
+    delAsStaff,
+    getAsAttendee,
+    getAsStaff,
+    putAsAdmin,
+    putAsAttendee,
+    putAsStaff,
+} from "../../testTools.js";
 
 const EXTERNAL_PUBLIC_EVENT = {
     eventId: "11111c072182654f163f5f0f9a621d72",
@@ -188,5 +197,48 @@ describe("DELETE /event/:EVENTID", () => {
 
         expect(metadata).toBeNull();
         expect(event).toBeNull();
+    });
+});
+
+describe("PUT /event/metadata/", () => {
+    it("cannot be accessed by attendee", async () => {
+        const response = await putAsAttendee(`/event/metadata/`).expect(StatusCode.ClientErrorForbidden);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("cannot be accessed by staff", async () => {
+        const response = await putAsStaff(`/event/metadata/`).expect(StatusCode.ClientErrorForbidden);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("throws an error if an invalid input is passed in", async () => {
+        const mockInput = {
+            eventId: EXTERNAL_PUBLIC_EVENT.eventId,
+        };
+
+        const response = await putAsAdmin(`/event/metadata/`).send(mockInput).expect(StatusCode.ClientErrorBadRequest);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("throws an error if an event does not exist", async () => {
+        const mockInput = {
+            eventId: "0".repeat(32),
+            exp: 100,
+        };
+
+        const response = await putAsAdmin(`/event/metadata/`).send(mockInput).expect(StatusCode.ClientErrorBadRequest);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("modifies the event expiration dates", async () => {
+        const eventId = EXTERNAL_PUBLIC_EVENT.eventId;
+        const mockInput = {
+            eventId: eventId,
+            exp: 100,
+        };
+
+        const response = await putAsAdmin(`/event/metadata/`).send(mockInput).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text));
+        expect(await Models.EventMetadata.findOne({ eventId })).toMatchObject(mockInput);
     });
 });
