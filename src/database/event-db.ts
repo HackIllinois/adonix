@@ -124,4 +124,6 @@ export class EventAttendance {
         },
     })
     public attendees: string[];
+
+    public isStaff = true;
 }
