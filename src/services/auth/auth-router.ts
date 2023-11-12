@@ -60,7 +60,7 @@ authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoToken"));
     }
 
-    res.status(StatusCode.SuccessOK).send({ token: token });
+    return res.status(StatusCode.SuccessOK).send({ token: token });
 });
 
 /**
@@ -128,13 +128,13 @@ authRouter.get(
             const device = req.params.DEVICE;
 
             if (!device || !Config.REDIRECT_URLS.has(device)) {
-                throw Error(`${device}`);
+                throw Error(`Bad device ${device}`);
             }
 
             res.locals.device = device;
             SelectAuthProvider(provider, device)(req, res, next);
         } catch (error) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, `Bad device ${error}`));
+            console.error(error);
         }
     },
     async (req: Request, res: Response, next: NextFunction) => {

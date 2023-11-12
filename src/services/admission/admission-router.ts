@@ -56,7 +56,11 @@ admissionRouter.get("/not-sent/", strongJwtVerification, async (_: Request, res:
         const filteredEntries: AdmissionDecision[] = await Models.AdmissionDecision.find({ emailSent: false });
         return res.status(StatusCode.SuccessOK).send(filteredEntries);
     } catch (error) {
-        return next(new RouterError(undefined, undefined, undefined, error));
+        if (error instanceof Error) {
+            return next(new RouterError(undefined, undefined, undefined, error.message));
+        } else {
+            return next(new RouterError());
+        }
     }
 });
 
@@ -105,7 +109,11 @@ admissionRouter.put("/", strongJwtVerification, async (req: Request, res: Respon
         await Promise.all(ops);
         return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
     } catch (error) {
-        return next(new RouterError(undefined, undefined, undefined, error));
+        if (error instanceof Error) {
+            return next(new RouterError(undefined, undefined, undefined, error.message));
+        } else {
+            return next(new RouterError());
+        }
     }
 });
 
