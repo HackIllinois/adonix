@@ -11,21 +11,9 @@ export class RouterError {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(statusCode?: number, message?: string, data?: any, catchErrorMessage?: string) {
-        if (statusCode) {
-            this.statusCode = statusCode;
-        } else {
-            this.statusCode = 500;
-        }
-        if (message) {
-            this.message = message;
-        } else {
-            this.message = "Internal Server Error";
-        }
-        if (data) {
-            this.data = data;
-        } else {
-            this.data = null;
-        }
+        this.statusCode = statusCode ?? StatusCode.ServerErrorInternal;
+        this.message = message ?? "Internal Server Error";
+        this.data = data;
         if (catchErrorMessage) {
             this.catchErrorMessage = catchErrorMessage;
             console.error(catchErrorMessage);
@@ -46,7 +34,7 @@ export function ErrorHandler(error: RouterError, _req: Request, resp: Response, 
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jsonData: { [key: string]: any } = {
-        success: statusCode === StatusCode.SuccessOK ? true : false,
+        success: statusCode === StatusCode.SuccessOK,
         error: message,
     };
     if (data) {
