@@ -117,7 +117,6 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 authRouter.get(
     "/:PROVIDER/callback/:DEVICE",
     (req: Request, res: Response, next: NextFunction) => {
-        console.log("IN CALLBACK");
         const provider: string = req.params.PROVIDER ?? "";
         try {
             const device = req.params.DEVICE;
@@ -130,6 +129,7 @@ authRouter.get(
             SelectAuthProvider(provider, device)(req, res, next);
         } catch (error) {
             console.error(error);
+            res.status(StatusCode.ServerErrorInternal).send({ error: "InternalServerError" });
         }
     },
     async (req: Request, res: Response) => {
@@ -137,18 +137,18 @@ authRouter.get(
             return res.status(StatusCode.ClientErrorUnauthorized).send({ error: "FailedAuth" });
         }
 
-        const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
-        const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
-        const data: ProfileData = user._json as ProfileData;
-        const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
-
-        data.id = data.id ?? user.id;
-        data.displayName = data.name ?? data.displayName ?? data.login;
-
         try {
+            const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
+            const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
+            const data: ProfileData = user._json as ProfileData;
+            const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
+
+            data.id = data.id ?? user.id;
+            data.displayName = data.name ?? data.displayName ?? data.login;
+
             // Load in the payload with the actual values stored in the database
             const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
-            console.log(data, payload);
+
             const userId: string = payload.id;
             await Models.UserInfo.findOneAndUpdate(
                 { userId: userId },
