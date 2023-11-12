@@ -169,6 +169,70 @@ authRouter.get(
 );
 
 /**
+ * @api {get} /auth/roles/ GET /auth/roles/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
+ *
+ * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const targetUser: string = payload.id;
+
+    await getRoles(targetUser)
+        .then((roles: Role[]) => {
+            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
+        })
+        .catch((error: Error) => {
+            console.error(error);
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+        });
+});
+
+/**
+ * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
+ * @apiGroup Auth
+ * @apiDescription Get all users that have a certain role.
+ *
+ * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
+ *
+ * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"data" : ["github44122133", "github22779056", "github5997469", "github98075854"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
+    const role: string | undefined = req.params.ROLE;
+
+    //Returns error if role parameter is empty
+    if (!role) {
+        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+    }
+
+    return await getUsersWithRole(role)
+        .then((users: string[]) => {
+            return res.status(StatusCode.SuccessOK).send({ userIds: users });
+        })
+        .catch((error: Error) => {
+            console.error(error);
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Unknown Error" });
+        });
+});
+
+/**
  * @api {get} /auth/roles/:USERID/ GET /auth/roles/:USERID/
  * @apiGroup Auth
  * @apiDescription Get the roles of a user, provided that there is a JWT token and the token contains VALID credentials for the operation.
@@ -299,70 +363,6 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
     });
 
     return res.status(StatusCode.SuccessOK).send({ roles: roles });
-});
-
-/**
- * @api {get} /auth/roles/ GET /auth/roles/
- * @apiGroup Auth
- * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
- *
- * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
- * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"id": "provider0000001",
- * 		"roles": ["Admin", "Staff", "Mentor"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- */
-authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
-
-    await getRoles(targetUser)
-        .then((roles: Role[]) => {
-            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
-        })
-        .catch((error: Error) => {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
-        });
-});
-
-/**
- * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
- * @apiGroup Auth
- * @apiDescription Get all users that have a certain role.
- *
- * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
- *
- * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"data" : ["github44122133", "github22779056", "github5997469", "github98075854"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- */
-authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
-    const role: string | undefined = req.params.ROLE;
-
-    //Returns error if role parameter is empty
-    if (!role) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
-    }
-
-    return await getUsersWithRole(role)
-        .then((users: string[]) => {
-            return res.status(StatusCode.SuccessOK).send({ userIds: users });
-        })
-        .catch((error: Error) => {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Unknown Error" });
-        });
 });
 
 /**
