@@ -333,39 +333,6 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 });
 
 /**
- * @api {get} /auth/list/roles/ GET /auth/list/roles/
- * @apiGroup Auth
- * @apiDescription List all the available roles.
- *
- * @apiSuccess (200: Success) {string[]} token JWT token of authenticated user.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"id": "provider0000001",
- * 		"roles": ["Admin", "Staff", "Mentor"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
- * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
- */
-authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-
-    // Check if current user should be able to access all roles
-    if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
-    }
-
-    // Filter enum to get all possible string keys
-    const roles: string[] = Object.keys(Role).filter((item: string) => {
-        return isNaN(Number(item));
-    });
-
-    return res.status(StatusCode.SuccessOK).send({ roles: roles });
-});
-
-/**
  * @api {get} /auth/token/refresh/ GET /auth/token/refresh/
  * @apiGroup Auth
  * @apiDescription Refresh a JWT token - payload data stays consistent, but expiration date changes.
