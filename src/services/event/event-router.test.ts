@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
-import { getAsAttendee, getAsStaff } from "../../testTools.js";
+import { delAsAdmin, delAsAttendee, delAsStaff, getAsAttendee, getAsStaff } from "../../testTools.js";
 
 const EXTERNAL_PUBLIC_EVENT = {
     eventId: "11111c072182654f163f5f0f9a621d72",
@@ -163,5 +163,30 @@ describe("GET /event/metadata/:EVENTID", () => {
         const eventId = "badEventId";
         const response = await getAsStaff(`/event/metadata/${eventId}`).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error");
+    });
+});
+
+describe("DELETE /event/:EVENTID", () => {
+    it("cannot be accessed by an attendee", async () => {
+        const eventId = "deleteEventId";
+        const response = await delAsAttendee(`/event/${eventId}`).expect(StatusCode.ClientErrorForbidden);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("cannot be accessed by staff", async () => {
+        const eventId = "deleteEventId";
+        const response = await delAsStaff(`/event/${eventId}`).expect(StatusCode.ClientErrorForbidden);
+        expect(response).toHaveProperty("error");
+    });
+
+    it("deletes the events correctly from both tables", async () => {
+        const eventId = "deleteEventId";
+        await delAsAdmin(`/event/${eventId}`).expect(StatusCode.SuccessNoContent);
+
+        const metadata = await Models.EventMetadata.findOne({ eventId: eventId });
+        const event = await Models.PublicEvent.findOne({ eventId: eventId });
+
+        expect(metadata).toBeNull();
+        expect(event).toBeNull();
     });
 });

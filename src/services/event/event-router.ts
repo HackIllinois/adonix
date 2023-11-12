@@ -418,11 +418,6 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "InvalidPermission" });
     }
 
-    // Check if eventid field doesn't exist -> if not, returns error
-    if (!eventId) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
-    }
-
     // Perform a lazy delete on both databases, and return true if the operation succeeds
     await Models.StaffEvent.findOneAndDelete({ eventId: eventId });
     await Models.PublicEvent.findOneAndDelete({ eventId: eventId });
