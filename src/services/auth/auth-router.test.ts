@@ -30,6 +30,10 @@ const USER_STAFF = {
     roles: [Role.USER, Role.ATTENDEE, Role.STAFF],
 } satisfies AuthInfo;
 
+beforeEach(() => {
+    Models.initialize();
+});
+
 describe("GET /auth/dev/", () => {
     it("errors when a token is not provided", async () => {
         const response = await getAsUser("/auth/dev/").expect(StatusCode.ClientErrorBadRequest);
@@ -197,6 +201,42 @@ describe("GET /auth/roles/list/:ROLE", () => {
 
         expect(JSON.parse(response.text)).toMatchObject({
             userIds: expect.arrayContaining([USER_STAFF.userId]),
+        });
+    });
+});
+
+describe.only("GET /auth/roles/", () => {
+    it("provides an error if the user does not have auth info", async () => {
+        const response = await getAsUser(`/auth/roles/`).expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    });
+
+    it("gets the roles of a user", async () => {
+        await Models.AuthInfo.create({
+            userId: TESTER.id,
+            provider: "github",
+            roles: [Role.USER],
+        });
+        const response = await getAsUser(`/auth/roles/`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            id: TESTER.id,
+            roles: expect.arrayContaining([Role.USER]),
+        });
+    });
+
+    it("gets the roles of a attendee", async () => {
+        await Models.AuthInfo.create({
+            userId: TESTER.id,
+            provider: "github",
+            roles: [Role.USER, Role.ATTENDEE],
+        });
+        const response = await getAsAttendee(`/auth/roles/`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            id: TESTER.id,
+            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
         });
     });
 });

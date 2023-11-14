@@ -223,12 +223,15 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
     const targetUser: string = payload.id;
 
     await getRoles(targetUser)
-        .then((roles: Role[]) => {
+        .then((roles: Role[] | undefined) => {
+            if (roles === undefined) {
+                return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+            }
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         })
         .catch((error: Error) => {
             console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+            return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalServerError" });
         });
 });
 
@@ -267,11 +270,16 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
         return res.status(StatusCode.SuccessOK).send({ id: payload.id, roles: payload.roles });
     } else if (hasElevatedPerms(payload)) {
         try {
-            const roles: Role[] = await getRoles(targetUser);
+            const roles: Role[] | undefined = await getRoles(targetUser);
+
+            if (roles === undefined) {
+                return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+            }
+
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         } catch (error) {
             console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+            return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalServerError" });
         }
     } else {
         return res.status(StatusCode.ClientErrorForbidden).send("Forbidden");

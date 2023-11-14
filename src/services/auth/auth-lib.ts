@@ -59,7 +59,12 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
     // Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
     try {
-        const oldRoles: Role[] = (await getRoles(userId)) as Role[];
+        const oldRoles = await getRoles(userId);
+
+        if (oldRoles === undefined) {
+            throw new Error("Could not get roles!");
+        }
+
         console.log(oldRoles);
         const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];
@@ -220,14 +225,14 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
-export async function getRoles(id: string): Promise<Role[]> {
+export async function getRoles(id: string): Promise<Role[] | undefined> {
     return getAuthInfo(id)
         .then((authInfo) => {
             return authInfo.roles as Role[];
         })
         .catch((error) => {
             console.log(error);
-            return [] as Role[];
+            return undefined;
         });
 }
 
