@@ -256,12 +256,7 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
 authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
-    const targetUser: string | undefined = req.params.USERID;
-
-    // Check if we have a user to get roles for - if not, get roles for current user
-    if (!targetUser) {
-        return res.redirect("/auth/roles/");
-    }
+    const targetUser: string = req.params.USERID as string;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -273,7 +268,7 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
             const roles: Role[] | undefined = await getRoles(targetUser);
 
             if (roles === undefined) {
-                return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+                return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
             }
 
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
@@ -282,7 +277,7 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
             return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalServerError" });
         }
     } else {
-        return res.status(StatusCode.ClientErrorForbidden).send("Forbidden");
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 });
 

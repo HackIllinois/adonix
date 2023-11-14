@@ -30,8 +30,11 @@ const USER_STAFF = {
     roles: [Role.USER, Role.ATTENDEE, Role.STAFF],
 } satisfies AuthInfo;
 
-beforeEach(() => {
+beforeEach(async () => {
     Models.initialize();
+    await Models.AuthInfo.create(USER);
+    await Models.AuthInfo.create(USER_ATTENDEE);
+    await Models.AuthInfo.create(USER_STAFF);
 });
 
 describe("GET /auth/dev/", () => {
@@ -167,13 +170,6 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 });
 
 describe("GET /auth/roles/list/:ROLE", () => {
-    beforeEach(async () => {
-        await Models.initialize();
-        await Models.AuthInfo.create(USER);
-        await Models.AuthInfo.create(USER_ATTENDEE);
-        await Models.AuthInfo.create(USER_STAFF);
-    });
-
     it("provides an error for an non-staff user", async () => {
         const response = await getAsAttendee(`/auth/roles/list/USER`).expect(StatusCode.ClientErrorForbidden);
 
@@ -205,7 +201,7 @@ describe("GET /auth/roles/list/:ROLE", () => {
     });
 });
 
-describe.only("GET /auth/roles/", () => {
+describe("GET /auth/roles/", () => {
     it("provides an error if the user does not have auth info", async () => {
         const response = await getAsUser(`/auth/roles/`).expect(StatusCode.ClientErrorNotFound);
 
@@ -236,6 +232,43 @@ describe.only("GET /auth/roles/", () => {
 
         expect(JSON.parse(response.text)).toMatchObject({
             id: TESTER.id,
+            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
+        });
+    });
+});
+
+describe("GET /auth/roles/:USERID", () => {
+    it("provides an error if the user does not have auth info", async () => {
+        const response = await getAsStaff(`/auth/roles/123`).expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    });
+
+    it("provides an error if non-staff user tries to get roles of another user", async () => {
+        const response = await getAsAttendee(`/auth/roles/${USER_ATTENDEE.userId}`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("gets the roles of themselves if non-staff", async () => {
+        await Models.AuthInfo.create({
+            userId: TESTER.id,
+            provider: "github",
+            roles: [Role.USER, Role.ATTENDEE],
+        });
+        const response = await getAsAttendee(`/auth/roles/${TESTER.id}`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            id: TESTER.id,
+            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
+        });
+    });
+
+    it("gets the roles of another user if staff", async () => {
+        const response = await getAsStaff(`/auth/roles/${USER_ATTENDEE.userId}`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            id: USER_ATTENDEE.userId,
             roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
         });
     });
