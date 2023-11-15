@@ -664,7 +664,7 @@ eventsRouter.get("/favorites/:EVENTID", strongJwtVerification, async (req: Reque
     const eventId: string | undefined = req.params.EVENTID;
     const followers: EventFollowing | null = await Models.EventFollowing.findOne({ eventId: eventId });
     if (!followers) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "EventNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
     return res.status(StatusCode.SuccessOK).send(followers.followers);
 });
