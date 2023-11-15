@@ -8,6 +8,8 @@ import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
+import { RouterError } from "../../middleware/error-handler.js";
+import { NextFunction } from "express-serve-static-core";
 
 const newsletterRouter: Router = Router();
 
@@ -50,14 +52,14 @@ newsletterRouter.use(cors(corsOptions));
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-newsletterRouter.post("/subscribe/", async (request: Request, res: Response) => {
+newsletterRouter.post("/subscribe/", async (request: Request, res: Response, next: NextFunction) => {
     const requestBody: SubscribeRequest = request.body as SubscribeRequest;
     const listName: string | undefined = requestBody.listName;
     const emailAddress: string | undefined = requestBody.emailAddress;
 
     // Verify that both parameters do exist
     if (!listName || !emailAddress) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     // Perform a lazy delete

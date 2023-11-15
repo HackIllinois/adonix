@@ -21,6 +21,7 @@ import {
     getUsersWithRole,
 } from "./auth-lib.js";
 import Models from "../../database/models.js";
+import { RouterError } from "../../middleware/error-handler.js";
 
 passport.use(
     Provider.GITHUB,
@@ -53,13 +54,13 @@ authRouter.get("/test/", (_: Request, res: Response) => {
     res.end("Auth endpoint is working!");
 });
 
-authRouter.get("/dev/", (req: Request, res: Response) => {
+authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
     const token: string | undefined = req.query.token as string | undefined;
     if (!token) {
-        res.status(StatusCode.ClientErrorBadRequest).send({ error: "NoToken" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoToken"));
     }
 
-    res.status(StatusCode.SuccessOK).send({ token: token });
+    return res.status(StatusCode.SuccessOK).send({ token: token });
 });
 
 /**
@@ -85,7 +86,7 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
     const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
     if (device && !Config.REDIRECT_URLS.has(device)) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadDevice"));
     }
     return SelectAuthProvider("github", device)(req, res, next);
 });
@@ -113,7 +114,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
     const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
     if (device && !Config.REDIRECT_URLS.has(device)) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadDevice" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadDevice"));
     }
     return SelectAuthProvider("google", device)(req, res, next);
 });
@@ -136,9 +137,9 @@ authRouter.get(
             console.error(error);
         }
     },
-    async (req: Request, res: Response) => {
+    async (req: Request, res: Response, next: NextFunction) => {
         if (!req.isAuthenticated()) {
-            return res.status(StatusCode.ClientErrorUnauthorized).send({ error: "FailedAuth" });
+            return next(new RouterError(StatusCode.ClientErrorUnauthorized, "FailedAuth"));
         }
 
         const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
@@ -166,8 +167,7 @@ authRouter.get(
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidData" });
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData"));
         }
     },
 );
@@ -192,7 +192,7 @@ authRouter.get(
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
-authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const targetUser: string | undefined = req.params.USERID;
 
     // Check if we have a user to get roles for - if not, get roles for current user
@@ -210,11 +210,10 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
             const roles: Role[] = await getRoles(targetUser);
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         } catch (error) {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
         }
     } else {
-        return res.status(StatusCode.ClientErrorForbidden).send("Forbidden");
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 });
 
@@ -239,12 +238,12 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
  * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
  * @apiUse strongVerifyErrors
  */
-authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response) => {
+authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Not authenticated with modify roles perms
     if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     // Parse to get operation type
@@ -252,14 +251,14 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // No operation - fail out
     if (!op) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidOperation" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidOperation"));
     }
 
     // Check if role to add/remove actually exists
     const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
     const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
     if (!role) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidRole" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRole"));
     }
 
     // Try to update roles, if possible
@@ -267,8 +266,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
         const newRoles: Role[] = await updateRoles(data.id, role, op);
         return res.status(StatusCode.SuccessOK).send({ id: data.id, roles: newRoles });
     } catch (error) {
-        console.error(error);
-        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
+        return next(new RouterError());
     }
 });
 
@@ -289,12 +287,12 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
  */
-authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response) => {
+authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Check if current user should be able to access all roles
     if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     // Filter enum to get all possible string keys
@@ -321,7 +319,7 @@ authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response) => {
+authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const targetUser: string = payload.id;
 
@@ -330,8 +328,7 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         })
         .catch((error: Error) => {
-            console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound", undefined, error.message));
         });
 });
 
@@ -351,7 +348,7 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
+authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response, next: NextFunction) => {
     const role: string | undefined = req.params.ROLE;
 
     //Returns error if role parameter is empty
@@ -365,7 +362,7 @@ authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
         })
         .catch((error: Error) => {
             console.error(error);
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Unknown Error" });
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "Unknown Error"));
         });
 });
 
@@ -383,7 +380,7 @@ authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response) => {
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response) => {
+authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     // Get old data from token
     const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
     const data: ProfileData = {
@@ -399,8 +396,7 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
         const newToken: string = generateJwtToken(newPayload);
         return res.status(StatusCode.SuccessOK).send({ token: newToken });
     } catch (error) {
-        console.error(error);
-        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
+        return next(new RouterError());
     }
 });
 

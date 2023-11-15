@@ -9,6 +9,8 @@ import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms 
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
 import Config from "../../config.js";
+import { NextFunction } from "express-serve-static-core";
+import { RouterError } from "../../middleware/error-handler.js";
 
 const userRouter: Router = Router();
 
@@ -60,7 +62,7 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const targetUser: string | undefined = req.params.USERID as string;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -76,7 +78,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 
     // Return false if we haven't created a payload yet
     if (!newPayload) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     // Generate the token
@@ -107,7 +109,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const targetUser: string = req.params.USERID ?? "";
 
     // Get payload, and check if authorized
@@ -118,11 +120,11 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
         if (userInfo) {
             return res.status(StatusCode.SuccessOK).send(userInfo);
         } else {
-            return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
         }
     }
 
-    return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+    return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
 });
 
 /**
@@ -144,7 +146,7 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  *
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
+userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     // Get payload, return user's values
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -153,7 +155,7 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => 
     if (user) {
         return res.status(StatusCode.SuccessOK).send(user);
     } else {
-        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 });
 
