@@ -259,7 +259,9 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
     }
 
     try {
-        const updatedInfo: AuthInfo | null = await Models.AuthInfo.findOneAndUpdate({ userId: userId }, updateQuery);
+        const updatedInfo: AuthInfo | null = await Models.AuthInfo.findOneAndUpdate({ userId: userId }, updateQuery, {
+            new: true,
+        });
         if (updatedInfo) {
             return updatedInfo.roles as Role[];
         } else {

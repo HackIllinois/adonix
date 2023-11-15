@@ -19,6 +19,7 @@ import {
     updateRoles,
     verifyFunction,
     getUsersWithRole,
+    hasAdminPerms,
 } from "./auth-lib.js";
 import Models from "../../database/models.js";
 
@@ -306,12 +307,12 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Not authenticated with modify roles perms
-    if (!hasElevatedPerms(payload)) {
+    if (!hasAdminPerms(payload)) {
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
     // Parse to get operation type
-    const op: RoleOperation | undefined = RoleOperation[req.params.operation as keyof typeof RoleOperation];
+    const op: RoleOperation | undefined = RoleOperation[req.params.OPERATION?.toUpperCase() as keyof typeof RoleOperation];
 
     // No operation - fail out
     if (!op) {
@@ -320,6 +321,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // Check if role to add/remove actually exists
     const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
+
     const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
     if (!role) {
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidRole" });

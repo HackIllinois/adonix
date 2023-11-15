@@ -2,13 +2,23 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAttendee, getAsStaff, getAsUser } from "../../testTools.js";
+import {
+    AUTH_ROLE_TO_ROLES,
+    TESTER,
+    get,
+    getAsAttendee,
+    getAsStaff,
+    getAsUser,
+    putAsAdmin,
+    putAsStaff,
+} from "../../testTools.js";
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
 import { mockGenerateJwtTokenWithWrapper } from "./auth-lib.test.js";
-import { ProfileData, Role } from "./auth-models.js";
+import { ProfileData, Role, RoleOperation } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";
+import { ModifyRoleRequest } from "./auth-formats.js";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
 
@@ -287,5 +297,93 @@ describe("GET /auth/roles/:USERID", () => {
             roles: expect.arrayContaining(roles),
         });
         expect(json?.roles).toHaveLength(roles.length);
+    });
+});
+
+describe("PUT /auth/roles/:OPERATION", () => {
+    it("provides an error if user is not an admin", async () => {
+        const response = await putAsStaff(`/auth/roles/ADD`)
+            .send(
+                JSON.stringify({
+                    id: USER.userId,
+                    role: Role.ATTENDEE,
+                } satisfies ModifyRoleRequest),
+            )
+            .expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("provides an error if operation is invalid", async () => {
+        const response = await putAsAdmin(`/auth/roles/abc`)
+            .send(
+                JSON.stringify({
+                    id: USER.userId,
+                    role: Role.ATTENDEE,
+                } satisfies ModifyRoleRequest),
+            )
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidOperation");
+    });
+
+    it("provides an error if role is invalid", async () => {
+        const response = await putAsAdmin(`/auth/roles/${RoleOperation.ADD}`)
+            .send(
+                JSON.stringify({
+                    id: USER.userId,
+                    role: "42",
+                } satisfies ModifyRoleRequest),
+            )
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidRole");
+    });
+
+    it("adds a role if user is admin", async () => {
+        const response = await putAsAdmin(`/auth/roles/${RoleOperation.ADD}`)
+            .send(
+                JSON.stringify({
+                    id: USER.userId,
+                    role: Role.ATTENDEE,
+                } satisfies ModifyRoleRequest),
+            )
+            .expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+
+        const newRoles = [...USER.roles, Role.ATTENDEE];
+
+        expect(json).toMatchObject({
+            id: USER.userId,
+            roles: expect.arrayContaining(newRoles),
+        });
+        expect(json?.roles).toHaveLength(newRoles.length);
+
+        const stored = await Models.AuthInfo.findOne({ userId: USER.userId });
+        expect(stored).toHaveProperty("roles", expect.arrayContaining(newRoles));
+        expect(stored?.roles).toHaveLength(newRoles.length);
+    });
+
+    it("removes a role if user is admin", async () => {
+        const response = await putAsAdmin(`/auth/roles/${RoleOperation.REMOVE}`)
+            .send(
+                JSON.stringify({
+                    id: USER.userId,
+                    role: Role.USER,
+                } satisfies ModifyRoleRequest),
+            )
+            .expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+
+        const newRoles: Role[] = [];
+
+        expect(json).toMatchObject({
+            id: USER.userId,
+            roles: expect.arrayContaining(newRoles),
+        });
+        expect(json?.roles).toHaveLength(newRoles.length);
+
+        const stored = await Models.AuthInfo.findOne({ userId: USER.userId });
+        expect(stored?.roles).toHaveLength(newRoles.length);
     });
 });
