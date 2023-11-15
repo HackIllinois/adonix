@@ -125,3 +125,16 @@ export class EventAttendance {
     })
     public attendees: string[];
 }
+
+export class EventFollowing {
+    @prop({ required: true })
+    public eventId: string;
+
+    @prop({
+        required: true,
+        type: () => {
+            return String;
+        },
+    })
+    public followers: string[];
+}

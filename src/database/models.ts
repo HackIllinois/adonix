@@ -4,9 +4,9 @@ import { getModelForClass } from "@typegoose/typegoose";
 import { Database, generateConfig } from "../database.js";
 
 import { AuthInfo } from "./auth-db.js";
-import { AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
+import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
 import { AdmissionDecision } from "./admission-db.js";
-import { EventAttendance, EventMetadata, PublicEvent, StaffEvent } from "./event-db.js";
+import { EventAttendance, EventMetadata, PublicEvent, StaffEvent, EventFollowing } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
@@ -16,6 +16,7 @@ import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
 enum AttendeeCollection {
     METADATA = "metadata",
     PROFILE = "profile",
+    FOLLOWING = "following",
 }
 
 enum AuthCollection {
@@ -31,6 +32,7 @@ enum EventCollection {
     ATTENDANCE = "attendance",
     STAFF_EVENTS = "staffevents",
     PUBLIC_EVENTS = "publicevents",
+    FOLLOWERS = "followers",
 }
 
 enum NewsletterCollection {
@@ -58,6 +60,7 @@ export default class Models {
     // Attendee
     static AttendeeMetadata: mongoose.Model<AttendeeMetadata> = undefined!;
     static AttendeeProfile: mongoose.Model<AttendeeProfile> = undefined!;
+    static AttendeeFollowing: mongoose.Model<AttendeeFollowing> = undefined!;
     // Auth
     static AuthInfo: mongoose.Model<AuthInfo> = undefined!;
     // Admission
@@ -67,6 +70,7 @@ export default class Models {
     static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
     static EventMetadata: mongoose.Model<EventMetadata> = undefined!;
     static EventAttendance: mongoose.Model<EventAttendance> = undefined!;
+    static EventFollowing: mongoose.Model<EventFollowing> = undefined!;
     // Newsletter
     static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
     // Registration
@@ -79,12 +83,14 @@ export default class Models {
     static initialize(): void {
         this.AttendeeMetadata = getModel(AttendeeMetadata, Database.ATTENDEE, AttendeeCollection.METADATA);
         this.AttendeeProfile = getModel(AttendeeProfile, Database.ATTENDEE, AttendeeCollection.PROFILE);
+        this.AttendeeFollowing = getModel(AttendeeFollowing, Database.ATTENDEE, AttendeeCollection.FOLLOWING);
         this.AuthInfo = getModel(AuthInfo, Database.AUTH, AuthCollection.INFO);
         this.AdmissionDecision = getModel(AdmissionDecision, Database.ADMISSION, AdmissionCollection.DECISION);
         this.StaffEvent = getModel(StaffEvent, Database.EVENT, EventCollection.STAFF_EVENTS);
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
         this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
+        this.EventFollowing = getModel(EventFollowing, Database.EVENT, EventCollection.FOLLOWERS);
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
         this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
         this.RegistrationApplication = getModel(

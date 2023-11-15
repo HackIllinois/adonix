@@ -9,9 +9,9 @@ import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms 
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
 import Config from "../../config.js";
+import { AttendeeFollowing } from "database/attendee-db.js";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
-
 const userRouter: Router = Router();
 
 /**
@@ -156,6 +156,121 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
         return res.status(StatusCode.SuccessOK).send(user);
     } else {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+    }
+});
+
+/**
+ * @api {get} /user/following/:USERID/ GET /user/following/:USERID/
+ * @apiGroup User
+ * @apiDescription Get events that a user is following for a specific user by its unique ID.
+ *
+ * @apiHeader {String} Authorization User's JWT Token with staff permissions.
+ *
+ * @apiParam {String} USERID The unique identifier of the user.
+ *
+ * @apiSuccess (200: Success) {JSON} events The events a user is following.
+ * @apiSuccessExample Example Success Response
+ * HTTP/1.1 200 OK
+ * [
+ *  "event1",
+ *  "event2",
+ *  "event3"
+ * ]
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User with the given ID not found.
+ * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
+ */
+userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+    const userId: string | undefined = req.params.USERID;
+    const events: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: userId });
+    if (!events) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+    }
+    return res.status(StatusCode.SuccessOK).send(events.events);
+});
+
+/**
+ * @api {get} /user/follow/:EVENTID/ GET /user/follow/:EVENTID/
+ * @apiGroup User
+ * @apiDescription Enables a user to follow/favorite an event.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event to follow.
+ *
+ * @apiSuccess (200: Success) {String} StatusSuccess.
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User with userId not found.
+ * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
+ */
+userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const eventId: string | undefined = req.params.EVENTID;
+    if (!eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
+    }
+    try {
+        const followers = await Models.EventFollowing.findOneAndUpdate(
+            { eventId: eventId },
+            { $addToSet: { followers: payload.id } },
+            { new: true },
+        );
+        if (!followers) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
+        }
+        const events = await Models.AttendeeFollowing.findOneAndUpdate(
+            { userId: payload.id },
+            { $addToSet: { events: eventId } },
+            { new: true },
+        );
+        if (!events) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        }
+        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+    } catch {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+});
+
+/**
+ * @api {get} /user/unfollow/:EVENTID/ GET /user/unfollow/:EVENTID/
+ * @apiGroup User
+ * @apiDescription Enables a user to unfollow/unfavorite an event.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event to unfollow.
+ *
+ * @apiSuccess (200: Success) {String} StatusSuccess.
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} UserNotFound User with userId not found.
+ * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
+ */
+userRouter.put("/unfollow/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const eventId: string | undefined = req.params.EVENTID;
+    try {
+        const followers = await Models.EventFollowing.findOneAndUpdate(
+            { eventId: eventId },
+            { $pull: { followers: payload.id } },
+            { new: true },
+        );
+        if (!followers) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
+        }
+        const events = await Models.AttendeeFollowing.findOneAndUpdate(
+            { userId: payload.id },
+            { $pull: { events: eventId } },
+            { new: true },
+        );
+        if (!events) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        }
+        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+    } catch (error) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 });
 

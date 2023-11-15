@@ -19,7 +19,7 @@ import {
 } from "./event-formats.js";
 import { FilteredEventView } from "./event-models.js";
 
-import { EventMetadata, PublicEvent, StaffEvent } from "../../database/event-db.js";
+import { EventFollowing, EventMetadata, PublicEvent, StaffEvent } from "../../database/event-db.js";
 import Models from "../../database/models.js";
 import { ObjectId } from "mongodb";
 import { StatusCode } from "status-code-enum";
@@ -633,6 +633,40 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
         const updatedEvent: PublicEvent | null = await Models.PublicEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(StatusCode.SuccessOK).send(updatedEvent);
     }
+});
+
+/**
+ * @api {get} /event/favorites/:EVENTID/ GET /event/favorites/:EVENTID/
+ * @apiGroup Event
+ * @apiDescription Get users that favorite an event for a specific event by its unique ID.
+ *
+ * @apiHeader {String} Authorization User's JWT Token with staff permissions.
+ *
+ * @apiParam {String} EVENTID The unique identifier of the event.
+ *
+ * @apiSuccess (200: Success) {JSON} followers The followers of an event.
+ * @apiSuccessExample Example Success Response
+ * HTTP/1.1 200 OK
+ * [
+ *  "user1",
+ *  "user2",
+ *  "user3"
+ * ]
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} EventNotFound Event with the given ID not found.
+ * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
+ */
+eventsRouter.get("/favorites/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+    const eventId: string | undefined = req.params.EVENTID;
+    const followers: EventFollowing | null = await Models.EventFollowing.findOne({ eventId: eventId });
+    if (!followers) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "EventNotFound"));
+    }
+    return res.status(StatusCode.SuccessOK).send(followers.followers);
 });
 
 // Prototype error handler
