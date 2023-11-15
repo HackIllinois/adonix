@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import { TESTER, get, getAsAttendee, getAsStaff, getAsUser } from "../../testTools.js";
+import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAttendee, getAsStaff, getAsUser } from "../../testTools.js";
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
 import { mockGenerateJwtTokenWithWrapper } from "./auth-lib.test.js";
@@ -178,26 +178,35 @@ describe("GET /auth/roles/list/:ROLE", () => {
 
     it("gets all the users", async () => {
         const response = await getAsStaff(`/auth/roles/list/USER`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userIds: expect.arrayContaining([USER.userId, USER_ATTENDEE.userId, USER_STAFF.userId]),
+        const userIds = [USER.userId, USER_ATTENDEE.userId, USER_STAFF.userId];
+        expect(json).toMatchObject({
+            userIds: expect.arrayContaining(userIds),
         });
+        expect(json?.userIds).toHaveLength(userIds.length);
     });
 
     it("gets all the attendees", async () => {
         const response = await getAsStaff(`/auth/roles/list/ATTENDEE`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userIds: expect.arrayContaining([USER_ATTENDEE.userId, USER_STAFF.userId]),
+        const userIds = [USER_ATTENDEE.userId, USER_STAFF.userId];
+        expect(json).toMatchObject({
+            userIds: expect.arrayContaining(userIds),
         });
+        expect(json?.userIds).toHaveLength(userIds.length);
     });
 
     it("gets all the staff", async () => {
         const response = await getAsStaff(`/auth/roles/list/STAFF`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userIds: expect.arrayContaining([USER_STAFF.userId]),
+        const userIds = [USER_STAFF.userId];
+        expect(json).toMatchObject({
+            userIds: expect.arrayContaining(userIds),
         });
+        expect(json?.userIds).toHaveLength(userIds.length);
     });
 });
 
@@ -215,11 +224,14 @@ describe("GET /auth/roles/", () => {
             roles: [Role.USER],
         });
         const response = await getAsUser(`/auth/roles/`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
+        const roles = [Role.USER];
+        expect(json).toMatchObject({
             id: TESTER.id,
-            roles: expect.arrayContaining([Role.USER]),
+            roles: expect.arrayContaining(roles),
         });
+        expect(json?.roles).toHaveLength(roles.length);
     });
 
     it("gets the roles of a attendee", async () => {
@@ -229,11 +241,14 @@ describe("GET /auth/roles/", () => {
             roles: [Role.USER, Role.ATTENDEE],
         });
         const response = await getAsAttendee(`/auth/roles/`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
+        const roles = [Role.USER, Role.ATTENDEE];
+        expect(json).toMatchObject({
             id: TESTER.id,
-            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
+            roles: expect.arrayContaining(roles),
         });
+        expect(json?.roles).toHaveLength(roles.length);
     });
 });
 
@@ -251,25 +266,26 @@ describe("GET /auth/roles/:USERID", () => {
     });
 
     it("gets the roles of themselves if non-staff", async () => {
-        await Models.AuthInfo.create({
-            userId: TESTER.id,
-            provider: "github",
-            roles: [Role.USER, Role.ATTENDEE],
-        });
         const response = await getAsAttendee(`/auth/roles/${TESTER.id}`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
+        const roles = AUTH_ROLE_TO_ROLES[Role.ATTENDEE];
+        expect(json).toMatchObject({
             id: TESTER.id,
-            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
+            roles: expect.arrayContaining(roles),
         });
+        expect(json?.roles).toHaveLength(roles.length);
     });
 
     it("gets the roles of another user if staff", async () => {
         const response = await getAsStaff(`/auth/roles/${USER_ATTENDEE.userId}`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toMatchObject({
+        const roles = [Role.USER, Role.ATTENDEE];
+        expect(json).toMatchObject({
             id: USER_ATTENDEE.userId,
-            roles: expect.arrayContaining([Role.USER, Role.ATTENDEE]),
+            roles: expect.arrayContaining(roles),
         });
+        expect(json?.roles).toHaveLength(roles.length);
     });
 });
