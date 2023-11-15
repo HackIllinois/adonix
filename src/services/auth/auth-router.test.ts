@@ -14,8 +14,8 @@ import {
 } from "../../testTools.js";
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
-import { mockGenerateJwtTokenWithWrapper } from "./auth-lib.test.js";
-import { ProfileData, Role, RoleOperation } from "./auth-models.js";
+import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./auth-lib.test.js";
+import { JwtPayload, ProfileData, Role, RoleOperation } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";
 import { ModifyRoleRequest } from "./auth-formats.js";
@@ -385,5 +385,32 @@ describe("PUT /auth/roles/:OPERATION", () => {
 
         const stored = await Models.AuthInfo.findOne({ userId: USER.userId });
         expect(stored?.roles).toHaveLength(newRoles.length);
+    });
+});
+
+describe("GET /auth/token/refresh", () => {
+    it("refreshes the user's token", async () => {
+        const generateJwtToken = mockGenerateJwtTokenWithWrapper();
+        const getJwtPayloadFromProfile = mockGetJwtPayloadFromProfile();
+
+        const payload = {
+            id: TESTER.id,
+            email: TESTER.email,
+            exp: Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND),
+            provider: "github",
+            roles: [Role.USER, Role.ADMIN],
+        } satisfies JwtPayload;
+
+        getJwtPayloadFromProfile.mockReturnValue(Promise.resolve(payload));
+
+        const response = await getAsAttendee("/auth/token/refresh").expect(StatusCode.SuccessOK);
+
+        expect(generateJwtToken).toHaveBeenCalled();
+        expect(generateJwtToken).toHaveBeenCalledWith(payload);
+
+        const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value;
+        expect(JSON.parse(response.text)).toMatchObject({
+            token: jwtReturned,
+        });
     });
 });

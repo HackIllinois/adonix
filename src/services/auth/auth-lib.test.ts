@@ -13,6 +13,14 @@ export function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.
     });
     return mockedGenerateJwtToken;
 }
+/*
+ * Mocks getJwtPayloadFromProfile, returns SpiedFunction.
+ * Note: You must actually mock the implementation, this method just returns a Spy to mock!
+ */
+export function mockGetJwtPayloadFromProfile(): SpiedFunction<typeof authLib.getJwtPayloadFromProfile> {
+    const mockedAuthLib = require("../auth/auth-lib.js") as typeof authLib;
+    return jest.spyOn(mockedAuthLib, "getJwtPayloadFromProfile");
+}
 
 /* Temporary test to appease the jest gods */
 describe("Todo", () => {
