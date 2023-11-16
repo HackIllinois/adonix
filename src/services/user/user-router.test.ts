@@ -6,7 +6,7 @@ import { AuthInfo } from "../../database/auth-db.js";
 import { Role } from "../auth/auth-models.js";
 import Config from "../../config.js";
 import { StatusCode } from "status-code-enum";
-import { mockGenerateJwtTokenWithWrapper } from "../auth/auth-lib.test.js";
+import { mockGenerateJwtTokenWithWrapper } from "../auth/mocks/auth.js";
 
 const TESTER_USER = {
     userId: TESTER.id,

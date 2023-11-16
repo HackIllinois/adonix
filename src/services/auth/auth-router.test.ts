@@ -14,7 +14,7 @@ import {
 } from "../../testTools.js";
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
-import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./auth-lib.test.js";
+import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth.js";
 import { JwtPayload, ProfileData, Role, RoleOperation } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";

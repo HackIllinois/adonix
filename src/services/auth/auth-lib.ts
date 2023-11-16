@@ -65,7 +65,6 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
             oldRoles = [];
         }
 
-        console.log(oldRoles);
         const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];
         await updateUserRoles(userId, provider as Provider, payload.roles);
@@ -164,7 +163,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
+    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toLowerCase(), roles: roles }, { upsert: true })
         .then(() => {
             return;
         })

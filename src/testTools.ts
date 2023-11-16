@@ -13,6 +13,9 @@ export const TESTER = {
     discordTag: "hackillinoistest",
 };
 
+// A email that is defined as admin in config
+export const ADMIN_EMAIL = "admin@hackillinois.org";
+
 // A mapping of role to roles they have, used for JWT generation
 export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
     [Role.USER]: [Role.USER],

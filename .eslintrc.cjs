@@ -38,7 +38,7 @@ module.exports = {
     },
     overrides: [
         {
-            files: ["**/*.test.ts"], // Disable specific rules for tests
+            files: ["**/*.test.ts", "**/mocks/*.ts"], // Disable specific rules for tests
             rules: {
                 "no-magic-numbers": "off",
                 "@typescript-eslint/no-var-requires": "off", // Required for jest
