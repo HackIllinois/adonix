@@ -43,10 +43,11 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
  * @param provider String of the provider, being used
  * @param data ProfileData, returned from passport post-authentication step
+ * @param rawId boolean, true if the id in data needs to be prepended by the provider, false if not
  * @returns JwtPayload, which gets sent back to the user in the next step
  */
-export async function getJwtPayloadFromProfile(provider: string, data: ProfileData): Promise<JwtPayload> {
-    const userId: string = provider + data.id;
+export async function getJwtPayloadFromProfile(provider: string, data: ProfileData, rawId: boolean): Promise<JwtPayload> {
+    const userId: string = rawId ? `${provider}${data.id}` : `${data.id}`;
     const email: string = data.email;
 
     // Create payload object

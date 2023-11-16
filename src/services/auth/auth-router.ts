@@ -148,7 +148,7 @@ authRouter.get(
             data.displayName = data.name ?? data.displayName ?? data.login;
 
             // Load in the payload with the actual values stored in the database
-            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
+            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, false);
 
             const userId: string = payload.id;
             await Models.UserInfo.findOneAndUpdate(
@@ -361,7 +361,7 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
 
     try {
         // Generate a new payload for the token
-        const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data);
+        const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data, false);
 
         // Create and return a new token with the payload
         const newToken: string = generateJwtToken(newPayload);

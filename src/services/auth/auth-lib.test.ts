@@ -41,10 +41,14 @@ describe("getJwtPayloadFromProfile", () => {
         ["staff", STAFF_PAYLOAD],
         ["admin", ADMIN_PAYLOAD],
     ])("creates auth info for a new %s", async (_name, payload) => {
-        const newPayload = await getJwtPayloadFromProfile(payload.provider, {
-            id: payload.id,
-            email: payload.email,
-        });
+        const newPayload = await getJwtPayloadFromProfile(
+            payload.provider,
+            {
+                id: payload.id,
+                email: payload.email,
+            },
+            true,
+        );
 
         const newUserId = `${payload.provider}${payload.id}`;
 
@@ -72,17 +76,16 @@ describe("getJwtPayloadFromProfile", () => {
             roles: [],
         } satisfies AuthInfo);
 
-        const newPayload = await getJwtPayloadFromProfile(payload.provider, {
-            id: payload.id,
-            email: payload.email,
-        });
+        const newPayload = await getJwtPayloadFromProfile(
+            payload.provider,
+            {
+                id: payload.id,
+                email: payload.email,
+            },
+            false,
+        );
 
-        const newUserId = `${payload.provider}${payload.id}`;
-
-        expect(newPayload).toMatchObject({
-            ...payload,
-            id: newUserId,
-        } satisfies JwtPayload);
+        expect(newPayload).toMatchObject(payload);
 
         const stored = await Models.AuthInfo.findOne({ userId: newPayload.id });
 

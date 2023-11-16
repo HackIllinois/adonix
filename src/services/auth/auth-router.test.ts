@@ -15,7 +15,7 @@ import {
 import Config, { Device } from "../../config.js";
 import * as selectAuthMiddleware from "../../middleware/select-auth.js";
 import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth.js";
-import { JwtPayload, ProfileData, Role, RoleOperation } from "./auth-models.js";
+import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";
 import { ModifyRoleRequest } from "./auth-formats.js";
@@ -154,6 +154,12 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     });
 
     it.each(ALL_DEVICES)("works when authentication passes with device %s", async (device) => {
+        const profileData = {
+            id: "github123",
+            email: "test@gmail.com",
+        } satisfies ProfileData;
+        const provider = Provider.GITHUB;
+
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
             req.isAuthenticated = (): boolean => {
@@ -161,17 +167,24 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
             };
 
             req.user = {
-                provider: "github",
-                _json: {
-                    id: `github123`,
-                    email: TESTER.email,
-                } satisfies ProfileData,
+                provider,
+                _json: profileData,
             };
 
             next();
         });
 
         const response = await get(`/auth/github/callback/${device}`).expect(StatusCode.RedirectFound);
+
+        expect(mockedGenerateJwtToken).toBeCalledWith(
+            expect.objectContaining({
+                id: profileData.id,
+                email: profileData.email,
+                provider,
+                roles: [Role.USER],
+            } satisfies JwtPayload),
+            device == Device.ANDROID || device == Device.IOS,
+        );
 
         // Expect redirect to be to the right url & contain token
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
@@ -405,10 +418,18 @@ describe("GET /auth/token/refresh", () => {
 
         const response = await getAsAttendee("/auth/token/refresh").expect(StatusCode.SuccessOK);
 
-        expect(generateJwtToken).toHaveBeenCalled();
+        expect(getJwtPayloadFromProfile).toHaveBeenCalledWith(
+            payload.provider,
+            expect.objectContaining({
+                id: payload.id,
+                email: payload.email,
+            } satisfies ProfileData),
+            false,
+        );
+
         expect(generateJwtToken).toHaveBeenCalledWith(payload);
 
-        const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value;
+        const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value as string;
         expect(JSON.parse(response.text)).toMatchObject({
             token: jwtReturned,
         });
