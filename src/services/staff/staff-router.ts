@@ -10,6 +10,8 @@ import Config from "../../config.js";
 import { EventMetadata } from "../../database/event-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
+import { NextFunction } from "express-serve-static-core";
+import { RouterError } from "../../middleware/error-handler.js";
 
 const staffRouter: Router = Router();
 
@@ -41,31 +43,31 @@ const staffRouter: Router = Router();
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response) => {
+staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
 
     const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
     const userId: string = payload.id;
     // Only staff can mark themselves as attending these events
     if (!hasStaffPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     if (!eventId) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
 
     if (!metadata) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "EventNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "EventNotFound"));
     }
 
     const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
     console.log(metadata.exp, timestamp);
 
     if (metadata.exp <= timestamp) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "CodeExpired" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "CodeExpired"));
     }
 
     await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });

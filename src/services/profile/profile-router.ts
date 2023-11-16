@@ -1,6 +1,6 @@
 import cors from "cors";
 import { Request, Router } from "express";
-import { Response } from "express-serve-static-core";
+import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
 import { isValidLimit } from "./profile-lib.js";
@@ -15,6 +15,8 @@ import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
+
+import { RouterError } from "../../middleware/error-handler.js";
 
 const profileRouter: Router = Router();
 
@@ -50,7 +52,7 @@ profileRouter.use(cors({ origin: "*" }));
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidInput"}
  */
-profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
+profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: NextFunction) => {
     const limitString: string | undefined = req.query.limit as string | undefined;
 
     // Initialize the metadata
@@ -62,7 +64,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
 
         // Check for limit validity
         if (!limit || !isValidLimit) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidLimit" });
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidLimit"));
         }
 
         // if the limit is above the leaderboard query limit, set it to the query limit
@@ -117,7 +119,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response) => {
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
+profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     const userId: string = payload.id;
@@ -125,7 +127,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
@@ -166,19 +168,19 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response) 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
     if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!user) {
-        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(user);
@@ -226,7 +228,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Config.DEFAULT_POINT_VALUE;
 
@@ -234,13 +236,13 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     profile.userId = payload.id;
 
     if (!isValidProfileFormat(profile)) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     // Ensure that user doesn't already exist before creating
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
     if (user) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserAlreadyExists" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserAlreadyExists"));
     }
 
     // Create a metadata object, and return it
@@ -251,7 +253,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         return res.status(StatusCode.SuccessOK).send(newProfile);
     } catch (error) {
         console.error(error);
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 });
 
@@ -273,14 +275,14 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  *     {"error": "InternalError"}
  */
 
-profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response) => {
+profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
     const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
     const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
     if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
-        return res.status(StatusCode.ClientErrorNotFound).send({ success: false, error: "AttendeeNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeNotFound"));
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
