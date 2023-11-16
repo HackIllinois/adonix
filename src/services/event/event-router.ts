@@ -656,7 +656,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
  * @apiError (400: Bad Request) {String} EventNotFound Event with the given ID not found.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
  */
-eventsRouter.get("/favorites/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+eventsRouter.get("/followers/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));

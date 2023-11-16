@@ -194,7 +194,7 @@ userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request,
 });
 
 /**
- * @api {get} /user/follow/:EVENTID/ GET /user/follow/:EVENTID/
+ * @api {put} /user/follow/:EVENTID/ GET /user/follow/:EVENTID/
  * @apiGroup User
  * @apiDescription Enables a user to follow/favorite an event.
  *
@@ -236,7 +236,7 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
 });
 
 /**
- * @api {get} /user/unfollow/:EVENTID/ GET /user/unfollow/:EVENTID/
+ * @api {put} /user/unfollow/:EVENTID/ GET /user/unfollow/:EVENTID/
  * @apiGroup User
  * @apiDescription Enables a user to unfollow/unfavorite an event.
  *

@@ -22,9 +22,9 @@ beforeEach(async () => {
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
-describe("GET /event/favorites/:EVENTID", () => {
+describe("GET /event/followers/:EVENTID", () => {
     it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/event/favorites/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(
+        const response = await getAsAttendee(`/event/followers/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(
             StatusCode.ClientErrorForbidden,
         );
 
@@ -33,19 +33,19 @@ describe("GET /event/favorites/:EVENTID", () => {
 
     it("gives an not found error for a non-existent event", async () => {
         await Models.EventFollowing.deleteOne({
-            userId: TESTER_EVENT_FOLLOWING.eventId,
+            eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
 
-        const response = await getAsStaff(`/user/following/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(
+        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(
             StatusCode.ClientErrorNotFound,
         );
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
     });
 
     it("works for a staff user", async () => {
-        const response = await getAsStaff(`/user/following/${TESTER_ATTENDEE_FOLLOWING.userId}/`).expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toEqual(TESTER_ATTENDEE_FOLLOWING.events);
+        expect(JSON.parse(response.text)).toEqual(TESTER_EVENT_FOLLOWING.followers);
     });
 });
