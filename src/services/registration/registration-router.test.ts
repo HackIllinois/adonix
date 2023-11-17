@@ -116,7 +116,7 @@ describe("POST /registration/", () => {
     });
 });
 
-describe("PUT /registration/", () => {
+describe("PATCH /registration/", () => {
     it("gives a UserNotFound error for an non-existent user", async () => {
         await Models.RegistrationInfo.deleteOne({
             userId: TESTER.id,
@@ -130,7 +130,24 @@ describe("PUT /registration/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("works for user already in registration database", async () => {
+    it("works for user already in registration database full fields", async () => {
+        const response = await putAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            updatedRegistrationInfo: {
+                userId: TESTER.id,
+                preferredName: TESTER.name,
+                userName: TESTER.userName,
+            },
+            updatedRegistrationApplication: {
+                userId: TESTER.id,
+                resume: "bob-resume.pdf",
+                essays: ["essay 1", "essay 2"],
+            },
+        });
+    });
+
+    it("works for user already in registration database partial fields", async () => {
         const response = await putAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({

@@ -194,7 +194,7 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
 });
 
 /**
- * @api {put} /registration/ PUT /registration/
+ * @api {patch} /registration/ PATCH /registration/
  * @apiGroup Registration
  * @apiDescription Updates registration data for the current user
  *
@@ -207,8 +207,6 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
  * {
         "userId": "user123",
         "preferredName": "John",
-        "userName": "john21",
-        "resume": "john-doe-resume.pdf",
         "essays": ["essay 1", "essay 2"]
  * }
  *
@@ -241,7 +239,7 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
  *
  * @apiUse strongVerifyErrors
  */
-registrationRouter.put("/", strongJwtVerification, async (req: Request, res: Response) => {
+registrationRouter.patch("/", strongJwtVerification, async (req: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
@@ -256,11 +254,24 @@ registrationRouter.put("/", strongJwtVerification, async (req: Request, res: Res
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
     }
 
+    // Define the update object with all possible fields
+    const updateObject: {
+        preferredName?: string;
+        userName?: string;
+        resume?: string;
+        essays?: string[];
+    } = {};
+
+    updateObject.preferredName = data.preferredName != null ? data.preferredName : queryResultInfo.preferredName;
+    updateObject.userName = data.userName != null ? data.userName : queryResultInfo.userName;
+    updateObject.resume = data.resume != null ? data.resume : queryResultApplication.resume;
+    updateObject.essays = data.essays != null ? data.essays : queryResultApplication.essays;
+
     const updatedRegistrationInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOneAndUpdate(
         { userId: userId },
         {
-            preferredName: data.preferredName,
-            userName: data.userName,
+            preferredName: updateObject.preferredName,
+            userName: updateObject.userName,
         },
         { new: true },
     );
@@ -268,8 +279,8 @@ registrationRouter.put("/", strongJwtVerification, async (req: Request, res: Res
     const updatedRegistrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndUpdate(
         { userId: userId },
         {
-            resume: data.resume,
-            essays: data.essays,
+            resume: updateObject.resume,
+            essays: updateObject.essays,
         },
         { new: true },
     );
