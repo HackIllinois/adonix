@@ -77,7 +77,7 @@ describe("GET /admission/rsvp/", () => {
             userId: TESTER.id,
         });
 
-        const response = await getAsAttendee("/admission/rsvp/").expect(StatusCode.ClientErrorBadRequest);
+        const response = await getAsAttendee("/admission/rsvp/").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
@@ -113,7 +113,7 @@ describe("GET /admission/rsvp/:USERID", () => {
     });
 
     it("returns UserNotFound error if user doesn't exist", async () => {
-        const response = await getAsStaff("/admission/rsvp/idontexist").expect(StatusCode.ClientErrorBadRequest);
+        const response = await getAsStaff("/admission/rsvp/idontexist").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
@@ -132,7 +132,7 @@ describe("PUT /admission/rsvp", () => {
         });
         const response = await putAsApplicant("/admission/rsvp/")
             .send({ isAttending: true })
-            .expect(StatusCode.ClientErrorBadRequest);
+            .expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
