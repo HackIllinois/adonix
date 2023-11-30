@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import Models from "../../database/models.js";
 import { RegistrationInfo, RegistrationApplication } from "../../database/registration-db.js";
-import { getAsStaff, getAsUser, postAsUser, putAsUser, TESTER } from "../../testTools.js";
+import { getAsStaff, getAsUser, postAsUser, patchAsUser, TESTER } from "../../testTools.js";
 import { StatusCode } from "status-code-enum";
 import { UpdateRegistrationRecord } from "./registration-formats.js";
 
@@ -125,13 +125,13 @@ describe("PATCH /registration/", () => {
             userId: TESTER.id,
         });
 
-        const response = await putAsUser("/registration/").send(updateRequest).expect(StatusCode.ClientErrorBadRequest);
+        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
     it("works for user already in registration database full fields", async () => {
-        const response = await putAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
+        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             updatedRegistrationInfo: {
@@ -148,7 +148,7 @@ describe("PATCH /registration/", () => {
     });
 
     it("works for user already in registration database partial fields", async () => {
-        const response = await putAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
+        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             updatedRegistrationInfo: {

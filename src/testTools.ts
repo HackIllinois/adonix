@@ -75,6 +75,10 @@ export function put(url: string, role?: Role): request.Test {
     return setHeaders(request(app()).put(url), role);
 }
 
+export function patch(url: string, role?: Role): request.Test {
+    return setHeaders(request(app()).patch(url), role);
+}
+
 export function del(url: string, role?: Role): request.Test {
     return setHeaders(request(app()).delete(url), role);
 }
@@ -91,6 +95,10 @@ export function postAsUser(url: string): request.Test {
 
 export function putAsUser(url: string): request.Test {
     return put(url, Role.USER);
+}
+
+export function patchAsUser(url: string): request.Test {
+    return patch(url, Role.USER);
 }
 
 export function delAsUser(url: string): request.Test {
