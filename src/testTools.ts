@@ -117,6 +117,10 @@ export function putAsApplicant(url: string): request.Test {
     return put(url, Role.APPLICANT);
 }
 
+export function patchAsApplicant(url: string): request.Test {
+    return patch(url, Role.APPLICANT);
+}
+
 export function delAsApplicant(url: string): request.Test {
     return del(url, Role.APPLICANT);
 }
@@ -131,6 +135,10 @@ export function postAsAttendee(url: string): request.Test {
 
 export function putAsAttendee(url: string): request.Test {
     return put(url, Role.ATTENDEE);
+}
+
+export function patchAsAttendee(url: string): request.Test {
+    return patch(url, Role.ATTENDEE);
 }
 
 export function delAsAttendee(url: string): request.Test {
@@ -149,6 +157,10 @@ export function putAsMentor(url: string): request.Test {
     return put(url, Role.MENTOR);
 }
 
+export function patchAsMentor(url: string): request.Test {
+    return patch(url, Role.MENTOR);
+}
+
 export function delAsMentor(url: string): request.Test {
     return del(url, Role.MENTOR);
 }
@@ -165,6 +177,10 @@ export function putAsStaff(url: string): request.Test {
     return put(url, Role.STAFF);
 }
 
+export function patchAsStaff(url: string): request.Test {
+    return patch(url, Role.STAFF);
+}
+
 export function delAsStaff(url: string): request.Test {
     return del(url, Role.STAFF);
 }
@@ -179,6 +195,10 @@ export function postAsAdmin(url: string): request.Test {
 
 export function putAsAdmin(url: string): request.Test {
     return put(url, Role.ADMIN);
+}
+
+export function patchAsAdmin(url: string): request.Test {
+    return patch(url, Role.ADMIN);
 }
 
 export function delAsAdmin(url: string): request.Test {
