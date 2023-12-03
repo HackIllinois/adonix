@@ -171,3 +171,38 @@ describe("GET /profile/leaderboard", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidLimit");
     });
 });
+
+describe("GET /profile/addpoints", () => {
+    it("works for Staff", async () => {
+        const response = await getAsAdmin("/profile/addpoints")
+            .send({
+                userId: TESTER.id,
+                points: 10,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toHaveProperty("points", 10);
+    });
+
+    it("returns Forbidden error for users", async () => {
+        const response = await getAsUser("/profile/addpoints")
+            .send({
+                userId: TESTER.id,
+                points: 10,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns UserNotFound for nonexistent users", async () => {
+        const response = await getAsAdmin("/profile/addpoints")
+            .send({
+                userId: "idontexists",
+                points: 10,
+            })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    });
+});
