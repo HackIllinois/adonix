@@ -32,6 +32,7 @@ const staffRouter: Router = Router();
  * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
  * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
  * @apiError (400: Bad Request) {String} EventExpired This particular event has expired.
+ * @apiError (404: Not Found) {String} EventNotFound This event was not found
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
@@ -60,7 +61,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
 
     if (!metadata) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "EventNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
     const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);

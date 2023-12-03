@@ -155,7 +155,7 @@ admissionRouter.get("/rsvp/:USERID", strongJwtVerification, async (req: Request,
 
     //Returns error if query is empty
     if (!queryResult) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);
@@ -199,7 +199,7 @@ admissionRouter.get("/rsvp", strongJwtVerification, async (_: Request, res: Resp
 
     //Returns error if query is empty
     if (!queryResult) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     //Filters data if caller doesn't have elevated perms
@@ -256,7 +256,7 @@ admissionRouter.put("/rsvp/", strongJwtVerification, async (req: Request, res: R
 
     //Returns error if query is empty
     if (!queryResult) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     //If the current user has not been accepted, send an error
