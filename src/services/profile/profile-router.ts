@@ -3,7 +3,7 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
-import { isValidLimit } from "./profile-lib.js";
+import { isValidLimit, updatePoints } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { Query } from "mongoose";
@@ -333,13 +333,9 @@ profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
     }
 
-    const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOneAndUpdate(
-        { userId: userId },
-        {
-            points: queryResult.points + points,
-        },
-        { new: true },
-    );
+    await updatePoints(userId, points);
+
+    const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     return res.status(StatusCode.SuccessOK).send(updatedProfile);
 });

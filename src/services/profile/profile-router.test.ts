@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import Models from "../../database/models.js";
-import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsUser } from "../../testTools.js";
+import { TESTER, delAsUser, getAsAdmin, getAsUser, getAsStaff, postAsAttendee, postAsUser } from "../../testTools.js";
 import { ProfileFormat } from "./profile-formats.js";
 import Config from "../../config.js";
 import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
@@ -174,7 +174,7 @@ describe("GET /profile/leaderboard", () => {
 
 describe("GET /profile/addpoints", () => {
     it("works for Staff", async () => {
-        const response = await getAsAdmin("/profile/addpoints")
+        const response = await getAsStaff("/profile/addpoints")
             .send({
                 userId: TESTER.id,
                 points: 10,
@@ -196,7 +196,7 @@ describe("GET /profile/addpoints", () => {
     });
 
     it("returns UserNotFound for nonexistent users", async () => {
-        const response = await getAsAdmin("/profile/addpoints")
+        const response = await getAsStaff("/profile/addpoints")
             .send({
                 userId: "idontexists",
                 points: 10,
