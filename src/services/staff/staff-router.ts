@@ -7,11 +7,12 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 import { AttendanceFormat } from "./staff-formats.js";
 import Config from "../../config.js";
 
-import { EventMetadata } from "../../database/event-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
+import { EventMetadata } from "../../database/event-db.js";
+import { StaffShift } from "database/staff-db.js"
 
 const staffRouter: Router = Router();
 
@@ -74,6 +75,45 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+});
+
+staffRouter.get("/shift", strongJwtVerification, async(_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    console.log(payload.id);
+
+    try {
+        // const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: payload.id });
+
+        // console.log(user);
+
+        const data: StaffShift | null = await Models.StaffShift.findOne({_id: payload.id});
+        return res.status(200).json(data);
+
+        // if (!data) {
+        //     return next(new RouterError(StatusCode.ClientErrorNotFound, "ShiftNotFound"));
+        // }
+
+        // const events: string[] = data.shifts;
+        // return res.status(200).json(events);
+        
+        // const staffEvents: StaffEvent[] = await Models.StaffEvent.find({eventId: {$all: events}});
+        // return res.status(200).json(staffEvents);
+
+        
+        // return res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+    }
+    
+
+    
+
+    
 });
 
 export default staffRouter;
