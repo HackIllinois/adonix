@@ -64,15 +64,28 @@ eventsRouter.use(cors({ origin: "*" }));
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
  * */
-eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+eventsRouter.get("/staff/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const staffEvents: StaffEvent[] = await Models.StaffEvent.find();
-    return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
+    const showAllShiftsParam: string | undefined = req.query.showAllShifts as string | undefined;
+    let showAllShifts: boolean = false;
+    if (showAllShiftsParam) {
+        showAllShifts = (showAllShiftsParam.toLowerCase() === 'true');
+    }
+
+    if (showAllShifts) {
+        const staffEvents: StaffEvent[] = await Models.StaffEvent.find();
+        return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
+    } else {
+        const staffEvents: StaffEvent[] = await Models.StaffEvent.find({ eventType: {$ne: 'STAFFSHIFT'} });
+        return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
+    }
+
+    
 });
 
 /**
