@@ -455,7 +455,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * }
  *
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} EventNotFound Event with the given ID not found.
+ * @apiError (404: Not Found) {String} EventNotFound Event with the given ID not found.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while fetching metadata.
  */
@@ -499,6 +499,7 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
  * @apiError (400: Bad Request) {String} InvalidParams Invalid request parameters.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while updating metadata.
+ * @apiError (404: Not Found) {String} EventNotFound Metadata for the given event was not found
  */
 eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -592,6 +593,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff or admin token.
  * @apiError (400: Bad Request) {String} Bad Request Invalid parameters or event format.
  * @apiError (500: Internal Server Error) {String} InternalError An internal error occurred.
+ * @apiError (404: Not Found) {String} EventNotFound Metadata for the given event was not found
  */
 eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -613,7 +615,7 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
     const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventFormat.eventId });
 
     if (!metadata) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "EventNotFound", metadata));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound", metadata));
     }
 
     if (metadata.isStaff) {
