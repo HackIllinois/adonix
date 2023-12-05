@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowing } from "database/event-db.js";
+import { EventFollowers } from "database/event-db.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
@@ -8,7 +8,7 @@ import { TESTER, getAsAttendee, getAsStaff } from "../../testTools.js";
 const TESTER_EVENT_FOLLOWING = {
     eventId: "other-event",
     followers: ["user5", "user8"],
-} satisfies EventFollowing;
+} satisfies EventFollowers;
 
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,

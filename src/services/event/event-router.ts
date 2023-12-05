@@ -19,7 +19,7 @@ import {
 } from "./event-formats.js";
 import { FilteredEventView } from "./event-models.js";
 
-import { EventFollowing, EventMetadata, PublicEvent, StaffEvent } from "../../database/event-db.js";
+import { EventFollowers, EventMetadata, PublicEvent, StaffEvent } from "../../database/event-db.js";
 import Models from "../../database/models.js";
 import { ObjectId } from "mongodb";
 import { StatusCode } from "status-code-enum";
@@ -664,7 +664,7 @@ eventsRouter.get("/followers/:EVENTID", strongJwtVerification, async (req: Reque
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
     const eventId: string | undefined = req.params.EVENTID;
-    const followers: EventFollowing | null = await Models.EventFollowing.findOne({ eventId: eventId });
+    const followers: EventFollowers | null = await Models.EventFollowing.findOne({ eventId: eventId });
     if (!followers) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }

@@ -18,7 +18,7 @@ import { Role } from "../auth/auth-models.js";
 import Config from "../../config.js";
 import { SpiedFunction } from "jest-mock";
 import { StatusCode } from "status-code-enum";
-import { EventFollowing } from "database/event-db.js";
+import { EventFollowers } from "database/event-db.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
 
 const TESTER_USER = {
@@ -42,7 +42,7 @@ const OTHER_USER_AUTH = {
 const TESTER_EVENT_FOLLOWING = {
     eventId: "other-event",
     followers: ["user5", "user8"],
-} satisfies EventFollowing;
+} satisfies EventFollowers;
 
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,

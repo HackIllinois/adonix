@@ -6,7 +6,7 @@ import { Database, generateConfig } from "../database.js";
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
 import { AdmissionDecision } from "./admission-db.js";
-import { EventAttendance, EventMetadata, PublicEvent, StaffEvent, EventFollowing } from "./event-db.js";
+import { EventAttendance, EventMetadata, PublicEvent, StaffEvent, EventFollowers } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
@@ -70,7 +70,7 @@ export default class Models {
     static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
     static EventMetadata: mongoose.Model<EventMetadata> = undefined!;
     static EventAttendance: mongoose.Model<EventAttendance> = undefined!;
-    static EventFollowing: mongoose.Model<EventFollowing> = undefined!;
+    static EventFollowing: mongoose.Model<EventFollowers> = undefined!;
     // Newsletter
     static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
     // Registration
@@ -90,7 +90,7 @@ export default class Models {
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
         this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
-        this.EventFollowing = getModel(EventFollowing, Database.EVENT, EventCollection.FOLLOWERS);
+        this.EventFollowing = getModel(EventFollowers, Database.EVENT, EventCollection.FOLLOWERS);
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
         this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
         this.RegistrationApplication = getModel(

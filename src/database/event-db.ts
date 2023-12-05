@@ -126,7 +126,7 @@ export class EventAttendance {
     public attendees: string[];
 }
 
-export class EventFollowing {
+export class EventFollowers {
     @prop({ required: true })
     public eventId: string;
 
