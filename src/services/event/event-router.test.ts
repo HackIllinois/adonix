@@ -18,7 +18,7 @@ const TESTER_ATTENDEE_FOLLOWING = {
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     Models.initialize();
-    await Models.EventFollowing.create(TESTER_EVENT_FOLLOWING);
+    await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
@@ -32,7 +32,7 @@ describe("GET /event/followers/:EVENTID", () => {
     });
 
     it("gives an not found error for a non-existent event", async () => {
-        await Models.EventFollowing.deleteOne({
+        await Models.EventFollowers.deleteOne({
             eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
 

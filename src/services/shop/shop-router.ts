@@ -42,33 +42,19 @@ shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next:
         const shopItems: ShopItemFormat[] = await Models.ShopItem.find();
         const shopQuantities: QuantityFormat[] = await Models.ShopQuantity.find();
 
-        const itemsMap = shopItems.reduce((acc: Record<string, ShopItemFormat>, item: ShopItemFormat) => {
-            acc[item.itemId] = item;
-            return acc;
-        }, {});
+        const itemsMap = new Map<string, ShopItemFormat>();
+        shopItems.forEach((item) => itemsMap.set(item.itemId, item));
 
-        const quantitiesMap = shopQuantities.reduce((acc: Record<string, QuantityFormat>, quantity: QuantityFormat) => {
-            acc[quantity.itemId] = quantity;
-            return acc;
-        }, {});
-
-        const itemIds = new Set([...Object.keys(itemsMap), ...Object.keys(quantitiesMap)]);
-
-        const itemsWithQuantity: ItemFormat[] = Array.from(itemIds).map((itemId: string) => {
-            const item: ShopItemFormat = itemsMap[itemId] || {
-                itemId,
-                name: "",
-                price: 0,
-                isRaffle: false,
-            };
-            const quantity: QuantityFormat = quantitiesMap[itemId] || { itemId, quantity: 0 };
+        const itemsWithQuantity: ItemFormat[] = Array.from(itemsMap.values()).map((item) => {
+            const quantity = shopQuantities.find((q) => q.itemId === item.itemId);
+            const itemQuantity = quantity ? quantity.quantity : 0;
 
             return {
-                itemId,
+                itemId: item.itemId,
                 name: item.name || "",
                 price: item.price || 0,
                 isRaffle: item.isRaffle || false,
-                quantity: quantity.quantity || 0,
+                quantity: itemQuantity,
             };
         });
 

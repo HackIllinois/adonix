@@ -1,19 +1,19 @@
 export interface ItemFormat {
     itemId: string;
     name: string;
-    price: number;
-    isRaffle: boolean;
-    quantity: number;
+    price: number; 
+    isRaffle: boolean; 
+    quantity: number; 
 }
 
 export interface QuantityFormat {
-    itemId: string;
-    quantity: number;
+    itemId: string; 
+    quantity: number; 
 }
 
 export interface ShopItemFormat {
-    itemId: string;
-    name: string;
+    itemId: string; 
+    name: string; 
     price: number;
-    isRaffle: boolean;
+    isRaffle: boolean; 
 }

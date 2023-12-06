@@ -213,7 +213,7 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
     }
     try {
-        const followers = await Models.EventFollowing.findOneAndUpdate(
+        const followers = await Models.EventFollowers.findOneAndUpdate(
             { eventId: eventId },
             { $addToSet: { followers: payload.id } },
             { new: true },
@@ -252,7 +252,7 @@ userRouter.put("/unfollow/:EVENTID", strongJwtVerification, async (req: Request,
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const eventId: string | undefined = req.params.EVENTID;
     try {
-        const followers = await Models.EventFollowing.findOneAndUpdate(
+        const followers = await Models.EventFollowers.findOneAndUpdate(
             { eventId: eventId },
             { $pull: { followers: payload.id } },
             { new: true },
