@@ -43,10 +43,14 @@ shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next:
         const shopQuantities: QuantityFormat[] = await Models.ShopQuantity.find();
 
         const itemsMap = new Map<string, ShopItemFormat>();
-        shopItems.forEach((item) => itemsMap.set(item.itemId, item));
+        shopItems.forEach((item) => {
+            return itemsMap.set(item.itemId, item);
+        });
 
         const itemsWithQuantity: ItemFormat[] = Array.from(itemsMap.values()).map((item) => {
-            const quantity = shopQuantities.find((q) => q.itemId === item.itemId);
+            const quantity = shopQuantities.find((q) => {
+                return q.itemId === item.itemId;
+            });
             const itemQuantity = quantity ? quantity.quantity : 0;
 
             return {
