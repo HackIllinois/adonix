@@ -1,17 +1,83 @@
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
-import { strongJwtVerification } from "middleware/verify-jwt.js";
-import { hasAdminPerms } from "../auth/auth-lib.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
+import { hasStaffPerms } from "../auth/auth-lib.js";
 import { StatusCode } from "status-code-enum";
 import { JwtPayload } from "../auth/auth-models.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { ItemFormat, QuantityFormat, ShopItemFormat } from "./shop-formats.js";
 import crypto from "crypto";
 import Config from "../../config.js";
+import { ShopItem, ShopQuantity } from "../../database/shop-db.js";
+import Models from "../../database/models.js";
+
 const shopRouter: Router = Router();
-// import { ObjectId } from "mongodb";
-import { ShopItem, ShopQuantity } from "database/shop-db.js";
-import Models from "database/models.js";
+
+/**
+ * @api {get} /shop/ GET /shop/
+ * @apiGroup Shop
+ * @apiDescription Get item details for all items.
+ *
+ * @apiSuccess (200: Success) {Json} items The items details.
+ * @apiSuccessExample Example Success Response
+ * HTTP/1.1 200 OK
+ * {
+ *   [{
+ *      "name": "hoodie",
+ *      "price": 15,
+ *      "isRaffle": true
+ *      "quantity": 20
+ *   }, {
+ *      "name": "shoe",
+ *      "price": 20,
+ *      "isRaffle": false
+ *      "quantity": 1
+ *   }]
+ * }
+ *
+ * @apiUse weakJwtVerification
+ * */
+shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    try {
+        const shopItems: ShopItemFormat[] = await Models.ShopItem.find();
+        const shopQuantities: QuantityFormat[] = await Models.ShopQuantity.find();
+
+        const itemsMap = shopItems.reduce((acc: Record<string, ShopItemFormat>, item: ShopItemFormat) => {
+            acc[item.itemId] = item;
+            return acc;
+        }, {});
+
+        const quantitiesMap = shopQuantities.reduce((acc: Record<string, QuantityFormat>, quantity: QuantityFormat) => {
+            acc[quantity.itemId] = quantity;
+            return acc;
+        }, {});
+
+        const itemIds = new Set([...Object.keys(itemsMap), ...Object.keys(quantitiesMap)]);
+
+        const itemsWithQuantity: ItemFormat[] = Array.from(itemIds).map((itemId: string) => {
+            const item: ShopItemFormat = itemsMap[itemId] || {
+                itemId,
+                name: "",
+                price: 0,
+                isRaffle: false,
+            };
+            const quantity: QuantityFormat = quantitiesMap[itemId] || { itemId, quantity: 0 };
+
+            return {
+                itemId,
+                name: item.name || "",
+                price: item.price || 0,
+                isRaffle: item.isRaffle || false,
+                quantity: quantity.quantity || 0,
+            };
+        });
+
+        return res.status(StatusCode.SuccessOK).send(itemsWithQuantity);
+    } catch (error) {
+        console.error(error);
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalServerError"));
+    }
+});
 
 /**
  * @api {post} /shop/ POST /shop/
@@ -52,19 +118,18 @@ import Models from "database/models.js";
  */
 shopRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    console.log("HERE");
     // Check if the token has staff permissions
-    if (!hasAdminPerms(payload)) {
+    if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
     // Convert item request into the item format
-    const itemFormat: ItemFormat = req.body as ItemFormat;
-    console.log(itemFormat);
+    const itemFormatString: string = req.body;
+    const itemFormat: ItemFormat = JSON.parse(itemFormatString);
     if (itemFormat.itemId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraItemId: itemFormat.itemId }));
     }
-    // Create the ID and process metadata for this item
+    // Create the ID and process for this item
     const itemId: string = crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex");
     itemFormat.itemId = itemId;
     //create and add new ShopItem and shopQuantity into database
@@ -101,7 +166,7 @@ shopRouter.delete("/:ITEMID/", strongJwtVerification, async (req: Request, res: 
     const itemId: string | undefined = req.params.ITEMID;
 
     // Check if request sender has permission to delete the item
-    if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
+    if (!hasStaffPerms(res.locals.payload as JwtPayload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
@@ -142,14 +207,16 @@ shopRouter.delete("/:ITEMID/", strongJwtVerification, async (req: Request, res: 
 shopRouter.put("/quantity/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasAdminPerms(payload)) {
+    if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    const quantity: QuantityFormat = req.body as QuantityFormat;
+    const quantityString: string = req.body;
+    const quantity: QuantityFormat = JSON.parse(quantityString);
     const updatedQuantity: ShopQuantity | null = await Models.ShopQuantity.findOneAndUpdate(
         { itemId: quantity.itemId },
-        quantity,
+        { $set: { quantity: quantity.quantity } },
+        { new: true },
     );
 
     if (!updatedQuantity) {
@@ -188,11 +255,16 @@ shopRouter.put("/quantity/", strongJwtVerification, async (req: Request, res: Re
 shopRouter.put("/item/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasAdminPerms(payload)) {
+    if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
-    const item: ShopItemFormat = req.body as ShopItemFormat;
-    const updatedItem: ShopItem | null = await Models.ShopItem.findOneAndUpdate({ itemId: item.itemId }, item);
+    const itemString: string = req.body;
+    const item: ShopItemFormat = JSON.parse(itemString);
+    const updatedItem: ShopItem | null = await Models.ShopItem.findOneAndUpdate(
+        { itemId: item.itemId },
+        { $set: { name: item.name, price: item.price, isRaffle: item.isRaffle } },
+        { new: true },
+    );
     if (!updatedItem) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }

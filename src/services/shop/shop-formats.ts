@@ -1,5 +1,4 @@
 export interface ItemFormat {
-    // _id?: string;
     itemId: string;
     name: string;
     price: number;
