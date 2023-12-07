@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach } from "@jest/globals";
 import { JwtPayload, Provider, Role } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";
-// import * as authLib from "../auth/auth-lib.js";
-// import { beforeEach } from "node:test";
 import { getJwtPayloadFromProfile } from "../auth/auth-lib.js";
 
 const USER_PAYLOAD = {
