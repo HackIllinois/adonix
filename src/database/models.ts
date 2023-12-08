@@ -9,6 +9,7 @@ import { AdmissionDecision } from "./admission-db.js";
 import { EventAttendance, EventMetadata, PublicEvent, StaffEvent } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
+import { ShopItem, ShopQuantity } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
 
@@ -24,6 +25,11 @@ enum AuthCollection {
 
 enum AdmissionCollection {
     DECISION = "decision",
+}
+
+enum ShopCollection {
+    ITEMS = "items",
+    QUANTITIES = "quantities",
 }
 
 enum EventCollection {
@@ -72,6 +78,9 @@ export default class Models {
     // Registration
     static RegistrationInfo: mongoose.Model<RegistrationInfo> = undefined!;
     static RegistrationApplication: mongoose.Model<RegistrationApplication> = undefined!;
+    //Shop
+    static ShopItem: mongoose.Model<ShopItem> = undefined!;
+    static ShopQuantity: mongoose.Model<ShopQuantity> = undefined!;
     // User
     static UserInfo: mongoose.Model<UserInfo> = undefined!;
     static UserAttendance: mongoose.Model<UserAttendance> = undefined!;
@@ -92,6 +101,8 @@ export default class Models {
             Database.REGISTRATION,
             RegistrationCollection.APPLICATION,
         );
+        this.ShopItem = getModel(ShopItem, Database.SHOP, ShopCollection.ITEMS);
+        this.ShopQuantity = getModel(ShopQuantity, Database.SHOP, ShopCollection.QUANTITIES);
         this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
         this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
     }
