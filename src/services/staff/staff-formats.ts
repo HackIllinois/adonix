@@ -23,8 +23,8 @@ export interface EventData {
 // Function to generate a single event entry
 export function generateEvent(eventId: number): EventData {
     return {
-        eventId: "event "+eventId,
-        name: "test "+eventId,
+        eventId: "event " + eventId,
+        name: "test " + eventId,
         description: "...",
         startTime: 1696467600,
         endTime: 1696471200,
@@ -33,10 +33,10 @@ export function generateEvent(eventId: number): EventData {
                 description: "SIEBEL",
                 tags: ["TAG1", "TAG2"],
                 latitude: 12,
-                longitude: -80
-            }
+                longitude: -80,
+            },
         ],
-        isAsync: false
+        isAsync: false,
     };
 }
 

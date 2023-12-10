@@ -74,18 +74,16 @@ eventsRouter.get("/staff/", strongJwtVerification, async (req: Request, res: Res
     const showAllShiftsParam: string | undefined = req.query.showAllShifts as string | undefined;
     let showAllShifts: boolean = false;
     if (showAllShiftsParam) {
-        showAllShifts = (showAllShiftsParam.toLowerCase() === 'true');
+        showAllShifts = showAllShiftsParam.toLowerCase() === "true";
     }
 
     if (showAllShifts) {
         const staffEvents: StaffEvent[] = await Models.StaffEvent.find();
         return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
     } else {
-        const staffEvents: StaffEvent[] = await Models.StaffEvent.find({ eventType: {$ne: 'STAFFSHIFT'} });
+        const staffEvents: StaffEvent[] = await Models.StaffEvent.find({ eventType: { $ne: "STAFFSHIFT" } });
         return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
     }
-
-    
 });
 
 /**

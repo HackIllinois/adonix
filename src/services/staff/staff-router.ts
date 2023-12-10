@@ -77,7 +77,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
 });
 
-staffRouter.get("/shift", strongJwtVerification, async(_: Request, res: Response, next: NextFunction) => {
+staffRouter.get("/shift", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
@@ -101,15 +101,16 @@ staffRouter.get("/shift", strongJwtVerification, async(_: Request, res: Response
         */
 
         const eventArray: EventData[] = [];
-        for (let i = 1; i <= 5; i++) {
+        const tries: number = 5;
+        for (let i = 1; i <= tries; i++) {
             const e: EventData = generateEvent(i);
             eventArray.push(e);
         }
-        
-        return res.status(200).json(eventArray);
+
+        return res.status(StatusCode.SuccessOK).json(eventArray);
     } catch (error) {
         console.error(error);
-        return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError", undefined, error))
+        return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError"));
     }
 });
 

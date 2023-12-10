@@ -1,7 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 
 export class StaffShift {
-    @prop({required: true})
+    @prop({ required: true })
     public _id: string;
 
     @prop({
