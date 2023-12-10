@@ -4,7 +4,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasStaffPerms } from "../auth/auth-lib.js";
 
-import { AttendanceFormat } from "./staff-formats.js";
+import { AttendanceFormat, generateEvent } from "./staff-formats.js";
 import Config from "../../config.js";
 
 import Models from "../../database/models.js";
@@ -12,7 +12,7 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { EventMetadata } from "../../database/event-db.js";
-import { StaffShift } from "database/staff-db.js"
+import { EventData } from "./staff-formats.js";
 
 const staffRouter: Router = Router();
 
@@ -87,33 +87,30 @@ staffRouter.get("/shift", strongJwtVerification, async(_: Request, res: Response
     console.log(payload.id);
 
     try {
-        // const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: payload.id });
-
-        // console.log(user);
+        /*
+        const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: payload.id });
 
         const data: StaffShift | null = await Models.StaffShift.findOne({_id: payload.id});
-        return res.status(200).json(data);
 
-        // if (!data) {
-        //     return next(new RouterError(StatusCode.ClientErrorNotFound, "ShiftNotFound"));
-        // }
+        if (!data) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "ShiftNotFound"));
+        }
 
-        // const events: string[] = data.shifts;
-        // return res.status(200).json(events);
+        const staffEvents: StaffEvent[] = await Models.StaffEvent.find({eventId: {$all: events}});
+        return res.status(200).json(staffEvents);
+        */
+
+        const eventArray: EventData[] = [];
+        for (let i = 1; i <= 5; i++) {
+            const e: EventData = generateEvent(i);
+            eventArray.push(e);
+        }
         
-        // const staffEvents: StaffEvent[] = await Models.StaffEvent.find({eventId: {$all: events}});
-        // return res.status(200).json(staffEvents);
-
-        
-        // return res.status(200).json(user);
+        return res.status(200).json(eventArray);
     } catch (error) {
         console.error(error);
+        return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError", undefined, error))
     }
-    
-
-    
-
-    
 });
 
 export default staffRouter;
