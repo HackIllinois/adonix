@@ -84,9 +84,8 @@ staffRouter.get("/shift", strongJwtVerification, async (_: Request, res: Respons
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    console.log(payload.id);
-
     try {
+        // TODO: bugfix
         /*
         const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: payload.id });
 
