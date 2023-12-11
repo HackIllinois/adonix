@@ -26,8 +26,8 @@ export function generateEvent(eventId: number): EventData {
         eventId: "event " + eventId,
         name: "test " + eventId,
         description: "...",
-        startTime: 1696467600,
-        endTime: 1696471200,
+        startTime: 1708734216,
+        endTime: 1708907016,
         locations: [
             {
                 description: "SIEBEL",
