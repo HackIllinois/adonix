@@ -67,7 +67,7 @@ eventsRouter.use(cors({ origin: "*" }));
 eventsRouter.get("/staff/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasStaffPerms(payload)) {
+    if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
