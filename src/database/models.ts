@@ -11,6 +11,7 @@ import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
+import { StaffShift } from "./staff-db.js";
 
 // Collections for each database, where models will be stored
 enum AttendeeCollection {
@@ -47,6 +48,10 @@ enum UserCollection {
     ATTENDANCE = "attendance",
 }
 
+enum StaffCollection {
+    SHIFT = "shift",
+}
+
 // Simple model getter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getModel<T>(of: AnyParamConstructor<any>, database: Database, collection: string): mongoose.Model<T> {
@@ -75,6 +80,8 @@ export default class Models {
     // User
     static UserInfo: mongoose.Model<UserInfo> = undefined!;
     static UserAttendance: mongoose.Model<UserAttendance> = undefined!;
+    // Staff
+    static StaffShift: mongoose.Model<StaffShift> = undefined!;
 
     static initialize(): void {
         this.AttendeeMetadata = getModel(AttendeeMetadata, Database.ATTENDEE, AttendeeCollection.METADATA);
@@ -94,5 +101,6 @@ export default class Models {
         );
         this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
         this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
+        this.StaffShift = getModel(StaffShift, Database.STAFF, StaffCollection.SHIFT);
     }
 }
