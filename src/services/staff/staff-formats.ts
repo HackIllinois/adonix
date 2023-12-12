@@ -86,8 +86,8 @@ export function generateEvent(): EventData[] {
                 },
             ],
             isAsync: false,
-        }
-    ]
+        },
+    ];
     return data;
 }
 
