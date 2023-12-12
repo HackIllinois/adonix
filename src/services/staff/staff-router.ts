@@ -12,7 +12,6 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { EventMetadata } from "../../database/event-db.js";
-import { EventData } from "./staff-formats.js";
 
 const staffRouter: Router = Router();
 
@@ -99,14 +98,7 @@ staffRouter.get("/shift", strongJwtVerification, async (_: Request, res: Respons
         return res.status(200).json(staffEvents);
         */
 
-        const eventArray: EventData[] = [];
-        const tries: number = 5;
-        for (let i = 1; i <= tries; i++) {
-            const e: EventData = generateEvent(i);
-            eventArray.push(e);
-        }
-
-        return res.status(StatusCode.SuccessOK).json(eventArray);
+        return res.status(StatusCode.SuccessOK).json(generateEvent());
     } catch (error) {
         console.error(error);
         return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError"));
