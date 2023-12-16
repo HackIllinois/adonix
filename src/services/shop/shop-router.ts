@@ -61,7 +61,7 @@ const shopRouter: Router = Router();
  *   }]
  * }
  *
- * @apiUse weakJwtVerification
+ * @apiUse weakVerifyErrors
  * */
 shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
     const data = [
