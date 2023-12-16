@@ -9,6 +9,7 @@ import staffRouter from "./services/staff/staff-router.js";
 import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import versionRouter from "./services/version/version-router.js";
 import admissionRouter from "./services/admission/admission-router.js";
+import shopRouter from "./services/shop/shop-router.js";
 // import { InitializeConfigReader } from "./middleware/config-reader.js";
 import { ErrorHandler } from "./middleware/error-handler.js";
 import Models from "./database/models.js";
@@ -37,6 +38,7 @@ app.use("/staff/", staffRouter);
 app.use("/user/", userRouter);
 app.use("/admission/", admissionRouter);
 app.use("/version/", versionRouter);
+app.use("/shop/", shopRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {

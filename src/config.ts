@@ -84,6 +84,7 @@ const Config = {
     /* Misc */
     EVENT_ID_LENGTH: 32,
     EVENT_BYTES_GEN: 16,
+    SHOP_BYTES_GEN: 16,
 };
 
 export default Config;
