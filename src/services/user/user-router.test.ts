@@ -55,7 +55,7 @@ beforeEach(async () => {
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
     await Models.AuthInfo.create(OTHER_USER_AUTH);
-    await Models.EventFollowing.create(TESTER_EVENT_FOLLOWING);
+    await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
@@ -211,12 +211,12 @@ describe("GET /user/:USERID/", () => {
 });
 
 describe("GET /user/following/:USERID", () => {
-    it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/user/following/${TESTER_ATTENDEE_FOLLOWING.userId}/`).expect(
-            StatusCode.ClientErrorForbidden,
-        );
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    it("works for a standard attendee", async () => {
+        const response = await getAsAttendee(`/user/following/${TESTER_ATTENDEE_FOLLOWING.userId}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER_ATTENDEE_FOLLOWING.userId,
+            events: TESTER_ATTENDEE_FOLLOWING.events,
+        });
     });
 
     it("gives an not found error for a non-existent user", async () => {
@@ -234,7 +234,22 @@ describe("GET /user/following/:USERID", () => {
     it("works for a staff user", async () => {
         const response = await getAsStaff(`/user/following/${TESTER_ATTENDEE_FOLLOWING.userId}/`).expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toEqual(TESTER_ATTENDEE_FOLLOWING.events);
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER_ATTENDEE_FOLLOWING.userId,
+            events: TESTER_ATTENDEE_FOLLOWING.events,
+        });
+    });
+
+    it("gives an forbidden for a indirection operation without staff perms", async () => {
+        const response = await getAsAttendee(`/user/following/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("throws an error for no userId passed in", async () => {
+        const response = await getAsAttendee(`/user/following/`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 });
 
@@ -252,7 +267,7 @@ describe("PUT /user/follow/:EVENTID", () => {
     });
 
     it("gives an not found error for a non-existent event", async () => {
-        await Models.EventFollowing.deleteOne({
+        await Models.EventFollowers.deleteOne({
             eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
 
@@ -267,7 +282,7 @@ describe("PUT /user/follow/:EVENTID", () => {
         const response = await putAsAttendee(`/user/follow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
         expect(updatedEvents?.events).toContain(TESTER_EVENT_FOLLOWING.eventId);
     });
@@ -276,7 +291,7 @@ describe("PUT /user/follow/:EVENTID", () => {
         const response = await putAsStaff(`/user/follow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
         expect(updatedEvents?.events).toContain(TESTER_EVENT_FOLLOWING.eventId);
     });
@@ -285,7 +300,7 @@ describe("PUT /user/follow/:EVENTID", () => {
         const response = await putAsAdmin(`/user/follow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
         expect(updatedEvents?.events).toContain(TESTER_EVENT_FOLLOWING.eventId);
     });
@@ -305,7 +320,7 @@ describe("PUT /user/unfollow/:EVENTID", () => {
     });
 
     it("gives an not found error for a non-existent event", async () => {
-        await Models.EventFollowing.deleteOne({
+        await Models.EventFollowers.deleteOne({
             eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
 
@@ -317,7 +332,7 @@ describe("PUT /user/unfollow/:EVENTID", () => {
     });
 
     it("works for an attendee user", async () => {
-        await Models.EventFollowing.findOneAndUpdate(
+        await Models.EventFollowers.findOneAndUpdate(
             { eventId: TESTER_EVENT_FOLLOWING.eventId },
             { $addToSet: { followers: TESTER_ATTENDEE_FOLLOWING.userId } },
             { new: true },
@@ -330,13 +345,13 @@ describe("PUT /user/unfollow/:EVENTID", () => {
         const response = await putAsAttendee(`/user/unfollow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers).toEqual(expect.not.arrayContaining([TESTER_ATTENDEE_FOLLOWING.userId]));
         expect(updatedEvents).toEqual(expect.not.arrayContaining([TESTER_EVENT_FOLLOWING.eventId]));
     });
 
     it("works for an staff user", async () => {
-        await Models.EventFollowing.findOneAndUpdate(
+        await Models.EventFollowers.findOneAndUpdate(
             { eventId: TESTER_EVENT_FOLLOWING.eventId },
             { $addToSet: { followers: TESTER_ATTENDEE_FOLLOWING.userId } },
             { new: true },
@@ -349,13 +364,13 @@ describe("PUT /user/unfollow/:EVENTID", () => {
         const response = await putAsStaff(`/user/unfollow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers).toEqual(expect.not.arrayContaining([TESTER_ATTENDEE_FOLLOWING.userId]));
         expect(updatedEvents).toEqual(expect.not.arrayContaining([TESTER_EVENT_FOLLOWING.eventId]));
     });
 
     it("works for an admin user", async () => {
-        await Models.EventFollowing.findOneAndUpdate(
+        await Models.EventFollowers.findOneAndUpdate(
             { eventId: TESTER_EVENT_FOLLOWING.eventId },
             { $addToSet: { followers: TESTER_ATTENDEE_FOLLOWING.userId } },
             { new: true },
@@ -368,7 +383,7 @@ describe("PUT /user/unfollow/:EVENTID", () => {
         const response = await putAsAdmin(`/user/unfollow/${TESTER_EVENT_FOLLOWING.eventId}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        const updatedUsers = await Models.EventFollowing.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
         expect(updatedUsers).toEqual(expect.not.arrayContaining([TESTER_ATTENDEE_FOLLOWING.userId]));
         expect(updatedEvents).toEqual(expect.not.arrayContaining([TESTER_EVENT_FOLLOWING.eventId]));
     });

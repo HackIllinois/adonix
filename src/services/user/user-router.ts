@@ -154,9 +154,9 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
 
     if (user) {
         return res.status(StatusCode.SuccessOK).send(user);
-    } else {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
+
+    return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
 });
 
 /**
@@ -182,15 +182,23 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
  */
 userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    if (!hasStaffPerms(payload)) {
+    const userId: string | undefined = req.params.USERID;
+
+    if (!userId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
+    }
+
+    // Reject request if target user isn't the current user and we're not staff
+    if (payload.id != userId && !hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
-    const userId: string | undefined = req.params.USERID;
+
     const events: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: userId });
     if (!events) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
-    return res.status(StatusCode.SuccessOK).send(events.events);
+
+    return res.status(StatusCode.SuccessOK).send({ userId: userId, events: events.events });
 });
 
 /**
@@ -212,27 +220,28 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
     if (!eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
     }
-    try {
-        const followers = await Models.EventFollowing.findOneAndUpdate(
-            { eventId: eventId },
-            { $addToSet: { followers: payload.id } },
-            { new: true },
-        );
-        if (!followers) {
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-        }
-        const events = await Models.AttendeeFollowing.findOneAndUpdate(
-            { userId: payload.id },
-            { $addToSet: { events: eventId } },
-            { new: true },
-        );
-        if (!events) {
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-        }
-        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
-    } catch {
-        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+
+    const followers = await Models.EventFollowers.findOneAndUpdate(
+        { eventId: eventId },
+        { $addToSet: { followers: payload.id } },
+        { new: true },
+    );
+
+    if (!followers) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
+
+    const events = await Models.AttendeeFollowing.findOneAndUpdate(
+        { userId: payload.id },
+        { $addToSet: { events: eventId } },
+        { new: true },
+    );
+
+    if (!events) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+    }
+
+    return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
 });
 
 /**
@@ -251,27 +260,27 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
 userRouter.put("/unfollow/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const eventId: string | undefined = req.params.EVENTID;
-    try {
-        const followers = await Models.EventFollowing.findOneAndUpdate(
-            { eventId: eventId },
-            { $pull: { followers: payload.id } },
-            { new: true },
-        );
-        if (!followers) {
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-        }
-        const events = await Models.AttendeeFollowing.findOneAndUpdate(
-            { userId: payload.id },
-            { $pull: { events: eventId } },
-            { new: true },
-        );
-        if (!events) {
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-        }
-        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
-    } catch (error) {
-        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    const followers = await Models.EventFollowers.findOneAndUpdate(
+        { eventId: eventId },
+        { $pull: { followers: payload.id } },
+        { new: true },
+    );
+
+    if (!followers) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
+
+    const events = await Models.AttendeeFollowing.findOneAndUpdate(
+        { userId: payload.id },
+        { $pull: { events: eventId } },
+        { new: true },
+    );
+
+    if (!events) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+    }
+
+    return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
 });
 
 export default userRouter;

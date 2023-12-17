@@ -70,7 +70,7 @@ export default class Models {
     static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
     static EventMetadata: mongoose.Model<EventMetadata> = undefined!;
     static EventAttendance: mongoose.Model<EventAttendance> = undefined!;
-    static EventFollowing: mongoose.Model<EventFollowers> = undefined!;
+    static EventFollowers: mongoose.Model<EventFollowers> = undefined!;
     // Newsletter
     static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
     // Registration
@@ -90,7 +90,7 @@ export default class Models {
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
         this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
-        this.EventFollowing = getModel(EventFollowers, Database.EVENT, EventCollection.FOLLOWERS);
+        this.EventFollowers = getModel(EventFollowers, Database.EVENT, EventCollection.FOLLOWERS);
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
         this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
         this.RegistrationApplication = getModel(

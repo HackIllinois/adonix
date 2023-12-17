@@ -664,21 +664,11 @@ eventsRouter.get("/followers/:EVENTID", strongJwtVerification, async (req: Reque
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
     const eventId: string | undefined = req.params.EVENTID;
-    const followers: EventFollowers | null = await Models.EventFollowing.findOne({ eventId: eventId });
+    const followers: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
     if (!followers) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
     return res.status(StatusCode.SuccessOK).send(followers.followers);
-});
-
-// Prototype error handler
-eventsRouter.use((err: Error, req: Request, res: Response) => {
-    if (!err) {
-        return res.status(StatusCode.SuccessOK).send({ status: "OK" });
-    }
-
-    console.error(err.stack, req.body);
-    return res.status(StatusCode.ServerErrorInternal).send({ error: err.message });
 });
 
 export default eventsRouter;
