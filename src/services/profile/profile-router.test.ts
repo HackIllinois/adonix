@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import Models from "../../database/models.js";
-import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsUser } from "../../testTools.js";
+import { TESTER, delAsUser, getAsAdmin, getAsUser, getAsStaff, postAsAttendee, postAsUser } from "../../testTools.js";
 import { ProfileFormat } from "./profile-formats.js";
 import Config from "../../config.js";
 import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
@@ -169,5 +169,40 @@ describe("GET /profile/leaderboard", () => {
         const response = await getAsUser("/profile/leaderboard?limit=0").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidLimit");
+    });
+});
+
+describe("GET /profile/addpoints", () => {
+    it("works for Staff", async () => {
+        const response = await getAsStaff("/profile/addpoints")
+            .send({
+                userId: TESTER.id,
+                points: 10,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toHaveProperty("points", 10);
+    });
+
+    it("returns Forbidden error for users", async () => {
+        const response = await getAsUser("/profile/addpoints")
+            .send({
+                userId: TESTER.id,
+                points: 10,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns UserNotFound for nonexistent users", async () => {
+        const response = await getAsStaff("/profile/addpoints")
+            .send({
+                userId: "idontexists",
+                points: 10,
+            })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 });

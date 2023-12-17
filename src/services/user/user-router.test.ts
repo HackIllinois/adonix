@@ -10,17 +10,16 @@ import {
     putAsAttendee,
     putAsStaff,
 } from "../../testTools.js";
+
 import Models from "../../database/models.js";
 import { UserInfo } from "../../database/user-db.js";
 import { AuthInfo } from "../../database/auth-db.js";
-import * as authLib from "../auth/auth-lib.js";
 import { Role } from "../auth/auth-models.js";
 import Config from "../../config.js";
-import { SpiedFunction } from "jest-mock";
 import { StatusCode } from "status-code-enum";
 import { EventFollowers } from "database/event-db.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
-
+import { mockGenerateJwtTokenWithWrapper } from "../auth/mocks/auth.js";
 const TESTER_USER = {
     userId: TESTER.id,
     name: TESTER.name,
@@ -58,18 +57,6 @@ beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
-
-/*
- * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
- */
-function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.generateJwtToken> {
-    const mockedAuthLib = require("../auth/auth-lib.js") as typeof authLib;
-    const mockedGenerateJwtToken = jest.spyOn(mockedAuthLib, "generateJwtToken");
-    mockedGenerateJwtToken.mockImplementation((payload, shouldNotExpire, expiration) => {
-        return authLib.generateJwtToken(payload, shouldNotExpire, expiration);
-    });
-    return mockedGenerateJwtToken;
-}
 
 describe("GET /user/qr/", () => {
     it("works for a attendee", async () => {
