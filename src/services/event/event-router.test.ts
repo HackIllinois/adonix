@@ -46,6 +46,9 @@ describe("GET /event/followers/:EVENTID", () => {
     it("works for a staff user", async () => {
         const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toEqual(TESTER_EVENT_FOLLOWERS.followers);
+        expect(JSON.parse(response.text)).toMatchObject({
+            eventId: TESTER_EVENT_FOLLOWERS.eventId,
+            followers: TESTER_EVENT_FOLLOWERS.followers,
+        });
     });
 });

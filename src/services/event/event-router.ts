@@ -660,15 +660,19 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
  */
 eventsRouter.get("/followers/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
+
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
+
     const eventId: string | undefined = req.params.EVENTID;
     const followers: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
+
     if (!followers) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
-    return res.status(StatusCode.SuccessOK).send(followers.followers);
+
+    return res.status(StatusCode.SuccessOK).send({ eventId: eventId, followers: followers.followers });
 });
 
 export default eventsRouter;
