@@ -69,7 +69,6 @@ const Config = {
 
     SYSTEM_ADMIN_LIST: requireEnv("SYSTEM_ADMINS").split(","),
 
-    
     S3_ACCESS_KEY: requireEnv("S3_ACCESS_KEY"),
     S3_SECRET_KEY: requireEnv("S3_SECRET_KEY"),
     S3_REGION: requireEnv("S3_REGION"),

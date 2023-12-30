@@ -5,9 +5,8 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
-import S3 from 'aws-sdk/clients/s3.js';
+import S3 from "aws-sdk/clients/s3.js";
 import Config from "../../config.js";
-
 
 const s3Router: Router = Router();
 
@@ -40,12 +39,12 @@ s3Router.get("/upload", strongJwtVerification, async (_1: Request, res: Response
         Bucket: Config.S3_BUCKET_NAME,
         Key: userId,
         Expires: 60,
-        ContentType: 'application/pdf',
+        ContentType: "application/pdf",
     };
 
-    const uploadUrl = await s3.getSignedUrl('putObject', s3Params);
+    const uploadUrl = await s3.getSignedUrl("putObject", s3Params);
 
-    return res.status(StatusCode.SuccessOK).send({"url": uploadUrl});
+    return res.status(StatusCode.SuccessOK).send({ url: uploadUrl });
 });
 
 /**
@@ -71,9 +70,9 @@ s3Router.get("/download", strongJwtVerification, async (_1: Request, res: Respon
         Expires: 60,
     };
 
-    const downloadUrl = await s3.getSignedUrl('getObject', s3Params);
+    const downloadUrl = await s3.getSignedUrl("getObject", s3Params);
 
-    return res.status(StatusCode.SuccessOK).send({"url": downloadUrl});
+    return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
 });
 
 /**
@@ -93,10 +92,10 @@ s3Router.get("/download", strongJwtVerification, async (_1: Request, res: Respon
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
  */
-   s3Router.get("/download/:USERID", strongJwtVerification, async (req: Request, res: Response, _2: NextFunction) => {
+s3Router.get("/download/:USERID", strongJwtVerification, async (req: Request, res: Response, _2: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    
+
     if (!hasElevatedPerms(payload)) {
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
@@ -107,9 +106,9 @@ s3Router.get("/download", strongJwtVerification, async (_1: Request, res: Respon
         Expires: 60,
     };
 
-    const downloadUrl = await s3.getSignedUrl('getObject', s3Params);
+    const downloadUrl = await s3.getSignedUrl("getObject", s3Params);
 
-    return res.status(StatusCode.SuccessOK).send({"url": downloadUrl});
+    return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
 });
 
 export default s3Router;
