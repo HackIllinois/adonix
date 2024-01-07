@@ -149,7 +149,7 @@ authRouter.get(
             data.displayName = data.name ?? data.displayName ?? data.login;
 
             // Load in the payload with the actual values stored in the database
-            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, false);
+            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, true);
 
             const userId: string = payload.id;
             await Models.UserInfo.findOneAndUpdate(
