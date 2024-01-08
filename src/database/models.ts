@@ -93,22 +93,29 @@ export default class Models {
         this.AttendeeMetadata = getModel(AttendeeMetadata, Database.ATTENDEE, AttendeeCollection.METADATA);
         this.AttendeeProfile = getModel(AttendeeProfile, Database.ATTENDEE, AttendeeCollection.PROFILE);
         this.AttendeeFollowing = getModel(AttendeeFollowing, Database.ATTENDEE, AttendeeCollection.FOLLOWING);
+
         this.AuthInfo = getModel(AuthInfo, Database.AUTH, AuthCollection.INFO);
+
         this.AdmissionDecision = getModel(AdmissionDecision, Database.ADMISSION, AdmissionCollection.DECISION);
+
         this.StaffEvent = getModel(StaffEvent, Database.EVENT, EventCollection.STAFF_EVENTS);
         this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
         this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
         this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
         this.EventFollowers = getModel(EventFollowers, Database.EVENT, EventCollection.FOLLOWERS);
+
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
+
         this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
         this.RegistrationApplication = getModel(
             RegistrationApplication,
             Database.REGISTRATION,
             RegistrationCollection.APPLICATION,
         );
+
         this.ShopItem = getModel(ShopItem, Database.SHOP, ShopCollection.ITEMS);
         this.ShopQuantity = getModel(ShopQuantity, Database.SHOP, ShopCollection.QUANTITIES);
+
         this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
         this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
     }
