@@ -30,6 +30,53 @@ const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
 
 /**
+ * @api {get} /event/followers/ GET /event/followers/
+ * @apiGroup Event
+ * @apiDescription Get all the users that are following a particular event. (Staff-Only Endpoint)
+ *
+ * @apiHeader {String} Authorization User's JWT Token with staff permissions.
+ *
+ * @apiBody {String} eventId The unique identifier of the event.
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *       "eventId": "testEvent12345"
+ *     }
+ *
+ * @apiSuccess (200: Success) {String} eventId The ID of the event.
+ * @apiSuccess (200: Success) {String[]} followers The IDs of the event's followers.
+ * @apiSuccessExample {json} Example Success:
+ *	{
+ 		"event": "testEvent12345",
+ 		"followers": ["provider00001", "provider00002", "provider00003"]
+ * 	}
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} InvalidRequest Event with the given ID not found.
+ * @apiError (404: Not Found) {String} EventNotFound Event with the given ID not found.
+ * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
+ */
+eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const eventId: string | undefined = req.body.eventId;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    if (!eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
+    }
+
+    const eventExists: boolean = (await Models.EventMetadata.findOne({ eventId: eventId })) ?? false;
+
+    if (!eventExists) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
+    }
+
+    const eventFollowers: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
+    return res.status(StatusCode.SuccessOK).send({ eventId: eventId, followers: eventFollowers?.followers ?? [] });
+});
+
+/**
  * @api {get} /event/staff/ GET /event/staff/
  * @apiGroup Event
  * @apiDescription Get event details, for staff-only events.
@@ -635,44 +682,6 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
         const updatedEvent: PublicEvent | null = await Models.PublicEvent.findOneAndUpdate({ eventId: eventId }, event);
         return res.status(StatusCode.SuccessOK).send(updatedEvent);
     }
-});
-
-/**
- * @api {get} /event/favorites/:EVENTID/ GET /event/favorites/:EVENTID/
- * @apiGroup Event
- * @apiDescription Get users that favorite an event for a specific event by its unique ID.
- *
- * @apiHeader {String} Authorization User's JWT Token with staff permissions.
- *
- * @apiParam {String} EVENTID The unique identifier of the event.
- *
- * @apiSuccess (200: Success) {JSON} followers The followers of an event.
- * @apiSuccessExample Example Success Response
- * HTTP/1.1 200 OK
- * [
- *  "user1",
- *  "user2",
- *  "user3"
- * ]
- * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} EventNotFound Event with the given ID not found.
- * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
- */
-eventsRouter.get("/followers/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-
-    if (!hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    const eventId: string | undefined = req.params.EVENTID;
-    const followers: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
-
-    if (!followers) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-    }
-
-    return res.status(StatusCode.SuccessOK).send({ eventId: eventId, followers: followers.followers });
 });
 
 export default eventsRouter;

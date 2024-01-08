@@ -40,5 +40,5 @@ export class AttendeeFollowing {
             return String;
         },
     })
-    public events: string[];
+    public following: string[];
 }
