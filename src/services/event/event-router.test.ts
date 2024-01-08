@@ -31,9 +31,9 @@ beforeEach(async () => {
 
 describe("GET /event/followers/", () => {
     it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(
-            StatusCode.ClientErrorForbidden,
-        );
+        const response = await getAsAttendee(`/event/followers/`)
+            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
+            .expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
@@ -47,15 +47,17 @@ describe("GET /event/followers/", () => {
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
         });
 
-        const response = await getAsStaff(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(
-            StatusCode.ClientErrorNotFound,
-        );
+        const response = await getAsStaff(`/event/followers/`)
+            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
+            .expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
     });
 
     it("works for a staff user", async () => {
-        const response = await getAsStaff(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/event/followers/`)
+            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
+            .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
