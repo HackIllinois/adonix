@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers } from "database/event-db.js";
+import { EventFollowers, EventMetadata } from "database/event-db.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
@@ -12,19 +12,26 @@ const TESTER_EVENT_FOLLOWERS = {
 
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,
-    events: ["event3", "event9"],
+    following: ["event3", "event9"],
 } satisfies AttendeeFollowing;
+
+const TESTER_EVENT_METADATA = {
+    eventId: TESTER_EVENT_FOLLOWERS.eventId,
+    exp: 0,
+    isStaff: false,
+} satisfies EventMetadata;
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     Models.initialize();
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
+    await Models.EventMetadata.create(TESTER_EVENT_METADATA);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
-describe("GET /event/followers/:EVENTID", () => {
+describe("GET /event/followers/", () => {
     it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(
+        const response = await getAsAttendee(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(
             StatusCode.ClientErrorForbidden,
         );
 
@@ -36,7 +43,11 @@ describe("GET /event/followers/:EVENTID", () => {
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
         });
 
-        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(
+        await Models.EventMetadata.deleteOne({
+            eventId: TESTER_EVENT_FOLLOWERS.eventId,
+        });
+
+        const response = await getAsStaff(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(
             StatusCode.ClientErrorNotFound,
         );
 
@@ -44,7 +55,7 @@ describe("GET /event/followers/:EVENTID", () => {
     });
 
     it("works for a staff user", async () => {
-        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/event/followers/`).send({eventId: TESTER_EVENT_FOLLOWERS.eventId}).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
