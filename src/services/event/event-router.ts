@@ -42,7 +42,7 @@ eventsRouter.use(cors({ origin: "*" }));
  *       "eventId": "testEvent12345"
  *     }
  *
- * @apiSuccess (200: Success) {String} eventId The ID of the event
+ * @apiSuccess (200: Success) {String} eventId The ID of the event.
  * @apiSuccess (200: Success) {String[]} followers The IDs of the event's followers.
  * @apiSuccessExample {json} Example Success:
  *	{
