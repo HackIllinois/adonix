@@ -120,23 +120,28 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
 });
 
 /**
- * @api {get} /user/following/:USERID/ GET /user/following/:USERID/
+ * @api {get} /user/following/ GET /user/following/
  * @apiGroup User
- * @apiDescription Get events that a user is following for a specific user by its unique ID.
+ * @apiDescription Get events that a specific user is following.
  *
  * @apiHeader {String} Authorization User's JWT Token with staff permissions.
  * @apiBody {String} userId The unique identifier of the user.
- *
- * @apiSuccess (200: Success) {JSON} events The events a user is following.
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *       "userId": "provider00001"
+ *     }
+ * @apiSuccess (200: Success) {String} userId ID of the user
+ * @apiSuccess (200: Success) {String[]} following Events that the user is following AFTER the operation is performed.
+ * @apiSuccessExample {json} Example Success:
  *	{
-		"userId": "provider00001",
-		"following": ["event1", "event2", "event3"]
+ 		"userId": "provider00001",
+ 		"following": ["event1", "event2", "event3"]
  * 	}
- 
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User with the given ID not found.
- * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
- */
+ * @apiError (400: Bad Request) {String} BadRequest No userId passed in.
+ * @apiError (404: Not Found) {String} UserNotFound User with the given ID not found.
+ * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
+*/
 userRouter.get("/following/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string | undefined = req.body.userId;
@@ -160,21 +165,24 @@ userRouter.get("/following/", strongJwtVerification, async (req: Request, res: R
 });
 
 /**
- * @api {put} /user/follow/:EVENTID/ PUT /user/follow/:EVENTID/
+ * @api {put} /user/follow/ PUT /user/follow/
  * @apiGroup User
- * @apiDescription Enables a user to follow/favorite an event.
- *
+ * @apiDescription Used by a user to follow an event. UserID is taken from the JWT token passed in.
  * @apiBody {String} eventId The id of the event to follow.
- *
- * @apiSuccess (200: Success) {String} StatusSuccess.
+ * @apiParamExample {json} Request Example:
+ *     {
+ *       "eventId": "exampleEventId"
+ *     }
+ * @apiSuccess (200: Success) {String} userId ID of the user
+ * @apiSuccess (200: Success) {String[]} following Events that the user is following AFTER the operation is performed.
+ * @apiSuccessExample {json} Success Response:
  *	{
 		"userId": "provider00001",
 		"following": ["event1", "event2", "event3"]
  * 	}
- *
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User with USERID not found.
- * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
+ * @apiError (404: Bad Request) {String} UserNotFound User with userId not found.
+ * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
 userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -205,17 +213,26 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
 });
 
 /**
- * @api {put} /user/unfollow/:EVENTID/ PUT /user/unfollow/:EVENTID/
+ * @api {put} /user/unfollow/ PUT /user/unfollow/
  * @apiGroup User
- * @apiDescription Enables a user to unfollow/unfavorite an event.
+ * @apiDescription Used by a user to unfollow an event. UserID is taken from the JWT token passed in.
  *
  * @apiBody {String} eventId The unique identifier of the event to unfollow.
- *
- * @apiSuccess (200: Success) {String} StatusSuccess.
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *       "eventId": "exampleEventId"
+ *     }
+ * @apiSuccess (200: Success) {String} userId ID of the user
+ * @apiSuccess (200: Success) {String[]} following Events that the user is following AFTER the operation is performed.
+ * @apiSuccessExample {json} Success Example:
+ *	{
+		"userId": "provider00001",
+		"following": ["event1", "event2", "event3"]
+ * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User with userId not found.
- * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
+ * @apiError (404: Bad Request) {String} UserNotFound User with userId not found.
+ * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
 userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;

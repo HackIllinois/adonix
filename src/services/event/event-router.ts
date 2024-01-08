@@ -30,25 +30,29 @@ const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
 
 /**
- * @api {get} /event/favorites/:EVENTID/ GET /event/favorites/:EVENTID/
+ * @api {get} /event/followers/ GET /event/followers/
  * @apiGroup Event
- * @apiDescription Get users that favorite an event for a specific event by its unique ID.
+ * @apiDescription Get all the users that are following a particular event. (Staff-Only Endpoint)
  *
  * @apiHeader {String} Authorization User's JWT Token with staff permissions.
  *
- * @apiParam {String} EVENTID The unique identifier of the event.
+ * @apiBody {String} eventId The unique identifier of the event.
+ * @apiParamExample {json} Request-Example:
+ *     {
+ *       "eventId": "testEvent12345"
+ *     }
  *
- * @apiSuccess (200: Success) {JSON} followers The followers of an event.
- * @apiSuccessExample Example Success Response
- * HTTP/1.1 200 OK
- * [
- *  "user1",
- *  "user2",
- *  "user3"
- * ]
+ * @apiSuccess (200: Success) {String} eventId The ID of the event
+ * @apiSuccess (200: Success) {String[]} followers The IDs of the event's followers.
+ * @apiSuccessExample {json} Example Success:
+ *	{
+ 		"event": "testEvent12345",
+ 		"followers": ["provider00001", "provider00002", "provider00003"]
+ * 	}
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} EventNotFound Event with the given ID not found.
- * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
+ * @apiError (400: Bad Request) {String} InvalidRequest Event with the given ID not found.
+ * @apiError (404: Not Found) {String} EventNotFound Event with the given ID not found.
+ * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
  */
 eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;

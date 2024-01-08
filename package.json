@@ -7,7 +7,7 @@
     "scripts": {
         "devdocs": "npx typedoc --options typedoc.json --plugin typedoc-plugin-missing-exports",
         "apidocs": "apidoc -i . -o apidocs/",
-        "docs": "npm run devdocs && npm run apidocs",
+        "docs": "yarn run devdocs && yarn run apidocs",
         "clean-docs": "rm -r apidocs/ devdocs/",
         "gen-jwt": "node scripts/generate-jwt-token",
         "format:check": "yarn run prettier --check '**/*.{ts,js,cjs,json}'",
