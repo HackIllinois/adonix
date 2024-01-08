@@ -88,46 +88,6 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 });
 
 /**
- * @api {get} /user/:USERID/ GET /user/:USERID/
- * @apiGroup User
- * @apiDescription Get user data for a particular user, provided that the JWT token's user has elevated perms.
- * @apiParam {String} USERID to generate the QR code for.
- *
- * @apiSuccess (200: Success) {String} userId UserID
- * @apiSuccess (200: Success) {String} name User's name.
- * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
-
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
-		"userId": "provider00001",
-		"name": "john doe",
-		"email": "johndoe@provider.com"
- * 	}
- *
- * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
- * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
- * @apiUse strongVerifyErrors
- */
-userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetUser: string = req.params.USERID ?? "";
-
-    // Get payload, and check if authorized
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    if (payload.id == targetUser || hasElevatedPerms(payload)) {
-        // Authorized -> return the user object
-        const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
-        if (userInfo) {
-            return res.status(StatusCode.SuccessOK).send(userInfo);
-        } else {
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-        }
-    }
-
-    return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-});
-
-/**
  * @api {get} /user/ GET /user/
  * @apiGroup User
  * @apiDescription Get user data for the current user in the JWT token.
@@ -165,27 +125,24 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
  * @apiDescription Get events that a user is following for a specific user by its unique ID.
  *
  * @apiHeader {String} Authorization User's JWT Token with staff permissions.
- *
- * @apiParam {String} USERID The unique identifier of the user.
+ * @apiBody {String} userId The unique identifier of the user.
  *
  * @apiSuccess (200: Success) {JSON} events The events a user is following.
- * @apiSuccessExample Example Success Response
- * HTTP/1.1 200 OK
- * [
- *  "event1",
- *  "event2",
- *  "event3"
- * ]
+ *	{
+		"userId": "provider00001",
+		"following": ["event1", "event2", "event3"]
+ * 	}
+ 
  * @apiUse strongVerifyErrors
  * @apiError (400: Bad Request) {String} UserNotFound User with the given ID not found.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have staff permissions.
  */
-userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.get("/following/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string | undefined = req.params.USERID;
+    const userId: string | undefined = req.body.userId;
 
     if (!userId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
     // Reject request if target user isn't the current user and we're not staff
@@ -193,12 +150,13 @@ userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request,
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const events: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: userId });
-    if (!events) {
+    const userExists: boolean = (await Models.UserInfo.findOne({ userId: userId })) ?? false;
+    if (!userExists) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
-    return res.status(StatusCode.SuccessOK).send({ userId: userId, events: events.events });
+    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: userId });
+    return res.status(StatusCode.SuccessOK).send({ userId: userId, events: following?.following || [] });
 });
 
 /**
@@ -206,42 +164,44 @@ userRouter.get("/following/:USERID", strongJwtVerification, async (req: Request,
  * @apiGroup User
  * @apiDescription Enables a user to follow/favorite an event.
  *
- * @apiParam {String} EVENTID The unique identifier of the event to follow.
+ * @apiBody {String} eventId The id of the event to follow.
  *
  * @apiSuccess (200: Success) {String} StatusSuccess.
+ *	{
+		"userId": "provider00001",
+		"following": ["event1", "event2", "event3"]
+ * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User with userId not found.
+ * @apiError (400: Bad Request) {String} UserNotFound User with USERID not found.
  * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
  */
-userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const eventId: string | undefined = req.params.EVENTID;
-    if (!eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
-    }
+    const eventId: string | undefined = req.body.eventId;
 
-    const followers = await Models.EventFollowers.findOneAndUpdate(
-        { eventId: eventId },
-        { $addToSet: { followers: payload.id } },
-        { new: true },
-    );
-
-    if (!followers) {
+    const eventExists: boolean = (await Models.EventMetadata.findOne({ eventId: eventId })) ?? false;
+    if (!eventExists) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    const events = await Models.AttendeeFollowing.findOneAndUpdate(
-        { userId: payload.id },
-        { $addToSet: { events: eventId } },
-        { new: true },
+    await Models.EventFollowers.findOneAndUpdate(
+        { eventId: eventId },
+        { $addToSet: { followers: payload.id } },
+        { new: true, upsert: true },
     );
 
-    if (!events) {
+    const attendeeFollowing: AttendeeFollowing | null = await Models.AttendeeFollowing.findOneAndUpdate(
+        { userId: payload.id },
+        { $addToSet: { following: eventId } },
+        { new: true, upsert: true },
+    );
+
+    if (!attendeeFollowing) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
-
-    return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+    // console.log("RETURNING", attendeeFollowing)
+    return res.status(StatusCode.SuccessOK).send({ userId: attendeeFollowing.userId, following: attendeeFollowing.following });
 });
 
 /**
@@ -249,7 +209,7 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
  * @apiGroup User
  * @apiDescription Enables a user to unfollow/unfavorite an event.
  *
- * @apiParam {String} EVENTID The unique identifier of the event to unfollow.
+ * @apiBody {String} eventId The unique identifier of the event to unfollow.
  *
  * @apiSuccess (200: Success) {String} StatusSuccess.
  *
@@ -257,30 +217,72 @@ userRouter.put("/follow/:EVENTID", strongJwtVerification, async (req: Request, r
  * @apiError (400: Bad Request) {String} UserNotFound User with userId not found.
  * @apiError (400: Bad Request) {String} EventNotFound User with EVENTID not found.
  */
-userRouter.put("/unfollow/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const eventId: string | undefined = req.params.EVENTID;
-    const followers = await Models.EventFollowers.findOneAndUpdate(
+    const eventId: string | undefined = req.body.eventId;
+
+    // eventID has to exist
+    const eventFollowers = await Models.EventFollowers.findOneAndUpdate(
         { eventId: eventId },
         { $pull: { followers: payload.id } },
         { new: true },
     );
 
-    if (!followers) {
+    if (!eventFollowers) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    const events = await Models.AttendeeFollowing.findOneAndUpdate(
+    const attendeeFollowing = await Models.AttendeeFollowing.findOneAndUpdate(
         { userId: payload.id },
-        { $pull: { events: eventId } },
+        { $pull: { following: eventId } },
         { new: true },
     );
 
-    if (!events) {
+    if (!attendeeFollowing) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
-    return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+    return res.status(StatusCode.SuccessOK).send({ userId: attendeeFollowing.userId, following: attendeeFollowing.following });
+});
+
+/**
+ * @api {get} /user/:USERID/ GET /user/:USERID/
+ * @apiGroup User
+ * @apiDescription Get user data for a particular user, provided that the JWT token's user has elevated perms.
+ * @apiParam {String} USERID to generate the QR code for.
+ *
+ * @apiSuccess (200: Success) {String} userId UserID
+ * @apiSuccess (200: Success) {String} name User's name.
+ * @apiSuccess (200: Success) {String} email Email address (staff gmail or Github email).
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+		"userId": "provider00001",
+		"name": "john doe",
+		"email": "johndoe@provider.com"
+ * 	}
+ *
+ * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
+ * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
+ * @apiUse strongVerifyErrors
+ */
+userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const targetUser: string = req.params.USERID ?? "";
+
+    // Get payload, and check if authorized
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    if (payload.id == targetUser || hasElevatedPerms(payload)) {
+        // Authorized -> return the user object
+        const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
+        if (userInfo) {
+            return res.status(StatusCode.SuccessOK).send(userInfo);
+        } else {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        }
+    }
+
+    return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
 });
 
 export default userRouter;
