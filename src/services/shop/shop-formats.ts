@@ -9,6 +9,7 @@ export interface ItemFormat {
 export interface QuantityFormat {
     itemId: string;
     quantity: number;
+    secrets: number[];
 }
 
 export interface ShopItemFormat {

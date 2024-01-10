@@ -25,11 +25,15 @@ export class ShopQuantity {
     @prop({ required: true })
     public itemId: string;
 
-    @prop({ requireD: true })
+    @prop({ required: true })
     public quantity: number;
 
-    constructor(itemId: string, quantity: number) {
+    @prop({required: true})
+    public secrets: number[];
+
+    constructor(itemId: string, quantity: number, secrets: number[]) {
         this.itemId = itemId;
         this.quantity = quantity;
+        this.secrets = secrets;
     }
 }

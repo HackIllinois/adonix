@@ -5,7 +5,7 @@ import { NextFunction } from "express-serve-static-core";
 import { weakJwtVerification, strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasAdminPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { DeleteResult, UpdateResult } from "mongodb";
+import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
 import { ItemFormat, QuantityFormat, ShopItemFormat } from "./shop-formats.js";
@@ -128,9 +128,16 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         isRaffle: req.body.isRaffle,
     };
 
+    const uniqueSecrets = new Set<number>();
+    while (uniqueSecrets.size < req.body.quantity) {
+        uniqueSecrets.add(getRand());
+    }
+    const secrets = Array.from(uniqueSecrets);
+      
     const itemQuantity: QuantityFormat = {
         itemId: itemId,
-        quantity: req.body.quantity
+        quantity: req.body.quantity,
+        secrets: secrets
     };
 
     // Ensure that user doesn't already exist before creating
@@ -240,5 +247,110 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
+
+/**
+ * @api {get} /shop/item/qr/:ITEMID/ GET /shop/item/qr/:ITEMID/
+ * @apiGroup Shop
+ * @apiDescription Get a QR code of quantity number of items.
+ *
+ * @apiParam {String} ITEMID Id to generate the QR code for.
+ *
+ * @apiSuccess (200: Success) {String} itemId Item to generate a QR code for
+ * @apiSuccess (200: Success) {String} qrInfo Array of stringified QR codes for the requested item 
+
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"itemId": "item0001",
+ * 		"qrInfo": [
+            "hackillinois://item?itemId=item49289&secret=4",
+            "hackillinois://item?itemId=item49289&secret=73",
+            "hackillinois://item?itemId=item49289&secret=69"
+        ]
+ * 	}
+ *
+ * @apiError (404: Not Found) {String} ItemNotFound Item doesn't exist in the database.
+ * @apiUse strongVerifyErrors
+ */
+shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const targetItem: string | undefined = req.params.ITEMID as string;
+
+    // Obtain secrets generating when initializing items 
+    var secrets: number[] = [];
+    const obj = await Models.ShopQuantity.findOne({ itemId: targetItem });
+    if (obj) {
+        secrets = obj.secrets;
+    } else {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
+    }
+
+    // Generate array of uris representing all unique items 
+    var uris: string[] = [];
+    for (let i = 0; i < secrets.length; i++) {
+        console.log(secrets[i]);
+        uris.push(`hackillinois://item?itemId=${targetItem}&secret=${secrets[i]}`);
+    }
+    return res.status(StatusCode.SuccessOK).send({ itemId: targetItem, qrInfo: uris });
+});
+
+/**
+ * @api {post} /shop/item/buy/:ITEMID/ GET /shop/item/buy/:ITEMID/
+ * @apiGroup Shop
+ * @apiDescription Purchase item at the point shop using provided QR code.
+ *
+ * @apiHeader {String} Authorization User's JWT Token with attendee permissions.
+ * 
+ * @apiBody {Json} itemId ItemId of item being purchased.
+ * @apiBody {Json} secret Secret provided by uri to uniquely identify the item.
+ * @apiParamExample {Json} Request Body Example for an Item:
+ * {
+ *      "itemId": "item0001",
+ *      "secret": 15,
+ * }
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (200: Success) {String} Success Purchase was successful.
+ * @apiError (403: Forbidden) {String} InvalidPermission User does not have attendee permissions.
+ * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found or already purchased.
+ * @apiError (404: Not Found) {String} InvalidUniqueItem This unique item is already purchased or doesn't exist.
+ * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
+ */
+shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const targetItem: string | undefined = req.body.itemId as string;
+    // const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    var secrets: number[] = [];
+    const obj = await Models.ShopQuantity.findOne({ itemId: targetItem });
+    if (obj) {
+        secrets = obj.secrets;
+    } else {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
+    }
+
+    for (let i = 0; i < secrets.length; ++i) {
+        if (secrets[i] == req.body.secret) {
+            // TODO decrement attendee's coins 
+            // if no coins, i.e. no profile, not an attendee -> throw 403 
+
+            // delete item  
+            const updatedShopQuantity = await Models.ShopQuantity.updateOne(
+                { itemId: targetItem },
+                { $inc: {quantity: -1} },
+                { $pull: { secrets: req.body.secret } }
+            );
+            
+            if (updatedShopQuantity) {
+                return res.status(StatusCode.SuccessOK).send({ success: true });   
+            }
+        }
+    }
+
+    return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
+});
+
+// Helper 
+function getRand(): number {
+    return Math.floor(Math.random() * Config.MAX_SHOP_STOCK_PER_ITEM) + 1;
+}
 
 export default shopRouter;

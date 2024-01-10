@@ -85,6 +85,7 @@ const Config = {
     EVENT_ID_LENGTH: 32,
     EVENT_BYTES_GEN: 16,
     SHOP_BYTES_GEN: 2,
+    MAX_SHOP_STOCK_PER_ITEM: 128
 };
 
 export default Config;
