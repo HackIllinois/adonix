@@ -38,5 +38,5 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
         },
     };
 
-    return Models.AttendeeProfile.findOneAndUpdate({ userId: userId }, updateQuery);
+    return Models.AttendeeProfile.findOneAndUpdate({ userId: userId }, updateQuery, { new: true });
 }

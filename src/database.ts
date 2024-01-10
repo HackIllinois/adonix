@@ -36,4 +36,5 @@ export enum Database {
     NEWSLETTER = "newsletter",
     REGISTRATION = "registration",
     STAFF = "staff",
+    SHOP = "shop",
 }

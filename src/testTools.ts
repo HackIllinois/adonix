@@ -11,7 +11,11 @@ export const TESTER = {
     name: "Bob Tester",
     avatarUrl: "https://www.hackillinois.org",
     discordTag: "hackillinoistest",
+    userName: "bobster_the_mobster",
 };
+
+// A email that is defined as admin in config
+export const ADMIN_EMAIL = "admin@hackillinois.org";
 
 // A mapping of role to roles they have, used for JWT generation
 export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
@@ -74,6 +78,10 @@ export function put(url: string, role?: Role): request.Test {
     return setHeaders(request(app()).put(url), role);
 }
 
+export function patch(url: string, role?: Role): request.Test {
+    return setHeaders(request(app()).patch(url), role);
+}
+
 export function del(url: string, role?: Role): request.Test {
     return setHeaders(request(app()).delete(url), role);
 }
@@ -92,6 +100,10 @@ export function putAsUser(url: string): request.Test {
     return put(url, Role.USER);
 }
 
+export function patchAsUser(url: string): request.Test {
+    return patch(url, Role.USER);
+}
+
 export function delAsUser(url: string): request.Test {
     return del(url, Role.USER);
 }
@@ -106,6 +118,10 @@ export function postAsApplicant(url: string): request.Test {
 
 export function putAsApplicant(url: string): request.Test {
     return put(url, Role.APPLICANT);
+}
+
+export function patchAsApplicant(url: string): request.Test {
+    return patch(url, Role.APPLICANT);
 }
 
 export function delAsApplicant(url: string): request.Test {
@@ -124,6 +140,10 @@ export function putAsAttendee(url: string): request.Test {
     return put(url, Role.ATTENDEE);
 }
 
+export function patchAsAttendee(url: string): request.Test {
+    return patch(url, Role.ATTENDEE);
+}
+
 export function delAsAttendee(url: string): request.Test {
     return del(url, Role.ATTENDEE);
 }
@@ -138,6 +158,10 @@ export function postAsMentor(url: string): request.Test {
 
 export function putAsMentor(url: string): request.Test {
     return put(url, Role.MENTOR);
+}
+
+export function patchAsMentor(url: string): request.Test {
+    return patch(url, Role.MENTOR);
 }
 
 export function delAsMentor(url: string): request.Test {
@@ -156,6 +180,10 @@ export function putAsStaff(url: string): request.Test {
     return put(url, Role.STAFF);
 }
 
+export function patchAsStaff(url: string): request.Test {
+    return patch(url, Role.STAFF);
+}
+
 export function delAsStaff(url: string): request.Test {
     return del(url, Role.STAFF);
 }
@@ -170,6 +198,10 @@ export function postAsAdmin(url: string): request.Test {
 
 export function putAsAdmin(url: string): request.Test {
     return put(url, Role.ADMIN);
+}
+
+export function patchAsAdmin(url: string): request.Test {
+    return patch(url, Role.ADMIN);
 }
 
 export function delAsAdmin(url: string): request.Test {

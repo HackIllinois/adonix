@@ -43,10 +43,11 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
  * @param provider String of the provider, being used
  * @param data ProfileData, returned from passport post-authentication step
+ * @param rawId boolean, true if the id in data needs to be prepended by the provider, false if not
  * @returns JwtPayload, which gets sent back to the user in the next step
  */
-export async function getJwtPayloadFromProfile(provider: string, data: ProfileData): Promise<JwtPayload> {
-    const userId: string = provider + data.id;
+export async function getJwtPayloadFromProfile(provider: string, data: ProfileData, rawId: boolean): Promise<JwtPayload> {
+    const userId: string = rawId ? `${provider}${data.id}` : `${data.id}`;
     const email: string = data.email;
 
     // Create payload object
@@ -59,8 +60,12 @@ export async function getJwtPayloadFromProfile(provider: string, data: ProfileDa
 
     // Get roles, and assign those to payload.roles if they exist. Next, update those entries in the database
     try {
-        const oldRoles: Role[] = (await getRoles(userId)) as Role[];
-        console.log(oldRoles);
+        let oldRoles = await getRoles(userId);
+
+        if (oldRoles === undefined) {
+            oldRoles = [];
+        }
+
         const newRoles: Role[] = initializeUserRoles(provider as Provider, data.email);
         payload.roles = [...new Set([...oldRoles, ...newRoles])];
         await updateUserRoles(userId, provider as Provider, payload.roles);
@@ -159,7 +164,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toUpperCase(), roles: roles }, { upsert: true })
+    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toLowerCase(), roles: roles }, { upsert: true })
         .then(() => {
             return;
         })
@@ -220,14 +225,14 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
  * @param id UserID of the user to return the info for
  * @returns Promise, containing array of roles for the user.
  */
-export async function getRoles(id: string): Promise<Role[]> {
+export async function getRoles(id: string): Promise<Role[] | undefined> {
     return getAuthInfo(id)
         .then((authInfo) => {
             return authInfo.roles as Role[];
         })
         .catch((error) => {
             console.log(error);
-            return [] as Role[];
+            return undefined;
         });
 }
 
@@ -254,7 +259,9 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
     }
 
     try {
-        const updatedInfo: AuthInfo | null = await Models.AuthInfo.findOneAndUpdate({ userId: userId }, updateQuery);
+        const updatedInfo: AuthInfo | null = await Models.AuthInfo.findOneAndUpdate({ userId: userId }, updateQuery, {
+            new: true,
+        });
         if (updatedInfo) {
             return updatedInfo.roles as Role[];
         } else {

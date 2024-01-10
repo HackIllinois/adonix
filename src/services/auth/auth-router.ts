@@ -19,6 +19,7 @@ import {
     updateRoles,
     verifyFunction,
     getUsersWithRole,
+    hasAdminPerms,
 } from "./auth-lib.js";
 import Models from "../../database/models.js";
 import { RouterError } from "../../middleware/error-handler.js";
@@ -49,10 +50,6 @@ passport.use(
 
 const authRouter: Router = Router();
 authRouter.use(express.urlencoded({ extended: false }));
-
-authRouter.get("/test/", (_: Request, res: Response) => {
-    res.end("Auth endpoint is working!");
-});
 
 authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
     const token: string | undefined = req.query.token as string | undefined;
@@ -122,7 +119,6 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 authRouter.get(
     "/:PROVIDER/callback/:DEVICE",
     (req: Request, res: Response, next: NextFunction) => {
-        console.log("IN CALLBACK");
         const provider: string = req.params.PROVIDER ?? "";
         try {
             const device = req.params.DEVICE;
@@ -132,9 +128,10 @@ authRouter.get(
             }
 
             res.locals.device = device;
-            SelectAuthProvider(provider, device)(req, res, next);
+            return SelectAuthProvider(provider, device)(req, res, next);
         } catch (error) {
-            console.error(error);
+            const message = error instanceof Error ? error.message : `${error}`;
+            return next(new RouterError(undefined, undefined, undefined, message));
         }
     },
     async (req: Request, res: Response, next: NextFunction) => {
@@ -142,18 +139,18 @@ authRouter.get(
             return next(new RouterError(StatusCode.ClientErrorUnauthorized, "FailedAuth"));
         }
 
-        const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
-        const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
-        const data: ProfileData = user._json as ProfileData;
-        const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
-
-        data.id = data.id ?? user.id;
-        data.displayName = data.name ?? data.displayName ?? data.login;
-
         try {
+            const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
+            const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
+            const data: ProfileData = user._json as ProfileData;
+            const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
+
+            data.id = data.id ?? user.id;
+            data.displayName = data.name ?? data.displayName ?? data.login;
+
             // Load in the payload with the actual values stored in the database
-            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data);
-            console.log(data, payload);
+            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, true);
+
             const userId: string = payload.id;
             await Models.UserInfo.findOneAndUpdate(
                 { userId: userId },
@@ -171,6 +168,73 @@ authRouter.get(
         }
     },
 );
+
+/**
+ * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
+ * @apiGroup Auth
+ * @apiDescription Get all users that have a certain role.
+ *
+ * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
+ *
+ * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"data" : ["github44122133", "github22779056", "github5997469", "github98075854"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const role = req.params.ROLE as string;
+    const payload = res.locals.payload as JwtPayload;
+
+    if (!hasElevatedPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    return await getUsersWithRole(role)
+        .then((users: string[]) => {
+            return res.status(StatusCode.SuccessOK).send({ userIds: users });
+        })
+        .catch((error: Error) => {
+            const message = error instanceof Error ? error.message : `${error}`;
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "UnknownError", undefined, message));
+        });
+});
+
+/**
+ * @api {get} /auth/roles/ GET /auth/roles/
+ * @apiGroup Auth
+ * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
+ *
+ * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
+ * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
+ * @apiSuccessExample Example Success Response:
+ * 	HTTP/1.1 200 OK
+ *	{
+ *		"id": "provider0000001",
+ * 		"roles": ["Admin", "Staff", "Mentor"]
+ * 	}
+ *
+ * @apiUse strongVerifyErrors
+ */
+authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const targetUser: string = payload.id;
+
+    await getRoles(targetUser)
+        .then((roles: Role[] | undefined) => {
+            if (roles === undefined) {
+                return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+            }
+            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
+        })
+        .catch((error: Error) => {
+            const message = error instanceof Error ? error.message : `${error}`;
+            return next(new RouterError(undefined, undefined, undefined, message));
+        });
+});
 
 /**
  * @api {get} /auth/roles/:USERID/ GET /auth/roles/:USERID/
@@ -193,12 +257,7 @@ authRouter.get(
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
 authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetUser: string | undefined = req.params.USERID;
-
-    // Check if we have a user to get roles for - if not, get roles for current user
-    if (!targetUser) {
-        return res.redirect("/auth/roles/");
-    }
+    const targetUser: string = req.params.USERID as string;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -207,10 +266,16 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
         return res.status(StatusCode.SuccessOK).send({ id: payload.id, roles: payload.roles });
     } else if (hasElevatedPerms(payload)) {
         try {
-            const roles: Role[] = await getRoles(targetUser);
+            const roles: Role[] | undefined = await getRoles(targetUser);
+
+            if (roles === undefined) {
+                return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+            }
+
             return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
         } catch (error) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+            const message = error instanceof Error ? error.message : `${error}`;
+            return next(new RouterError(undefined, undefined, undefined, message));
         }
     } else {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -242,12 +307,12 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Not authenticated with modify roles perms
-    if (!hasElevatedPerms(payload)) {
+    if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     // Parse to get operation type
-    const op: RoleOperation | undefined = RoleOperation[req.params.operation as keyof typeof RoleOperation];
+    const op: RoleOperation | undefined = RoleOperation[req.params.OPERATION?.toUpperCase() as keyof typeof RoleOperation];
 
     // No operation - fail out
     if (!op) {
@@ -256,6 +321,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
 
     // Check if role to add/remove actually exists
     const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
+
     const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
     if (!role) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRole"));
@@ -268,102 +334,6 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
     } catch (error) {
         return next(new RouterError());
     }
-});
-
-/**
- * @api {get} /auth/list/roles/ GET /auth/list/roles/
- * @apiGroup Auth
- * @apiDescription List all the available roles.
- *
- * @apiSuccess (200: Success) {string[]} token JWT token of authenticated user.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"id": "provider0000001",
- * 		"roles": ["Admin", "Staff", "Mentor"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database
- * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms
- */
-authRouter.get("/list/roles/", strongJwtVerification, (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-
-    // Check if current user should be able to access all roles
-    if (!hasElevatedPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    // Filter enum to get all possible string keys
-    const roles: string[] = Object.keys(Role).filter((item: string) => {
-        return isNaN(Number(item));
-    });
-
-    return res.status(StatusCode.SuccessOK).send({ roles: roles });
-});
-
-/**
- * @api {get} /auth/roles/ GET /auth/roles/
- * @apiGroup Auth
- * @apiDescription Get the roles of a user from the database, provided that there is a JWT token and the token contains VALID credentials for the operation.
- *
- * @apiSuccess (200: Success) {String} id ID of the user in the request token payload.
- * @apiSuccess (200: Success) {String[]} roles Roles of the user, from the database.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"id": "provider0000001",
- * 		"roles": ["Admin", "Staff", "Mentor"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- */
-authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
-
-    await getRoles(targetUser)
-        .then((roles: Role[]) => {
-            return res.status(StatusCode.SuccessOK).send({ id: targetUser, roles: roles });
-        })
-        .catch((error: Error) => {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound", undefined, error.message));
-        });
-});
-
-/**
- * @api {get} /auth/roles/list/:ROLE GET /auth/roles/list/:ROLE
- * @apiGroup Auth
- * @apiDescription Get all users that have a certain role.
- *
- * @apiParam ROLE Role to get the user for. Roles: USER, APPLICANT, ATTENDEE, VOLUNTEER, STAFF, ADMIN, MENTOR, SPONSOR
- *
- * @apiSuccess (200: Success) {String[]} Array of ids of users w/ the specified role.
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
- *		"data" : ["github44122133", "github22779056", "github5997469", "github98075854"]
- * 	}
- *
- * @apiUse strongVerifyErrors
- */
-authRouter.get("/roles/list/:ROLE", async (req: Request, res: Response, next: NextFunction) => {
-    const role: string | undefined = req.params.ROLE;
-
-    //Returns error if role parameter is empty
-    if (!role) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "InvalidParams" });
-    }
-
-    return await getUsersWithRole(role)
-        .then((users: string[]) => {
-            return res.status(StatusCode.SuccessOK).send({ userIds: users });
-        })
-        .catch((error: Error) => {
-            console.error(error);
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "Unknown Error"));
-        });
 });
 
 /**
@@ -390,13 +360,14 @@ authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: 
 
     try {
         // Generate a new payload for the token
-        const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data);
+        const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data, false);
 
         // Create and return a new token with the payload
         const newToken: string = generateJwtToken(newPayload);
         return res.status(StatusCode.SuccessOK).send({ token: newToken });
     } catch (error) {
-        return next(new RouterError());
+        const message = error instanceof Error ? error.message : `${error}`;
+        return next(new RouterError(undefined, undefined, undefined, message));
     }
 });
 

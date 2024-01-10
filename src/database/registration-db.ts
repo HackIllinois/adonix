@@ -13,8 +13,11 @@ export class RegistrationInfo {
 
 export class RegistrationApplication {
     @prop({ required: true })
-    public _id: string;
+    public userId: string;
 
     @prop({ required: true })
-    public userId: string;
+    public resume: string;
+
+    @prop({ required: true, type: String })
+    public essays: string[];
 }

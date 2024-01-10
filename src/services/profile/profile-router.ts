@@ -3,7 +3,7 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
-import { isValidLimit } from "./profile-lib.js";
+import { isValidLimit, updatePoints } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { Query } from "mongoose";
@@ -285,6 +285,59 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
         return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeNotFound"));
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
+});
+
+/**
+ * @api {get} /profile/addpoints/ GET /profile/addpoints/
+ * @apiGroup Profile
+ * @apiDescription Add points to the specified user, given that the currently authenticated user has elevated perms.
+ *
+ * @apiBody {String} userId User to add points to.
+ * @apiBody {int} points Number of points to add.
+ *
+ * @apiSuccess (200: Success) {string} userID ID of the user
+ * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
+ * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {number} points Points that the user has
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "_id": "abc12345",
+ *    "userId": "github12345",
+ *    "displayName": "Hack",
+ *    "discord": "HackIllinois",
+ *    "avatarUrl": "na",
+ *    "points": 10,
+ * }
+ *
+ * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
+ * @apiError (400: Forbidden) {String} User not found in database.
+ */
+
+profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const points: number = req.body.points;
+    const userId: string = req.body.userId;
+
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    //Sends error if caller doesn't have elevated perms
+    if (!hasElevatedPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const queryResult: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+
+    if (!queryResult) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+    }
+
+    await updatePoints(userId, points);
+
+    const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+
+    return res.status(StatusCode.SuccessOK).send(updatedProfile);
 });
 
 export default profileRouter;

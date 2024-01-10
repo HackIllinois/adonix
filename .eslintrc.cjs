@@ -13,6 +13,7 @@ module.exports = {
     },
     plugins: ["@typescript-eslint"],
     rules: {
+        "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }], // Allow prefixing unused args with _ to ignore error
         "@typescript-eslint/no-misused-promises": [
             "error",
             {
@@ -37,7 +38,7 @@ module.exports = {
     },
     overrides: [
         {
-            files: ["**/*.test.ts"], // Disable specific rules for tests
+            files: ["**/*.test.ts", "**/mocks/*.ts"], // Disable specific rules for tests
             rules: {
                 "no-magic-numbers": "off",
                 "@typescript-eslint/no-var-requires": "off", // Required for jest
