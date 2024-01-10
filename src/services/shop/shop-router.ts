@@ -5,7 +5,7 @@ import { NextFunction } from "express-serve-static-core";
 import { weakJwtVerification, strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasAdminPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { DeleteResult } from "mongodb";
+import { DeleteResult, UpdateResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
 import { ItemFormat, QuantityFormat, ShopItemFormat } from "./shop-formats.js";
@@ -148,6 +148,59 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         console.error(error);
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
+});
+
+/**
+ * @api {put} /shop/item/:ITEMID PUT /shop/item/:ITEMID
+ * @apiGroup Shop
+ * @apiDescription Update fields of an existing item in the shop.
+ * @apiBody {String} eventId The id of the event to follow.
+ * @apiParamExample {json} Request Example:
+ *     {
+ *       "name": "HackIllinois Branded Hoodie",
+ *       "price": 1000000,
+ *       "isRaffle": false
+ *     }
+ * @apiSuccess (200: Success) {String} Item upon performing updates.
+ * @apiSuccessExample {json} Success Response:
+ *	{
+ *      "itemId": "item01",
+ *      "name": "HackIllinois Branded Hoodie",
+ *      "price": 1000000,
+ *      "isRaffle": false,
+ *      "quantity": 1
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} ItemInRequestBody Omit itemId from request body.
+ * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
+ * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found.
+ * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
+ */
+shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const targetItem: string | undefined = req.params.ITEMID as string;
+
+    // Check if the token has admin permissions
+    if (!hasAdminPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
+    }
+
+    if (req.body.itemId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "ItemInRequestBody"));
+    }
+
+    const itemExists: boolean = (await Models.ShopItem.findOne({ itemId: targetItem })) ?? false;
+    if (!itemExists) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
+    }
+
+    await Models.ShopItem.findOneAndUpdate(
+        { itemId: targetItem},
+        { name: req.body.name, price: req.body.price, isRaffle: req.body.isRaffle },
+        { new: true },
+    );
+    
+    return res.status(StatusCode.SuccessOK).send({ success: true });
 });
 
 /**
