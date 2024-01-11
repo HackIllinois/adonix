@@ -44,7 +44,6 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
-
     if (!isString(registration.preferredName) || !isString(registration.legalName) || !isString(registration.email)) {
         return false;
     }
