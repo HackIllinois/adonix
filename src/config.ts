@@ -83,9 +83,11 @@ const Config = {
     LEADERBOARD_QUERY_LIMIT: 25,
 
     /* Misc */
-    EVENT_ID_LENGTH: 32,
-    EVENT_BYTES_GEN: 16,
     SHOP_BYTES_GEN: 2,
+    EVENT_BYTES_GEN: 16,
+
+    SHOP_ID_LENGTH: 2 * 2,
+    EVENT_ID_LENGTH: 2 * 16,
     MAX_SHOP_STOCK_PER_ITEM: 128,
 };
 

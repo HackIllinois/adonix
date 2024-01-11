@@ -16,28 +16,32 @@ export class ShopItem {
     @prop({ required: true })
     public imageURL: string;
 
-    constructor(itemId: string, name: string, price: number, isRaffle: boolean, imageURL: string) {
+    @prop({ required: true })
+    public quantity: number;
+
+    @prop({
+        required: true,
+        type: () => {
+            return String;
+        },
+    })
+    public instances: string[];
+
+    constructor(
+        itemId: string,
+        name: string,
+        price: number,
+        isRaffle: boolean,
+        imageURL: string,
+        quantity: number,
+        instances: string[],
+    ) {
         this.itemId = itemId;
         this.name = name;
         this.price = price;
         this.isRaffle = isRaffle;
         this.imageURL = imageURL;
-    }
-}
-
-export class ShopQuantity {
-    @prop({ required: true })
-    public itemId: string;
-
-    @prop({ required: true })
-    public quantity: number;
-
-    @prop({ required: true })
-    public secrets: number[];
-
-    constructor(itemId: string, quantity: number, secrets: number[]) {
-        this.itemId = itemId;
         this.quantity = quantity;
-        this.secrets = secrets;
+        this.instances = instances;
     }
 }

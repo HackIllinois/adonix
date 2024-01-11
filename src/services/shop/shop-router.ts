@@ -1,17 +1,17 @@
 import crypto from "crypto";
-import Config from "../../config.js";
+import { AttendeeProfile } from "database/attendee-db.js";
+import { ShopItem } from "database/shop-db.js";
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
-import { weakJwtVerification, strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { hasAdminPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { getCoins, updateCoins } from "../profile/profile-lib.js";
-import { getPrice } from "../shop/shop-lib.js";
-import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
-import { RouterError } from "../../middleware/error-handler.js";
-import { ShopItemFormat, ItemFormat,  FilteredShopItemFormat } from "./shop-formats.js";
+import Config from "../../config.js";
 import Models from "../../database/models.js";
+import { RouterError } from "../../middleware/error-handler.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
+import { hasAdminPerms, hasElevatedPerms } from "../auth/auth-lib.js";
+import { JwtPayload } from "../auth/auth-models.js";
+import { updateCoins } from "../profile/profile-lib.js";
+import { FilteredShopItemFormat, ItemFormat, isValidItemFormat } from "./shop-formats.js";
 
 /**
  * @api {get} /shop GET /shop
@@ -41,12 +41,21 @@ import Models from "../../database/models.js";
  * */
 
 const shopRouter: Router = Router();
-shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, _: NextFunction) => {
-    const shopItems: ShopItemFormat[] = await Models.ShopItem.find();    
-    
-    const newData: FilteredShopItemFormat = shopItems.map((item: ShopItemFormat) => {
-        return 
+shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
+    const shopItems: ItemFormat[] = await Models.ShopItem.find();
+
+    const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ItemFormat) => {
+        return {
+            itemId: item.itemId,
+            name: item.name,
+            price: item.price,
+            isRaffle: item.isRaffle,
+            quantity: item.quantity,
+            imageURL: item.imageURL,
+        };
     });
+
+    return res.status(StatusCode.SuccessOK).send(filteredData);
 });
 
 /**
@@ -92,50 +101,32 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    if (req.body.itemId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraItemId: req.body.itemId }));
+    const itemFormat: ItemFormat = req.body as ItemFormat;
+    if (!isValidItemFormat(itemFormat, false)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest", itemFormat));
     }
 
     const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"), 16);
+    const instances = Array.from({ length: itemFormat.quantity }, (_, index) => getRand(index));
 
-    const metaItem: ItemFormat = req.body as ItemFormat;
-    metaItem.itemId = itemId;
-
-    const shopItem: ShopItemFormat = {
+    const shopItem: ItemFormat = {
         itemId: itemId,
-        name: req.body.name,
-        price: req.body.price,
-        isRaffle: req.body.isRaffle,
-        imageURL: req.body.imageURL,
+        name: itemFormat.name,
+        price: itemFormat.price,
+        isRaffle: itemFormat.isRaffle,
+        imageURL: itemFormat.imageURL,
+        quantity: itemFormat.quantity,
+        instances: instances,
     };
 
-    const uniqueSecrets = new Set<number>();
-    while (uniqueSecrets.size < req.body.quantity) {
-        uniqueSecrets.add(getRand());
-    }
-    const secrets = Array.from(uniqueSecrets);
-
-    const itemQuantity: QuantityFormat = {
-        itemId: itemId,
-        quantity: req.body.quantity,
-        secrets: secrets,
-    };
-
-    // Ensure that user doesn't already exist before creating
-    const item1: ShopItemFormat | null = await Models.ShopItem.findOne({ itemId: shopItem.itemId });
-    const item2: QuantityFormat | null = await Models.ShopQuantity.findOne({ itemId: itemQuantity.itemId });
-    if (item1 || item2) {
+    // Ensure that item doesn't already exist before creating
+    const itemExists: boolean = (await Models.ShopItem.findOne({ name: itemFormat.name })) ?? false;
+    if (itemExists) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ItemAlreadyExists"));
     }
 
-    try {
-        await Models.ShopItem.create(shopItem);
-        await Models.ShopQuantity.create(itemQuantity);
-        return res.status(StatusCode.SuccessOK).send(metaItem);
-    } catch (error) {
-        console.error(error);
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
-    }
+    const newItem: ShopItem = await Models.ShopItem.create(shopItem);
+    return res.status(StatusCode.SuccessOK).send(newItem);
 });
 
 /**
@@ -170,27 +161,30 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const targetItem: string | undefined = req.params.ITEMID as string;
 
+    const itemFormat = req.body as ItemFormat;
+
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    if (req.body.itemId) {
+    if (itemFormat.itemId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ItemInRequestBody"));
     }
 
-    const itemExists: boolean = (await Models.ShopItem.findOne({ itemId: targetItem })) ?? false;
-    if (!itemExists) {
+    if (!isValidItemFormat(itemFormat, false)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
+    }
+
+    const updatedItem: ShopItem | null = await Models.ShopItem.findOneAndUpdate({ itemId: targetItem }, itemFormat, {
+        new: true,
+    });
+
+    if (!updatedItem) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    await Models.ShopItem.findOneAndUpdate(
-        { itemId: targetItem },
-        { name: req.body.name, price: req.body.price, isRaffle: req.body.isRaffle, imageURL: req.body.imageURL },
-        { new: true },
-    );
-
-    return res.status(StatusCode.SuccessOK).send({ success: true });
+    return res.status(StatusCode.SuccessOK).send({ updatedItem });
 });
 
 /**
@@ -221,14 +215,8 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
     }
 
     const targetItem: string | undefined = req.params.ITEMID as string;
-
-    const shopItemDeleteResponse: DeleteResult = await Models.ShopItem.deleteOne({ itemId: targetItem });
-    const shopQuantityDeleteResponse: DeleteResult = await Models.ShopQuantity.deleteOne({ itemId: targetItem });
-
-    if (shopItemDeleteResponse.deletedCount == 0 || shopQuantityDeleteResponse.deletedCount == 0) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
-    }
-    return res.status(StatusCode.SuccessOK).send({ success: true });
+    await Models.ShopItem.deleteOne({ itemId: targetItem });
+    return res.status(StatusCode.SuccessNoContent).send({ success: true });
 });
 
 /**
@@ -257,22 +245,23 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
  */
 shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const targetItem: string | undefined = req.params.ITEMID as string;
+    const token: JwtPayload = res.locals.payload;
+
+    if (!hasElevatedPerms(token)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
 
     // Obtain secrets generating when initializing items
-    let secrets: number[] = [];
-    const obj = await Models.ShopQuantity.findOne({ itemId: targetItem });
-    if (obj) {
-        secrets = obj.secrets;
-    } else {
+    const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: targetItem });
+
+    if (!itemFormat) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    // Generate array of uris representing all unique items
-    const uris: string[] = [];
-    for (let i = 0; i < secrets.length; i++) {
-        console.log(secrets[i]);
-        uris.push(`hackillinois://item?itemId=${targetItem}&secret=${secrets[i]}`);
-    }
+    const uris =
+        itemFormat.instances.map((instance: string) => {
+            return `hackillinois://item?itemId=${targetItem}&instance=${instance}`;
+        });
     return res.status(StatusCode.SuccessOK).send({ itemId: targetItem, qrInfo: uris });
 });
 
@@ -302,50 +291,57 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
     const itemId: string | undefined = req.body.itemId as string;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
+    
+    console.error("pre-lookup");
 
-    let secrets: number[] = [];
-    const obj = await Models.ShopQuantity.findOne({ itemId: itemId });
-    if (obj) {
-        secrets = obj.secrets;
-    } else {
+    const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: itemId });
+    const userData: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+    
+    console.error("post-lookup");
+
+    if (!itemFormat) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    const targetItem = await Models.ShopItem.findOne({ itemId: itemId });
+    if (!userData) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeProfileNotFound"));
+    }
 
-    for (let i = 0; i < secrets.length; ++i) {
-        if (secrets[i] == req.body.secret) {
-            // check for insufficient funds
-            if (getCoins(userId) < getPrice(itemId)) {
-                return next(new RouterError(StatusCode.ClientErrorBadRequest, "InsufficientFunds"));
-            } else {
-                // delete shop item
-                const updatedShopQuantity = await Models.ShopQuantity.updateOne(
-                    { itemId: itemId },
-                    {
-                        $inc: { quantity: -1 },
-                        $pull: { secrets: req.body.secret },
-                    },
-                );
+    if (userData.coins < itemFormat.price) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InsufficientFunds"));
+    }
 
-                // decrement attendee coins
-                if (updatedShopQuantity) {
-                    if (targetItem) {
-                        updateCoins(userId, -targetItem.price);
-                    }
-                    return res.status(StatusCode.SuccessOK).send({ success: true });
-                }
-            }
+    console.error("pre-instances");
+    const instances = itemFormat.instances;
+
+    for (let i = 0; i < instances.length; ++i) {
+        // If this isn't the secret, move on
+        if (instances[i] != req.body.instance) {
+            continue;
         }
+
+        // delete shop item
+        const updatedShopQuantity = await Models.ShopItem.updateOne(
+            { itemId: itemId },
+            {
+                $inc: { quantity: -1 },
+                $pull: { instances: req.body.instance },
+            },
+        );
+
+        // decrement attendee coins
+        if (updatedShopQuantity) {
+            updateCoins(userId, -itemFormat.price).then(console.error);
+
+        }
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     }
 
     return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
 });
 
-// TODO: Hash this!!!
-function getRand(): string {
-    const index = Math.floor(Math.random() * Config.MAX_SHOP_STOCK_PER_ITEM);
-    const hash = crypto.createHash('sha256').update(`${Config.JWT_SECRET}|${index}`).digest("hex");
+function getRand(index: number): string {
+    const hash = crypto.createHash("sha256").update(`${Config.JWT_SECRET}|${index}`).digest("hex");
     return hash;
 }
 
