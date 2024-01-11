@@ -3,7 +3,7 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
-import { isValidLimit, updatePoints } from "./profile-lib.js";
+import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { Query } from "mongoose";
@@ -106,6 +106,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
+ *    "coins": 10
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -155,6 +156,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
+ *    "coins": 10
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -168,7 +170,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+profileRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -206,6 +208,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
  * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -216,6 +219,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 0,
+ *    "coins": 0
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -231,6 +235,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Config.DEFAULT_POINT_VALUE;
+    profile.coins = Config.DEFAULT_COIN_VALUE;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
@@ -288,9 +293,9 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
 });
 
 /**
- * @api {get} /profile/addpoints/ GET /profile/addpoints/
+ * @api {post} /profile/addpoints/ POST /profile/addpoints/
  * @apiGroup Profile
- * @apiDescription Add points to the specified user, given that the currently authenticated user has elevated perms.
+ * @apiDescription Add points to the specified user, given that the currently authenticated user has elevated perms. Note: If points are increasing, coins will also increase the same amount. If points are being decreased, coins remain unchanged.
  *
  * @apiBody {String} userId User to add points to.
  * @apiBody {int} points Number of points to add.
@@ -300,6 +305,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
  * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -310,13 +316,14 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 10,
+ *    "coins": 10
  * }
  *
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  * @apiError (400: Forbidden) {String} User not found in database.
  */
 
-profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const points: number = req.body.points;
     const userId: string = req.body.userId;
 
@@ -334,6 +341,9 @@ profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res:
     }
 
     await updatePoints(userId, points);
+    if (points > 0) {
+        await updateCoins(userId, points);
+    }
 
     const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 

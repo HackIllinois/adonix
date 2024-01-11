@@ -12,6 +12,7 @@ const TESTER_USER = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
+    coins: 0,
 } satisfies AttendeeProfile;
 
 const TESTER_METADATA = {
@@ -25,6 +26,7 @@ const TESTER_USER_2 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    coins: 12,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -33,6 +35,7 @@ const TESTER_USER_3 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    coins: 12,
 } satisfies AttendeeProfile;
 
 const profile: ProfileFormat = {
@@ -41,6 +44,7 @@ const profile: ProfileFormat = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
+    coins: 0
 };
 
 beforeEach(async () => {

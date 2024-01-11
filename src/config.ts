@@ -77,6 +77,7 @@ const Config = {
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
+    DEFAULT_COIN_VALUE: 0,
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,

@@ -5,6 +5,8 @@ import { NextFunction } from "express-serve-static-core";
 import { weakJwtVerification, strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasAdminPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
+import { getCoins, updateCoins } from "../profile/profile-lib.js";
+import { getPrice } from "../shop/shop-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
@@ -322,31 +324,44 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetItem: string | undefined = req.body.itemId as string;
-    // const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const itemId: string | undefined = req.body.itemId as string;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
 
     var secrets: number[] = [];
-    const obj = await Models.ShopQuantity.findOne({ itemId: targetItem });
+    const obj = await Models.ShopQuantity.findOne({ itemId: itemId });
     if (obj) {
         secrets = obj.secrets;
     } else {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
+    const targetItem = await Models.ShopItem.findOne({ itemId: itemId });
+
     for (let i = 0; i < secrets.length; ++i) {
         if (secrets[i] == req.body.secret) {
-            // TODO decrement attendee's coins 
-            // if no coins, i.e. no profile, not an attendee -> throw 403 
 
-            // delete item  
-            const updatedShopQuantity = await Models.ShopQuantity.updateOne(
-                { itemId: targetItem },
-                { $inc: {quantity: -1} },
-                { $pull: { secrets: req.body.secret } }
-            );
-            
-            if (updatedShopQuantity) {
-                return res.status(StatusCode.SuccessOK).send({ success: true });   
+            // check for insufficient funds 
+            if (getCoins(userId) < getPrice(itemId)) {
+                return next(new RouterError(StatusCode.ClientErrorBadRequest, "InsufficientFunds"));
+            } else {
+
+                // delete shop item 
+                const updatedShopQuantity = await Models.ShopQuantity.updateOne(
+                    { itemId: itemId },
+                    {
+                        $inc: {quantity: -1},
+                        $pull: { secrets: req.body.secret }
+                    }
+                );
+                
+                // decrement attendee coins 
+                if (updatedShopQuantity) {
+                    if (targetItem) {
+                        updateCoins(userId, -targetItem.price);
+                    }
+                    return res.status(StatusCode.SuccessOK).send({ success: true });   
+                }
             }
         }
     }
