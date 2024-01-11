@@ -107,7 +107,9 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
     }
 
     const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"), 16);
-    const instances = Array.from({ length: itemFormat.quantity }, (_, index) => getRand(index));
+    const instances = Array.from({ length: itemFormat.quantity }, (_, index) => {
+        return getRand(index);
+    });
 
     const shopItem: ItemFormat = {
         itemId: itemId,
@@ -258,10 +260,9 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    const uris =
-        itemFormat.instances.map((instance: string) => {
-            return `hackillinois://item?itemId=${targetItem}&instance=${instance}`;
-        });
+    const uris = itemFormat.instances.map((instance: string) => {
+        return `hackillinois://item?itemId=${targetItem}&instance=${instance}`;
+    });
     return res.status(StatusCode.SuccessOK).send({ itemId: targetItem, qrInfo: uris });
 });
 
@@ -291,12 +292,12 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
     const itemId: string | undefined = req.body.itemId as string;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
-    
+
     console.error("pre-lookup");
 
     const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: itemId });
     const userData: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
-    
+
     console.error("post-lookup");
 
     if (!itemFormat) {
@@ -332,7 +333,6 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
         // decrement attendee coins
         if (updatedShopQuantity) {
             updateCoins(userId, -itemFormat.price).then(console.error);
-
         }
         return res.status(StatusCode.SuccessOK).send({ success: true });
     }
