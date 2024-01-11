@@ -157,11 +157,11 @@ authRouter.get(
                 { email: data.email, name: data.displayName, userId: userId },
                 { upsert: true },
             );
-            
+
             let token: string;
             switch (device) {
                 case Device.CHALLENGE:
-                    token = generateJwtToken(payload, false, "720h")
+                    token = generateJwtToken(payload, false, "720h");
                     break;
                 case Device.ANDROID:
                     token = generateJwtToken(payload, true);
