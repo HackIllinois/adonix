@@ -13,6 +13,7 @@ export enum Device {
     WEB = "web",
     IOS = "ios",
     ANDROID = "android",
+    CHALLENGE = "challenge",
 }
 
 function requireEnv(name: string): string {
@@ -38,6 +39,7 @@ const Config = {
         [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
         [Device.DEV, "https://adonix.hackillinois.org/auth/dev/"],
         [Device.WEB, "https://www.hackillinois.org/auth/"],
+        [Device.CHALLENGE, "https://adonix.hackillinois.org/auth/dev/"],
         [Device.IOS, "hackillinois://login/"],
         [Device.ANDROID, "hackillinois://login/"],
     ]) as Map<string, string>,

@@ -157,10 +157,22 @@ authRouter.get(
                 { email: data.email, name: data.displayName, userId: userId },
                 { upsert: true },
             );
+            
+            let token: string;
+            switch (device) {
+                case Device.CHALLENGE:
+                    token = generateJwtToken(payload, false, "720h")
+                    break;
+                case Device.ANDROID:
+                    token = generateJwtToken(payload, true);
+                    break;
+                case Device.IOS:
+                    token = generateJwtToken(payload, true);
+                    break;
+                default:
+                    token = generateJwtToken(payload, false);
+            }
 
-            // Generate the token, and return it
-            const isMobile: boolean = device == Device.ANDROID || device == Device.IOS;
-            const token: string = generateJwtToken(payload, isMobile);
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
