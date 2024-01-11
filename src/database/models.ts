@@ -46,7 +46,6 @@ enum RegistrationCollection {
 
 enum ShopCollection {
     ITEMS = "items",
-    QUANTITIES = "quantities",
 }
 
 enum UserCollection {
