@@ -176,10 +176,10 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
         return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadRequest" });
     }
 
-    const newRegistrationInfo: RegistrationApplication | null =  await Models.RegistrationApplications.findOneAndReplace(
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOneAndReplace(
         { userId: userId },
         registrationData,
-        { upsert: true, new: true},
+        { upsert: true, new: true },
     );
 
     if (!newRegistrationInfo) {
