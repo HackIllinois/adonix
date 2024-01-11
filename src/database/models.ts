@@ -8,7 +8,7 @@ import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee
 import { AdmissionDecision } from "./admission-db.js";
 import { EventAttendance, EventMetadata, PublicEvent, StaffEvent, EventFollowers } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
-import { RegistrationApplication, RegistrationInfo } from "./registration-db.js";
+import { RegistrationApplication } from "./registration-db.js";
 import { ShopItem } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
@@ -28,11 +28,6 @@ enum AdmissionCollection {
     DECISION = "decision",
 }
 
-enum ShopCollection {
-    ITEMS = "items",
-    QUANTITIES = "quantities",
-}
-
 enum EventCollection {
     METADATA = "metadata",
     ATTENDANCE = "attendance",
@@ -46,8 +41,12 @@ enum NewsletterCollection {
 }
 
 enum RegistrationCollection {
-    INFO = "info",
-    APPLICATION = "application",
+    APPLICATIONS = "applications",
+}
+
+enum ShopCollection {
+    ITEMS = "items",
+    QUANTITIES = "quantities",
 }
 
 enum UserCollection {
@@ -80,8 +79,7 @@ export default class Models {
     // Newsletter
     static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
     // Registration
-    static RegistrationInfo: mongoose.Model<RegistrationInfo> = undefined!;
-    static RegistrationApplication: mongoose.Model<RegistrationApplication> = undefined!;
+    static RegistrationApplications: mongoose.Model<RegistrationApplication> = undefined!;
     //Shop
     static ShopItem: mongoose.Model<ShopItem> = undefined!;
     // User
@@ -105,11 +103,10 @@ export default class Models {
 
         this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
 
-        this.RegistrationInfo = getModel(RegistrationInfo, Database.REGISTRATION, RegistrationCollection.INFO);
-        this.RegistrationApplication = getModel(
+        this.RegistrationApplications = getModel(
             RegistrationApplication,
             Database.REGISTRATION,
-            RegistrationCollection.APPLICATION,
+            RegistrationCollection.APPLICATIONS,
         );
 
         this.ShopItem = getModel(ShopItem, Database.SHOP, ShopCollection.ITEMS);
