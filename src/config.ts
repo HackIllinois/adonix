@@ -77,14 +77,18 @@ const Config = {
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
+    DEFAULT_COIN_VALUE: 0,
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
 
     /* Misc */
-    EVENT_ID_LENGTH: 32,
+    SHOP_BYTES_GEN: 2,
     EVENT_BYTES_GEN: 16,
-    SHOP_BYTES_GEN: 16,
+
+    SHOP_ID_LENGTH: 2 * 2,
+    EVENT_ID_LENGTH: 2 * 16,
+    MAX_SHOP_STOCK_PER_ITEM: 128,
 };
 
 export default Config;
