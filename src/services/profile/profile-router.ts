@@ -29,7 +29,6 @@ profileRouter.use(cors({ origin: "*" }));
  *
  * @apiQuery {int} limit Number of profiles to return. If not provided, defaults to all profiles stored in the database.
  *
- *
  * @apiSuccess (200: Success) {Json} profiles Specified number of profiles, sorted in descending point order.
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -97,6 +96,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
  * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
@@ -146,6 +146,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
  * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK

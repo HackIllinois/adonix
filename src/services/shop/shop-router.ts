@@ -16,7 +16,7 @@ import { FilteredShopItemFormat, ItemFormat, isValidItemFormat } from "./shop-fo
 /**
  * @api {get} /shop GET /shop
  * @apiGroup Shop
- * @apiDescription Get item details for all items.
+ * @apiDescription Get item details for all items in point shop.
  *
  * @apiSuccess (200: Success) {Json} items The items details.
  * @apiSuccessExample Example Success Response
@@ -27,13 +27,15 @@ import { FilteredShopItemFormat, ItemFormat, isValidItemFormat } from "./shop-fo
  *      "name": "HackIllinois Branded Hoodie",
  *      "price": 15,
  *      "isRaffle": true,
- *      "quantity": 1
+ *      "quantity": 1,
+ *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/hoodie.svg"
  *   }, {
  *      "itemId": "item02",
  *      "name": "Snack Pack!",
  *      "price": 20,
  *      "isRaffle": false,
- *      "quantity": 25
+ *      "quantity": 25,
+ *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/snack_pack.svg"
  *   }]
  * }
  *
@@ -88,7 +90,7 @@ shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: 
  * }
  *
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} ExtraIdProvided Invalid item parameters provided.
+ * @apiError (400: Bad Request) {String} BadRequest Item passed with invalid format.
  * @apiError (400: Bad Request) {String} ItemAlreadyExists Item already exists in shop.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
@@ -154,6 +156,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
  *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/bunny.svg"
  * }
  * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} BadRequest Item passed with invalid format.
  * @apiError (400: Bad Request) {String} ItemInRequestBody Omit itemId from request body.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found.
@@ -192,7 +195,7 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
 /**
  * @api {delete} /shop/item/:ITEMID DELETE /shop/item/:ITEMID
  * @apiGroup Shop
- * @apiDescription Delete the a specific item in the point shop based itemId.
+ * @apiDescription Delete the a specific item in the point shop based itemId. No error is thrown if item is not found.
  *
  * @apiHeader {String} Authorization User's JWT Token with admin permissions.
  *
@@ -204,7 +207,6 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
  * }
  *
  * @apiUse strongVerifyErrors
- * @apiError (403: NotFound) {String} ItemNotFound Item not found in the shop.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
@@ -236,12 +238,13 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
  *	{
  *		"itemId": "item0001",
  * 		"qrInfo": [
-            "hackillinois://item?itemId=item49289&secret=4",
-            "hackillinois://item?itemId=item49289&secret=73",
-            "hackillinois://item?itemId=item49289&secret=69"
+            "hackillinois://item?itemId=item49289&instance=4",
+            "hackillinois://item?itemId=item49289&instance=73",
+            "hackillinois://item?itemId=item49289&instance=69"
         ]
  * 	}
  *
+ * @apiError (403: Forbidden) {String} InvalidPermission User does not have elevated permissions.
  * @apiError (404: Not Found) {String} ItemNotFound Item doesn't exist in the database.
  * @apiUse strongVerifyErrors
  */
@@ -253,7 +256,6 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    // Obtain secrets generating when initializing items
     const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: targetItem });
 
     if (!itemFormat) {
@@ -273,17 +275,17 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  *
  * @apiHeader {String} Authorization User's JWT Token with attendee permissions.
  *
- * @apiBody {Json} itemId ItemId of item being purchased.
- * @apiBody {Json} secret Secret provided by uri to uniquely identify the item.
+ * @apiBody {Json} itemId ItemId of item being purchased (from QR).
+ * @apiBody {Json} instance Insance provided by uri to uniquely identify the item (from QR).
  * @apiParamExample {Json} Request Body Example for an Item:
  * {
  *      "itemId": "item0001",
- *      "secret": 15,
+ *      "instance": 19381922i31ox0902902,
  * }
  *
  * @apiUse strongVerifyErrors
  * @apiError (200: Success) {String} Success Purchase was successful.
- * @apiError (403: Forbidden) {String} InvalidPermission User does not have attendee permissions.
+ * @apiError (404: Forbidden) {String} AttendeeProfileNotFound User has no attendee profile.
  * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found or already purchased.
  * @apiError (404: Not Found) {String} InvalidUniqueItem This unique item is already purchased or doesn't exist.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
@@ -293,12 +295,8 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    console.error("pre-lookup");
-
     const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: itemId });
     const userData: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
-
-    console.error("post-lookup");
 
     if (!itemFormat) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
@@ -312,11 +310,10 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InsufficientFunds"));
     }
 
-    console.error("pre-instances");
     const instances = itemFormat.instances;
 
     for (let i = 0; i < instances.length; ++i) {
-        // If this isn't the secret, move on
+        // If this isn't the instance, move on
         if (instances[i] != req.body.instance) {
             continue;
         }
