@@ -29,7 +29,7 @@ export class AttendeeProfile {
     @prop({ required: true })
     public points: number;
 
-    @prop({ required: true})
+    @prop({ required: true })
     public coins: number;
 }
 

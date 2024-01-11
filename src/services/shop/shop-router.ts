@@ -10,7 +10,7 @@ import { getPrice } from "../shop/shop-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
-import { ItemFormat, QuantityFormat, ShopItemFormat } from "./shop-formats.js";
+import { ShopItemFormat, ItemFormat,  FilteredShopItemFormat } from "./shop-formats.js";
 import Models from "../../database/models.js";
 
 /**
@@ -41,46 +41,21 @@ import Models from "../../database/models.js";
  * */
 
 const shopRouter: Router = Router();
-shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    try {
-        const shopItems: ShopItemFormat[] = await Models.ShopItem.find();
-        const shopQuantities: QuantityFormat[] = await Models.ShopQuantity.find();
-
-        const itemsMap = new Map<string, ShopItemFormat>();
-        shopItems.forEach((item) => {
-            return itemsMap.set(item.itemId, item);
-        });
-
-        const itemsWithQuantity: ItemFormat[] = Array.from(itemsMap.values()).map((item) => {
-            const quantity = shopQuantities.find((q) => {
-                return q.itemId === item.itemId;
-            });
-            const itemQuantity = quantity ? quantity.quantity : 0;
-
-            return {
-                itemId: item.itemId,
-                name: item.name || "",
-                price: item.price || 0,
-                isRaffle: item.isRaffle || false,
-                quantity: itemQuantity,
-                imageURL: item.imageURL || ""
-            };
-        });
-
-        return res.status(StatusCode.SuccessOK).send(itemsWithQuantity);
-    } catch (error) {
-        console.error(error);
-        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalServerError"));
-    }
+shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, _: NextFunction) => {
+    const shopItems: ShopItemFormat[] = await Models.ShopItem.find();    
+    
+    const newData: FilteredShopItemFormat = shopItems.map((item: ShopItemFormat) => {
+        return 
+    });
 });
 
 /**
  * @api {post} /shop/item post /shop/item
  * @apiGroup Shop
  * @apiDescription Insert a new item into the shop.
- * 
+ *
  * @apiHeader {String} Authorization User's JWT Token with admin permissions.
- * 
+ *
  * @apiBody {Json} item The item details to be created.
  * @apiParamExample {Json} Request Body Example for an Item:
  * {
@@ -121,7 +96,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraItemId: req.body.itemId }));
     }
 
-    const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"),16);
+    const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"), 16);
 
     const metaItem: ItemFormat = req.body as ItemFormat;
     metaItem.itemId = itemId;
@@ -131,7 +106,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         name: req.body.name,
         price: req.body.price,
         isRaffle: req.body.isRaffle,
-        imageURL: req.body.imageURL
+        imageURL: req.body.imageURL,
     };
 
     const uniqueSecrets = new Set<number>();
@@ -139,11 +114,11 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         uniqueSecrets.add(getRand());
     }
     const secrets = Array.from(uniqueSecrets);
-      
+
     const itemQuantity: QuantityFormat = {
         itemId: itemId,
         quantity: req.body.quantity,
-        secrets: secrets
+        secrets: secrets,
     };
 
     // Ensure that user doesn't already exist before creating
@@ -210,11 +185,11 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
     }
 
     await Models.ShopItem.findOneAndUpdate(
-        { itemId: targetItem},
+        { itemId: targetItem },
         { name: req.body.name, price: req.body.price, isRaffle: req.body.isRaffle, imageURL: req.body.imageURL },
         { new: true },
     );
-    
+
     return res.status(StatusCode.SuccessOK).send({ success: true });
 });
 
@@ -222,7 +197,7 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
  * @api {delete} /shop/item/:ITEMID DELETE /shop/item/:ITEMID
  * @apiGroup Shop
  * @apiDescription Delete the a specific item in the point shop based itemId.
- * 
+ *
  * @apiHeader {String} Authorization User's JWT Token with admin permissions.
  *
  * @apiSuccess (200: Success) {Json} success Indicates successful deletion of the user's profile.
@@ -231,7 +206,7 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
  * {
  *    "success": true
  * }
- * 
+ *
  * @apiUse strongVerifyErrors
  * @apiError (403: NotFound) {String} ItemNotFound Item not found in the shop.
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
@@ -283,8 +258,8 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
 shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const targetItem: string | undefined = req.params.ITEMID as string;
 
-    // Obtain secrets generating when initializing items 
-    var secrets: number[] = [];
+    // Obtain secrets generating when initializing items
+    let secrets: number[] = [];
     const obj = await Models.ShopQuantity.findOne({ itemId: targetItem });
     if (obj) {
         secrets = obj.secrets;
@@ -292,8 +267,8 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    // Generate array of uris representing all unique items 
-    var uris: string[] = [];
+    // Generate array of uris representing all unique items
+    const uris: string[] = [];
     for (let i = 0; i < secrets.length; i++) {
         console.log(secrets[i]);
         uris.push(`hackillinois://item?itemId=${targetItem}&secret=${secrets[i]}`);
@@ -307,7 +282,7 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiDescription Purchase item at the point shop using provided QR code.
  *
  * @apiHeader {String} Authorization User's JWT Token with attendee permissions.
- * 
+ *
  * @apiBody {Json} itemId ItemId of item being purchased.
  * @apiBody {Json} secret Secret provided by uri to uniquely identify the item.
  * @apiParamExample {Json} Request Body Example for an Item:
@@ -328,7 +303,7 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    var secrets: number[] = [];
+    let secrets: number[] = [];
     const obj = await Models.ShopQuantity.findOne({ itemId: itemId });
     if (obj) {
         secrets = obj.secrets;
@@ -340,27 +315,25 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
 
     for (let i = 0; i < secrets.length; ++i) {
         if (secrets[i] == req.body.secret) {
-
-            // check for insufficient funds 
+            // check for insufficient funds
             if (getCoins(userId) < getPrice(itemId)) {
                 return next(new RouterError(StatusCode.ClientErrorBadRequest, "InsufficientFunds"));
             } else {
-
-                // delete shop item 
+                // delete shop item
                 const updatedShopQuantity = await Models.ShopQuantity.updateOne(
                     { itemId: itemId },
                     {
-                        $inc: {quantity: -1},
-                        $pull: { secrets: req.body.secret }
-                    }
+                        $inc: { quantity: -1 },
+                        $pull: { secrets: req.body.secret },
+                    },
                 );
-                
-                // decrement attendee coins 
+
+                // decrement attendee coins
                 if (updatedShopQuantity) {
                     if (targetItem) {
                         updateCoins(userId, -targetItem.price);
                     }
-                    return res.status(StatusCode.SuccessOK).send({ success: true });   
+                    return res.status(StatusCode.SuccessOK).send({ success: true });
                 }
             }
         }
@@ -369,9 +342,11 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
     return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
 });
 
-// Helper 
-function getRand(): number {
-    return Math.floor(Math.random() * Config.MAX_SHOP_STOCK_PER_ITEM) + 1;
+// TODO: Hash this!!!
+function getRand(): string {
+    const index = Math.floor(Math.random() * Config.MAX_SHOP_STOCK_PER_ITEM);
+    const hash = crypto.createHash('sha256').update(`${Config.JWT_SECRET}|${index}`).digest("hex");
+    return hash;
 }
 
 export default shopRouter;

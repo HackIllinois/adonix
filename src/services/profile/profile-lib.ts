@@ -63,11 +63,11 @@ export async function updateCoins(userId: string, amount: number): Promise<Atten
  * @returns Coin amount (number)
  */
 export async function getCoins(userId: string): Promise<number | null> {
-    var profile = await Models.AttendeeProfile.findOne({userId: userId}); 
+    const profile = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (profile) {
         return profile.coins;
     } else {
-        return 0; 
+        return 0;
     }
 }

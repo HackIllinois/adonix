@@ -44,7 +44,7 @@ const profile: ProfileFormat = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
-    coins: 0
+    coins: 0,
 };
 
 beforeEach(async () => {

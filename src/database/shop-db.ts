@@ -32,7 +32,7 @@ export class ShopQuantity {
     @prop({ required: true })
     public quantity: number;
 
-    @prop({required: true})
+    @prop({ required: true })
     public secrets: number[];
 
     constructor(itemId: string, quantity: number, secrets: number[]) {

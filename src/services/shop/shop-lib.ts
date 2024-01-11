@@ -6,11 +6,11 @@ import Models from "../../database/models.js";
  * @returns Price in coins (number)
  */
 export async function getPrice(itemId: string): Promise<number | null> {
-  var item = await Models.ShopItem.findOne({itemId: itemId}); 
+    const item = await Models.ShopItem.findOne({ itemId: itemId });
 
-  if (item) {
-      return item.price;
-  } else {
-      return 0; 
-  }
+    if (item) {
+        return item.price;
+    } else {
+        return 0;
+    }
 }
