@@ -61,6 +61,7 @@ shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next:
                 price: item.price || 0,
                 isRaffle: item.isRaffle || false,
                 quantity: itemQuantity,
+                imageURL: item.imageURL || ""
             };
         });
 
@@ -84,7 +85,8 @@ shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next:
  *      "name": "HackIllinois Branded Hoodie",
  *      "price": 15,
  *      "isRaffle": true,
- *      "quantity": 1
+ *      "quantity": 1,
+ *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/bunny.svg"
  * }
  *
  * @apiSuccess (200: Success) {Json} items The items details.
@@ -95,7 +97,8 @@ shopRouter.get("/", weakJwtVerification, async (_: Request, res: Response, next:
  *      "name": "HackIllinois Branded Hoodie",
  *      "price": 15,
  *      "isRaffle": true,
- *      "quantity": 1
+ *      "quantity": 1,
+ *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/bunny.svg"
  * }
  *
  * @apiUse strongVerifyErrors
@@ -126,6 +129,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         name: req.body.name,
         price: req.body.price,
         isRaffle: req.body.isRaffle,
+        imageURL: req.body.imageURL
     };
 
     const uniqueSecrets = new Set<number>();
@@ -166,7 +170,8 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
  *     {
  *       "name": "HackIllinois Branded Hoodie",
  *       "price": 1000000,
- *       "isRaffle": false
+ *       "isRaffle": false,
+ *       "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/bunny.svg"
  *     }
  * @apiSuccess (200: Success) {String} Item upon performing updates.
  * @apiSuccessExample {json} Success Response:
@@ -175,7 +180,8 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
  *      "name": "HackIllinois Branded Hoodie",
  *      "price": 1000000,
  *      "isRaffle": false,
- *      "quantity": 1
+ *      "quantity": 1,
+ *      "imageURL": "https://raw.githubusercontent.com/HackIllinois/example/avatars/bunny.svg"
  * }
  * @apiUse strongVerifyErrors
  * @apiError (400: Bad Request) {String} ItemInRequestBody Omit itemId from request body.
@@ -203,7 +209,7 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
 
     await Models.ShopItem.findOneAndUpdate(
         { itemId: targetItem},
-        { name: req.body.name, price: req.body.price, isRaffle: req.body.isRaffle },
+        { name: req.body.name, price: req.body.price, isRaffle: req.body.isRaffle, imageURL: req.body.imageURL },
         { new: true },
     );
     

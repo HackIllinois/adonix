@@ -13,11 +13,15 @@ export class ShopItem {
     @prop({ required: true })
     public isRaffle: boolean;
 
+    @prop({ required: true })
+    public imageURL: string;
+
     constructor(itemId: string, name: string, price: number, isRaffle: boolean) {
         this.itemId = itemId;
         this.name = name;
         this.price = price;
         this.isRaffle = isRaffle;
+        this.imageURL = this.imageURL;
     }
 }
 

@@ -4,6 +4,7 @@ export interface ItemFormat {
     price: number;
     isRaffle: boolean;
     quantity: number;
+    imageURL: string; 
 }
 
 export interface QuantityFormat {
@@ -17,4 +18,5 @@ export interface ShopItemFormat {
     name: string;
     price: number;
     isRaffle: boolean;
+    imageURL: string;
 }
