@@ -16,12 +16,12 @@ export class ShopItem {
     @prop({ required: true })
     public imageURL: string;
 
-    constructor(itemId: string, name: string, price: number, isRaffle: boolean) {
+    constructor(itemId: string, name: string, price: number, isRaffle: boolean, imageURL: string) {
         this.itemId = itemId;
         this.name = name;
         this.price = price;
         this.isRaffle = isRaffle;
-        this.imageURL = this.imageURL;
+        this.imageURL = imageURL;
     }
 }
 
