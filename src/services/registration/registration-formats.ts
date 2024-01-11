@@ -40,17 +40,14 @@ function isArrayOfType(arr: unknown[], typeChecker: (value: unknown) => boolean)
 }
 
 export function isValidRegistrationFormat(registration: RegistrationFormat): boolean {
-    console.log("A");
     if (!registration) {
         return false;
     }
 
-    console.log("B");
 
     if (!isString(registration.preferredName) || !isString(registration.legalName) || !isString(registration.email)) {
         return false;
     }
-    console.log("C");
 
     if (
         !isString(registration.gender) ||
@@ -59,7 +56,6 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     ) {
         return false;
     }
-    console.log("D");
 
     if (
         !isString(registration.location) ||
@@ -69,33 +65,27 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     ) {
         return false;
     }
-    console.log("E");
 
     if (!isArrayOfType(registration.hackInterest, isString) || !isArrayOfType(registration.hackOutreach, isString)) {
         return false;
     }
 
-    console.log("F");
     if (!isString(registration.hackEssay1) || !isString(registration.hackEssay2)) {
         return false;
     }
 
-    console.log("G");
     if (!isBoolean(registration.isProApplicant) || !isBoolean(registration.requestedTravelReimbursement)) {
         return false;
     }
 
-    console.log("H");
     if (registration.optionalEssay && !isString(registration.optionalEssay)) {
         return false;
     }
 
-    console.log("I");
     if (registration.isProApplicant && (!isString(registration.proEssay) || !isBoolean(registration.considerForGeneral))) {
         return false;
     }
 
-    console.log("J");
     if (!registration.isProApplicant) {
         if (isString(registration.proEssay) && (registration.proEssay?.length ?? 0) > 0) {
             return false;
@@ -105,6 +95,5 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
             return false;
         }
     }
-    console.log("K");
     return true;
 }
