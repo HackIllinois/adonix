@@ -28,4 +28,20 @@ export class AttendeeProfile {
 
     @prop({ required: true })
     public points: number;
+
+    @prop({ required: true })
+    public coins: number;
+}
+
+export class AttendeeFollowing {
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({
+        required: true,
+        type: () => {
+            return String;
+        },
+    })
+    public following: string[];
 }

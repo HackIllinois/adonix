@@ -149,7 +149,7 @@ authRouter.get(
             data.displayName = data.name ?? data.displayName ?? data.login;
 
             // Load in the payload with the actual values stored in the database
-            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, false);
+            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, true);
 
             const userId: string = payload.id;
             await Models.UserInfo.findOneAndUpdate(
@@ -158,9 +158,21 @@ authRouter.get(
                 { upsert: true },
             );
 
-            // Generate the token, and return it
-            const isMobile: boolean = device == Device.ANDROID || device == Device.IOS;
-            const token: string = generateJwtToken(payload, isMobile);
+            let token: string;
+            switch (device) {
+                case Device.CHALLENGE:
+                    token = generateJwtToken(payload, false, "720h");
+                    break;
+                case Device.ANDROID:
+                    token = generateJwtToken(payload, true);
+                    break;
+                case Device.IOS:
+                    token = generateJwtToken(payload, true);
+                    break;
+                default:
+                    token = generateJwtToken(payload, false);
+            }
+
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {

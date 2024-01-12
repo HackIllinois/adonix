@@ -4,6 +4,7 @@ export interface ProfileFormat {
     discordTag: string;
     displayName: string;
     points: number;
+    coins: number;
 }
 
 export function isValidProfileFormat(profile: ProfileFormat): boolean {

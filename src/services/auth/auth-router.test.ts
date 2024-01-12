@@ -155,7 +155,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 
     it.each(ALL_DEVICES)("works when authentication passes with device %s", async (device) => {
         const profileData = {
-            id: "github123",
+            id: "123",
             email: "test@gmail.com",
         } satisfies ProfileData;
         const provider = Provider.GITHUB;
@@ -178,7 +178,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
-                id: profileData.id,
+                id: `${provider}${profileData.id}`,
                 email: profileData.email,
                 provider,
                 roles: [Role.USER],

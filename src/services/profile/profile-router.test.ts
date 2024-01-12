@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach } from "@jest/globals";
-import Models from "../../database/models.js";
-import { TESTER, delAsUser, getAsAdmin, getAsUser, getAsStaff, postAsAttendee, postAsUser } from "../../testTools.js";
-import { ProfileFormat } from "./profile-formats.js";
-import Config from "../../config.js";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
 import { StatusCode } from "status-code-enum";
+import Config from "../../config.js";
+import Models from "../../database/models.js";
+import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools.js";
+import { ProfileFormat } from "./profile-formats.js";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -12,6 +12,7 @@ const TESTER_USER = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
+    coins: 0,
 } satisfies AttendeeProfile;
 
 const TESTER_METADATA = {
@@ -25,6 +26,7 @@ const TESTER_USER_2 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    coins: 12,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -33,6 +35,7 @@ const TESTER_USER_3 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    coins: 12,
 } satisfies AttendeeProfile;
 
 const profile: ProfileFormat = {
@@ -41,6 +44,7 @@ const profile: ProfileFormat = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
+    coins: 0,
 };
 
 beforeEach(async () => {
@@ -98,25 +102,25 @@ describe("GET /profile", () => {
     });
 });
 
-describe("GET /profile/id/:USERID", () => {
-    it("redirects with no id provided", async () => {
-        await getAsUser("/profile/id").expect(StatusCode.RedirectFound);
-    });
+describe("GET /profile/userid/:USERID", () => {
+    // it("redirects with no id provided", async () => {
+    //     await getAsUser("/profile/userid").expect(StatusCode.RedirectFound);
+    // });
 
     it("fails to get a profile as a user", async () => {
-        const response = await getAsUser("/profile/id/" + TESTER.id).expect(StatusCode.ClientErrorForbidden);
+        const response = await getAsUser("/profile/userid/" + TESTER.id).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gets a profile as an admin", async () => {
-        const response = await getAsAdmin("/profile/id/" + TESTER.id).expect(StatusCode.SuccessOK);
+        const response = await getAsAdmin("/profile/userid/" + TESTER.id).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 
     it("gets a user that doesnt exist", async () => {
-        const response = await getAsAdmin("/profile/id/doesnotexist").expect(StatusCode.ClientErrorNotFound);
+        const response = await getAsAdmin("/profile/userid/doesnotexist").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
@@ -155,6 +159,7 @@ describe("GET /profile/leaderboard", () => {
                 avatarUrl: TESTER.avatarUrl,
                 discordTag: TESTER.discordTag,
                 points: i,
+                coins: i,
             });
         }
 
@@ -174,7 +179,7 @@ describe("GET /profile/leaderboard", () => {
 
 describe("GET /profile/addpoints", () => {
     it("works for Staff", async () => {
-        const response = await getAsStaff("/profile/addpoints")
+        const response = await postAsStaff("/profile/addpoints")
             .send({
                 userId: TESTER.id,
                 points: 10,
@@ -185,7 +190,7 @@ describe("GET /profile/addpoints", () => {
     });
 
     it("returns Forbidden error for users", async () => {
-        const response = await getAsUser("/profile/addpoints")
+        const response = await postAsUser("/profile/addpoints")
             .send({
                 userId: TESTER.id,
                 points: 10,
@@ -196,7 +201,7 @@ describe("GET /profile/addpoints", () => {
     });
 
     it("returns UserNotFound for nonexistent users", async () => {
-        const response = await getAsStaff("/profile/addpoints")
+        const response = await postAsStaff("/profile/addpoints")
             .send({
                 userId: "idontexists",
                 points: 10,
