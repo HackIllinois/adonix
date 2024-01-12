@@ -55,6 +55,8 @@ const Config = {
 
     /* OAuth, Keys, & Permissions */
     DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/`,
+    SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
+    SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",
 
     GITHUB_OAUTH_ID: requireEnv("GITHUB_OAUTH_ID"),
     GITHUB_OAUTH_SECRET: requireEnv("GITHUB_OAUTH_SECRET"),
