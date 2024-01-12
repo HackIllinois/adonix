@@ -16,6 +16,10 @@ export enum Device {
     CHALLENGE = "challenge",
 }
 
+export enum RegistrationTemplates {
+    REGISTRATION_SUBMISSION = "registration_confirmation",
+}
+
 function requireEnv(name: string): string {
     const value = env[name];
 

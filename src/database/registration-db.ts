@@ -5,6 +5,9 @@ export class RegistrationApplication {
     public userId: string;
 
     @prop({ required: true })
+    public hasSubmitted: boolean;
+
+    @prop({ required: true })
     public isProApplicant: boolean;
 
     @prop({ required: true })
@@ -32,6 +35,9 @@ export class RegistrationApplication {
 
     @prop({ required: true })
     public location: string;
+
+    @prop({ required: true })
+    public degree: string;
 
     @prop({ required: true })
     public university: string;

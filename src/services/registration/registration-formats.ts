@@ -7,7 +7,7 @@ export interface RegistrationFormat {
     considerForGeneral?: boolean;
     preferredName: string;
     legalName: string;
-    email: string;
+    emailAddress: string;
     gender: Gender;
     race: Race[];
     requestedTravelReimbursement: boolean;
@@ -29,7 +29,12 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
-    if (!isString(registration.preferredName) || !isString(registration.legalName) || !isString(registration.email)) {
+    if (
+        !isString(registration.userId) ||
+        !isString(registration.preferredName) ||
+        !isString(registration.legalName) ||
+        !isString(registration.emailAddress)
+    ) {
         return false;
     }
 

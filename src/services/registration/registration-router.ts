@@ -1,14 +1,24 @@
+import { StatusCode } from "status-code-enum";
+import { NextFunction } from "express-serve-static-core";
 import { Request, Response, Router } from "express";
+
+import { RegistrationTemplates } from "../../config.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { RouterError } from "../../middleware/error-handler.js";
 
 import Models from "../../database/models.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.js";
+
+import { Degree, Gender } from "./registration-models.js";
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
 
-import { StatusCode } from "status-code-enum";
-import { Degree, Gender } from "./registration-models.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { JwtPayload } from "../auth/auth-models.js";
+
+import { sendMailWrapper } from "../mail/mail-lib.js";
+import { MailInfoFormat } from "../mail/mail-formats.js";
+
 
 const registrationRouter: Router = Router();
 
@@ -47,7 +57,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
         considerForGeneral: true,
         preferredName: "",
         legalName: "",
-        email: "",
+        emailAddress: "",
         gender: Gender.OTHER,
         race: [],
         requestedTravelReimbursement: false,
@@ -98,21 +108,18 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *     HTTP/1.1 400 Bad Request
  *     {"error": "UserNotFound"}
  */
-registrationRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    //Sends error if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        // TODO: CALL ERROR HANDLER ROUTER
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
     const registrationData: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
 
     if (!registrationData) {
-        // TODO: CALL ERROR HANDLER ROUTER
-        return res.status(StatusCode.ClientErrorNotFound).send({ error: "UserNotFound" });
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(registrationData);
@@ -166,14 +173,20 @@ registrationRouter.get("/:USERID", strongJwtVerification, async (req: Request, r
  *
  * @apiUse strongVerifyErrors
  */
-registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
     const registrationData: RegistrationFormat = req.body as RegistrationFormat;
+    registrationData.userId = userId;
+
     if (!isValidRegistrationFormat(registrationData)) {
-        // TODO: CALL ERROR HANDLER ROUTER
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "BadRequest" });
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
+    }
+
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
+    if (registrationInfo?.hasSubmitted ?? false) {
+        return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
     }
 
     const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOneAndReplace(
@@ -183,12 +196,54 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
     );
 
     if (!newRegistrationInfo) {
-        // TODO: CALL ERROR HANDLER ROUTER
-        return res.status(StatusCode.ServerErrorInternal).send({ error: "InternalError" });
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    // TODO: S3 API TO GENERATE RESUME LINK AND SEND IT OVER WITH THIS INFO
     return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
+});
+
+// THIS ENDPOINT SHOULD PERFORM ALL THE ACTIONS REQUIRED ONCE YOU SUBMIT REGISTRATION
+registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
+
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
+
+    if (!registrationInfo) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NoRegistrationInfo"));
+    }
+
+    if (registrationInfo?.hasSubmitted ?? false) {
+        return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
+    }
+
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOneAndUpdate(
+        { userId: userId },
+        { hasSubmitted: true },
+        { new: true },
+    );
+    if (!newRegistrationInfo) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+
+    const admissionInfo: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
+        {
+            userId: userId,
+        },
+        { status: DecisionStatus.TBD },
+        {upsert: true, new: true}
+    );
+
+    if (!admissionInfo) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+
+    // SEND SUCCESFUL REGISTRATION EMAIL
+    const mailInfo: MailInfoFormat = {
+        templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+        recipients: [registrationInfo.emailAddress],
+    };
+    return sendMailWrapper(res, next, mailInfo);
 });
 
 export default registrationRouter;

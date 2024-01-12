@@ -8,7 +8,7 @@ import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { MailInfoFormat, isValidMailInfo } from "./mail-formats.js";
-import { sendMail } from "./mail-lib.js";
+import { sendMailWrapper } from "./mail-lib.js";
 
 // PUT /admission/
 // ➡️ email everyone that had a decision changed from PENDING to ACCEPTED/WAITLISTED/REJECTED
@@ -33,18 +33,7 @@ mailRouter.post("/send/", strongJwtVerification, async (req: Request, res: Respo
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
-    return sendMail(mailInfo.templateId, mailInfo.recipients)
-        .then((result) => {
-            return res.status(StatusCode.SuccessOK).send(result.data);
-        })
-        .catch((result) => {
-            return next(
-                new RouterError(StatusCode.ClientErrorBadRequest, "EmailNotSent", {
-                    status: result.response.status,
-                    code: result.code,
-                }),
-            );
-        });
+    return sendMailWrapper(res, next, mailInfo);
 });
 
 export default mailRouter;
