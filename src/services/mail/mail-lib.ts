@@ -5,11 +5,7 @@ import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
 import { MailInfoFormat } from "./mail-formats.js";
 
-export async function sendMailWrapper(
-    res: Response,
-    next: NextFunction,
-    mailInfo: MailInfoFormat,
-): Promise<void | Response> {
+export async function sendMailWrapper(res: Response, next: NextFunction, mailInfo: MailInfoFormat): Promise<void | Response> {
     try {
         const result = await sendMail(mailInfo.templateId, mailInfo.recipients, mailInfo.scheduleTime);
         return res.status(StatusCode.SuccessOK).send(result.data);

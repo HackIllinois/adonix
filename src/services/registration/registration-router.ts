@@ -19,7 +19,6 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { sendMailWrapper } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
 
-
 const registrationRouter: Router = Router();
 
 /**
@@ -231,7 +230,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
             userId: userId,
         },
         { status: DecisionStatus.TBD },
-        {upsert: true, new: true}
+        { upsert: true, new: true },
     );
 
     if (!admissionInfo) {
