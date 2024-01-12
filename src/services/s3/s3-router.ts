@@ -37,7 +37,7 @@ s3Router.get("/upload", strongJwtVerification, async (_1: Request, res: Response
 
     const s3Params = {
         Bucket: Config.S3_BUCKET_NAME,
-        Key: userId,
+        Key: `${userId}.pdf`,
         Expires: 60,
         ContentType: "application/pdf",
     };
@@ -66,7 +66,7 @@ s3Router.get("/download", strongJwtVerification, async (_1: Request, res: Respon
 
     const s3Params = {
         Bucket: Config.S3_BUCKET_NAME,
-        Key: userId,
+        Key: `${userId}.pdf`,
         Expires: 60,
     };
 
@@ -102,7 +102,7 @@ s3Router.get("/download/:USERID", strongJwtVerification, async (req: Request, re
 
     const s3Params = {
         Bucket: Config.S3_BUCKET_NAME,
-        Key: userId,
+        Key: `${userId}.pdf`,
         Expires: 60,
     };
 
