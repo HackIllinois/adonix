@@ -10,14 +10,6 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { MailInfoFormat, isValidMailInfo } from "./mail-formats.js";
 import { sendMailWrapper } from "./mail-lib.js";
 
-// PUT /admission/
-// ➡️ email everyone that had a decision changed from PENDING to ACCEPTED/WAITLISTED/REJECTED
-
-// ➡️ periodically email those who were ACCEPTED but did not respond to RSVP yet (maybe 2 reminders max)
-
-// PUT /admission/rsvp/
-// ➡️ auto email confirmation to user that updated their rsvp choice (userid in JWT)
-
 const mailRouter: Router = Router();
 
 mailRouter.post("/send/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {

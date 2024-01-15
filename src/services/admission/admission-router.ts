@@ -44,8 +44,8 @@ const admissionRouter: Router = Router();
  *         }
  * ]
  * @apiUse strongVerifyErrors
- * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
+ * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * */
 admissionRouter.get("/not-sent/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
