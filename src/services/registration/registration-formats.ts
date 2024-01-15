@@ -1,4 +1,5 @@
 import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
+import { isString, isBoolean, isArrayOfType, isNumber } from "../../formatTools.js";
 
 export interface RegistrationFormat {
     userId: string;
@@ -6,7 +7,7 @@ export interface RegistrationFormat {
     considerForGeneral?: boolean;
     preferredName: string;
     legalName: string;
-    email: string;
+    emailAddress: string;
     gender: Gender;
     race: Race[];
     requestedTravelReimbursement: boolean;
@@ -23,28 +24,17 @@ export interface RegistrationFormat {
     proEssay?: string;
 }
 
-function isString(value: unknown): boolean {
-    return typeof value === "string";
-}
-
-function isBoolean(value: unknown): boolean {
-    return typeof value === "boolean";
-}
-
-function isNumber(value: unknown): boolean {
-    return typeof value === "number";
-}
-
-function isArrayOfType(arr: unknown[], typeChecker: (value: unknown) => boolean): boolean {
-    return Array.isArray(arr) && arr.every(typeChecker);
-}
-
 export function isValidRegistrationFormat(registration: RegistrationFormat): boolean {
     if (!registration) {
         return false;
     }
 
-    if (!isString(registration.preferredName) || !isString(registration.legalName) || !isString(registration.email)) {
+    if (
+        !isString(registration.userId) ||
+        !isString(registration.preferredName) ||
+        !isString(registration.legalName) ||
+        !isString(registration.emailAddress)
+    ) {
         return false;
     }
 

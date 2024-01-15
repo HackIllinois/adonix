@@ -1,17 +1,19 @@
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
 
+import admissionRouter from "./services/admission/admission-router.js";
 import authRouter from "./services/auth/auth-router.js";
-import userRouter from "./services/user/user-router.js";
 import eventRouter from "./services/event/event-router.js";
+import mailRouter from "./services/mail/mail-router.js";
+import newsletterRouter from "./services/newsletter/newsletter-router.js";
 import profileRouter from "./services/profile/profile-router.js";
 import registrationRouter from "./services/registration/registration-router.js";
-import staffRouter from "./services/staff/staff-router.js";
-import newsletterRouter from "./services/newsletter/newsletter-router.js";
-import versionRouter from "./services/version/version-router.js";
-import admissionRouter from "./services/admission/admission-router.js";
-import shopRouter from "./services/shop/shop-router.js";
 import s3Router from "./services/s3/s3-router.js";
+import shopRouter from "./services/shop/shop-router.js";
+import staffRouter from "./services/staff/staff-router.js";
+import versionRouter from "./services/version/version-router.js";
+import userRouter from "./services/user/user-router.js";
+
 // import { InitializeConfigReader } from "./middleware/config-reader.js";
 import { ErrorHandler } from "./middleware/error-handler.js";
 import Models from "./database/models.js";
@@ -32,17 +34,18 @@ if (!Config.TEST) {
 app.use(express.json());
 
 // Add routers for each sub-service
+app.use("/admission/", admissionRouter);
 app.use("/auth/", authRouter);
 app.use("/event/", eventRouter);
+app.use("/mail/", mailRouter);
 app.use("/newsletter/", newsletterRouter);
 app.use("/profile/", profileRouter);
 app.use("/registration/", registrationRouter);
-app.use("/staff/", staffRouter);
-app.use("/user/", userRouter);
-app.use("/admission/", admissionRouter);
-app.use("/version/", versionRouter);
-app.use("/shop/", shopRouter);
 app.use("/s3/", s3Router);
+app.use("/shop/", shopRouter);
+app.use("/staff/", staffRouter);
+app.use("/version/", versionRouter);
+app.use("/user/", userRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
