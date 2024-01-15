@@ -14,7 +14,7 @@ import { performRSVP } from "./admission-lib.js";
 const admissionRouter: Router = Router();
 
 /**
- * @api {get} /admission/notsent/ GET /admission/notsent/
+ * @api {get} /admission/get/notsent/ GET /admission/get/notsent/
  * @apiGroup Admission
  * @apiDescription Gets applicants' decisions who don't have an email sent
  *
@@ -79,6 +79,7 @@ admissionRouter.get("/get/notsent/", strongJwtVerification, async (_: Request, r
  * 	}
  *
  * @apiUse strongVerifyErrors
+ * @apiError (409: Conflict) Failed because RSVP has already happened.
  */
 admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -94,6 +95,10 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
     //If the current user has not been accepted, send an error
     if (queryResult.status != DecisionStatus.ACCEPTED) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "NotAccepted"));
+    }
+
+    if (queryResult.response != DecisionResponse.PENDING) {
+        return next(new RouterError(StatusCode.ClientErrorConflict, "AlreadyRSVPed"));
     }
 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.ACCEPTED);
@@ -126,6 +131,7 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * 	}
  *
  * @apiUse strongVerifyErrors
+ * @apiError (409: Conflict) Failed because RSVP has already happened.
  */
 admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -141,6 +147,10 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
     //If the current user has not been accepted, send an error
     if (queryResult.status != DecisionStatus.ACCEPTED) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "NotAccepted"));
+    }
+
+    if (queryResult.response != DecisionResponse.PENDING) {
+        return next(new RouterError(StatusCode.ClientErrorConflict, "AlreadyRSVPed"));
     }
 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.DECLINED);
