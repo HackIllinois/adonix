@@ -104,7 +104,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @api {get} /registration/:USERID GET /registration/:USERID
  * @apiGroup Registration
  * @apiDescription Gets registration data for a specific user, provided that the authenticated user has elevated perms
- * 
+ *
  * @apiSuccess (200: Success) {String} userId Applicant's userId
  * @apiSuccess (200: Success) {String} preferredName Applicant's preffered name
  * @apiSuccess (200: Success) {String} legalName Applicant's full legal name
@@ -124,7 +124,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiSuccess (200: Success) {String[]} race True/False Attendee's race/ethnicity
  * @apiSuccess (200: Success) {String[]} hackInterest  What the attendee is interested in for the event (multi-select)
  * @apiSuccess (200: Success) {String[]} hackOutreach How the attendee found us  (multi-select)
- * 
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
