@@ -14,7 +14,7 @@ import { performRSVP } from "./admission-lib.js";
 const admissionRouter: Router = Router();
 
 /**
- * @api {get} /admission/get/notsent/ GET /admission/get/notsent/
+ * @api {get} /admission/notsent/ GET /admission/notsent/
  * @apiGroup Admission
  * @apiDescription Gets applicants' decisions who don't have an email sent
  *
@@ -48,7 +48,7 @@ const admissionRouter: Router = Router();
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * */
-admissionRouter.get("/get/notsent/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const token: JwtPayload = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));

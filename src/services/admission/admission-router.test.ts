@@ -44,13 +44,13 @@ beforeEach(async () => {
     await Models.AdmissionDecision.create(OTHER_DECISION);
 });
 
-describe("GET /admission/get/notsent/", () => {
+describe("GET /admission/notsent/", () => {
     it("gives forbidden error for user without elevated perms", async () => {
-        const responseUser = await getAsUser("/admission/get/notsent/").expect(StatusCode.ClientErrorForbidden);
+        const responseUser = await getAsUser("/admission/notsent/").expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
     });
     it("should return a list of applicants without email sent", async () => {
-        const response = await getAsStaff("/admission/get/notsent/").expect(StatusCode.SuccessOK);
+        const response = await getAsStaff("/admission/notsent/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(expect.arrayContaining([expect.objectContaining(TESTER_DECISION)]));
     });
 });

@@ -61,7 +61,7 @@ shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: 
 });
 
 /**
- * @api {post} /shop/item post /shop/item
+ * @api {post} /shop/item POST /shop/item
  * @apiGroup Shop
  * @apiDescription Insert a new item into the shop.
  *
@@ -269,7 +269,7 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
 });
 
 /**
- * @api {post} /shop/item/buy/:ITEMID/ GET /shop/item/buy/:ITEMID/
+ * @api {post} /shop/item/buy/:ITEMID/ POST /shop/item/buy/:ITEMID/
  * @apiGroup Shop
  * @apiDescription Purchase item at the point shop using provided QR code.
  *
