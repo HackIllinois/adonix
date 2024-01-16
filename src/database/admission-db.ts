@@ -20,6 +20,8 @@ export class AdmissionDecision {
     @prop({ required: true })
     public status: DecisionStatus;
 
+    public admittedPro?: boolean;
+
     @prop({ required: true })
     public response: DecisionResponse;
 
@@ -28,4 +30,20 @@ export class AdmissionDecision {
 
     @prop({ required: true })
     public emailSent: boolean;
+
+    constructor(
+        userId: string,
+        status: DecisionStatus,
+        response: DecisionResponse,
+        reviewer: string,
+        emailSent: boolean,
+        admittedPro?: boolean,
+    ) {
+        this.userId = userId;
+        this.status = status;
+        this.admittedPro = admittedPro;
+        this.response = response;
+        this.reviewer = reviewer;
+        this.emailSent = emailSent;
+    }
 }

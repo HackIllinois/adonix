@@ -7,11 +7,14 @@ export enum Gender {
 }
 
 export enum Race {
-    ASIAN = "Asian",
     AMERICAN_INDIAN_ALASKA_NATIVE = "American Indian or Alaska Native",
+    ARAB_MIDDLE_EASTERN = "Arab or Middle Eastern",
     BLACK_AFRICAN_AMERICAN = "Black or African American",
-    PACIFIC_ISLANDER = "Native Hawaiian or Pacific Islander",
+    EAST_ASIAN = "East Asian",
     HISPANIC_LATINO = "Hispanic or Latino",
+    PACIFIC_ISLANDER = "Native Hawaiian or Pacific Islander",
+    SOUTH_EAST_ASIAN = "South East Asian",
+    SOUTH_ASIAN = "South Asian",
     WHITE = "White",
     NO_ANSWER = "Prefer Not To Answer",
 }
