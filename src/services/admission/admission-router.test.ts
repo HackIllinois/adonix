@@ -77,19 +77,19 @@ describe("PUT /admission/update/", () => {
     });
 });
 
-describe("GET /admission/rsvp/get/", () => {
+describe("GET /admission/rsvp/", () => {
     it("gives a UserNotFound error for an non-existent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
         });
 
-        const response = await getAsAttendee("/admission/rsvp/get/").expect(StatusCode.ClientErrorNotFound);
+        const response = await getAsAttendee("/admission/rsvp/").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
     it("works for an attendee user and returns filtered data", async () => {
-        const response = await getAsAttendee("/admission/rsvp/get/").expect(StatusCode.SuccessOK);
+        const response = await getAsAttendee("/admission/rsvp/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             userId: TESTER_DECISION.userId,
@@ -99,27 +99,27 @@ describe("GET /admission/rsvp/get/", () => {
     });
 
     it("works for a staff user and returns unfiltered data", async () => {
-        const response = await getAsStaff("/admission/rsvp/get/").expect(StatusCode.SuccessOK);
+        const response = await getAsStaff("/admission/rsvp/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
     });
 });
 
-describe("GET /admission/rsvp/get/:USERID", () => {
+describe("GET /admission/rsvp/:USERID", () => {
     it("returns forbidden error if caller doesn't have elevated perms", async () => {
-        const response = await getAsAttendee(`/admission/rsvp/get/${TESTER.id}`).expect(StatusCode.ClientErrorForbidden);
+        const response = await getAsAttendee(`/admission/rsvp/${TESTER.id}`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gets if caller has elevated perms", async () => {
-        const response = await getAsStaff(`/admission/rsvp/get/${TESTER.id}`).expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/admission/rsvp/${TESTER.id}`).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
     });
 
     it("returns UserNotFound error if user doesn't exist", async () => {
-        const response = await getAsStaff("/admission/rsvp/get/idontexist").expect(StatusCode.ClientErrorNotFound);
+        const response = await getAsStaff("/admission/rsvp/idontexist").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });

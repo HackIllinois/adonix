@@ -6,4 +6,5 @@ export interface ApplicantDecisionFormat {
     response: DecisionResponse;
     reviewer: string;
     emailSent: false;
+    admittedPro?: false;
 }

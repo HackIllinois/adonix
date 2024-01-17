@@ -176,15 +176,18 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
  * [
  *     {
  *       "userId": "user1",
- *       "status": "ACCEPTED"
+ *       "status": "ACCEPTED",
+ *       "admittedPro": false,
  *     },
  *     {
  *       "userId": "user2",
- *       "status": "REJECTED"
+ *       "status": "REJECTED",
+ *       "admittedPro": true,
  *     },
  *     {
  *       "userId": "user3",
- *       "status": "WAITLISTED"
+ *       "status": "WAITLISTED",
+ *       "admittedPro": true,
  *     }
  * ]
  *
@@ -203,7 +206,7 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
 
     const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
     const ops = updateEntries.map((entry) => {
-        return Models.AdmissionDecision.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status } });
+        return Models.AdmissionDecision.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status, admittedPro: entry.admittedPro } });
     });
 
     try {
@@ -215,20 +218,21 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
 });
 
 /**
- * @api {get} /admission/rsvp/get/ GET /admission/rsvp/get/
+ * @api {get} /admission/rsvp/ GET /admission/rsvp/
  * @apiGroup Admission
- * @apiDescription Check RSVP decision for current user, returns filtered info for attendees and unfiltered info for staff/admin
- *
+ * @apiDescription Check RSVP decision for current user, returns filtered info for attendees and unfiltered info for staff/admin.
  *
  * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's applicatoin status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {string} status User's applicatoin status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {string} admittedPro Indicates whether applicant was admitted into pro or not. Reference registration data to determine if their acceptance was deferred or direct.
  * @apiSuccessExample Example Success Response (caller is a user):
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "ACCEPTED",
+ *      "admittedPro": false,
  * 	}
  *
  *  @apiSuccessExample Example Success Response (caller is a staff/admin):
@@ -239,11 +243,12 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
  *      "response": "ACCEPTED",
  *      "reviewer": "reviewer1",
  *      "emailSent": true,
+ *      "admittedPro": true
  * 	}
  *
  * @apiUse strongVerifyErrors
  */
-admissionRouter.get("/rsvp/get/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
@@ -256,9 +261,9 @@ admissionRouter.get("/rsvp/get/", strongJwtVerification, async (_: Request, res:
 
     //Filters data if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        return res
+            return res
             .status(StatusCode.SuccessOK)
-            .send({ userId: queryResult.userId, status: queryResult.status, response: queryResult.response });
+            .send({ userId: queryResult.userId, status: queryResult.status, response: queryResult.response, admittedPro: queryResult.admittedPro });
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);
@@ -267,7 +272,7 @@ admissionRouter.get("/rsvp/get/", strongJwtVerification, async (_: Request, res:
 /**
  * @api {get} /admission/rsvp/:USERID/ GET /admission/rsvp/:USERID/
  * @apiGroup Admission
- * @apiDescription Check RSVP decision for a given userId, provided that the authenticated user has elevated perms
+ * @apiDescription Check RSVP decision for a given userId, provided that the authenticated user has elevated perms. If didn't apply pro, admittedPro field won't be part of the response. 
  *
  * @apiParam {String} USERID Id to pull the decision for
  *
@@ -288,7 +293,7 @@ admissionRouter.get("/rsvp/get/", strongJwtVerification, async (_: Request, res:
  *
  * @apiUse strongVerifyErrors
  */
-admissionRouter.get("/rsvp/get/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+admissionRouter.get("/rsvp/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
