@@ -206,7 +206,10 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
 
     const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
     const ops = updateEntries.map((entry) => {
-        return Models.AdmissionDecision.findOneAndUpdate({ userId: entry.userId }, { $set: { status: entry.status, admittedPro: entry.admittedPro } });
+        return Models.AdmissionDecision.findOneAndUpdate(
+            { userId: entry.userId },
+            { $set: { status: entry.status, admittedPro: entry.admittedPro } },
+        );
     });
 
     try {
@@ -261,9 +264,14 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
 
     //Filters data if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-            return res
+        return res
             .status(StatusCode.SuccessOK)
-            .send({ userId: queryResult.userId, status: queryResult.status, response: queryResult.response, admittedPro: queryResult.admittedPro });
+            .send({
+                userId: queryResult.userId,
+                status: queryResult.status,
+                response: queryResult.response,
+                admittedPro: queryResult.admittedPro,
+            });
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);
@@ -272,7 +280,7 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
 /**
  * @api {get} /admission/rsvp/:USERID/ GET /admission/rsvp/:USERID/
  * @apiGroup Admission
- * @apiDescription Check RSVP decision for a given userId, provided that the authenticated user has elevated perms. If didn't apply pro, admittedPro field won't be part of the response. 
+ * @apiDescription Check RSVP decision for a given userId, provided that the authenticated user has elevated perms. If didn't apply pro, admittedPro field won't be part of the response.
  *
  * @apiParam {String} USERID Id to pull the decision for
  *
