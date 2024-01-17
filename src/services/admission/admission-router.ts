@@ -264,14 +264,12 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
 
     //Filters data if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        return res
-            .status(StatusCode.SuccessOK)
-            .send({
-                userId: queryResult.userId,
-                status: queryResult.status,
-                response: queryResult.response,
-                admittedPro: queryResult.admittedPro,
-            });
+        return res.status(StatusCode.SuccessOK).send({
+            userId: queryResult.userId,
+            status: queryResult.status,
+            response: queryResult.response,
+            admittedPro: queryResult.admittedPro,
+        });
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);
