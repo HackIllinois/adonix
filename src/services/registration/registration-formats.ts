@@ -13,8 +13,8 @@ export interface RegistrationFormat {
     requestedTravelReimbursement: boolean;
     location: string;
     degree: Degree;
-    major: string,
-    minor?: string,
+    major: string;
+    minor?: string;
     university: string;
     gradYear: number;
     hackInterest: HackInterest[];
