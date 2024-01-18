@@ -199,10 +199,9 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  * @apiGroup Profile
  * @apiDescription Create a user profile based on their authentication.
  *
- * @apiBody {String} firstName User's first name.
- * @apiBody {String} lastName User's last name.
- * @apiBody {String} discord User's Discord username.
- * @apiBody {String} avatarUrl User's avatar URL.
+ * @apiBody {String} displayName User's displayName.
+ * @apiBody {String} discordTag User's Discord username.
+ * @apiBody {String} avatar Stringified avatar.
  *
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
@@ -217,21 +216,19 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *    "_id": "abc12345",
  *    "userId": "github12345",
  *    "displayName": "Hack",
- *    "discord": "HackIllinois",
- *    "avatarUrl": "na",
+ *    "discordTag": "HackIllinois",
+ *    "avatarUrl": "mushroom.png",
  *    "points": 0,
  *    "coins": 0
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
+ * @apiError (400: Bad Request) {String} BadAvatar Avatar is not recognized by API.
  * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
  * @apiErrorExample Example Error Response (UserAlreadyExists):
  *     HTTP/1.1 400 Bad Request
  *     {"error": "UserAlreadyExists"}
  *
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const profile: ProfileFormat = req.body as ProfileFormat;
@@ -251,10 +248,15 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserAlreadyExists"));
     }
 
+    if (!Config.AVATAR_URLS.has(profile.avatarUrl)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadAvatar"));
+    }
+
     // Create a metadata object, and return it
     try {
         const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
+        newProfile.avatarUrl = Config.AVATAR_URLS.get(newProfile.avatarUrl) || Config.DEFAULT_AVATAR;
         await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);
     } catch (error) {
