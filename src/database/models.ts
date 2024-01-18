@@ -125,6 +125,7 @@ export default class Models {
 
         this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
         this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
+        
         this.StaffShift = getModel(StaffShift, Database.STAFF, StaffCollection.SHIFT);
     }
 }
