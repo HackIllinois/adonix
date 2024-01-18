@@ -10,7 +10,6 @@ import Models from "../../database/models.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
 import { AdmissionDecision, DecisionResponse, DecisionStatus } from "../../database/admission-db.js";
 
-import { Degree, Gender } from "./registration-models.js";
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
 
 import { hasElevatedPerms } from "../auth/auth-lib.js";
@@ -72,34 +71,17 @@ const registrationRouter: Router = Router();
  *      "hackOutreach": ["Instagram"]
  *  }
  */
-registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
-    const defaultResponse = {
-        userId: "",
-        isProApplicant: false,
-        considerForGeneral: true,
-        preferredName: "",
-        legalName: "",
-        emailAddress: "",
-        gender: Gender.OTHER,
-        race: [],
-        requestedTravelReimbursement: false,
-        location: "",
-        degree: Degree.OTHER,
-        university: "",
-        gradYear: 0,
-        hackInterest: [],
-        hackOutreach: [],
-        dietaryRestrictions: [],
-        hackEssay1: "",
-        hackEssay2: "",
-        optionalEssay: "",
-        proEssay: "",
-    };
+registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload;
     const registrationData: RegistrationApplication | null = await Models.RegistrationApplications.findOne({
         userId: payload.id,
     });
-    return res.status(StatusCode.SuccessOK).send(registrationData ?? defaultResponse);
+
+    if (!registrationData) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(registrationData);
 });
 
 /**
