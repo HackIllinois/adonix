@@ -21,14 +21,14 @@ export enum RegistrationTemplates {
 }
 
 export enum Avatars {
-        BUNNY = "bunny",
-        SQUIRREL = "squirrel",
-        GOBLIN = "goblin",
-        CHESTER = "chester",
-        CAT = "cat",
-        MUSHROOM = "mushroom",
-        FISHERCAT = "fishercat",
-        AXOLOTL = "axolotl",
+    BUNNY = "bunny",
+    SQUIRREL = "squirrel",
+    GOBLIN = "goblin",
+    CHESTER = "chester",
+    CAT = "cat",
+    MUSHROOM = "mushroom",
+    FISHERCAT = "fishercat",
+    AXOLOTL = "axolotl",
 }
 
 function requireEnv(name: string): string {
@@ -75,7 +75,7 @@ const Config = {
         [Avatars.MUSHROOM, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/mushroom.png"],
         [Avatars.FISHERCAT, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/fishercat.png"],
         [Avatars.AXOLOTL, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/axolotl.png"],
-    ]) as Map<string,string>,
+    ]) as Map<string, string>,
 
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
 
@@ -127,7 +127,6 @@ const Config = {
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,
     MAX_SHOP_STOCK_PER_ITEM: 128,
-
 };
 
 export default Config;
