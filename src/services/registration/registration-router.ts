@@ -57,6 +57,7 @@ const registrationRouter: Router = Router();
  *      "hackEssay1": "I love hack",
  *      "hackEssay2": "I love hack",
  *      "optionalEssay": "",
+ *      "resumeFileName": "https://www.google.com",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
  *      "degree": "Masters",
@@ -126,7 +127,8 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "gender": ["Prefer Not To Answer"],
  *      "degree": "Masters",
  *      "major": "Computer Science",
- *       "minor": "Math",
+ *      "minor": "Math",
+ *      "resumeFileName": "https://www.google.com",
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -192,13 +194,13 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "hackEssay1": "I love hack",
  *      "hackEssay2": "I love hack",
  *      "optionalEssay": "",
+ *      "resumeFileName": "https://www.google.com",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
  *      "degree": "Masters",
  *      "major": "Computer Science",
  *      "minor": "Math",
- *      "major": "Computer Science",
- *      "minor": "Math",
+ *      "resumeFileName": "https://www.google.com/"
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -214,29 +216,30 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
-        "userId": "user123",
-        "preferredName": "Ronakin",
-        "legalName": "Ronakin Kanandini",
-        "emailAddress": "rpak@gmail.org",
-        "university": "University of Illinois Urbana-Champaign",
-        "hackEssay1": "I love hack",
-        "hackEssay2": "I love hack",
-        "optionalEssay": "I wanna be a Knight",
-        "location": "Urbana",
-        "gender": "Prefer Not To Answer",
-        "degree": "Masters",
-        "major": "Computer Science",
-        "minor": "Math",
-        "gradYear": 0,
-        "isProApplicant": true,
-        "proEssay": "I wanna be a Knight",
-        "considerForGeneral": true,
-        "requestedTravelReimbursement: false.
-        "dietaryRestrictions": "Vegetarian"
-        "race": "Prefer Not To Answer"
-        "hackInterest": "Mini-Event"
-        "hackOutreach": "Instagram"
-    }
+ *      "userId": "user123",
+ *      "preferredName": "Ronakin",
+ *      "legalName": "Ronakin Kanandini",
+ *      "emailAddress": "rpak@gmail.org",
+ *      "university": "University of Illinois Urbana-Champaign",
+ *      "hackEssay1": "I love hack",
+ *      "hackEssay2": "I love hack",
+ *      "optionalEssay": "I wanna be a Knight",
+ *      "location": "Urbana",
+ *      "gender": "Prefer Not To Answer",
+ *      "degree": "Masters",
+ *      "major": "Computer Science",
+ *      "minor": "Math",
+ *      "resumeFileName": "https://www.google.com/"
+ *      "gradYear": 0,
+ *      "isProApplicant": true,
+ *      "proEssay": "I wanna be a Knight",
+ *      "considerForGeneral": true,
+ *      "requestedTravelReimbursement: false.
+ *      "dietaryRestrictions": "Vegetarian"
+ *      "race": "Prefer Not To Answer"
+ *      "hackInterest": "Mini-Event"
+ *      "hackOutreach": "Instagram"
+ *  }
  * 
  * @apiError (400: Bad Request) {String} UserAlreadyExists User already exists in Database
  * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)

@@ -5,6 +5,7 @@ export interface RegistrationFormat {
     userId: string;
     isProApplicant: boolean;
     considerForGeneral?: boolean;
+    resumeFileName?: string;
     preferredName: string;
     legalName: string;
     emailAddress: string;
