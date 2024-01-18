@@ -4,7 +4,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import Models from "../../database/models.js";
 import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools.js";
-import { ProfilePreFormat } from "./profile-formats.js";
+import { ProfileFormat } from "./profile-formats.js";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -38,19 +38,10 @@ const TESTER_USER_3 = {
     coins: 12,
 } satisfies AttendeeProfile;
 
-// const profile: ProfileFormat = {
-//     userId: TESTER.id,
-//     displayName: TESTER.name,
-//     avatarUrl: TESTER.avatarUrl,
-//     discordTag: TESTER.discordTag,
-//     points: 0,
-//     coins: 0,
-// };
-
-const profilePre: ProfilePreFormat = {
+const profile: ProfileFormat = {
     userId: TESTER.id,
     displayName: TESTER.name,
-    avatarId: "mushroom",
+    avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
     coins: 0,
@@ -67,19 +58,19 @@ beforeEach(async () => {
 describe("POST /profile", () => {
     it("works for an attendee", async () => {
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
-        const response = await postAsAttendee("/profile/").send(profilePre).expect(StatusCode.SuccessOK);
+        const response = await postAsAttendee("/profile/").send(profile).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
     });
 
     it("fails when a profile is already created", async () => {
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
-        const response = await postAsUser("/profile/").send(profilePre).expect(StatusCode.SuccessOK);
+        const response = await postAsUser("/profile/").send(profile).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toHaveProperty("displayName", TESTER.name);
 
         // to verify they can't double create
-        const response2 = await postAsUser("/profile/").send(profilePre).expect(StatusCode.ClientErrorBadRequest);
+        const response2 = await postAsUser("/profile/").send(profile).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response2.text)).toHaveProperty("error", "UserAlreadyExists");
     });
 

@@ -3,6 +3,7 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
+import { Avatars } from "../../config.js";
 import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
@@ -11,7 +12,7 @@ import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { ProfilePreFormat, ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
@@ -231,37 +232,29 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const preProfile: ProfilePreFormat = req.body as ProfilePreFormat;
-    preProfile.points = Config.DEFAULT_POINT_VALUE;
-    preProfile.coins = Config.DEFAULT_COIN_VALUE;
+    const avatarId: string = (Object.values(Avatars) as string[]).includes(req.body.avatarId as string) ? req.body.avatarId as string: Config.DEFAULT_AVATAR;
+
+    const profile: ProfileFormat = req.body as ProfileFormat;
+    profile.points = Config.DEFAULT_POINT_VALUE;
+    profile.coins = Config.DEFAULT_COIN_VALUE;
+    profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
+    console.log(profile.avatarUrl);
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    preProfile.userId = payload.id;
+    profile.userId = payload.id;
 
-    if (!isValidProfileFormat(preProfile)) {
+    if (!isValidProfileFormat(profile)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     // Ensure that user doesn't already exist before creating
-    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: preProfile.userId });
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
     if (user) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserAlreadyExists"));
     }
 
-    if (!Config.AVATAR_URLS.has(preProfile.avatarId)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadAvatar"));
-    }
-
     // Create a metadata object, and return it
     try {
-        const profile: ProfileFormat = {
-            userId: preProfile.userId,
-            avatarUrl: Config.AVATAR_URLS.get(preProfile.avatarId) || Config.DEFAULT_AVATAR,
-            discordTag: preProfile.discordTag,
-            displayName: preProfile.displayName,
-            points: preProfile.points,
-            coins: preProfile.coins,
-        };
         const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
         await Models.AttendeeMetadata.create(profileMetadata);

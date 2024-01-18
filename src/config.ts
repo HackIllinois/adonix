@@ -66,17 +66,6 @@ const Config = {
         // GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
     },
 
-    AVATAR_URLS: new Map([
-        [Avatars.BUNNY, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/bunny.png"],
-        [Avatars.SQUIRREL, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/squirrel.png"],
-        [Avatars.GOBLIN, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png"],
-        [Avatars.CHESTER, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/chester.png"],
-        [Avatars.CAT, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/cat.png"],
-        [Avatars.MUSHROOM, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/mushroom.png"],
-        [Avatars.FISHERCAT, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/fishercat.png"],
-        [Avatars.AXOLOTL, "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/axolotl.png"],
-    ]) as Map<string, string>,
-
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
 
     /* OAuth, Keys, & Permissions */
@@ -115,7 +104,7 @@ const Config = {
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
     DEFAULT_COIN_VALUE: 0,
-    DEFAULT_AVATAR: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png",
+    DEFAULT_AVATAR: "goblin",
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,

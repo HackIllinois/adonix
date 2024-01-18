@@ -1,12 +1,3 @@
-export interface ProfilePreFormat {
-    userId: string;
-    avatarId: string;
-    discordTag: string;
-    displayName: string;
-    points: number;
-    coins: number;
-}
-
 export interface ProfileFormat {
     userId: string;
     avatarUrl: string;
@@ -16,12 +7,12 @@ export interface ProfileFormat {
     coins: number;
 }
 
-export function isValidProfileFormat(profile: ProfilePreFormat): boolean {
+export function isValidProfileFormat(profile: ProfileFormat): boolean {
     if (!profile) {
         return false;
     }
 
-    if (!profile.userId || !profile.avatarId || !profile.discordTag || !profile.displayName) {
+    if (!profile.userId || !profile.avatarUrl || !profile.discordTag || !profile.displayName) {
         return false;
     }
 
@@ -29,7 +20,7 @@ export function isValidProfileFormat(profile: ProfilePreFormat): boolean {
         typeof profile.userId !== "string" ||
         typeof profile.discordTag !== "string" ||
         typeof profile.displayName !== "string" ||
-        typeof profile.avatarId !== "string"
+        typeof profile.avatarUrl !== "string"
     ) {
         return false;
     }
