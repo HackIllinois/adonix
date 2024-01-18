@@ -13,6 +13,8 @@ export interface RegistrationFormat {
     requestedTravelReimbursement: boolean;
     location: string;
     degree: Degree;
+    major: string;
+    minor?: string;
     university: string;
     gradYear: number;
     hackInterest: HackInterest[];
@@ -50,7 +52,9 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isString(registration.location) ||
         !isString(registration.degree) ||
         !isString(registration.university) ||
-        !isNumber(registration.gradYear)
+        !isNumber(registration.gradYear) ||
+        !isString(registration.major) ||
+        !isString(registration.minor ?? "")
     ) {
         return false;
     }
@@ -84,5 +88,6 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
             return false;
         }
     }
+
     return true;
 }

@@ -65,7 +65,6 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     }
 
     const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
-    console.log(metadata.exp, timestamp);
 
     if (metadata.exp <= timestamp) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "CodeExpired"));

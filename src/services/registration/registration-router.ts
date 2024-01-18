@@ -28,13 +28,15 @@ const registrationRouter: Router = Router();
  *
  * @apiSuccess (200: Success) {String} preferredName Applicant's preffered name
  * @apiSuccess (200: Success) {String} legalName Applicant's full legal name
- * @apiSuccess (200: Success) {String} email Applicant's email
+ * @apiSuccess (200: Success) {String} emailAddress Applicant's email
  * @apiSuccess (200: Success) {String} hackEssay1 First required essay
  * @apiSuccess (200: Success) {String} hackEssay2 Second required essay
  * @apiSuccess (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
  * @apiSuccess (200: Success) {String} location Applicant's location
  * @apiSuccess (200: Success) {String} gender Applicant's gender
  * @apiSuccess (200: Success) {String} degree Applicant's pursued degree
+ * @apiSuccess (200: Success) {String} major Applicant's pursued major
+ * @apiSuccess (200: Success) {String} minor Applicant's pursued minor (optional)
  * @apiSuccess (200: Success) {String} gradYear Applicant's graduation year
  * @apiSuccess (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
  * @apiSuccess (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
@@ -51,7 +53,7 @@ const registrationRouter: Router = Router();
  *      "userId":"user1234",
  *      "preferredName": "Ronakin",
  *      "legalName": "Ronakin Kanandini",
- *      "email": "rpak@gmail.org",
+ *      emailAddress: "rpak@gmail.org",
  *      "university": "University of Illinois Urbana-Champaign",
  *      "hackEssay1": "I love hack",
  *      "hackEssay2": "I love hack",
@@ -108,13 +110,15 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiSuccess (200: Success) {String} userId Applicant's userId
  * @apiSuccess (200: Success) {String} preferredName Applicant's preffered name
  * @apiSuccess (200: Success) {String} legalName Applicant's full legal name
- * @apiSuccess (200: Success) {String} email Applicant's email
+ * @apiSuccess (200: Success) {String} emailAddress Applicant's email
  * @apiSuccess (200: Success) {String} hackEssay1 First required essay
  * @apiSuccess (200: Success) {String} hackEssay2 Second required essay
  * @apiSuccess (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
  * @apiSuccess (200: Success) {String} location Applicant's location
  * @apiSuccess (200: Success) {String} gender Applicant's gender
  * @apiSuccess (200: Success) {String} degree Applicant's pursued degree
+ * @apiSuccess (200: Success) {String} major Applicant's pursued major
+ * @apiSuccess (200: Success) {String} minor Applicant's pursued minor (optional)
  * @apiSuccess (200: Success) {String} gradYear Applicant's graduation year
  * @apiSuccess (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
  * @apiSuccess (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
@@ -131,7 +135,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "userId":"user1234",
  *      "preferredName": "Ronakin",
  *      "legalName": "Ronakin Kanandini",
- *      "email": "rpak@gmail.org",
+ *      emailAddress: "rpak@gmail.org",
  *      "university": "University of Illinois Urbana-Champaign",
  *      "hackEssay1": "I love hack",
  *      "hackEssay2": "I love hack",
@@ -139,6 +143,8 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
  *      "degree": "Masters",
+ *      "major": "Computer Science",
+ *       "minor": "Math",
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -176,13 +182,15 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *
  * @apiBody (200: Success) {String} preferredName Applicant's preffered name
  * @apiBody (200: Success) {String} legalName Applicant's full legal name
- * @apiBody (200: Success) {String} email Applicant's email
+ * @apiBody (200: Success) {String} emailAddress Applicant's email
  * @apiBody (200: Success) {String} hackEssay1 First required essay
  * @apiBody (200: Success) {String} hackEssay2 Second required essay
  * @apiBody (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
  * @apiBody (200: Success) {String} location Applicant's location
  * @apiBody (200: Success) {String} gender Applicant's gender
  * @apiBody (200: Success) {String} degree Applicant's pursued degree
+ * @apiBody (200: Success) {String} major Applicant's pursued major
+ * @apiBody (200: Success) {String} minor Applicant's pursued minor (optional)
  * @apiBody (200: Success) {String} gradYear Applicant's graduation year
  * @apiBody (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
  * @apiBody (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
@@ -197,7 +205,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  * {
  *     "preferredName": "Ronakin",
  *      "legalName": "Ronakin Kanandini",
- *      "email": "rpak@gmail.org",
+ *      "emailAddress": "rpak@gmail.org",
  *      "university": "University of Illinois Urbana-Champaign",
  *      "hackEssay1": "I love hack",
  *      "hackEssay2": "I love hack",
@@ -205,6 +213,10 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
  *      "degree": "Masters",
+ *      "major": "Computer Science",
+ *      "minor": "Math",
+ *      "major": "Computer Science",
+ *      "minor": "Math",
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -223,7 +235,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
         "userId": "user123",
         "preferredName": "Ronakin",
         "legalName": "Ronakin Kanandini",
-        "email": "rpak@gmail.org",
+        "emailAddress": "rpak@gmail.org",
         "university": "University of Illinois Urbana-Champaign",
         "hackEssay1": "I love hack",
         "hackEssay2": "I love hack",
@@ -231,6 +243,8 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
         "location": "Urbana",
         "gender": "Prefer Not To Answer",
         "degree": "Masters",
+        "major": "Computer Science",
+        "minor": "Math",
         "gradYear": 0,
         "isProApplicant": true,
         "proEssay": "I wanna be a Knight",

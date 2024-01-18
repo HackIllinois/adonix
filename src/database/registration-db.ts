@@ -40,6 +40,12 @@ export class RegistrationApplication {
     public degree: string;
 
     @prop({ required: true })
+    public major: string;
+
+    @prop({ required: false })
+    public minor: string;
+
+    @prop({ required: true })
     public university: string;
 
     @prop({ required: true })
