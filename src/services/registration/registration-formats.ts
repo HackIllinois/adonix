@@ -13,6 +13,8 @@ export interface RegistrationFormat {
     requestedTravelReimbursement: boolean;
     location: string;
     degree: Degree;
+    major: string,
+    minor?: string,
     university: string;
     gradYear: number;
     hackInterest: HackInterest[];
@@ -29,6 +31,8 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
+    console.log("_");
+
     if (
         !isString(registration.userId) ||
         !isString(registration.preferredName) ||
@@ -37,7 +41,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     ) {
         return false;
     }
-
+    console.log("A");
     if (
         !isString(registration.gender) ||
         !isArrayOfType(registration.race, isString) ||
@@ -46,34 +50,50 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
+    console.log("B");
+
     if (
         !isString(registration.location) ||
         !isString(registration.degree) ||
         !isString(registration.university) ||
-        !isNumber(registration.gradYear)
+        !isNumber(registration.gradYear) ||
+        !isString(registration.major) ||
+        !isString(registration.minor ?? "")
     ) {
         return false;
     }
+
+    console.log("C");
 
     if (!isArrayOfType(registration.hackInterest, isString) || !isArrayOfType(registration.hackOutreach, isString)) {
         return false;
     }
 
+    console.log("D");
+
     if (!isString(registration.hackEssay1) || !isString(registration.hackEssay2)) {
         return false;
     }
+
+    console.log("E");
 
     if (!isBoolean(registration.isProApplicant) || !isBoolean(registration.requestedTravelReimbursement)) {
         return false;
     }
 
+    console.log("F");
+
     if (registration.optionalEssay && !isString(registration.optionalEssay)) {
         return false;
     }
 
+    console.log("G");
+
     if (registration.isProApplicant && (!isString(registration.proEssay) || !isBoolean(registration.considerForGeneral))) {
         return false;
     }
+
+    console.log("H");
 
     if (!registration.isProApplicant) {
         if (isString(registration.proEssay) && (registration.proEssay?.length ?? 0) > 0) {
@@ -84,5 +104,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
             return false;
         }
     }
+    console.log("I");
+
     return true;
 }
