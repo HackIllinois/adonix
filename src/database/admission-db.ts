@@ -20,6 +20,7 @@ export class AdmissionDecision {
     @prop({ required: true })
     public status: DecisionStatus;
 
+    @prop()
     public admittedPro?: boolean;
 
     @prop({ required: true })
