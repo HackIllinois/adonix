@@ -4,7 +4,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import Models from "../../database/models.js";
 import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools.js";
-import { ProfileFormat, ProfilePreFormat } from "./profile-formats.js";
+import { ProfilePreFormat } from "./profile-formats.js";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -38,14 +38,14 @@ const TESTER_USER_3 = {
     coins: 12,
 } satisfies AttendeeProfile;
 
-const profile: ProfileFormat = {
-    userId: TESTER.id,
-    displayName: TESTER.name,
-    avatarUrl: TESTER.avatarUrl,
-    discordTag: TESTER.discordTag,
-    points: 0,
-    coins: 0,
-};
+// const profile: ProfileFormat = {
+//     userId: TESTER.id,
+//     displayName: TESTER.name,
+//     avatarUrl: TESTER.avatarUrl,
+//     discordTag: TESTER.discordTag,
+//     points: 0,
+//     coins: 0,
+// };
 
 const profilePre: ProfilePreFormat = {
     userId: TESTER.id,
