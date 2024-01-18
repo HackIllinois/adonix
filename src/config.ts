@@ -60,7 +60,7 @@ const Config = {
     /* OAuth, Keys, & Permissions */
     DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv(
         "DB_SERVER",
-    )}/main?retryWrites=true&w=majority"`,
+    )}/main?retryWrites=true&w=majority`,
     SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
     SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",
 

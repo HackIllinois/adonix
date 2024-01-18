@@ -10,7 +10,7 @@ export class RouterError {
     catchErrorMessage?: string | undefined;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(statusCode?: number, message?: string, data?: any, catchErrorMessage?: string) {
+    constructor(statusCode?: number, message?: string, data?: any, catchErrorMessage?: any) {
         this.statusCode = statusCode ?? StatusCode.ServerErrorInternal;
         this.message = message ?? "InternalServerError";
         this.data = data;

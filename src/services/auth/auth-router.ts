@@ -176,7 +176,7 @@ authRouter.get(
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData"));
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData", undefined, error));
         }
     },
 );
