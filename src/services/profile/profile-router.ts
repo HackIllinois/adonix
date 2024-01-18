@@ -207,7 +207,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar. If invalid avatar is passed, default avatar is assigned. 
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar. If invalid avatar is passed, default avatar is assigned.
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
