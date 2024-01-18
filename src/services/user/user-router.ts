@@ -208,7 +208,6 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
     if (!attendeeFollowing) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
-    // console.log("RETURNING", attendeeFollowing)
     return res.status(StatusCode.SuccessOK).send({ userId: attendeeFollowing.userId, following: attendeeFollowing.following });
 });
 
