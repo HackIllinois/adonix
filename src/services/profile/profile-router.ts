@@ -207,7 +207,7 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar. If invalid avatar is passed, default avatar is assigned. 
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
@@ -218,13 +218,12 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *    "userId": "github12345",
  *    "displayName": "Hack",
  *    "discordTag": "HackIllinois",
- *    "avatarUrl": "mushroom.png",
+ *    "avatarUrl": "https://hackillinois.org/mushroom.png",
  *    "points": 0,
  *    "coins": 0
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
- * @apiError (400: Bad Request) {String} BadAvatar Avatar is not recognized by API.
  * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
  * @apiErrorExample Example Error Response (UserAlreadyExists):
  *     HTTP/1.1 400 Bad Request
@@ -232,7 +231,9 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const avatarId: string = (Object.values(Avatars) as string[]).includes(req.body.avatarId as string) ? req.body.avatarId as string: Config.DEFAULT_AVATAR;
+    const avatarId: string = (Object.values(Avatars) as string[]).includes(req.body.avatarId as string)
+        ? (req.body.avatarId as string)
+        : Config.DEFAULT_AVATAR;
 
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Config.DEFAULT_POINT_VALUE;
