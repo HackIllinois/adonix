@@ -240,10 +240,10 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "hackInterest": "Mini-Event"
  *      "hackOutreach": "Instagram"
  *  }
- * 
+ *
  * @apiError (400: Bad Request) {String} UserAlreadyExists User already exists in Database
  * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
- * @apiError (500: Internal Server Error) {String} InternalError Server-side error 
+ * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  * @apiUse strongVerifyErrors
  */
 registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
