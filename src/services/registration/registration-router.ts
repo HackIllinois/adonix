@@ -117,8 +117,8 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiSuccess (200: Success) {String} location Applicant's location
  * @apiSuccess (200: Success) {String} gender Applicant's gender
  * @apiSuccess (200: Success) {String} degree Applicant's pursued degree
- * @apiBody (200: Success) {String} major Applicant's pursued major
- * @apiBody (200: Success) {String} minor Applicant's pursued minor (optional)
+ * @apiSuccess (200: Success) {String} major Applicant's pursued major
+ * @apiSuccess (200: Success) {String} minor Applicant's pursued minor (optional)
  * @apiSuccess (200: Success) {String} gradYear Applicant's graduation year
  * @apiSuccess (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
  * @apiSuccess (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
