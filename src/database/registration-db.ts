@@ -30,6 +30,9 @@ export class RegistrationApplication {
     })
     public race: string[];
 
+    // Not required
+    public resumeFileName?: string;
+
     @prop({ required: true })
     public requestedTravelReimbursement: boolean;
 
