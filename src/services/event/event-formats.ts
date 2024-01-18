@@ -13,6 +13,7 @@ export interface BaseEventFormat {
     locations: Location[];
     isAsync: boolean;
     isStaff: boolean;
+    mapImageURL?: string;
 }
 
 // Interface for the attendee event

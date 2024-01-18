@@ -104,7 +104,8 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
  *     "isStaff": true,
  *     "isPrivate": true,
  *     "isAsync": true,
- *     "displayOnStaffCheckIn": true
+ *     "displayOnStaffCheckIn": true,
+ *     "mapImageURL": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -148,7 +149,8 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *       }
  *     ],
  *     "sponsor": "Example sponsor",
- *     "eventType": "WORKSHOP"
+ *     "eventType": "WORKSHOP",
+ *     "mapImageURL": "someurlmapthingy.com",
  *   }
  * }
  * @apiSuccessExample Example Success Response (Staff POV)
@@ -172,6 +174,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     "eventType": "WORKSHOP",
  *     "isPrivate": True,
  *     "displayOnStaffCheckIn": True,
+ *     "mapImageURL": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -244,7 +247,8 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  *         }
  *       ],
  *       "sponsor": "Example sponsor",
- *       "eventType": "WORKSHOP"
+ *       "eventType": "WORKSHOP",
+ *       "mapImageURL": "someurlmapthingy.com",
  *     },
  *     // Additional events...
  *   ]
@@ -272,6 +276,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  *       "eventType": "WORKSHOP",
  *       "isPrivate": true,
  *       "displayOnStaffCheckIn": true,
+ *       "mapImageURL": "someurlmapthingy.com",
  *     },
  *     // Additional events...
  *   ]
@@ -325,6 +330,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "isStaff": false,
  *   "isPrivate": false,
  *   "displayOnStaffCheckIn": false,
+ *   "mapImageURL": "someurlmapthingy.com",
  *   "points": 100
  * }
  *
@@ -344,7 +350,8 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   ],
  *   "eventType": "MEETING",
  *   "isStaff": true,
- *   "isAsync": true
+ *   "isAsync": true,
+ *   "mapImageURL": "someurlmapthingy.com",
  * }
  *
  * @apiSuccess (201: Created) {Json} event The created event details.
@@ -368,6 +375,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *     "sponsor": "Event Sponsor",
  *     "eventType": "WORKSHOP",
  *     "isStaff": false
+ *     "mapImageURL": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -390,7 +398,8 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *     ],
  *     "sponsor": "Event Sponsor",
  *     "eventType": "MEETING",
- *     "isStaff": true
+ *     "isStaff": true,
+ *     "mapImageURL": "someurlmapthingy.com",
  *   }
  * }
  *
