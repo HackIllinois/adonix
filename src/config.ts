@@ -20,6 +20,17 @@ export enum RegistrationTemplates {
     REGISTRATION_SUBMISSION = "registration_confirmation",
 }
 
+export enum Avatars {
+    BUNNY = "bunny",
+    SQUIRREL = "squirrel",
+    GOBLIN = "goblin",
+    CHESTER = "chester",
+    CAT = "cat",
+    MUSHROOM = "mushroom",
+    FISHERCAT = "fishercat",
+    AXOLOTL = "axolotl",
+}
+
 function requireEnv(name: string): string {
     const value = env[name];
 
@@ -93,6 +104,7 @@ const Config = {
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
     DEFAULT_COIN_VALUE: 0,
+    DEFAULT_AVATAR: "goblin",
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,

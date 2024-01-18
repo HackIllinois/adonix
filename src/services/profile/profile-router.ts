@@ -3,6 +3,7 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
+import { Avatars } from "../../config.js";
 import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
@@ -94,7 +95,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  * @apiSuccessExample Example Success Response:
@@ -144,7 +145,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
@@ -199,15 +200,14 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  * @apiGroup Profile
  * @apiDescription Create a user profile based on their authentication.
  *
- * @apiBody {String} firstName User's first name.
- * @apiBody {String} lastName User's last name.
- * @apiBody {String} discord User's Discord username.
- * @apiBody {String} avatarUrl User's avatar URL.
+ * @apiBody {String} displayName User's displayName.
+ * @apiBody {String} discordTag User's Discord username.
+ * @apiBody {String} avatarId User's requested avatar.
  *
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar. If invalid avatar is passed, default avatar is assigned.
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
@@ -217,8 +217,8 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *    "_id": "abc12345",
  *    "userId": "github12345",
  *    "displayName": "Hack",
- *    "discord": "HackIllinois",
- *    "avatarUrl": "na",
+ *    "discordTag": "HackIllinois",
+ *    "avatarUrl": "https://hackillinois.org/mushroom.png",
  *    "points": 0,
  *    "coins": 0
  * }
@@ -229,14 +229,17 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *     HTTP/1.1 400 Bad Request
  *     {"error": "UserAlreadyExists"}
  *
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const avatarId: string = (Object.values(Avatars) as string[]).includes(req.body.avatarId as string)
+        ? (req.body.avatarId as string)
+        : Config.DEFAULT_AVATAR;
+
     const profile: ProfileFormat = req.body as ProfileFormat;
     profile.points = Config.DEFAULT_POINT_VALUE;
     profile.coins = Config.DEFAULT_COIN_VALUE;
+    profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
+    console.log(profile.avatarUrl);
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
@@ -304,7 +307,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
