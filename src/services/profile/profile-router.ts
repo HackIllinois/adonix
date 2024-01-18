@@ -11,7 +11,7 @@ import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+import { ProfilePreFormat, ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
@@ -94,7 +94,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  * @apiSuccessExample Example Success Response:
@@ -144,7 +144,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
@@ -201,12 +201,12 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *
  * @apiBody {String} displayName User's displayName.
  * @apiBody {String} discordTag User's Discord username.
- * @apiBody {String} avatar Stringified avatar.
+ * @apiBody {String} avatarId User's requested avatar.
  *
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
@@ -231,32 +231,39 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const profile: ProfileFormat = req.body as ProfileFormat;
-    profile.points = Config.DEFAULT_POINT_VALUE;
-    profile.coins = Config.DEFAULT_COIN_VALUE;
+    const preProfile: ProfilePreFormat = req.body as ProfilePreFormat;
+    preProfile.points = Config.DEFAULT_POINT_VALUE;
+    preProfile.coins = Config.DEFAULT_COIN_VALUE;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    profile.userId = payload.id;
+    preProfile.userId = payload.id;
 
-    if (!isValidProfileFormat(profile)) {
+    if (!isValidProfileFormat(preProfile)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     // Ensure that user doesn't already exist before creating
-    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: profile.userId });
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: preProfile.userId });
     if (user) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserAlreadyExists"));
     }
 
-    if (!Config.AVATAR_URLS.has(profile.avatarUrl)) {
+    if (!Config.AVATAR_URLS.has(preProfile.avatarId)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadAvatar"));
     }
 
     // Create a metadata object, and return it
     try {
+        const profile: ProfileFormat = {
+            userId: preProfile.userId,
+            avatarUrl: Config.AVATAR_URLS.get(preProfile.avatarId) || Config.DEFAULT_AVATAR,
+            discordTag: preProfile.discordTag,
+            displayName: preProfile.displayName,
+            points: preProfile.points,
+            coins: preProfile.coins,
+        };
         const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
         const newProfile = await Models.AttendeeProfile.create(profile);
-        newProfile.avatarUrl = Config.AVATAR_URLS.get(newProfile.avatarUrl) || Config.DEFAULT_AVATAR;
         await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);
     } catch (error) {
@@ -306,7 +313,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
  * @apiSuccess (200: Success) {number} coins Coins that the user has
  *

@@ -9,7 +9,7 @@ export const TESTER = {
     id: "bob-the-tester101010101011",
     email: "bob-the-tester@hackillinois.org",
     name: "Bob Tester",
-    avatarUrl: "mushroom",
+    avatarUrl: "mushroom.png",
     discordTag: "hackillinoistest",
     userName: "bobster_the_mobster",
 };

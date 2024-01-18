@@ -78,7 +78,7 @@ describe("POST /profile", () => {
         const response = await postAsUser("/profile/")
             .send({
                 displayName: 123,
-                avatarUrl: 1,
+                avatarId: 1,
                 discordTag: "test",
             })
             .expect(StatusCode.ClientErrorBadRequest);
