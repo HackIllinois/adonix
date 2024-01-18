@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
-import { Database, generateConfig } from "../database.js";
+import { connectToMongoose, generateConfig } from "../database.js";
 
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
@@ -12,6 +12,18 @@ import { RegistrationApplication } from "./registration-db.js";
 import { ShopItem } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
+
+// Groups for collections
+export enum Group {
+    AUTH = "auth",
+    USER = "user",
+    EVENT = "event",
+    ADMISSION = "admission",
+    ATTENDEE = "attendee",
+    NEWSLETTER = "newsletter",
+    REGISTRATION = "registration",
+    SHOP = "shop",
+}
 
 // Collections for each database, where models will be stored
 enum AttendeeCollection {
@@ -55,8 +67,8 @@ enum UserCollection {
 
 // Simple model getter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getModel<T>(of: AnyParamConstructor<any>, database: Database, collection: string): mongoose.Model<T> {
-    return getModelForClass(of, generateConfig(database, collection)) as unknown as mongoose.Model<T>; // required bc of any type
+function getModel<T>(of: AnyParamConstructor<any>, group: Group, collection: string): mongoose.Model<T> {
+    return getModelForClass(of, generateConfig(`${group}_${collection}`)) as unknown as mongoose.Model<T>; // required bc of any type
 }
 
 // Define models
@@ -86,31 +98,34 @@ export default class Models {
     static UserAttendance: mongoose.Model<UserAttendance> = undefined!;
 
     static initialize(): void {
-        this.AttendeeMetadata = getModel(AttendeeMetadata, Database.ATTENDEE, AttendeeCollection.METADATA);
-        this.AttendeeProfile = getModel(AttendeeProfile, Database.ATTENDEE, AttendeeCollection.PROFILE);
-        this.AttendeeFollowing = getModel(AttendeeFollowing, Database.ATTENDEE, AttendeeCollection.FOLLOWING);
+        this.AttendeeMetadata = getModel(AttendeeMetadata, Group.ATTENDEE, AttendeeCollection.METADATA);
+        this.AttendeeProfile = getModel(AttendeeProfile, Group.ATTENDEE, AttendeeCollection.PROFILE);
+        this.AttendeeFollowing = getModel(AttendeeFollowing, Group.ATTENDEE, AttendeeCollection.FOLLOWING);
 
-        this.AuthInfo = getModel(AuthInfo, Database.AUTH, AuthCollection.INFO);
+        this.AuthInfo = getModel(AuthInfo, Group.AUTH, AuthCollection.INFO);
 
-        this.AdmissionDecision = getModel(AdmissionDecision, Database.ADMISSION, AdmissionCollection.DECISION);
+        this.AdmissionDecision = getModel(AdmissionDecision, Group.ADMISSION, AdmissionCollection.DECISION);
 
-        this.StaffEvent = getModel(StaffEvent, Database.EVENT, EventCollection.STAFF_EVENTS);
-        this.PublicEvent = getModel(PublicEvent, Database.EVENT, EventCollection.PUBLIC_EVENTS);
-        this.EventMetadata = getModel(EventMetadata, Database.EVENT, EventCollection.METADATA);
-        this.EventAttendance = getModel(EventAttendance, Database.EVENT, EventCollection.ATTENDANCE);
-        this.EventFollowers = getModel(EventFollowers, Database.EVENT, EventCollection.FOLLOWERS);
+        this.StaffEvent = getModel(StaffEvent, Group.EVENT, EventCollection.STAFF_EVENTS);
+        this.PublicEvent = getModel(PublicEvent, Group.EVENT, EventCollection.PUBLIC_EVENTS);
+        this.EventMetadata = getModel(EventMetadata, Group.EVENT, EventCollection.METADATA);
+        this.EventAttendance = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
+        this.EventFollowers = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
 
-        this.NewsletterSubscription = getModel(NewsletterSubscription, Database.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
+        this.NewsletterSubscription = getModel(NewsletterSubscription, Group.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
 
         this.RegistrationApplications = getModel(
             RegistrationApplication,
-            Database.REGISTRATION,
+            Group.REGISTRATION,
             RegistrationCollection.APPLICATIONS,
         );
 
-        this.ShopItem = getModel(ShopItem, Database.SHOP, ShopCollection.ITEMS);
+        this.ShopItem = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
 
-        this.UserInfo = getModel(UserInfo, Database.USER, UserCollection.INFO);
-        this.UserAttendance = getModel(UserAttendance, Database.USER, UserCollection.ATTENDANCE);
+        this.UserInfo = getModel(UserInfo, Group.USER, UserCollection.INFO);
+        this.UserAttendance = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
+
+        // Finally, connect to mongoose
+        connectToMongoose();
     }
 }
