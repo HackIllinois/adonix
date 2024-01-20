@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers, EventMetadata } from "database/event-db.js";
-import { AttendeeFollowing } from "database/attendee-db.js";
+import { EventFollowers, EventMetadata } from "../../database/event-db.js";
+import { AttendeeFollowing } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff } from "../../testTools.js";
