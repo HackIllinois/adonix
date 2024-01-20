@@ -358,15 +358,15 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
  * @api {get} /profile/ranking/ GET /profile/ranking/
  * @apiGroup Profile
  * @apiDescription Get the ranking of a user based on their authentication
- * 
+ *
  * @apiSuccess (200: Success) {number} ranking Ranking of the user
- * 
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
  *    5
  * }
- * 
+ *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
  * @apiError (500: Internal) {String} InternalError An internal server error occured.
  * @apiErrorExample Example Error Response (UserNotFound):
@@ -376,27 +376,26 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
  * @apiErrorExample Example Error Response (InternalError):
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
- * 
+ *
  */
-profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res : Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload; 
-    const userId: string = payload.id; 
+profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
 
-    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({userId: userId}); 
+    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
-    if(!user) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound")); 
+    if (!user) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
     }
 
-    const userPoints = user.points; 
-    const one: number = 1; 
+    const userPoints = user.points;
+    const one: number = 1;
     //count the number of users with points greater than user's points
-    const ranking = await Models.AttendeeProfile.countDocuments({points: {$gt: userPoints}});
+    const ranking = await Models.AttendeeProfile.countDocuments({ points: { $gt: userPoints } });
     //add 1 to include the user themselves in the ranking
-    const userRanking = ranking + one; 
+    const userRanking = ranking + one;
 
-    return res.status(StatusCode.SuccessOK).send(userRanking); 
-
+    return res.status(StatusCode.SuccessOK).send(userRanking);
 });
 
 export default profileRouter;
