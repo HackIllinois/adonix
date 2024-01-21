@@ -21,9 +21,7 @@ export class ShopItem {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public instances: string[];
 

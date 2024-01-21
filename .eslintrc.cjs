@@ -26,7 +26,7 @@ module.exports = {
         "@typescript-eslint/no-floating-promises": "error",
         "consistent-return": ["error"],
         // Suggestions
-        "arrow-body-style": ["error", "always"],
+        "arrow-body-style": ["error", "as-needed"],
         curly: ["error", "all"],
         "no-lonely-if": ["error"],
         "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true, ignore: [0] }],

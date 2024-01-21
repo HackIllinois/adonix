@@ -46,16 +46,14 @@ const shopRouter: Router = Router();
 shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
     const shopItems: ItemFormat[] = await Models.ShopItem.find();
 
-    const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ItemFormat) => {
-        return {
-            itemId: item.itemId,
-            name: item.name,
-            price: item.price,
-            isRaffle: item.isRaffle,
-            quantity: item.quantity,
-            imageURL: item.imageURL,
-        };
-    });
+    const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ItemFormat) => ({
+        itemId: item.itemId,
+        name: item.name,
+        price: item.price,
+        isRaffle: item.isRaffle,
+        quantity: item.quantity,
+        imageURL: item.imageURL,
+    }));
 
     return res.status(StatusCode.SuccessOK).send(filteredData);
 });
@@ -109,9 +107,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
     }
 
     const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"), 16);
-    const instances = Array.from({ length: itemFormat.quantity }, (_, index) => {
-        return getRand(index);
-    });
+    const instances = Array.from({ length: itemFormat.quantity }, (_, index) => getRand(index));
 
     const shopItem: ItemFormat = {
         itemId: itemId,
@@ -262,9 +258,7 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
     }
 
-    const uris = itemFormat.instances.map((instance: string) => {
-        return `hackillinois://item?itemId=${targetItem}&instance=${instance}`;
-    });
+    const uris = itemFormat.instances.map((instance: string) => `hackillinois://item?itemId=${targetItem}&instance=${instance}`);
     return res.status(StatusCode.SuccessOK).send({ itemId: targetItem, qrInfo: uris });
 });
 
