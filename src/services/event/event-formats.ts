@@ -81,7 +81,7 @@ function isValidPublicEvent(event: Event): boolean {
  *
  */
 function isValidStaffEvent(event: Event): boolean {
-    return isEnumOfType(event.eventType, STAFF_EVENT_TYPE)
+    return isEnumOfType(event.eventType, STAFF_EVENT_TYPE);
 }
 
 // Input format for changing event expiration
