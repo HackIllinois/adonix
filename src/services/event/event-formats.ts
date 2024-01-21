@@ -1,14 +1,13 @@
-import { isArrayOfType, isBoolean, isNumber, isObject, isString } from "../../formatTools.js";
+import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../formatTools.js";
 import Config from "../../config.js";
 import { Event, Location } from "../../database/event-db.js";
+import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
 
 export function isValidEvent(event: Event): boolean {
     if (!isValidBase) {
         return false;
     }
-
-    // return obj.isStaff ? isValidStaffEvent(obj) : isValidPublicEvent(obj);
-    return isValidPublicEvent(event);
+    return event.isStaff ? isValidStaffEvent(event) : isValidPublicEvent(event);
 }
 
 /**
@@ -67,7 +66,7 @@ function isValidPublicEvent(event: Event): boolean {
     return (
         isString(event.mapImageUrl) &&
         (isString(event.sponsor) || event.sponsor === undefined) &&
-        // TODO: isValidPublicEnum
+        isEnumOfType(event.eventType, PUBLIC_EVENT_TYPE) &&
         isNumber(event.points) &&
         event.points != undefined &&
         event.points >= 0
@@ -81,10 +80,9 @@ function isValidPublicEvent(event: Event): boolean {
  * @returns True if the object is a valid AttendeeEventFormat, otherwise False.
  *
  */
-// function isValidStaffEvent(obj: Event): boolean {
-//     // TODO: isValidPublicEnum
-//     return true;
-// }
+function isValidStaffEvent(event: Event): boolean {
+    return isEnumOfType(event.eventType, STAFF_EVENT_TYPE)
+}
 
 // Input format for changing event expiration
 export interface MetadataFormat {
