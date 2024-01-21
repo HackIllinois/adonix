@@ -1,4 +1,4 @@
-import morgan from "morgan";
+// import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
 
 import admissionRouter from "./services/admission/admission-router.js";
@@ -28,7 +28,7 @@ app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
-    app.use(morgan("dev"));
+    // app.use(morgan("dev"));
 }
 
 // Automatically convert requests from json
