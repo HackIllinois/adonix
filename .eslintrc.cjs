@@ -23,6 +23,7 @@ module.exports = {
         "@typescript-eslint/explicit-function-return-type": "error",
         "@typescript-eslint/no-unsafe-argument": "error",
         "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-floating-promises": "error",
         "consistent-return": ["error"],
         // Suggestions
         "arrow-body-style": ["error", "always"],
