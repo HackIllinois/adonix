@@ -20,6 +20,7 @@ export function createFilteredEventView(baseEvent: PublicEvent): FilteredEventVi
         eventType: baseEvent.eventType as PUBLIC_EVENT_TYPE,
         points: baseEvent.points,
         isAsync: baseEvent.isAsync,
+        mapImageURL: baseEvent.mapImageUrl,
     };
     return publicEvent;
 }
