@@ -16,9 +16,7 @@ export class UserAttendance {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public attendance: string[];
 }

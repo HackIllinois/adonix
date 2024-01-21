@@ -206,9 +206,7 @@ authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, 
     }
 
     return await getUsersWithRole(role)
-        .then((users: string[]) => {
-            return res.status(StatusCode.SuccessOK).send({ userIds: users });
-        })
+        .then((users: string[]) => res.status(StatusCode.SuccessOK).send({ userIds: users }))
         .catch((error: Error) => {
             const message = error instanceof Error ? error.message : `${error}`;
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "UnknownError", undefined, message));

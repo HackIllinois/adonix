@@ -204,12 +204,12 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
     }
 
     const updateEntries: AdmissionDecision[] = req.body as AdmissionDecision[];
-    const ops = updateEntries.map((entry) => {
-        return Models.AdmissionDecision.findOneAndUpdate(
+    const ops = updateEntries.map((entry) =>
+        Models.AdmissionDecision.findOneAndUpdate(
             { userId: entry.userId },
             { $set: { status: entry.status, admittedPro: entry.admittedPro } },
-        );
-    });
+        ),
+    );
 
     try {
         await Promise.all(ops);

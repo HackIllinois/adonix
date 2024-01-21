@@ -61,15 +61,11 @@ describe("PUT /admission/update/", () => {
     it("should update application status of applicants", async () => {
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
-        const ops = updateRequest.map((entry) => {
-            return Models.AdmissionDecision.findOne({ userId: entry.userId });
-        });
+        const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
-                updateRequest.map((item) => {
-                    return expect.objectContaining({ status: item.status, userId: item.userId });
-                }),
+                updateRequest.map((item) => expect.objectContaining({ status: item.status, userId: item.userId })),
             ),
         );
     });

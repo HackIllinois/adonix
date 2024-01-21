@@ -68,9 +68,7 @@ describe("GET /auth/dev/", () => {
 function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider> {
     const mockedSelectAuthMiddleware = require("../../middleware/select-auth.js") as typeof selectAuthMiddleware;
     const mockedSelectAuthProvider = jest.spyOn(mockedSelectAuthMiddleware, "SelectAuthProvider");
-    mockedSelectAuthProvider.mockImplementation(() => {
-        return handler;
-    });
+    mockedSelectAuthProvider.mockImplementation(() => handler);
     return mockedSelectAuthProvider;
 }
 
@@ -121,9 +119,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     it("provides an error when authentication fails", async () => {
         // Mock select auth to return not authenticated
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => {
-                return false;
-            };
+            req.isAuthenticated = (): boolean => false;
 
             next();
         });
@@ -136,9 +132,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     it("provides an error when invalid data is provided", async () => {
         // Mock select auth to successfully authenticate & return invalid user data
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => {
-                return true;
-            };
+            req.isAuthenticated = (): boolean => true;
 
             req.user = {
                 // no content
@@ -161,9 +155,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => {
-                return true;
-            };
+            req.isAuthenticated = (): boolean => true;
 
             req.user = {
                 provider,

@@ -275,9 +275,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     }
 
     const filteredEvents: FilteredEventView[] = publicEvents
-        .filter((event: Event) => {
-            return !event.isPrivate;
-        })
+        .filter((event: Event) => !event.isPrivate)
         .map(createFilteredEventView);
     return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
 });

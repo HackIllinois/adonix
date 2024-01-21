@@ -24,9 +24,7 @@ export class RegistrationApplication {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public race: string[];
 
@@ -56,25 +54,19 @@ export class RegistrationApplication {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public hackInterest: string[];
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public hackOutreach: string[];
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public dietaryRestrictions: string[];
 
