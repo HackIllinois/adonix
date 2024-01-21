@@ -329,7 +329,7 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
 
         // decrement attendee coins
         if (updatedShopQuantity) {
-            updateCoins(userId, -itemFormat.price).then(console.error);
+            await updateCoins(userId, -itemFormat.price).then(console.error);
         }
         return res.status(StatusCode.SuccessOK).send({ success: true });
     }
