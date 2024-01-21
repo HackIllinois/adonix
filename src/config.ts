@@ -99,6 +99,7 @@ const Config = {
     MILLISECONDS_PER_SECOND: 1000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
     QR_EXPIRY_TIME: "20s",
+    RESUME_URL_EXPIRY_SECONDS: 60,
 
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
