@@ -19,11 +19,12 @@ import { ErrorHandler } from "./middleware/error-handler.js";
 import { StatusCode } from "status-code-enum";
 import Config from "./config.js";
 import database from "./middleware/database.js";
+import corsSelector from "./middleware/cors-selector.js";
 
 const app: Application = express();
 
 // Utility packages (detailed in the readme)
-// app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
