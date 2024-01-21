@@ -11,8 +11,6 @@ import { updatePoints, updateCoins } from "../profile/profile-lib.js";
 import Config from "../../config.js";
 import crypto from "crypto";
 
-
-
 const mentorRouter: Router = Router();
 
 /**
@@ -20,9 +18,13 @@ const mentorRouter: Router = Router();
  * @apiGroup Mentor
  * @apiDescription Create a mentor's office hours in the database.
  *
- * @apiSuccess (200: Success) {Json} success Indicates successful creation of the mentor's office hours.
+ * @apiBody {String} mentorName name of the mentor to add
+ * @apiParamExample {json} Example Request:
+ * { "mentorName": "Jojos" }
+ *
+ * @apiSuccess (201: Success) {Json} success Indicates successful creation of the mentor's office hours.
  * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 201 CREATED
  * {
  *     "mentorId": "7072a6565209be28b4e3e8a3a3e5810e",
  *     "mentorName": "Jojos",
@@ -34,14 +36,14 @@ const mentorRouter: Router = Router();
  * @apiErrorExample Example Error Response (InvalidRequest):
  *     HTTP/1.1 400 Invalid Request
  *     {"error": "InvalidRequest"}
- * 
+ *
  * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Permission
  *     {"error": "InvalidPermission"}
  */
 mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorName : string | undefined = req.body.mentorName;
+    const mentorName: string | undefined = req.body.mentorName;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorName) {
@@ -54,10 +56,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     //generate mentorId, add document to database, return generated document in response
     const mentorId: string = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
 
-    const officeHours : OfficeHoursFormat = {mentorId: mentorId,
-        mentorName: mentorName,
-        attendees: [],
-    };
+    const officeHours: OfficeHoursFormat = { mentorId: mentorId, mentorName: mentorName, attendees: [] };
 
     const newOfficeHours = await Models.MentorOfficeHours.create(officeHours);
 
@@ -93,7 +92,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Permission
  *     {"error": "InvalidPermission"}
- * 
+ *
  * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
  * @apiErrorExample Example Error Response (InternalError):
  *     HTTP/1.1 500 Internal Server Error
@@ -108,17 +107,21 @@ mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, n
 
     const officeHours: OfficeHoursFormat[] | null = await Models.MentorOfficeHours.find();
 
-    if(!officeHours) {
+    if (!officeHours) {
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    return res.status(StatusCode.SuccessCreated).send(officeHours);
+    return res.status(StatusCode.SuccessOK).send(officeHours);
 });
 
 /**
  * @api {delete} /mentor DELETE /mentor
  * @apiGroup Mentor
  * @apiDescription Delete a mentor's office hours in the database.
+ *
+ * @apiBody {String} mentorId id of the mentor to delete
+ * @apiParamExample {json} Example Request:
+ * { "mentorId": "Jojos" }
  *
  * @apiSuccess (200: Success) {String} success Indicates successful deletion of the mentor's office hours.
  * @apiSuccessExample Example Success Response:
@@ -129,37 +132,42 @@ mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, n
  * @apiErrorExample Example Error Response (InvalidRequest):
  *     HTTP/1.1 400 Invalid Request
  *     {"error": "InvalidRequest"}
- * 
+ *
  * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Permission
  *     {"error": "InvalidPermission"}
  */
 mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorId : string | undefined = req.body.mentorId;
+    const mentorId: string | undefined = req.body.mentorId;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
-    
+
     if (!hasAdminPerms(payload) && !hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
     const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
 
-    if(!officeHours) {
+    if (!officeHours) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
 
-    return res.status(StatusCode.SuccessCreated).send("Success");
+    return res.status(StatusCode.SuccessOK).send("Success");
 });
 
 /**
  * @api {post} /mentor/attendance POST /mentor/attendance
  * @apiGroup Mentor
  * @apiDescription Checks an attendee into a mentor's office hours.
+ *
+ * @apiBody {String} mentorId id of the mentor to delete
+ * @apiParamExample {json} Example Request:
+ * { "mentorId": "Jojos" }
+ *
  *
  * @apiSuccess (200: Success) {String} success Indicates successful checkin.
  * @apiSuccessExample Example Success Response:
@@ -170,24 +178,24 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
  * @apiErrorExample Example Error Response (InvalidRequest):
  *     HTTP/1.1 400 Invalid Request
  *     {"error": "InvalidRequest"}
- * 
+ *
  * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Permission
  *     {"error": "InvalidPermission"}
- * 
+ *
  * @apiError (400: Invalid Request) {String} MentorNotFound
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Request
  *     {"error": "MentorNotFound"}
- * 
+ *
  * @apiError (400: Invalid Request) {String} AlreadyCheckedIn
  * @apiErrorExample Example Error Response (InvalidPermission):
  *     HTTP/1.1 403 Invalid Request
  *     {"error": "AlreadyCheckedIn"}
  */
 mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorId : string | undefined = req.body.mentorId;
+    const mentorId: string | undefined = req.body.mentorId;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
@@ -200,12 +208,12 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
 
     const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
 
-    if(!officeHours) {
+    if (!officeHours) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
 
     // Checks whether the attendee has already checked in for the office hours
-    if(officeHours.attendees.includes(payload.id)) {
+    if (officeHours.attendees.includes(payload.id)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn"));
     }
 
@@ -220,7 +228,5 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
 
     return res.status(StatusCode.SuccessOK).send("Success");
 });
-
-
 
 export default mentorRouter;
