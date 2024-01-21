@@ -108,11 +108,7 @@ export default class Models {
     static EventFollowers: Model<EventFollowers> = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
 
     // Mentor
-    static MentorOfficeHours: Model<MentorOfficeHours> = getModel(
-        MentorOfficeHours,
-        Group.MENTOR,
-        MentorCollection.OFFICE_HOURS,
-    );
+    static MentorOfficeHours: Model<MentorOfficeHours> = getModel(MentorOfficeHours, Group.MENTOR, MentorCollection.OFFICE_HOURS);
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(
