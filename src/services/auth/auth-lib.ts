@@ -22,9 +22,8 @@ type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profi
  * @param options Set of options to be associated with these strategies
  * @returns Passport middleware that is used to perform authentication
  */
-export const authenticateFunction: AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => {
-    return passport.authenticate(strategies, options, undefined) as RequestHandler;
-};
+export const authenticateFunction: AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) =>
+    passport.authenticate(strategies, options, undefined) as RequestHandler;
 
 /**
  * Simple function, used to verify that authentication actually happens correctly.
@@ -34,10 +33,9 @@ export const authenticateFunction: AuthenticateFunction = (strategies: string | 
  * @param callback Function to verify if the actual authentication step worked
  * @returns Results of the callback function, after it's been called with the user
  */
-export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) => {
+export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Profile, callback: VerifyCallback) =>
     // Data manipulation to store types of parsable inputs
-    return callback(null, user);
-};
+    callback(null, user);
 
 /**
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
@@ -164,13 +162,11 @@ export function decodeJwtToken(token?: string): JwtPayload {
  */
 export async function updateUserRoles(id: string, provider: Provider, roles: Role[]): Promise<void> {
     // Create a new rolesEntry for the database, and insert it into the collection
-    await Models.AuthInfo.findOneAndUpdate({ userId: id }, { provider: provider.toLowerCase(), roles: roles }, { upsert: true })
-        .then(() => {
-            return;
-        })
-        .catch((error) => {
-            return error;
-        });
+    await Models.AuthInfo.findOneAndUpdate(
+        { userId: id },
+        { provider: provider.toLowerCase(), roles: roles },
+        { upsert: true },
+    ).catch((error) => error);
 }
 
 /**
@@ -227,9 +223,7 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
  */
 export async function getRoles(id: string): Promise<Role[] | undefined> {
     return getAuthInfo(id)
-        .then((authInfo) => {
-            return authInfo.roles as Role[];
-        })
+        .then((authInfo) => authInfo.roles as Role[])
         .catch((error) => {
             console.log(error);
             return undefined;
@@ -317,9 +311,7 @@ export async function getUsersWithRole(role: string): Promise<string[]> {
     try {
         //Array of users as MongoDb schema that have role as one of its roles
         const queryResult: AuthInfo[] = await Models.AuthInfo.find({ roles: { $in: [role] } }).select("userId");
-        return queryResult.map((user: AuthInfo) => {
-            return user.userId;
-        });
+        return queryResult.map((user: AuthInfo) => user.userId);
     } catch (error) {
         return Promise.reject(error);
     }

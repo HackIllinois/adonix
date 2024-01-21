@@ -4,8 +4,8 @@ import { getModelForClass } from "@typegoose/typegoose";
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
 import { AdmissionDecision } from "./admission-db.js";
-import { EventAttendance, EventMetadata, PublicEvent, StaffEvent, EventFollowers } from "./event-db.js";
 import { MentorOfficeHours } from "./mentor-db.js";
+import { Event, EventAttendance, EventFollowers } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication } from "./registration-db.js";
 import { ShopItem } from "./shop-db.js";
@@ -103,14 +103,16 @@ export default class Models {
     );
 
     // Event
-    static StaffEvent: Model<StaffEvent> = getModel(StaffEvent, Group.EVENT, EventCollection.STAFF_EVENTS);
-    static PublicEvent: Model<PublicEvent> = getModel(PublicEvent, Group.EVENT, EventCollection.PUBLIC_EVENTS);
-    static EventMetadata: Model<EventMetadata> = getModel(EventMetadata, Group.EVENT, EventCollection.METADATA);
+    static Event: Model<Event> = getModel(Event, Group.EVENT, EventCollection.STAFF_EVENTS);
     static EventAttendance: Model<EventAttendance> = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
     static EventFollowers: Model<EventFollowers> = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
 
     // Mentor
-    static MentorOfficeHours: Model<MentorOfficeHours> = getModel(MentorOfficeHours, Group.MENTOR, MentorCollection.OFFICE_HOURS);
+    static MentorOfficeHours: Model<MentorOfficeHours> = getModel(
+        MentorOfficeHours,
+        Group.MENTOR,
+        MentorCollection.OFFICE_HOURS,
+    );
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(

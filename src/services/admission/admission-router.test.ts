@@ -1,16 +1,20 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../database/models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
+import { RegistrationFormat } from "../registration/registration-formats.js";
+import { RegistrationTemplates } from "./../../config.js";
+import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models.js";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools.js";
 import { StatusCode } from "status-code-enum";
-import { ApplicantDecisionFormat } from "./admission-formats.js";
+import type * as MailLib from "../../services/mail/mail-lib.js";
+import type { AxiosResponse } from "axios";
+import { MailInfoFormat } from "services/mail/mail-formats.js";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
     status: DecisionStatus.ACCEPTED,
     response: DecisionResponse.PENDING,
     emailSent: false,
-    reviewer: "tester-reviewer",
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -18,29 +22,49 @@ const OTHER_DECISION = {
     status: DecisionStatus.REJECTED,
     response: DecisionResponse.DECLINED,
     emailSent: true,
-    reviewer: "other-reviewer",
 } satisfies AdmissionDecision;
+
+const TESTER_APPLICATION = {
+    isProApplicant: false,
+    userId: TESTER.id,
+    preferredName: TESTER.name,
+    legalName: TESTER.name,
+    emailAddress: TESTER.email,
+    university: "ap",
+    hackEssay1: "ap",
+    hackEssay2: "ap",
+    optionalEssay: "ap",
+    location: "ap",
+    gender: Gender.OTHER,
+    degree: Degree.BACHELORS,
+    major: "CS",
+    gradYear: 0,
+    requestedTravelReimbursement: false,
+    dietaryRestrictions: [],
+    race: [Race.NO_ANSWER],
+    hackInterest: [HackInterest.OTHER],
+    hackOutreach: [HackOutreach.OTHER],
+} satisfies RegistrationFormat;
 
 const updateRequest = [
     {
         userId: TESTER.id,
         status: DecisionStatus.WAITLISTED,
         response: DecisionResponse.PENDING,
-        reviewer: "",
         emailSent: false,
     },
     {
-        userId: "other-user",
+        userId: OTHER_DECISION.userId,
         status: DecisionStatus.ACCEPTED,
         response: DecisionResponse.PENDING,
-        reviewer: "",
         emailSent: false,
     },
-] satisfies ApplicantDecisionFormat[];
+] satisfies AdmissionDecision[];
 
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
+    await Models.RegistrationApplication.create(TESTER_APPLICATION);
 });
 
 describe("GET /admission/notsent/", () => {
@@ -54,23 +78,40 @@ describe("GET /admission/notsent/", () => {
     });
 });
 
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
 describe("PUT /admission/update/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
     it("gives forbidden error for user without elevated perms", async () => {
         const responseUser = await putAsUser("/admission/update/").send(updateRequest).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
     });
+
     it("should update application status of applicants", async () => {
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
-        const ops = updateRequest.map((entry) => {
-            return Models.AdmissionDecision.findOne({ userId: entry.userId });
-        });
+
+        const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.STATUS_UPDATE,
+            recipients: [], // empty because neither test case starts as status = TBD
+        } satisfies MailInfoFormat);
+
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
-                updateRequest.map((item) => {
-                    return expect.objectContaining({ status: item.status, userId: item.userId });
-                }),
+                updateRequest.map((item) => expect.objectContaining({ status: item.status, userId: item.userId })),
             ),
         );
     });
@@ -100,7 +141,20 @@ describe("GET /admission/rsvp/", () => {
     it("works for a staff user and returns unfiltered data", async () => {
         const response = await getAsStaff("/admission/rsvp/").expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
+        // expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
+        expect(JSON.parse(response.text)).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    // Specify the properties of AdmissionDecision since its an array of custom model
+                    userId: expect.any(String),
+                    status: expect.any(String),
+                    response: expect.any(String),
+                    admittedPro: expect.any(Boolean),
+                    emailSent: expect.any(Boolean),
+                    reimbursementValue: expect.any(Number),
+                }),
+            ]),
+        );
     });
 });
 
@@ -125,6 +179,14 @@ describe("GET /admission/rsvp/:USERID", () => {
 });
 
 describe("PUT /admission/rsvp/accept", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
     it("returns UserNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
@@ -138,6 +200,12 @@ describe("PUT /admission/rsvp/accept", () => {
     it("lets applicant accept accepted decision", async () => {
         await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+            recipients: [TESTER_APPLICATION.emailAddress],
+            subs: { name: TESTER_APPLICATION.preferredName },
+        } satisfies MailInfoFormat);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
@@ -164,6 +232,14 @@ describe("PUT /admission/rsvp/accept", () => {
 });
 
 describe("PUT /admission/rsvp/decline/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
     it("returns UserNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
@@ -174,9 +250,14 @@ describe("PUT /admission/rsvp/decline/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("lets applicant accept accepted decision", async () => {
+    it("lets applicant decline accepted decision", async () => {
         await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.RSVP_DECLINED,
+            recipients: [TESTER_APPLICATION.emailAddress],
+        } satisfies MailInfoFormat);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,

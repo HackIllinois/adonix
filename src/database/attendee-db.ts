@@ -39,9 +39,7 @@ export class AttendeeFollowing {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public following: string[];
 }

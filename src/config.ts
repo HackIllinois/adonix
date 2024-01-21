@@ -17,7 +17,13 @@ export enum Device {
 }
 
 export enum RegistrationTemplates {
-    REGISTRATION_SUBMISSION = "registration_confirmation",
+    REGISTRATION_SUBMISSION = "2024_registration_confirmation",
+    STATUS_UPDATE = "2024_status_update",
+    RSVP_CONFIRMATION = "2024_rsvp_confirmation",
+    RSVP_CONFIRMATION_WITH_REIMBURSE = "2024_rsvp_confirmation_reimburse",
+    RSVP_DECLINED = "2024_rsvp_declined",
+    RSVP_REMINDER_1_WEEK = "2024_rsvp-reminder-1week",
+    RSVP_REMINDER_1_DAY = "2024_rsvp-reminder",
 }
 
 export enum Avatars {
@@ -99,6 +105,7 @@ const Config = {
     MILLISECONDS_PER_SECOND: 1000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
     QR_EXPIRY_TIME: "20s",
+    RESUME_URL_EXPIRY_SECONDS: 60,
 
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
@@ -117,6 +124,8 @@ const Config = {
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,
     MAX_SHOP_STOCK_PER_ITEM: 128,
+
+    RANKING_OFFSET: 1,
 };
 
 export default Config;

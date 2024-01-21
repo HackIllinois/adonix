@@ -4,6 +4,7 @@ export enum Gender {
     NONBINARY = "Non-Binary",
     OTHER = "Other",
     NO_ANSWER = "Prefer Not To Answer",
+    PLACEHOLDER = "",
 }
 
 export enum Race {
@@ -17,6 +18,7 @@ export enum Race {
     SOUTH_ASIAN = "South Asian",
     WHITE = "White",
     NO_ANSWER = "Prefer Not To Answer",
+    PLACEHOLDER = "",
 }
 
 export enum Degree {
@@ -26,6 +28,7 @@ export enum Degree {
     PHD = "PhD",
     GRADUATED = "Graduated",
     OTHER = "Other",
+    PLACEHOLDER = "",
 }
 
 export enum HackInterest {
@@ -36,6 +39,7 @@ export enum HackInterest {
     MENTORS = "Working with mentors to get feedback",
     COMPANIES_NETWORKING = "Company Q&As and networking events",
     OTHER = "Other",
+    PLACEHOLDER = "",
 }
 
 export enum HackOutreach {
@@ -52,4 +56,5 @@ export enum HackOutreach {
     SLACK = "Slack",
     NEWSLETTER = "HackIllinois Newsletter",
     OTHER = "Other",
+    PLACEHOLDER = "",
 }

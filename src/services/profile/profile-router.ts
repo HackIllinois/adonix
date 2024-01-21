@@ -12,12 +12,13 @@ import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+// import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
 import { RouterError } from "../../middleware/error-handler.js";
+import { isValidProfileFormat } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
 
@@ -78,9 +79,10 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
     }
     // Perform the actual query, filter, and return the results
     const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
-    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
-        return { displayName: profile.displayName, points: profile.points };
-    });
+    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => ({
+        displayName: profile.displayName,
+        points: profile.points,
+    }));
 
     return res.status(StatusCode.SuccessOK).send({
         profiles: filteredLeaderboardEntried,
@@ -190,10 +192,10 @@ profileRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request,
     return res.status(StatusCode.SuccessOK).send(user);
 });
 
-profileRouter.get("/id", (_: Request, res: Response) => {
+profileRouter.get("/id", (_: Request, res: Response) =>
     // Redirect to the root URL
-    return res.redirect("/user");
-});
+    res.redirect("/user"),
+);
 
 /**
  * @api {post} /profile POST /profile
@@ -235,7 +237,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         ? (req.body.avatarId as string)
         : Config.DEFAULT_AVATAR;
 
-    const profile: ProfileFormat = req.body as ProfileFormat;
+    const profile: AttendeeProfile = req.body as AttendeeProfile;
     profile.points = Config.DEFAULT_POINT_VALUE;
     profile.coins = Config.DEFAULT_COIN_VALUE;
     profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
@@ -352,6 +354,38 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
     const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     return res.status(StatusCode.SuccessOK).send(updatedProfile);
+});
+
+/**
+ * @api {get} /profile/ranking/ GET /profile/ranking/
+ * @apiGroup Profile
+ * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in alphabetical order.
+ *
+ * @apiSuccess (200: Success) {number} ranking Ranking of the user
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "ranking": 1
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal) {String} InternalError An internal server error occured.
+ */
+profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
+
+    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
+    const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
+
+    if (userIndex < 0) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
+    }
+
+    const userRanking = userIndex + Config.RANKING_OFFSET;
+
+    return res.status(StatusCode.SuccessOK).send({ ranking: userRanking });
 });
 
 export default profileRouter;

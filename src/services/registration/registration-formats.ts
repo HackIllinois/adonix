@@ -1,5 +1,5 @@
 import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
-import { isString, isBoolean, isArrayOfType, isNumber } from "../../formatTools.js";
+import { isString, isBoolean, isArrayOfType, isNumber, isEnumOfType } from "../../formatTools.js";
 
 export interface RegistrationFormat {
     userId: string;
@@ -42,25 +42,28 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     }
 
     if (
-        !isString(registration.gender) ||
-        !isArrayOfType(registration.race, isString) ||
-        !isArrayOfType(registration.dietaryRestrictions, isString)
+        !isEnumOfType(registration.gender, Gender) ||
+        !isArrayOfType(registration.race, (value) => isEnumOfType(value, Race)) ||
+        !isArrayOfType(registration.dietaryRestrictions, isString || undefined)
     ) {
         return false;
     }
 
     if (
         !isString(registration.location) ||
-        !isString(registration.degree) ||
+        !isEnumOfType(registration.degree, Degree) ||
         !isString(registration.university) ||
-        !isNumber(registration.gradYear) ||
+        !(isNumber(registration.gradYear) || registration.gradYear == undefined) ||
         !isString(registration.major) ||
         !isString(registration.minor ?? "")
     ) {
         return false;
     }
 
-    if (!isArrayOfType(registration.hackInterest, isString) || !isArrayOfType(registration.hackOutreach, isString)) {
+    if (
+        !isArrayOfType(registration.hackInterest, (value) => isEnumOfType(value, HackInterest)) ||
+        !isArrayOfType(registration.hackOutreach, (value) => isEnumOfType(value, HackOutreach))
+    ) {
         return false;
     }
 
@@ -80,12 +83,12 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
-    if (!registration.isProApplicant) {
-        if (isString(registration.proEssay) && (registration.proEssay?.length ?? 0) > 0) {
+    if (registration.isProApplicant) {
+        if (registration.proEssay === null || !isString(registration.proEssay)) {
             return false;
         }
 
-        if (isBoolean(registration.considerForGeneral) && registration.considerForGeneral) {
+        if (registration.considerForGeneral === null || !isBoolean(registration.considerForGeneral)) {
             return false;
         }
     }

@@ -8,14 +8,14 @@ import { RouterError } from "../../middleware/error-handler.js";
 
 import Models from "../../database/models.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
-import { AdmissionDecision, DecisionResponse, DecisionStatus } from "../../database/admission-db.js";
+import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.js";
 
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
 
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { sendMailWrapper } from "../mail/mail-lib.js";
+import { sendMail } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
 
 const registrationRouter: Router = Router();
@@ -60,7 +60,7 @@ const registrationRouter: Router = Router();
  *      "resumeFileName": "https://www.google.com",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -71,6 +71,8 @@ const registrationRouter: Router = Router();
  *      "hackInterest": ["Mini-Event"],
  *      "hackOutreach": ["Instagram"]
  *  }
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
+ * @apiUse strongVerifyErrors
  */
 registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload;
@@ -125,7 +127,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "optionalEssay": "",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "major": "Computer Science",
  *      "minor": "Math",
  *      "resumeFileName": "https://www.google.com",
@@ -140,7 +142,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "hackOutreach": ["Instagram"]
  *  }
  * @apiError (403: Forbidden) {String} Forbidden User doesn't have elevated permissions
- * @apiError (404: Not Found) {String} UserNotFound User not found in database
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
  */
 registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
@@ -153,7 +155,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
     const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationData) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(registrationData);
@@ -187,29 +189,36 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *
  * @apiParamExample {json} Example Request:
  * {
- *     "preferredName": "Ronakin",
- *      "legalName": "Ronakin Kanandini",
- *      "emailAddress": "rpak@gmail.org",
- *      "university": "University of Illinois Urbana-Champaign",
- *      "hackEssay1": "I love hack",
- *      "hackEssay2": "I love hack",
- *      "optionalEssay": "",
- *      "resumeFileName": "https://www.google.com",
- *      "location": "Urbana",
- *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
- *      "major": "Computer Science",
- *      "minor": "Math",
- *      "resumeFileName": "https://www.google.com/"
- *      "gradYear": 0,
- *      "isProApplicant": true,
- *      "proEssay": "I wanna be a Knight",
- *      "considerForGeneral": true,
- *      "requestedTravelReimbursement: false,
- *      "dietaryRestrictions": "Vegetarian",
- *      "race": "Prefer Not To Answer",
- *      "hackInterest": ["Mini-Event"],
- *      "hackOutreach": ["Instagram"]
+ *     "preferredName": "L",
+ *     "emailAddress": "wjiwji1j@illinois.edu",
+ *     "location": "Alaska",
+ *     "degree": "Associates' Degree",
+ *     "university": "University of Illinois (Springfield)",
+ *     "major": "Computer Science",
+ *     "minor": "Computer Science",
+ *     "gradYear": 2030,
+ *     "hackEssay1": "yay",
+ *     "hackEssay2": "yay",
+ *     "proEssay": "yay",
+ *     "hackInterest": [
+ *         "Attending technical workshops"
+ *     ],
+ *     "hackOutreach": [
+ *         "Instagram"
+ *     ],
+ *     "dietaryRestrictions": [
+ *         "None"
+ *     ],
+ *     "resumeFileName": "GitHub cheatsheet.pdf",
+ *     "isProApplicant": false,
+ *     "legalName": "lasya neti",
+ *     "considerForGeneral": false,
+ *     "requestedTravelReimbursement": true,
+ *     "gender": "Female",
+ *     "race": [
+ *         "American Indian or Alaska Native"
+ *     ],
+ *     "optionalEssay": ""
  * }
  *
  * @apiSuccess (200: Success) {json} json Returns the POSTed registration information for user
@@ -226,7 +235,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "optionalEssay": "I wanna be a Knight",
  *      "location": "Urbana",
  *      "gender": "Prefer Not To Answer",
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "major": "Computer Science",
  *      "minor": "Math",
  *      "resumeFileName": "https://www.google.com/"
@@ -275,7 +284,18 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
     return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
-// THIS ENDPOINT SHOULD PERFORM ALL THE ACTIONS REQUIRED ONCE YOU SUBMIT REGISTRATION
+/**
+ * @api {post} /registration/submit/ POST /registration/submit/
+ * @apiGroup Registration
+ * @apiDescription Submits registration data for the current user. Cannot edit registration data after this point.
+ *
+ * No body is required for this request.
+ *
+ * @apiSuccess (200: Success) {String} Success
+ * @apiError (404: Bad Request) {String} NotFound Registration does not exist
+ * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
+ * @apiError (500: Internal Server Error) {String} InternalError Server-side error
+ **/
 registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
@@ -283,7 +303,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
     const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationInfo) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "NoRegistrationInfo"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
     if (registrationInfo?.hasSubmitted ?? false) {
@@ -295,11 +315,15 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         { hasSubmitted: true },
         { new: true },
     );
+
     if (!newRegistrationInfo) {
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    const admissionDecision = new AdmissionDecision(userId, DecisionStatus.TBD, DecisionResponse.PENDING, "", false);
+    const admissionDecision: AdmissionDecision = {
+        userId,
+        status: DecisionStatus.TBD,
+    };
 
     const admissionInfo: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
         {
@@ -313,12 +337,20 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    // SEND SUCCESFUL REGISTRATION EMAIL
+    // SEND SUCCESSFUL REGISTRATION EMAIL
     const mailInfo: MailInfoFormat = {
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
+        subs: { name: registrationInfo.preferredName },
     };
-    return sendMailWrapper(res, next, mailInfo);
+
+    try {
+        await sendMail(mailInfo);
+    } catch (error) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "EmailFailedToSend", error, error.toString()));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
 export default registrationRouter;

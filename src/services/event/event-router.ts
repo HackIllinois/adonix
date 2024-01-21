@@ -1,30 +1,24 @@
 import cors from "cors";
-import crypto from "crypto";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import Config from "../../config.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
+import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
 import { createFilteredEventView } from "./event-lib.js";
-import {
-    MetadataFormat,
-    isValidStaffFormat,
-    isValidPublicFormat,
-    GenericEventFormat,
-    isValidMetadataFormat,
-} from "./event-formats.js";
 import { FilteredEventView } from "./event-models.js";
 
-import { EventFollowers, EventMetadata, PublicEvent, StaffEvent } from "../../database/event-db.js";
-import Models from "../../database/models.js";
-import { ObjectId } from "mongodb";
 import { StatusCode } from "status-code-enum";
+import { Event, EventFollowers } from "../../database/event-db.js";
+import Models from "../../database/models.js";
 
 import { RouterError } from "../../middleware/error-handler.js";
+
+import crypto from "crypto";
+import Config from "../../config.js";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -66,14 +60,13 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
 
-    const eventExists: boolean = (await Models.EventMetadata.findOne({ eventId: eventId })) ?? false;
+    const event: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
 
-    if (!eventExists) {
+    if (!event) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    const eventFollowers: EventFollowers | null = await Models.EventFollowers.findOne({ eventId: eventId });
-    return res.status(StatusCode.SuccessOK).send({ eventId: eventId, followers: eventFollowers?.followers ?? [] });
+    return res.status(StatusCode.SuccessOK).send({ eventId: eventId, followers: event.followers });
 });
 
 /**
@@ -105,7 +98,7 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
  *     "isPrivate": true,
  *     "isAsync": true,
  *     "displayOnStaffCheckIn": true,
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -119,7 +112,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const staffEvents: StaffEvent[] = await Models.StaffEvent.find();
+    const staffEvents: Event[] = await Models.Event.find({ isStaff: true });
     return res.status(StatusCode.SuccessOK).send({ events: staffEvents });
 });
 
@@ -150,7 +143,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     ],
  *     "sponsor": "Example sponsor",
  *     "eventType": "WORKSHOP",
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  * @apiSuccessExample Example Success Response (Staff POV)
@@ -174,7 +167,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     "eventType": "WORKSHOP",
  *     "isPrivate": True,
  *     "displayOnStaffCheckIn": True,
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -194,31 +187,20 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const isStaff: boolean = hasStaffPerms(payload);
 
-    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
+    const event = await Models.Event.findOne({ eventId: eventId });
 
-    if (!metadata) {
-        console.error("no metadata found!");
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "no event found!"));
+    if (!event) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    if (metadata.isStaff) {
+    if (event.isStaff) {
         if (!isStaff) {
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "PrivateEvent"));
         }
-
-        const event: StaffEvent | null = await Models.StaffEvent.findOne({ eventId: eventId });
-        return res.status(StatusCode.SuccessOK).send({ event: event });
+        return res.status(StatusCode.SuccessOK).send(event);
     } else {
-        // Not a private event -> convert to Public event and return
-        const event: PublicEvent | null = await Models.PublicEvent.findOne({ eventId: eventId });
-
-        if (!event) {
-            console.error("no metadata found!");
-            return next(new RouterError(StatusCode.ClientErrorNotFound, "no event found!"));
-        }
-
         const filteredEvent: FilteredEventView = createFilteredEventView(event);
-        return res.status(StatusCode.SuccessOK).send({ event: filteredEvent });
+        return res.status(StatusCode.SuccessOK).send(filteredEvent);
     }
 });
 
@@ -231,55 +213,105 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  * @apiSuccessExample Example Success Response (Public POV)
  * HTTP/1.1 200 OK
  * {
- *   "events": [
- *     {
- *       "id": "52fdfc072182654f163f5f0f9a621d72",
- *       "name": "Example Event 10",
- *       "description": "This is a description",
- *       "startTime": 1532202702,
- *       "endTime": 1532212702,
- *       "locations": [
- *         {
- *           "description": "Example Location",
- *           "tags": ["SIEBEL0", "ECEB1"],
- *           "latitude": 40.1138,
- *           "longitude": -88.2249
- *         }
- *       ],
- *       "sponsor": "Example sponsor",
- *       "eventType": "WORKSHOP",
- *       "mapImageURL": "someurlmapthingy.com",
- *     },
- *     // Additional events...
+ *  "events": [
+ *      {
+ *          "eventId": "ajiwujda18ajd",
+ *          "name": "Test Event 1",
+ *          "description": "This is Test Event 1. At this event, you can learn about APIs and Databases.",
+ *          "startTime": 1708668480,
+ *          "endTime": 1708668540,
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "eventType": "WORKSHOP",
+ *          "points": 10,
+ *          "isAsync": false,
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
+ *      },
+ *      {
+ *          "eventId": "asdcxwjda18ajd",
+ *          "name": "Test Event 2",
+ *          "description": "This is Test Event 2. At this event, you can learn about AI/ML.",
+ *          "startTime": 1708754880,
+ *          "endTime": 1708754940,
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "eventType": "WORKSHOP",
+ *          "points": 2000,
+ *          "isAsync": false,
+ *          "mapImageURL": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
+ *      }
  *   ]
  * }
  *
  * @apiSuccessExample Example Success Response (Staff POV)
  * HTTP/1.1 200 OK
  * {
- *   "events": [
- *     {
- *       "id": "52fdfc072182654f163f5f0f9a621d72",
- *       "name": "Example Event 10",
- *       "description": "This is a description",
- *       "startTime": 1532202702,
- *       "endTime": 1532212702,
- *       "locations": [
- *         {
- *           "description": "Example Location",
- *           "tags": ["SIEBEL0", "ECEB1"],
- *           "latitude": 40.1138,
- *           "longitude": -88.2249
- *         }
- *       ],
- *       "sponsor": "Example sponsor",
- *       "eventType": "WORKSHOP",
- *       "isPrivate": true,
- *       "displayOnStaffCheckIn": true,
- *       "mapImageURL": "someurlmapthingy.com",
- *     },
- *     // Additional events...
- *   ]
+ *  "events": [
+ *      {
+ *          "_id": "65adbbd464f9cea319b3dae4",
+ *          "eventId": "ajiwujda18ajd",
+ *          "isStaff": false,
+ *          "name": "Test Event 1",
+ *          "description": "This is Test Event 1. At this event, you can learn about APIs and Databases.",
+ *          "startTime": 1708668480,
+ *          "endTime": 1708668540,
+ *          "eventType": "WORKSHOP",
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "isAsync": false,
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png",
+ *          "points": 10,
+ *          "isPrivate": false
+ *      },
+ *      {
+ *          "_id": "65adc040face07d159a64519",
+ *          "eventId": "asdcxwjda18ajd",
+ *          "isStaff": false,
+ *          "name": "Test Event 2",
+ *          "description": "This is Test Event 2. At this event, you can learn about AI/ML.",
+ *          "startTime": 1708754880,
+ *          "endTime": 1708754940,
+ *          "eventType": "WORKSHOP",
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "isAsync": false,
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/SiebelFloor1.png",
+ *          "points": 2000,
+ *          "isPrivate": false
+ *      }
+ *    ]
  * }
  *
  * @apiUse strongVerifyErrors
@@ -289,18 +321,16 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // Get collection from the database, and return it as an array
-    const publicEvents: PublicEvent[] = await Models.PublicEvent.find();
+    const publicEvents: Event[] = await Models.Event.find({ isStaff: false });
 
     if (hasStaffPerms(payload)) {
         return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
-    } else {
-        const filteredEvents: FilteredEventView[] = publicEvents
-            .filter((event: PublicEvent) => {
-                return !event.isPrivate;
-            })
-            .map(createFilteredEventView);
-        return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
     }
+
+    const filteredEvents: FilteredEventView[] = publicEvents
+        .filter((event: Event) => !event.isPrivate)
+        .map(createFilteredEventView);
+    return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
 });
 
 /**
@@ -330,8 +360,9 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "isStaff": false,
  *   "isPrivate": false,
  *   "displayOnStaffCheckIn": false,
- *   "mapImageURL": "someurlmapthingy.com",
- *   "points": 100
+ *   "mapImageUrl": "someurlmapthingy.com",
+ *   "points": 100,
+ *   "exp": 10000
  * }
  *
  * @apiParamExample {Json} Request Body Example for Staff Event:
@@ -351,56 +382,55 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "eventType": "MEETING",
  *   "isStaff": true,
  *   "isAsync": true,
- *   "mapImageURL": "someurlmapthingy.com",
+ *   "mapImageUrl": "someurlmapthingy.com",
  * }
  *
  * @apiSuccess (201: Created) {Json} event The created event details.
  * @apiSuccessExample Example Success Response for Public Event
  * HTTP/1.1 201 Created
  * {
- *   "event": {
- *     "id": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "New Public Event",
- *     "description": "This is a new public event.",
- *     "startTime": 1679485545,
- *     "endTime": 1679489145,
+ *     "name": "Wednesday Meeting",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
  *     "locations": [
- *       {
- *         "description": "New Location",
- *         "tags": ["TAG1", "TAG2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
  *     ],
- *     "sponsor": "Event Sponsor",
- *     "eventType": "WORKSHOP",
- *     "isStaff": false
- *     "mapImageURL": "someurlmapthingy.com",
- *   }
+ *     "eventType": "MEETING",
+ *     "isStaff": true,
+ *     "isAsync": false
  * }
+ *
  *
  * @apiSuccessExample Example Success Response for Staff Event
  * HTTP/1.1 201 Created
  * {
- *   "event": {
- *     "id": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "New Staff Event",
- *     "description": "This is a new staff event.",
- *     "startTime": 1679485545,
- *     "endTime": 1679489145,
- *     "locations": [
- *       {
- *         "description": "New Location",
- *         "tags": ["TAG1", "TAG2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
- *     ],
- *     "sponsor": "Event Sponsor",
- *     "eventType": "MEETING",
+ *     "eventId": "lxcpno01910ss",
  *     "isStaff": true,
- *     "mapImageURL": "someurlmapthingy.com",
- *   }
+ *     "name": "Wednesday Meeting",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
+ *     "eventType": "MEETING",
+ *     "locations": [
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
+ *     ],
+ *     "isAsync": false,
+ *     "_id": "65adf85316e31ab46559085a"
  * }
  *
  * @apiUse strongVerifyErrors
@@ -411,45 +441,28 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
 eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    // Check if the token has staff permissions
+    // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
     // Convert event format into the base event format
-    const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
+    const eventFormat = req.body as Event;
 
     if (eventFormat.eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraEventId: eventFormat.eventId }));
     }
 
-    // Create the ID and process metadata for this event
     const eventId: string = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
-    const isStaffEvent: boolean = eventFormat.isStaff;
-    const metadata: EventMetadata = new EventMetadata(eventId, isStaffEvent, eventFormat.endTime);
-    // Populate the new eventFormat object with the needed params
-    eventFormat._id = new ObjectId().toString();
     eventFormat.eventId = eventId;
 
-    // Try to upload the events if possible, else throw an error
-    let newEvent: PublicEvent | StaffEvent | null;
-
-    if (isStaffEvent) {
-        // If ID doesn't exist -> return the invalid parameters
-        if (!isValidStaffFormat(eventFormat)) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", eventFormat));
-        }
-        const event: StaffEvent = new StaffEvent(eventFormat);
-        newEvent = await Models.StaffEvent.create(event);
-    } else {
-        if (!isValidPublicFormat(eventFormat)) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", eventFormat));
-        }
-        const event: PublicEvent = new PublicEvent(eventFormat);
-        newEvent = await Models.PublicEvent.create(event);
+    if (!isValidEvent(eventFormat)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", { data: eventFormat }));
     }
-    await Models.EventMetadata.create(metadata);
-    return res.status(StatusCode.SuccessCreated).send(newEvent);
+
+    // Create the new event
+    const event: Event = await Models.Event.create(eventFormat);
+    return res.status(StatusCode.SuccessCreated).send(event);
 });
 
 /**
@@ -482,9 +495,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
     }
 
     // Perform a lazy delete on both databases, and return true if the operation succeeds
-    await Models.StaffEvent.findOneAndDelete({ eventId: eventId });
-    await Models.PublicEvent.findOneAndDelete({ eventId: eventId });
-    await Models.EventMetadata.findOneAndDelete({ eventId: eventId });
+    await Models.Event.findOneAndDelete({ eventId: eventId });
 
     return res.status(StatusCode.SuccessNoContent).send({ status: "Success" });
 });
@@ -503,7 +514,6 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * HTTP/1.1 200 OK
  * {
  *   "_id": "52fdfc072182654f163f5f0f9a621d72",
- *   "isStaff": true,
  *   "exp": 1636103447
  * }
  *
@@ -521,17 +531,19 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
 
     // Check if the request information is valid
     const eventId: string | undefined = req.params.EVENTID;
-    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
-    if (!metadata) {
+    const event: Event | null = await Models.Event.findOne({ eventId: eventId });
+
+    if (!event) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
-    return res.status(StatusCode.SuccessOK).send(metadata);
+
+    return res.status(StatusCode.SuccessOK).send({ eventId: event.eventId, exp: event.exp });
 });
 
 /**
  * @api {put} /event/metadata/ PUT /event/metadata/
  * @apiGroup Event
- * @apiDescription Update metadata for an event.
+ * @apiDescription Update metadata for an event, i.e. primarily event expiration.
  *
  * @apiHeader {String} Authorization User's JWT Token with admin permissions.
  *
@@ -544,7 +556,6 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
  * HTTP/1.1 200 OK
  * {
  *   "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *   "isStaff": true,
  *   "exp": 1636103447
  * }
  *
@@ -568,16 +579,13 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
     }
 
     // Update the database, and return true if it passes. Else, return false.
-    const updatedMetadata: EventMetadata | null = await Models.EventMetadata.findOneAndUpdate(
-        { eventId: metadata.eventId },
-        metadata,
-    );
+    const event: Event | null = await Models.Event.findOneAndUpdate({ eventId: metadata.eventId }, metadata);
 
-    if (!metadata) {
+    if (!event) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    return res.status(StatusCode.SuccessOK).send(updatedMetadata);
+    return res.status(StatusCode.SuccessOK).send(event);
 });
 
 /**
@@ -589,55 +597,27 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  *
  * @apiBody {Json} event The event object to create or update.
  *
- * @apiParamExample Example Request (Staff):
+ * @apiParamExample Example Request (Admin):
  * HTTP/1.1 PUT /event/
  * {
- *   "event": {
- *     "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "Example Staff Event",
- *     "description": "This is a staff-only event description",
- *     "startTime": 1636110000,
- *     "endTime": 1636113600,
- *     "locations": [
- *       {
- *         "description": "Staff Location",
- *         "tags": ["Tag1", "Tag2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
- *     ],
- *     "eventType": "WORKSHOP",
+ *     "eventId": "valid10292921",
  *     "isStaff": true,
- *     "isPrivate": false,
- *     "isAsync": true,
- *     "displayOnStaffCheckIn": true
- *   }
- * }
- *
- * @apiParamExample Example Request (Public):
- * HTTP/1.1 PUT /event/
- * {
- *   "event": {
- *     "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "Example Public Event",
- *     "description": "This is a public event description",
- *     "startTime": 1636110000,
- *     "endTime": 1636113600,
+ *     "name": "Wednesday Meeting !!!EDIT THIS EVENT!!!",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
+ *     "eventType": "MEETING",
  *     "locations": [
- *       {
- *         "description": "Public Location",
- *         "tags": ["Tag3", "Tag4"],
- *         "latitude": 41.5678,
- *         "longitude": -87.1234
- *       }
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
  *     ],
- *     "sponsor": "Public Sponsor",
- *     "eventType": "MEAL",
- *     "isStaff": false,
- *     "isPrivate": true,
- *     "isAsync": true,
- *     "displayOnStaffCheckIn": false
- *   }
+ *     "isAsync": false
  * }
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event object.
@@ -657,36 +637,20 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
     }
 
     // Verify that the input format is valid to create a new event
-    const eventFormat: GenericEventFormat = req.body as GenericEventFormat;
-    const eventId: string = eventFormat.eventId;
+    const event: Event = req.body as Event;
+    const eventId: string = event.eventId;
 
-    if (!eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoEventId"));
+    if (!isValidEvent(event)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", event));
     }
 
-    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventFormat.eventId });
+    const updatedEvent: Event | null = await Models.Event.findOneAndUpdate({ eventId: eventId }, event);
 
-    if (!metadata) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound", metadata));
+    if (!updatedEvent) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    if (metadata.isStaff) {
-        if (!isValidStaffFormat(eventFormat)) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", eventFormat));
-        }
-
-        const event: StaffEvent = new StaffEvent(eventFormat);
-        const updatedEvent: StaffEvent | null = await Models.StaffEvent.findOneAndUpdate({ eventId: eventId }, event);
-        return res.status(StatusCode.SuccessOK).send(updatedEvent);
-    } else {
-        if (!isValidPublicFormat(eventFormat)) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", eventFormat));
-        }
-
-        const event: PublicEvent = new PublicEvent(eventFormat);
-        const updatedEvent: PublicEvent | null = await Models.PublicEvent.findOneAndUpdate({ eventId: eventId }, event);
-        return res.status(StatusCode.SuccessOK).send(updatedEvent);
-    }
+    return res.status(StatusCode.SuccessOK).send(updatedEvent);
 });
 
 export default eventsRouter;

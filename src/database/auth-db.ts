@@ -9,9 +9,7 @@ export class AuthInfo {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public roles: string[];
 }

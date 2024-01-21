@@ -1,8 +1,5 @@
 import { modelOptions, prop } from "@typegoose/typegoose";
 
-import Config from "../config.js";
-import { GenericEventFormat } from "../services/event/event-formats.js";
-
 // Interface for the location of the event
 @modelOptions({ schemaOptions: { _id: false } })
 export class Location {
@@ -11,9 +8,7 @@ export class Location {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public tags: string[];
 
@@ -25,9 +20,12 @@ export class Location {
 }
 
 // Interface for the actual event
-class BaseEvent {
+export class Event {
     @prop({ required: true })
     public eventId: string;
+
+    @prop({ required: true })
+    public isStaff: boolean;
 
     @prop({ required: true })
     public name: string;
@@ -44,73 +42,32 @@ class BaseEvent {
     @prop({ required: true })
     public eventType: string;
 
+    @prop({ required: false })
+    public exp?: number;
+
     @prop({
         required: true,
-        type: () => {
-            return Location;
-        },
+        type: () => Location,
     })
     public locations: Location[];
 
     @prop({ required: true })
     public isAsync: boolean;
 
-    constructor(baseEvent: GenericEventFormat) {
-        this.eventId = baseEvent.eventId;
-        this.name = baseEvent.name;
-        this.description = baseEvent.description;
-        this.startTime = baseEvent.startTime;
-        this.endTime = baseEvent.endTime;
-        this.locations = baseEvent.locations;
-        this.isAsync = baseEvent.isAsync;
-    }
-}
+    @prop({ required: false })
+    public mapImageUrl?: string;
 
-export class EventMetadata {
-    @prop({ required: true })
-    public eventId: string;
+    @prop({ required: false })
+    sponsor?: string;
 
-    @prop({ required: true })
-    public isStaff: boolean;
+    @prop({ required: false })
+    points?: number;
 
-    @prop({ required: true })
-    public exp: number;
+    @prop({ required: false })
+    isPrivate?: boolean;
 
-    constructor(eventId: string, isStaff: boolean, exp: number) {
-        this.eventId = eventId;
-        this.isStaff = isStaff;
-        this.exp = exp;
-    }
-}
-
-export class PublicEvent extends BaseEvent {
-    @prop({ required: true })
-    public isPrivate: boolean;
-
-    @prop({ required: true })
-    public displayOnStaffCheckIn: boolean;
-
-    @prop()
-    public sponsor: string;
-
-    @prop({ required: true })
-    public points: number;
-
-    constructor(baseEvent: GenericEventFormat) {
-        super(baseEvent);
-        this.eventType = baseEvent.publicEventType ?? "OTHER";
-        this.isPrivate = baseEvent.isPrivate ?? false;
-        this.displayOnStaffCheckIn = baseEvent.displayOnStaffCheckIn ?? false;
-        this.sponsor = baseEvent.sponsor ?? "";
-        this.points = baseEvent.points ?? Config.DEFAULT_POINT_VALUE;
-    }
-}
-
-export class StaffEvent extends BaseEvent {
-    constructor(baseEvent: GenericEventFormat) {
-        super(baseEvent);
-        this.eventType = baseEvent.staffEventType ?? "OTHER";
-    }
+    @prop({ required: false })
+    displayOnStaffCheckIn?: boolean;
 }
 
 export class EventAttendance {
@@ -119,9 +76,7 @@ export class EventAttendance {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public attendees: string[];
 }
@@ -132,9 +87,7 @@ export class EventFollowers {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public followers: string[];
 }

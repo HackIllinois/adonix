@@ -12,6 +12,7 @@ import Config from "../../config.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
+import { EventFollowers } from "../../database/event-db.js";
 const userRouter: Router = Router();
 
 /**
@@ -188,16 +189,15 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const eventId: string | undefined = req.body.eventId;
 
-    const eventExists: boolean = (await Models.EventMetadata.findOne({ eventId: eventId })) ?? false;
+    const eventExists: EventFollowers | null = await Models.EventFollowers.findOneAndUpdate(
+        { eventId: eventId },
+        { $addToSet: { followers: payload.id } },
+        { new: true },
+    );
+
     if (!eventExists) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
-
-    await Models.EventFollowers.findOneAndUpdate(
-        { eventId: eventId },
-        { $addToSet: { followers: payload.id } },
-        { new: true, upsert: true },
-    );
 
     const attendeeFollowing: AttendeeFollowing | null = await Models.AttendeeFollowing.findOneAndUpdate(
         { userId: payload.id },
@@ -208,6 +208,7 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
     if (!attendeeFollowing) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
     }
+
     return res.status(StatusCode.SuccessOK).send({ userId: attendeeFollowing.userId, following: attendeeFollowing.following });
 });
 

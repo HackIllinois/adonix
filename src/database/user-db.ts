@@ -5,21 +5,18 @@ export class UserInfo {
     public userId: string;
 
     @prop({ required: true })
-    public email: string;
+    public name: string;
 
     @prop({ required: true })
-    public name: string;
+    public email: string;
 }
-
 export class UserAttendance {
     @prop({ required: true })
     public userId: string;
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public attendance: string[];
 }
