@@ -5,9 +5,7 @@ import Config from "../config.js";
 const allowedOrigins: RegExp[] = [new RegExp(Config.CORS.PROD_REGEX), new RegExp(Config.CORS.DEPLOY_REGEX)];
 
 function regexPasses(target: string, patterns: RegExp[]): boolean {
-    return patterns.some((pattern: RegExp) => {
-        return pattern.test(target);
-    });
+    return patterns.some((pattern: RegExp) => pattern.test(target));
 }
 
 // CORS options configuration

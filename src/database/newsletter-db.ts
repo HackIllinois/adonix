@@ -6,9 +6,7 @@ export class NewsletterSubscription {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public subscribers: string[];
 }

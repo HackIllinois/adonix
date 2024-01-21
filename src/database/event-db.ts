@@ -11,9 +11,7 @@ export class Location {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public tags: string[];
 
@@ -46,9 +44,7 @@ class BaseEvent {
 
     @prop({
         required: true,
-        type: () => {
-            return Location;
-        },
+        type: () => Location,
     })
     public locations: Location[];
 
@@ -119,9 +115,7 @@ export class EventAttendance {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public attendees: string[];
 }
@@ -132,9 +126,7 @@ export class EventFollowers {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public followers: string[];
 }

@@ -78,9 +78,10 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
     }
     // Perform the actual query, filter, and return the results
     const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
-    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
-        return { displayName: profile.displayName, points: profile.points };
-    });
+    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => ({
+        displayName: profile.displayName,
+        points: profile.points,
+    }));
 
     return res.status(StatusCode.SuccessOK).send({
         profiles: filteredLeaderboardEntried,
@@ -190,10 +191,10 @@ profileRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request,
     return res.status(StatusCode.SuccessOK).send(user);
 });
 
-profileRouter.get("/id", (_: Request, res: Response) => {
+profileRouter.get("/id", (_: Request, res: Response) =>
     // Redirect to the root URL
-    return res.redirect("/user");
-});
+    res.redirect("/user"),
+);
 
 /**
  * @api {post} /profile POST /profile
