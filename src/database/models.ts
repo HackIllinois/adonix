@@ -111,7 +111,7 @@ export default class Models {
     );
 
     // Registration
-    static RegistrationApplications: Model<RegistrationApplication> = getModel(
+    static RegistrationApplication: Model<RegistrationApplication> = getModel(
         RegistrationApplication,
         Group.REGISTRATION,
         RegistrationCollection.APPLICATIONS,

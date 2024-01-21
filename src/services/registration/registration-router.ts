@@ -74,7 +74,7 @@ const registrationRouter: Router = Router();
  */
 registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload;
-    const registrationData: RegistrationApplication | null = await Models.RegistrationApplications.findOne({
+    const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
         userId: payload.id,
     });
 
@@ -150,7 +150,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const registrationData: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
+    const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationData) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
@@ -257,12 +257,12 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
-    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
     if (registrationInfo?.hasSubmitted ?? false) {
         return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
     }
 
-    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOneAndReplace(
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndReplace(
         { userId: userId },
         registrationData,
         { upsert: true, new: true },
@@ -280,7 +280,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOne({ userId: userId });
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationInfo) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "NoRegistrationInfo"));
@@ -290,7 +290,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
     }
 
-    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplications.findOneAndUpdate(
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndUpdate(
         { userId: userId },
         { hasSubmitted: true },
         { new: true },
