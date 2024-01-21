@@ -1,4 +1,4 @@
-import { isArrayOfType, isBoolean, isNumber, isObject, isString } from "formatTools.js";
+import { isArrayOfType, isBoolean, isNumber, isObject, isString } from "../../formatTools.js";
 import Config from "../../config.js";
 import { Event, Location } from "../../database/event-db.js";
 
