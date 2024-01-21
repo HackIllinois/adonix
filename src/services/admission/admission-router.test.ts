@@ -39,7 +39,6 @@ const updateRequest = [
 ] satisfies ApplicantDecisionFormat[];
 
 beforeEach(async () => {
-    Models.initialize();
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
 });

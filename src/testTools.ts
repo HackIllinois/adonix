@@ -62,7 +62,6 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 function app(): Express.Application {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const appExports = require("./app.js");
-    appExports.setupServer();
     return appExports.default;
 }
 

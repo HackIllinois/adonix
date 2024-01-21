@@ -16,9 +16,9 @@ import userRouter from "./services/user/user-router.js";
 
 // import { InitializeConfigReader } from "./middleware/config-reader.js";
 import { ErrorHandler } from "./middleware/error-handler.js";
-import Models from "./database/models.js";
 import { StatusCode } from "status-code-enum";
 import Config from "./config.js";
+import database from "./middleware/database.js";
 
 const app: Application = express();
 
@@ -32,6 +32,9 @@ if (!Config.TEST) {
 
 // Automatically convert requests from json
 app.use(express.json());
+
+// Initialize database (IMPORTANT: must be before all routers)
+app.use(database);
 
 // Add routers for each sub-service
 app.use("/admission/", admissionRouter);
@@ -57,26 +60,26 @@ app.use("/", (_: Request, res: Response) => {
     res.status(StatusCode.ClientErrorNotFound).end("API endpoint does not exist!");
 });
 
-export function setupServer(): void {
-    // Initialize models
-    Models.initialize();
-}
-
 app.use(ErrorHandler);
 
-export function startServer(): Promise<Express.Application> {
-    // eslint-disable-next-line no-magic-numbers
-    const port = Config.PORT;
-
+function promiseListen(port: number): Promise<Express.Application> {
     return new Promise((resolve) => {
-        // Setup server
-        setupServer();
-        // Connect express server
         const server = app.listen(port, () => {
-            console.log(`✅ Server served on http://localhost:${port}...`);
             resolve(server);
         });
     });
+}
+
+export async function startServer(): Promise<Express.Application> {
+    const port = Config.PORT;
+
+    // Connect express server
+    const server: Express.Application = await promiseListen(port);
+
+    // Log success
+    console.log(`✅ Server started on http://localhost:${port}...`);
+
+    return server;
 }
 
 export default app;

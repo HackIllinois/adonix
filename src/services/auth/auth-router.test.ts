@@ -41,7 +41,6 @@ const USER_STAFF = {
 } satisfies AuthInfo;
 
 beforeEach(async () => {
-    Models.initialize();
     await Models.AuthInfo.create(USER);
     await Models.AuthInfo.create(USER_ATTENDEE);
     await Models.AuthInfo.create(USER_STAFF);

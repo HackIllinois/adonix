@@ -23,7 +23,6 @@ const TESTER_EVENT_METADATA = {
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
-    Models.initialize();
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
     await Models.EventMetadata.create(TESTER_EVENT_METADATA);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);

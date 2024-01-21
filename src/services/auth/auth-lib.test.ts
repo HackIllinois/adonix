@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 import { JwtPayload, Provider, Role } from "./auth-models.js";
 import Models from "../../database/models.js";
 import { AuthInfo } from "../../database/auth-db.js";
@@ -28,10 +28,6 @@ const ADMIN_PAYLOAD = {
 // NOTE: This test suite will only test functions not well covered elsewhere.
 // Ideally, we shouldn't have this as a lib and instead as a globally shared thing, but that's a future
 // problem to solve.
-
-beforeEach(() => {
-    Models.initialize();
-});
 
 describe("getJwtPayloadFromProfile", () => {
     it.each([

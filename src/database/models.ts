@@ -1,7 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
-
-import { connectToMongoose, generateConfig } from "../database.js";
 
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
@@ -11,7 +9,7 @@ import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication } from "./registration-db.js";
 import { ShopItem } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
-import { AnyParamConstructor } from "@typegoose/typegoose/lib/types.js";
+import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types.js";
 
 // Groups for collections
 export enum Group {
@@ -65,6 +63,12 @@ enum UserCollection {
     ATTENDANCE = "attendance",
 }
 
+export function generateConfig(collection: string): IModelOptions {
+    return {
+        schemaOptions: { collection: collection, versionKey: false },
+    };
+}
+
 // Simple model getter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getModel<T>(of: AnyParamConstructor<any>, group: Group, collection: string): mongoose.Model<T> {
@@ -74,58 +78,49 @@ function getModel<T>(of: AnyParamConstructor<any>, group: Group, collection: str
 // Define models
 export default class Models {
     // Attendee
-    static AttendeeMetadata: mongoose.Model<AttendeeMetadata> = undefined!;
-    static AttendeeProfile: mongoose.Model<AttendeeProfile> = undefined!;
-    static AttendeeFollowing: mongoose.Model<AttendeeFollowing> = undefined!;
+    static AttendeeMetadata: Model<AttendeeMetadata> = getModel(AttendeeMetadata, Group.ATTENDEE, AttendeeCollection.METADATA);
+    static AttendeeProfile: Model<AttendeeProfile> = getModel(AttendeeProfile, Group.ATTENDEE, AttendeeCollection.PROFILE);
+    static AttendeeFollowing: Model<AttendeeFollowing> = getModel(
+        AttendeeFollowing,
+        Group.ATTENDEE,
+        AttendeeCollection.FOLLOWING,
+    );
+
     // Auth
-    static AuthInfo: mongoose.Model<AuthInfo> = undefined!;
+    static AuthInfo: Model<AuthInfo> = getModel(AuthInfo, Group.AUTH, AuthCollection.INFO);
+
     // Admission
-    static AdmissionDecision: mongoose.Model<AdmissionDecision> = undefined!;
+    static AdmissionDecision: Model<AdmissionDecision> = getModel(
+        AdmissionDecision,
+        Group.ADMISSION,
+        AdmissionCollection.DECISION,
+    );
+
     // Event
-    static StaffEvent: mongoose.Model<StaffEvent> = undefined!;
-    static PublicEvent: mongoose.Model<PublicEvent> = undefined!;
-    static EventMetadata: mongoose.Model<EventMetadata> = undefined!;
-    static EventAttendance: mongoose.Model<EventAttendance> = undefined!;
-    static EventFollowers: mongoose.Model<EventFollowers> = undefined!;
+    static StaffEvent: Model<StaffEvent> = getModel(StaffEvent, Group.EVENT, EventCollection.STAFF_EVENTS);
+    static PublicEvent: Model<PublicEvent> = getModel(PublicEvent, Group.EVENT, EventCollection.PUBLIC_EVENTS);
+    static EventMetadata: Model<EventMetadata> = getModel(EventMetadata, Group.EVENT, EventCollection.METADATA);
+    static EventAttendance: Model<EventAttendance> = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
+    static EventFollowers: Model<EventFollowers> = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
+
     // Newsletter
-    static NewsletterSubscription: mongoose.Model<NewsletterSubscription> = undefined!;
+    static NewsletterSubscription: Model<NewsletterSubscription> = getModel(
+        NewsletterSubscription,
+        Group.NEWSLETTER,
+        NewsletterCollection.SUBSCRIPTIONS,
+    );
+
     // Registration
-    static RegistrationApplications: mongoose.Model<RegistrationApplication> = undefined!;
-    //Shop
-    static ShopItem: mongoose.Model<ShopItem> = undefined!;
+    static RegistrationApplication: Model<RegistrationApplication> = getModel(
+        RegistrationApplication,
+        Group.REGISTRATION,
+        RegistrationCollection.APPLICATIONS,
+    );
+
+    // Shop
+    static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
+
     // User
-    static UserInfo: mongoose.Model<UserInfo> = undefined!;
-    static UserAttendance: mongoose.Model<UserAttendance> = undefined!;
-
-    static initialize(): void {
-        this.AttendeeMetadata = getModel(AttendeeMetadata, Group.ATTENDEE, AttendeeCollection.METADATA);
-        this.AttendeeProfile = getModel(AttendeeProfile, Group.ATTENDEE, AttendeeCollection.PROFILE);
-        this.AttendeeFollowing = getModel(AttendeeFollowing, Group.ATTENDEE, AttendeeCollection.FOLLOWING);
-
-        this.AuthInfo = getModel(AuthInfo, Group.AUTH, AuthCollection.INFO);
-
-        this.AdmissionDecision = getModel(AdmissionDecision, Group.ADMISSION, AdmissionCollection.DECISION);
-
-        this.StaffEvent = getModel(StaffEvent, Group.EVENT, EventCollection.STAFF_EVENTS);
-        this.PublicEvent = getModel(PublicEvent, Group.EVENT, EventCollection.PUBLIC_EVENTS);
-        this.EventMetadata = getModel(EventMetadata, Group.EVENT, EventCollection.METADATA);
-        this.EventAttendance = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
-        this.EventFollowers = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
-
-        this.NewsletterSubscription = getModel(NewsletterSubscription, Group.NEWSLETTER, NewsletterCollection.SUBSCRIPTIONS);
-
-        this.RegistrationApplications = getModel(
-            RegistrationApplication,
-            Group.REGISTRATION,
-            RegistrationCollection.APPLICATIONS,
-        );
-
-        this.ShopItem = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
-
-        this.UserInfo = getModel(UserInfo, Group.USER, UserCollection.INFO);
-        this.UserAttendance = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
-
-        // Finally, connect to mongoose
-        connectToMongoose();
-    }
+    static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
+    static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
 }

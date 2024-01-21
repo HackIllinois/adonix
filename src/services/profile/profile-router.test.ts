@@ -48,7 +48,6 @@ const profile: ProfileFormat = {
 };
 
 beforeEach(async () => {
-    Models.initialize();
     await Models.AttendeeProfile.create(TESTER_USER);
     await Models.AttendeeMetadata.create(TESTER_METADATA);
     await Models.AttendeeProfile.create(TESTER_USER_2);
