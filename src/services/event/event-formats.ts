@@ -48,7 +48,7 @@ function isValidBase(obj: Event): boolean {
         obj.startTime >= 0 &&
         isNumber(obj.endTime) &&
         obj.endTime >= 0 &&
-        obj.startTime <=  obj.endTime &&
+        obj.startTime <= obj.endTime &&
         isString(obj.eventType) &&
         (isNumber(obj.exp) || obj.exp === undefined) &&
         isArrayOfType(obj.locations, isLocation) &&

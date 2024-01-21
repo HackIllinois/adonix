@@ -18,7 +18,7 @@ import Models from "../../database/models.js";
 import { RouterError } from "../../middleware/error-handler.js";
 
 import crypto from "crypto";
-import Config from "../../config.js"
+import Config from "../../config.js";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -311,7 +311,8 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "isPrivate": false,
  *   "displayOnStaffCheckIn": false,
  *   "mapImageURL": "someurlmapthingy.com",
- *   "points": 100
+ *   "points": 100,
+ *   "exp": 10000
  * }
  *
  * @apiParamExample {Json} Request Body Example for Staff Event:
@@ -398,16 +399,16 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
     // Convert event format into the base event format
     const eventFormat = req.body as Event;
-    
+
     if (eventFormat.eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraEventId: eventFormat.eventId }));
     }
-    
+
     const eventId: string = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
     eventFormat.eventId = eventId;
 
     if (!isValidEvent(eventFormat)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", {data: eventFormat}));
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", { data: eventFormat }));
     }
 
     // Create the new event
