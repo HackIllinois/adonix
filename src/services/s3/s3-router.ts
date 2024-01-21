@@ -1,13 +1,13 @@
 import { Request, Response, Router } from "express";
-import { NextFunction } from "express-serve-static-core";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 import Config from "../../config.js";
-import S3 from "aws-sdk/clients/s3.js";
+import { PutObjectCommand, type S3 } from "@aws-sdk/client-s3";
 import { s3ClientMiddleware } from "../../middleware/s3.js";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Router: Router = Router();
 
@@ -24,19 +24,19 @@ const s3Router: Router = Router();
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/upload", strongJwtVerification, s3ClientMiddleware, async (_1: Request, res: Response, _2: NextFunction) => {
+s3Router.get("/upload", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const s3 = res.locals.s3 as S3;
     const userId: string = payload.id;
 
-    const s3Params = {
+    const command = new PutObjectCommand({
         Bucket: Config.S3_BUCKET_NAME,
         Key: `${userId}.pdf`,
-        Expires: 60,
         ContentType: "application/pdf",
-    };
-
-    const uploadUrl = await s3.getSignedUrl("putObject", s3Params);
+    });
+    const uploadUrl = await getSignedUrl(s3, command, {
+        expiresIn: Config.RESUME_URL_EXPIRY_SECONDS,
+    });
 
     return res.status(StatusCode.SuccessOK).send({ url: uploadUrl });
 });
@@ -54,18 +54,19 @@ s3Router.get("/upload", strongJwtVerification, s3ClientMiddleware, async (_1: Re
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/download", strongJwtVerification, s3ClientMiddleware, async (_1: Request, res: Response, _2: NextFunction) => {
+s3Router.get("/download", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const s3 = res.locals.s3 as S3;
     const userId: string = payload.id;
 
-    const s3Params = {
+    const command = new PutObjectCommand({
         Bucket: Config.S3_BUCKET_NAME,
         Key: `${userId}.pdf`,
-        Expires: 60,
-    };
+    });
 
-    const downloadUrl = await s3.getSignedUrl("getObject", s3Params);
+    const downloadUrl = await getSignedUrl(s3, command, {
+        expiresIn: Config.RESUME_URL_EXPIRY_SECONDS,
+    });
 
     return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
 });
@@ -87,29 +88,25 @@ s3Router.get("/download", strongJwtVerification, s3ClientMiddleware, async (_1: 
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
  */
-s3Router.get(
-    "/download/:USERID",
-    strongJwtVerification,
-    s3ClientMiddleware,
-    async (req: Request, res: Response, _2: NextFunction) => {
-        const userId: string | undefined = req.params.USERID;
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
-        const s3 = res.locals.s3 as S3;
+s3Router.get("/download/:USERID", strongJwtVerification, s3ClientMiddleware, async (req: Request, res: Response) => {
+    const userId: string | undefined = req.params.USERID;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const s3 = res.locals.s3 as S3;
 
-        if (!hasElevatedPerms(payload)) {
-            return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
-        }
+    if (!hasElevatedPerms(payload)) {
+        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+    }
 
-        const s3Params = {
-            Bucket: Config.S3_BUCKET_NAME,
-            Key: `${userId}.pdf`,
-            Expires: 60,
-        };
+    const command = new PutObjectCommand({
+        Bucket: Config.S3_BUCKET_NAME,
+        Key: `${userId}.pdf`,
+    });
 
-        const downloadUrl = await s3.getSignedUrl("getObject", s3Params);
+    const downloadUrl = await getSignedUrl(s3, command, {
+        expiresIn: Config.RESUME_URL_EXPIRY_SECONDS,
+    });
 
-        return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
-    },
-);
+    return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
+});
 
 export default s3Router;
