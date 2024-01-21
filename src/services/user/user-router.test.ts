@@ -47,7 +47,6 @@ const TESTER_ATTENDEE_FOLLOWING = {
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
-    Models.initialize();
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
     await Models.AuthInfo.create(OTHER_USER_AUTH);

@@ -5,9 +5,10 @@ import mongoose from "mongoose";
 let initialized = false;
 
 export default async function (_req: Request, _res: Response, next: NextFunction): Promise<void> {
-    if (!initialized) {
+    if (!initialized || Config.TEST) {
         initialized = true;
-        await mongoose.connect(Config.DB_URL);
+        const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
+        await mongoose.connect(uri);
     }
     next();
 }

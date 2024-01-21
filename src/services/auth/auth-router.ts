@@ -235,6 +235,8 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const targetUser: string = payload.id;
 
+    console.log("got request");
+
     await getRoles(targetUser)
         .then((roles: Role[] | undefined) => {
             if (roles === undefined) {
