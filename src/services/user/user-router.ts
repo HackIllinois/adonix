@@ -188,11 +188,6 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const eventId: string | undefined = req.body.eventId;
 
-    const eventExists: boolean = (await Models.EventMetadata.findOne({ eventId: eventId })) ?? false;
-    if (!eventExists) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-    }
-
     await Models.EventFollowers.findOneAndUpdate(
         { eventId: eventId },
         { $addToSet: { followers: payload.id } },
