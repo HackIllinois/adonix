@@ -83,7 +83,7 @@ const Config = {
 
     JWT_SECRET: requireEnv("JWT_SECRET"),
 
-    NEWSLETTER_CORS: {
+    CORS: {
         PROD_REGEX: requireEnv("PROD_REGEX"),
         DEPLOY_REGEX: requireEnv("DEPLOY_REGEX"),
     },
