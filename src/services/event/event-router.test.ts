@@ -15,12 +15,6 @@ const TESTER_ATTENDEE_FOLLOWING = {
     following: ["event3", "event9"],
 } satisfies AttendeeFollowing;
 
-// const TESTER_EVENT_METADATA = {
-//     eventId: TESTER_EVENT_FOLLOWERS.eventId,
-//     exp: 0,
-//     isStaff: false,
-// } satisfies EventMetadata;
-
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);

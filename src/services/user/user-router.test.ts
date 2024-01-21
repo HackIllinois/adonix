@@ -44,7 +44,6 @@ beforeEach(async () => {
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
     await Models.AuthInfo.create(OTHER_USER_AUTH);
-    // await Models.EventMetadata.create(TESTER_EVENT_METADATA);
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
@@ -253,10 +252,6 @@ describe("PUT /user/follow/", () => {
         await Models.EventFollowers.deleteOne({
             eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
-
-        // await Models.EventMetadata.deleteOne({
-        //     eventId: TESTER_EVENT_FOLLOWING.eventId,
-        // });
 
         const response = await putAsAttendee(`/user/follow/`)
             .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
