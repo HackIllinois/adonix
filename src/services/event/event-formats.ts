@@ -4,9 +4,10 @@ import { Event, Location } from "../../database/event-db.js";
 import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
 
 export function isValidEvent(event: Event): boolean {
-    if (!isValidBase) {
+    if (!isValidBase(event)) {
         return false;
     }
+
     return event.isStaff ? isValidStaffEvent(event) : isValidPublicEvent(event);
 }
 
@@ -47,7 +48,7 @@ function isValidBase(obj: Event): boolean {
         obj.startTime >= 0 &&
         isNumber(obj.endTime) &&
         obj.endTime >= 0 &&
-        obj.startTime < obj.endTime &&
+        obj.startTime <=  obj.endTime &&
         isString(obj.eventType) &&
         (isNumber(obj.exp) || obj.exp === undefined) &&
         isArrayOfType(obj.locations, isLocation) &&

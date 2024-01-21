@@ -7,15 +7,18 @@ import { strongJwtVerification, weakJwtVerification } from "../../middleware/ver
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
+import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
 import { createFilteredEventView } from "./event-lib.js";
-import { MetadataFormat, isValidMetadataFormat, isValidEvent } from "./event-formats.js";
 import { FilteredEventView } from "./event-models.js";
 
-import { EventFollowers, Event } from "../../database/event-db.js";
-import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
+import { Event, EventFollowers } from "../../database/event-db.js";
+import Models from "../../database/models.js";
 
 import { RouterError } from "../../middleware/error-handler.js";
+
+import crypto from "crypto";
+import Config from "../../config.js"
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));
@@ -194,10 +197,10 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
         if (!isStaff) {
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "PrivateEvent"));
         }
-        return res.status(StatusCode.SuccessOK).send({ event: event });
+        return res.status(StatusCode.SuccessOK).send(event);
     } else {
         const filteredEvent: FilteredEventView = createFilteredEventView(event);
-        return res.status(StatusCode.SuccessOK).send({ event: filteredEvent });
+        return res.status(StatusCode.SuccessOK).send(filteredEvent);
     }
 });
 
@@ -395,13 +398,16 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 
     // Convert event format into the base event format
     const eventFormat = req.body as Event;
-
+    
     if (eventFormat.eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraEventId: eventFormat.eventId }));
     }
+    
+    const eventId: string = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
+    eventFormat.eventId = eventId;
 
     if (!isValidEvent(eventFormat)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", eventFormat));
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", {data: eventFormat}));
     }
 
     // Create the new event
