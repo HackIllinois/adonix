@@ -12,12 +12,13 @@ import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+// import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
 import { RouterError } from "../../middleware/error-handler.js";
+import { isValidProfileFormat } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
 
@@ -235,7 +236,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         ? (req.body.avatarId as string)
         : Config.DEFAULT_AVATAR;
 
-    const profile: ProfileFormat = req.body as ProfileFormat;
+    const profile: AttendeeProfile = req.body as AttendeeProfile;
     profile.points = Config.DEFAULT_POINT_VALUE;
     profile.coins = Config.DEFAULT_COIN_VALUE;
     profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;

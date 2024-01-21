@@ -55,6 +55,9 @@ class BaseEvent {
     @prop({ required: true })
     public isAsync: boolean;
 
+    @prop({ required: false })
+    public mapImageUrl?: string;
+
     constructor(baseEvent: GenericEventFormat) {
         this.eventId = baseEvent.eventId;
         this.name = baseEvent.name;
