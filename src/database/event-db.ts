@@ -42,7 +42,7 @@ export class Event {
     @prop({ required: true })
     public eventType: string;
 
-    @prop({ required: true })
+    @prop({ required: false })
     public exp?: number;
 
     @prop({
