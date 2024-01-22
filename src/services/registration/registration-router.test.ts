@@ -24,15 +24,14 @@ const GENERAL_APPLICATION = {
     dietaryRestrictions: [],
     race: [],
     hackInterest: [],
-    hackOutreach: []
+    hackOutreach: [],
 } satisfies RegistrationFormat;
 
-const UNSUBMITTED_GENERAL_REGISTRATION_DATA = {hasSubmitted: false, ...GENERAL_APPLICATION};
-const SUBMITTED_GENERAL_REGISTRATION_DATA = {hasSubmitted: true, ...GENERAL_APPLICATION};
-
+const UNSUBMITTED_GENERAL_REGISTRATION_DATA = { hasSubmitted: false, ...GENERAL_APPLICATION };
+const SUBMITTED_GENERAL_REGISTRATION_DATA = { hasSubmitted: true, ...GENERAL_APPLICATION };
 
 describe("GET /registration/ Endpoint", () => {
-    beforeEach(async () => {    
+    beforeEach(async () => {
         await Models.RegistrationApplication.create(UNSUBMITTED_GENERAL_REGISTRATION_DATA);
     });
 
@@ -49,7 +48,7 @@ describe("GET /registration/ Endpoint", () => {
 });
 
 describe("GET /registration/userid/:USERID Endpoint", () => {
-    beforeEach(async () => {    
+    beforeEach(async () => {
         await Models.RegistrationApplication.create(UNSUBMITTED_GENERAL_REGISTRATION_DATA);
     });
 
@@ -83,7 +82,9 @@ describe("POST /registration/ Endpoint", () => {
     it("should return 422 error when user has already submitted registration data", async () => {
         await Models.RegistrationApplication.create(SUBMITTED_GENERAL_REGISTRATION_DATA);
 
-        const response = await postAsUser("/registration/").send(GENERAL_APPLICATION).expect(StatusCode.ClientErrorUnprocessableEntity);
+        const response = await postAsUser("/registration/")
+            .send(GENERAL_APPLICATION)
+            .expect(StatusCode.ClientErrorUnprocessableEntity);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
