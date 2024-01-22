@@ -54,9 +54,11 @@ describe("PUT /admission/update/", () => {
         const responseUser = await putAsUser("/admission/update/").send(updateRequest).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
     });
+
     it("should update application status of applicants", async () => {
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
+
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
         expect(retrievedEntries).toMatchObject(

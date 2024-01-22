@@ -11,10 +11,9 @@ function isValidApplicantDecision(obj: unknown): boolean {
     return (
         isString(decision.userId) &&
         isEnumOfType(decision.status, DecisionStatus) &&
-        isEnumOfType(decision.response, DecisionResponse) &&
+        (decision.response === undefined || isEnumOfType(decision.response, DecisionResponse)) &&
         isBoolean(decision.emailSent) &&
         (decision.admittedPro === undefined || isBoolean(decision.admittedPro)) &&
-        isNumber(decision.reimbursementValue) &&
-        (decision.reimbursementValue === undefined || decision.reimbursementValue >= 0)
+        (decision.reimbursementValue === undefined || (isNumber(decision.reimbursementValue) && decision.reimbursementValue >= 0))
     );
 }
