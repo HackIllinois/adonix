@@ -26,19 +26,22 @@ const admissionRouter: Router = Router();
  *             "userId": "user1",
  *             "status": "ACCEPTED",
  *             "response": "ACCEPTED",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         },
  *         {
  *             "userId": "user3",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         },
  *         {
  *             "userId": "user4",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         }
  * ]
  * @apiUse strongVerifyErrors
@@ -60,17 +63,19 @@ admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: 
  * @apiGroup Admission
  * @apiDescription Updates an rsvp for the currently authenticated user (determined by the JWT in the Authorization header).
  *
- * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's application status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
+ * @apiSuccess (200: Success) {string} userId userId
+ * @apiSuccess (200: Success) {string} status User's application status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {boolean} emailSent Whether email has been sent
+ * @apiSuccess (200: Success) {boolean} reimbursementValue Amount reimbursed
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "DECLINED",
- *      "emailSent": true
+ *      "emailSent": true,
+ *      "reimbursementValue": 100
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -110,17 +115,19 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * @apiGroup Admission
  * @apiDescription Updates an rsvp for the currently authenticated user (determined by the JWT in the Authorization header).
  *
- * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's application status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
+ * @apiSuccess (200: Success) {string} userId userId
+ * @apiSuccess (200: Success) {string} status User's application status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {boolean} emailSent Whether email has been sent
+ * @apiSuccess (200: Success) {boolean} reimbursementValue Amount reimbursed
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "DECLINED",
- *      "emailSent": true
+ *      "emailSent": true,
+ *      "reimbursementValue": 100
  * 	}
  *
  * @apiUse strongVerifyErrors
