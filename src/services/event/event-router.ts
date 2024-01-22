@@ -213,55 +213,105 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  * @apiSuccessExample Example Success Response (Public POV)
  * HTTP/1.1 200 OK
  * {
- *   "events": [
- *     {
- *       "id": "52fdfc072182654f163f5f0f9a621d72",
- *       "name": "Example Event 10",
- *       "description": "This is a description",
- *       "startTime": 1532202702,
- *       "endTime": 1532212702,
- *       "locations": [
- *         {
- *           "description": "Example Location",
- *           "tags": ["SIEBEL0", "ECEB1"],
- *           "latitude": 40.1138,
- *           "longitude": -88.2249
- *         }
- *       ],
- *       "sponsor": "Example sponsor",
- *       "eventType": "WORKSHOP",
- *       "mapImageURL": "someurlmapthingy.com",
- *     },
- *     // Additional events...
+ *  "events": [
+ *      {
+ *          "eventId": "ajiwujda18ajd",
+ *          "name": "Test Event 1",
+ *          "description": "This is Test Event 1. At this event, you can learn about APIs and Databases.",
+ *          "startTime": 1708668480,
+ *          "endTime": 1708668540,
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "eventType": "WORKSHOP",
+ *          "points": 10,
+ *          "isAsync": false,
+ *          "mapImageURL": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
+ *      },
+ *      {
+ *          "eventId": "asdcxwjda18ajd",
+ *          "name": "Test Event 2",
+ *          "description": "This is Test Event 2. At this event, you can learn about AI/ML.",
+ *          "startTime": 1708754880,
+ *          "endTime": 1708754940,
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "eventType": "WORKSHOP",
+ *          "points": 2000,
+ *          "isAsync": false,
+ *          "mapImageURL": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
+ *      }
  *   ]
  * }
  *
  * @apiSuccessExample Example Success Response (Staff POV)
  * HTTP/1.1 200 OK
  * {
- *   "events": [
- *     {
- *       "id": "52fdfc072182654f163f5f0f9a621d72",
- *       "name": "Example Event 10",
- *       "description": "This is a description",
- *       "startTime": 1532202702,
- *       "endTime": 1532212702,
- *       "locations": [
- *         {
- *           "description": "Example Location",
- *           "tags": ["SIEBEL0", "ECEB1"],
- *           "latitude": 40.1138,
- *           "longitude": -88.2249
- *         }
- *       ],
- *       "sponsor": "Example sponsor",
- *       "eventType": "WORKSHOP",
- *       "isPrivate": true,
- *       "displayOnStaffCheckIn": true,
- *       "mapImageURL": "someurlmapthingy.com",
- *     },
- *     // Additional events...
- *   ]
+ *  "events": [
+ *      {
+ *          "_id": "65adbbd464f9cea319b3dae4",
+ *          "eventId": "ajiwujda18ajd",
+ *          "isStaff": false,
+ *          "name": "Test Event 1",
+ *          "description": "This is Test Event 1. At this event, you can learn about APIs and Databases.",
+ *          "startTime": 1708668480,
+ *          "endTime": 1708668540,
+ *          "eventType": "WORKSHOP",
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "isAsync": false,
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png",
+ *          "points": 10,
+ *          "isPrivate": false
+ *      },
+ *      {
+ *          "_id": "65adc040face07d159a64519",
+ *          "eventId": "asdcxwjda18ajd",
+ *          "isStaff": false,
+ *          "name": "Test Event 2",
+ *          "description": "This is Test Event 2. At this event, you can learn about AI/ML.",
+ *          "startTime": 1708754880,
+ *          "endTime": 1708754940,
+ *          "eventType": "WORKSHOP",
+ *          "locations": [
+ *              {
+ *                  "description": "Siebel Center for Computer Science",
+ *                  "tags": [
+ *                      "SIEBEL0"
+ *                  ],
+ *                  "latitude": 40.1138,
+ *                  "longitude": -88.2249
+ *              }
+ *          ],
+ *          "isAsync": false,
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/SiebelFloor1.png",
+ *          "points": 2000,
+ *          "isPrivate": false
+ *      }
+ *    ]
  * }
  *
  * @apiUse strongVerifyErrors
@@ -339,49 +389,48 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiSuccessExample Example Success Response for Public Event
  * HTTP/1.1 201 Created
  * {
- *   "event": {
- *     "id": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "New Public Event",
- *     "description": "This is a new public event.",
- *     "startTime": 1679485545,
- *     "endTime": 1679489145,
+ *     "name": "Wednesday Meeting",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
  *     "locations": [
- *       {
- *         "description": "New Location",
- *         "tags": ["TAG1", "TAG2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
  *     ],
- *     "sponsor": "Event Sponsor",
- *     "eventType": "WORKSHOP",
- *     "isStaff": false
- *     "mapImageURL": "someurlmapthingy.com",
- *   }
+ *     "eventType": "MEETING",
+ *     "isStaff": true,
+ *     "isAsync": false
  * }
+ * 
  *
  * @apiSuccessExample Example Success Response for Staff Event
  * HTTP/1.1 201 Created
  * {
- *   "event": {
- *     "id": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "New Staff Event",
- *     "description": "This is a new staff event.",
- *     "startTime": 1679485545,
- *     "endTime": 1679489145,
- *     "locations": [
- *       {
- *         "description": "New Location",
- *         "tags": ["TAG1", "TAG2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
- *     ],
- *     "sponsor": "Event Sponsor",
- *     "eventType": "MEETING",
+ *     "eventId": "lxcpno01910ss",
  *     "isStaff": true,
- *     "mapImageURL": "someurlmapthingy.com",
- *   }
+ *     "name": "Wednesday Meeting",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
+ *     "eventType": "MEETING",
+ *     "locations": [
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
+ *     ],
+ *     "isAsync": false,
+ *     "_id": "65adf85316e31ab46559085a"
  * }
  *
  * @apiUse strongVerifyErrors
@@ -465,7 +514,6 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * HTTP/1.1 200 OK
  * {
  *   "_id": "52fdfc072182654f163f5f0f9a621d72",
- *   "isStaff": true,
  *   "exp": 1636103447
  * }
  *
@@ -495,7 +543,7 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
 /**
  * @api {put} /event/metadata/ PUT /event/metadata/
  * @apiGroup Event
- * @apiDescription Update metadata for an event.
+ * @apiDescription Update metadata for an event, i.e. primarily event expiration.
  *
  * @apiHeader {String} Authorization User's JWT Token with admin permissions.
  *
@@ -508,7 +556,6 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
  * HTTP/1.1 200 OK
  * {
  *   "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *   "isStaff": true,
  *   "exp": 1636103447
  * }
  *
@@ -550,55 +597,27 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  *
  * @apiBody {Json} event The event object to create or update.
  *
- * @apiParamExample Example Request (Staff):
+ * @apiParamExample Example Request (Admin):
  * HTTP/1.1 PUT /event/
  * {
- *   "event": {
- *     "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "Example Staff Event",
- *     "description": "This is a staff-only event description",
- *     "startTime": 1636110000,
- *     "endTime": 1636113600,
- *     "locations": [
- *       {
- *         "description": "Staff Location",
- *         "tags": ["Tag1", "Tag2"],
- *         "latitude": 40.1234,
- *         "longitude": -88.5678
- *       }
- *     ],
- *     "eventType": "WORKSHOP",
+ *     "eventId": "valid10292921",
  *     "isStaff": true,
- *     "isPrivate": false,
- *     "isAsync": true,
- *     "displayOnStaffCheckIn": true
- *   }
- * }
- *
- * @apiParamExample Example Request (Public):
- * HTTP/1.1 PUT /event/
- * {
- *   "event": {
- *     "eventId": "52fdfc072182654f163f5f0f9a621d72",
- *     "name": "Example Public Event",
- *     "description": "This is a public event description",
- *     "startTime": 1636110000,
- *     "endTime": 1636113600,
+ *     "name": "Wednesday Meeting !!!EDIT THIS EVENT!!!",
+ *     "description": "Weekly General Meeting",
+ *     "startTime": 1708841280,
+ *     "endTime": 1708841460,
+ *     "eventType": "MEETING",
  *     "locations": [
- *       {
- *         "description": "Public Location",
- *         "tags": ["Tag3", "Tag4"],
- *         "latitude": 41.5678,
- *         "longitude": -87.1234
- *       }
+ *         {
+ *             "description": "Siebel Center for Computer Science",
+ *             "tags": [
+ *                 "SIEBEL0"
+ *             ],
+ *             "latitude": 40.1138,
+ *             "longitude": -88.2249
+ *         }
  *     ],
- *     "sponsor": "Public Sponsor",
- *     "eventType": "MEAL",
- *     "isStaff": false,
- *     "isPrivate": true,
- *     "isAsync": true,
- *     "displayOnStaffCheckIn": false
- *   }
+ *     "isAsync": false
  * }
  *
  * @apiSuccess (200: Success) {Json} event The created or updated event object.
