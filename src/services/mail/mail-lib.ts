@@ -7,7 +7,7 @@ import { MailInfoFormat } from "./mail-formats.js";
 
 export async function sendMailWrapper(res: Response, next: NextFunction, mailInfo: MailInfoFormat): Promise<void | Response> {
     try {
-        const result = await sendMail(mailInfo.templateId, mailInfo.recipients, mailInfo.scheduleTime);
+        const result = await sendMail(mailInfo);
         return res.status(StatusCode.SuccessOK).send(result.data);
     } catch (error) {
         return next(
@@ -19,17 +19,21 @@ export async function sendMailWrapper(res: Response, next: NextFunction, mailInf
     }
 }
 
-function sendMail(templateId: string, emails: string[], scheduleTime?: string): Promise<AxiosResponse> {
-    const options = scheduleTime ? { start_time: scheduleTime } : {};
-    const recipients = emails.map((emailAddress: string) => ({ address: `${emailAddress}` }));
+function sendMail(mailInfo: MailInfoFormat): Promise<AxiosResponse> {
+    const options = mailInfo.scheduleTime ? { start_time: mailInfo.scheduleTime } : {};
+    const recipients = mailInfo.recipients.map((emailAddress: string) => ({ address: `${emailAddress}` }));
+    const substitution_data = mailInfo.subs;
 
     const data = {
-        options: options,
-        recipients: recipients,
+        options,
+        recipients,
         content: {
-            template_id: templateId,
+            template_id: mailInfo.templateId,
         },
+        substitution_data,
     };
+
+    console.log(data);
 
     const config = {
         method: "post",

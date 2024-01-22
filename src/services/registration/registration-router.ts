@@ -8,7 +8,7 @@ import { RouterError } from "../../middleware/error-handler.js";
 
 import Models from "../../database/models.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
-import { AdmissionDecision, DecisionResponse, DecisionStatus } from "../../database/admission-db.js";
+import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.js";
 
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
 
@@ -60,7 +60,7 @@ const registrationRouter: Router = Router();
  *      "resumeFileName": "https://www.google.com",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "gradYear": 0,
  *      "isProApplicant": true,
  *      "proEssay": "I wanna be a Knight",
@@ -125,7 +125,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "optionalEssay": "",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "major": "Computer Science",
  *      "minor": "Math",
  *      "resumeFileName": "https://www.google.com",
@@ -197,7 +197,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "resumeFileName": "https://www.google.com",
  *      "location": "Urbana",
  *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "major": "Computer Science",
  *      "minor": "Math",
  *      "resumeFileName": "https://www.google.com/"
@@ -226,7 +226,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *      "optionalEssay": "I wanna be a Knight",
  *      "location": "Urbana",
  *      "gender": "Prefer Not To Answer",
- *      "degree": "Masters",
+ *      "degree": "Associates' Degree",
  *      "major": "Computer Science",
  *      "minor": "Math",
  *      "resumeFileName": "https://www.google.com/"
@@ -295,11 +295,15 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         { hasSubmitted: true },
         { new: true },
     );
+
     if (!newRegistrationInfo) {
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    const admissionDecision = new AdmissionDecision(userId, DecisionStatus.TBD, DecisionResponse.PENDING, "", false);
+    const admissionDecision: AdmissionDecision = {
+        userId,
+        status: DecisionStatus.TBD,
+    };
 
     const admissionInfo: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
         {
@@ -317,6 +321,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
     const mailInfo: MailInfoFormat = {
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
+        subs: { name: registrationInfo.preferredName },
     };
 
     return sendMailWrapper(res, next, mailInfo);

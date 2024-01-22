@@ -5,6 +5,7 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
 import Models from "../../database/models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { isValidApplicantFormat } from "./admission-formats.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
@@ -25,22 +26,22 @@ const admissionRouter: Router = Router();
  *             "userId": "user1",
  *             "status": "ACCEPTED",
  *             "response": "ACCEPTED",
- *             "reviewer": "reviewer1",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         },
  *         {
  *             "userId": "user3",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
- *             "reviewer": "reviewer1",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         },
  *         {
  *             "userId": "user4",
  *             "status": "WAITLISTED",
  *             "response": "PENDING",
- *             "reviewer": "reviewer1",
- *             "emailSent": false
+ *             "emailSent": false,
+ *              "reimbursementValue": 100,
  *         }
  * ]
  * @apiUse strongVerifyErrors
@@ -62,19 +63,19 @@ admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: 
  * @apiGroup Admission
  * @apiDescription Updates an rsvp for the currently authenticated user (determined by the JWT in the Authorization header).
  *
- * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's application status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {string} Reviwer
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
+ * @apiSuccess (200: Success) {string} userId userId
+ * @apiSuccess (200: Success) {string} status User's application status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {boolean} emailSent Whether email has been sent
+ * @apiSuccess (200: Success) {boolean} reimbursementValue Amount reimbursed
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "DECLINED",
- *      "reviewer": "reviewer1",
- *      "emailSent": true
+ *      "emailSent": true,
+ *      "reimbursementValue": 100
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -114,19 +115,19 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * @apiGroup Admission
  * @apiDescription Updates an rsvp for the currently authenticated user (determined by the JWT in the Authorization header).
  *
- * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's application status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {string} Reviwer
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
+ * @apiSuccess (200: Success) {string} userId userId
+ * @apiSuccess (200: Success) {string} status User's application status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {boolean} emailSent Whether email has been sent
+ * @apiSuccess (200: Success) {boolean} reimbursementValue Amount reimbursed
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "DECLINED",
- *      "reviewer": "reviewer1",
- *      "emailSent": true
+ *      "emailSent": true,
+ *      "reimbursementValue": 100
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -173,21 +174,22 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
  * @apiParamExample Example Request (Staff):
  * HTTP/1.1 PUT /admission/
  * [
- *     {
- *       "userId": "user1",
- *       "status": "ACCEPTED",
- *       "admittedPro": false,
- *     },
- *     {
- *       "userId": "user2",
- *       "status": "REJECTED",
- *       "admittedPro": true,
- *     },
- *     {
- *       "userId": "user3",
- *       "status": "WAITLISTED",
- *       "admittedPro": true,
- *     }
+ *   {
+ *      "userId": "github44285522",
+ *      "admittedPro": false,
+ *      "reimbursementValue": 100,
+ *      "status": "ACCEPTED",
+ *      "emailSent": true,
+ *      "response": "PENDING"
+ *   },
+ * {
+ *      "userId": "github4fsfs22",
+ *      "admittedPro": false,
+ *      "reimbursementValue": 50,
+ *      "status": "ACCEPTED",
+ *      "emailSent": true,
+ *      "response": "PENDING"
+ *   }
  * ]
  *
  * @apiSuccess (200: Success) {String} StatusSuccess
@@ -204,10 +206,15 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
     }
 
     const updateEntries: AdmissionDecision[] = req.body as AdmissionDecision[];
+
+    if (!isValidApplicantFormat(updateEntries)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
+    }
+
     const ops = updateEntries.map((entry) =>
         Models.AdmissionDecision.findOneAndUpdate(
             { userId: entry.userId },
-            { $set: { status: entry.status, admittedPro: entry.admittedPro } },
+            { $set: { status: entry.status, admittedPro: entry.admittedPro, reimbursementValue: entry.reimbursementValue } },
         ),
     );
 
@@ -222,30 +229,21 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
 /**
  * @api {get} /admission/rsvp/ GET /admission/rsvp/
  * @apiGroup Admission
- * @apiDescription Check RSVP decision for current user, returns filtered info for attendees and unfiltered info for staff/admin.
+ * @apiDescription Get RSVP decision for current user. Returns applicant's info if non-staff. Returns all RSVP data if staff.
  *
  * @apiSuccess (200: Success) {string} userId
  * @apiSuccess (200: Success) {string} status User's applicatoin status
  * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
  * @apiSuccess (200: Success) {string} admittedPro Indicates whether applicant was admitted into pro or not. Reference registration data to determine if their acceptance was deferred or direct.
- * @apiSuccessExample Example Success Response (caller is a user):
+ * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "ACCEPTED",
- *      "admittedPro": false,
- * 	}
- *
- *  @apiSuccessExample Example Success Response (caller is a staff/admin):
- * 	HTTP/1.1 200 OK
- *	{
- *      "userId": "github0000001",
- *      "status": "ACCEPTED",
- *      "response": "ACCEPTED",
- *      "reviewer": "reviewer1",
  *      "emailSent": true,
- *      "admittedPro": true
+ *      "admittedPro": false,
+ *      "reimbursementValue": 100
  * 	}
  *
  * @apiUse strongVerifyErrors
@@ -254,21 +252,20 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
+    if (hasElevatedPerms(payload)) {
+        const staffQueryResult: AdmissionDecision[] | null = await Models.AdmissionDecision.find();
+        //Returns error if query is empty
+        if (!staffQueryResult) {
+            return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        }
+        return res.status(StatusCode.SuccessOK).send(staffQueryResult);
+    }
+
     const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userId });
 
     //Returns error if query is empty
     if (!queryResult) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-    }
-
-    //Filters data if caller doesn't have elevated perms
-    if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.SuccessOK).send({
-            userId: queryResult.userId,
-            status: queryResult.status,
-            response: queryResult.response,
-            admittedPro: queryResult.admittedPro,
-        });
     }
 
     return res.status(StatusCode.SuccessOK).send(queryResult);
@@ -282,18 +279,18 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
  * @apiParam {String} USERID Id to pull the decision for
  *
  * @apiSuccess (200: Success) {string} userId
- * @apiSuccess (200: Success) {string} User's application status
- * @apiSuccess (200: Success) {string} User's Response (whether or whether not they're attending)
- * @apiSuccess (200: Success) {string} Reviewer
- * @apiSuccess (200: Success) {boolean} Whether email has been sent
+ * @apiSuccess (200: Success) {string} status User's application status
+ * @apiSuccess (200: Success) {string} response User's Response (whether or whether not they're attending)
+ * @apiSuccess (200: Success) {boolean} emailSent Whether email has been sent
+ * @apiSuccess (200: Success) {int} reimbursementValue Amount reimbursed
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
  *      "userId": "github0000001",
  *      "status": "ACCEPTED",
  *      "response": "PENDING",
- *      "reviewer": "reviewer1",
- *      "emailSent": true
+ *      "emailSent": true,
+ *      "reimbursementValue": 0
  * 	}
  *
  * @apiUse strongVerifyErrors

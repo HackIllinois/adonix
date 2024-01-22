@@ -17,7 +17,11 @@ export enum Device {
 }
 
 export enum RegistrationTemplates {
-    REGISTRATION_SUBMISSION = "registration_confirmation",
+    REGISTRATION_SUBMISSION = "2024_registration_confirmation",
+    STATUS_UPDATE = "2024_status_update",
+    RSVP_CONFIRMATION = "2024_rsvp_confirmation",
+    RSVP_REMINDER_1_WEEK = "2024_rsvp-reminder-1week",
+    RSVP_REMINDER_1_DAY = "2024_rsvp-reminder",
 }
 
 export enum Avatars {

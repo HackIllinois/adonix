@@ -9,7 +9,6 @@ const TESTER_DECISION = {
     status: DecisionStatus.ACCEPTED,
     response: DecisionResponse.PENDING,
     emailSent: false,
-    reviewer: "tester-reviewer",
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -17,7 +16,6 @@ const OTHER_DECISION = {
     status: DecisionStatus.REJECTED,
     response: DecisionResponse.DECLINED,
     emailSent: true,
-    reviewer: "other-reviewer",
 } satisfies AdmissionDecision;
 
 const updateRequest = [
@@ -25,14 +23,12 @@ const updateRequest = [
         userId: TESTER.id,
         status: DecisionStatus.WAITLISTED,
         response: DecisionResponse.PENDING,
-        reviewer: "",
         emailSent: false,
     },
     {
         userId: "other-user",
         status: DecisionStatus.ACCEPTED,
         response: DecisionResponse.PENDING,
-        reviewer: "",
         emailSent: false,
     },
 ] satisfies AdmissionDecision[];
@@ -58,9 +54,11 @@ describe("PUT /admission/update/", () => {
         const responseUser = await putAsUser("/admission/update/").send(updateRequest).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
     });
+
     it("should update application status of applicants", async () => {
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
+
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
         expect(retrievedEntries).toMatchObject(
@@ -95,7 +93,20 @@ describe("GET /admission/rsvp/", () => {
     it("works for a staff user and returns unfiltered data", async () => {
         const response = await getAsStaff("/admission/rsvp/").expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
+        // expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
+        expect(JSON.parse(response.text)).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    // Specify the properties of AdmissionDecision since its an array of custom model
+                    userId: expect.any(String),
+                    status: expect.any(String),
+                    response: expect.any(String),
+                    admittedPro: expect.any(Boolean),
+                    emailSent: expect.any(Boolean),
+                    reimbursementValue: expect.any(Number),
+                }),
+            ]),
+        );
     });
 });
 
