@@ -97,8 +97,7 @@ describe("GET /admission/rsvp/", () => {
         expect(JSON.parse(response.text)).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    // Specify the properties of AdmissionDecision here
-                    // For example:
+                    // Specify the properties of AdmissionDecision since its an array of custom model
                     userId: expect.any(String),
                     status: expect.any(String),
                     response: expect.any(String),
