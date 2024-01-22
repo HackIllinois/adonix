@@ -20,7 +20,6 @@ export async function sendMailWrapper(res: Response, next: NextFunction, mailInf
 }
 
 function sendMail(templateId: string, emails: string[], scheduleTime?: string): Promise<AxiosResponse> {
-    console.log("in here 2!");
     const options = scheduleTime ? { start_time: scheduleTime } : {};
     const recipients = emails.map((emailAddress: string) => ({ address: `${emailAddress}` }));
 
