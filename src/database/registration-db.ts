@@ -4,7 +4,7 @@ export class RegistrationApplication {
     @prop({ required: true })
     public userId: string;
 
-    @prop({ required: true })
+    @prop({ default: false })
     public hasSubmitted: boolean;
 
     @prop({ required: true })
@@ -44,7 +44,7 @@ export class RegistrationApplication {
     public major: string;
 
     @prop({ required: false })
-    public minor: string;
+    public minor?: string;
 
     @prop({ required: true })
     public university: string;
@@ -79,9 +79,9 @@ export class RegistrationApplication {
     @prop({ required: true })
     public optionalEssay?: string;
 
-    @prop({ required: true })
+    @prop({ required: false })
     proEssay?: string;
 
-    @prop({ required: true })
+    @prop({ required: false })
     considerForGeneral?: boolean;
 }
