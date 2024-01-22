@@ -11,7 +11,7 @@ import { strongJwtVerification, weakJwtVerification } from "../../middleware/ver
 import { hasAdminPerms, hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { updateCoins } from "../profile/profile-lib.js";
-import { FilteredShopItemFormat, ItemFormat, isValidItemFormat } from "./shop-formats.js";
+import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
 
 /**
  * @api {get} /shop GET /shop
@@ -44,9 +44,9 @@ import { FilteredShopItemFormat, ItemFormat, isValidItemFormat } from "./shop-fo
 
 const shopRouter: Router = Router();
 shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
-    const shopItems: ItemFormat[] = await Models.ShopItem.find();
+    const shopItems: ShopItem[] = await Models.ShopItem.find();
 
-    const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ItemFormat) => ({
+    const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ShopItem) => ({
         itemId: item.itemId,
         name: item.name,
         price: item.price,
@@ -101,7 +101,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    const itemFormat: ItemFormat = req.body as ItemFormat;
+    const itemFormat: ShopItem = req.body as ShopItem;
     if (!isValidItemFormat(itemFormat, false)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest", itemFormat));
     }
@@ -109,7 +109,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
     const itemId = "item" + parseInt(crypto.randomBytes(Config.SHOP_BYTES_GEN).toString("hex"), 16);
     const instances = Array.from({ length: itemFormat.quantity }, (_, index) => getRand(index));
 
-    const shopItem: ItemFormat = {
+    const shopItem: ShopItem = {
         itemId: itemId,
         name: itemFormat.name,
         price: itemFormat.price,
@@ -162,7 +162,7 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const targetItem: string | undefined = req.params.ITEMID as string;
 
-    const itemFormat = req.body as ItemFormat;
+    const itemFormat = req.body as ShopItem;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers, EventMetadata } from "../../database/event-db.js";
+import { EventFollowers } from "../../database/event-db.js";
 import { AttendeeFollowing } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
@@ -15,16 +15,9 @@ const TESTER_ATTENDEE_FOLLOWING = {
     following: ["event3", "event9"],
 } satisfies AttendeeFollowing;
 
-const TESTER_EVENT_METADATA = {
-    eventId: TESTER_EVENT_FOLLOWERS.eventId,
-    exp: 0,
-    isStaff: false,
-} satisfies EventMetadata;
-
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
-    await Models.EventMetadata.create(TESTER_EVENT_METADATA);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
@@ -39,10 +32,6 @@ describe("GET /event/followers/", () => {
 
     it("gives an not found error for a non-existent event", async () => {
         await Models.EventFollowers.deleteOne({
-            eventId: TESTER_EVENT_FOLLOWERS.eventId,
-        });
-
-        await Models.EventMetadata.deleteOne({
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
         });
 

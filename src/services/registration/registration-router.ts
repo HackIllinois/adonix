@@ -323,6 +323,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         recipients: [registrationInfo.emailAddress],
         subs: { name: registrationInfo.preferredName },
     };
+
     return sendMailWrapper(res, next, mailInfo);
 });
 

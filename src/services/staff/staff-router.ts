@@ -7,7 +7,6 @@ import { hasStaffPerms } from "../auth/auth-lib.js";
 import { AttendanceFormat } from "./staff-formats.js";
 import Config from "../../config.js";
 
-import { EventMetadata } from "../../database/event-db.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
@@ -58,15 +57,15 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
-    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
+    const event = await Models.Event.findOne({ eventId: eventId });
 
-    if (!metadata) {
+    if (!event) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
     const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
-    if (metadata.exp <= timestamp) {
+    if (event.exp && event.exp <= timestamp) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "CodeExpired"));
     }
 
