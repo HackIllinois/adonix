@@ -20,31 +20,15 @@ export class AdmissionDecision {
     @prop({ required: true })
     public status: DecisionStatus;
 
-    @prop()
+    @prop({ default: false })
     public admittedPro?: boolean;
 
-    @prop({ required: true })
-    public response: DecisionResponse;
+    @prop({ default: DecisionResponse.PENDING })
+    public response?: DecisionResponse;
 
-    @prop({ required: true })
-    public reviewer: string;
+    @prop({ default: false })
+    public emailSent?: boolean;
 
-    @prop({ required: true })
-    public emailSent: boolean;
-
-    constructor(
-        userId: string,
-        status: DecisionStatus,
-        response: DecisionResponse,
-        reviewer: string,
-        emailSent: boolean,
-        admittedPro?: boolean,
-    ) {
-        this.userId = userId;
-        this.status = status;
-        this.admittedPro = admittedPro;
-        this.response = response;
-        this.reviewer = reviewer;
-        this.emailSent = emailSent;
-    }
+    @prop({ default: 0 })
+    public reimbursementValue?: number;
 }

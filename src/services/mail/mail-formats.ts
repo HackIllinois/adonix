@@ -4,6 +4,7 @@ export interface MailInfoFormat {
     templateId: string;
     recipients: string[];
     scheduleTime?: string;
+    subs?: object;
 }
 
 export function isValidMailInfo(mailInfo: MailInfoFormat): boolean {
