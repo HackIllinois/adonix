@@ -3,7 +3,6 @@ import Models from "../../database/models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools.js";
 import { StatusCode } from "status-code-enum";
-import { ApplicantDecisionFormat } from "./admission-formats.js";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -36,7 +35,7 @@ const updateRequest = [
         reviewer: "",
         emailSent: false,
     },
-] satisfies ApplicantDecisionFormat[];
+] satisfies AdmissionDecision[];
 
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);

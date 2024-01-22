@@ -1,15 +1,5 @@
 import Config from "../../config.js";
-
-export interface ItemFormat {
-    itemId: string;
-    name: string;
-    price: number;
-    isRaffle: boolean;
-    quantity: number;
-    imageURL: string;
-    instances?: string[];
-}
-
+import { ShopItem } from "../../database/shop-db.js";
 export interface FilteredShopItemFormat {
     itemId: string;
     name: string;
@@ -19,22 +9,7 @@ export interface FilteredShopItemFormat {
     imageURL: string;
 }
 
-// export interface ItemFormat {
-//     itemId: string;
-//     name: string;
-//     price: number;
-//     isRaffle: boolean;
-//     imageURL: string;
-//     quantity: number;
-// }
-
-/**
- *
- * @param obj ItemFormat to verify
- * @param itemIdRequired Whether or not the request needs an itemId or not
- * @returns True if valid format, else false
- */
-export function isValidItemFormat(obj: ItemFormat, itemIdRequired: boolean): boolean {
+export function isValidItemFormat(obj: ShopItem, itemIdRequired: boolean): boolean {
     if (typeof obj.itemId !== "string" || obj.itemId.length !== Config.SHOP_BYTES_GEN) {
         if (itemIdRequired) {
             return false;

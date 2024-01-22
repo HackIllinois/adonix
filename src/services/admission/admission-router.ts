@@ -5,7 +5,6 @@ import { JwtPayload } from "../auth/auth-models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
 import Models from "../../database/models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { ApplicantDecisionFormat } from "./admission-formats.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
@@ -204,7 +203,7 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const updateEntries: ApplicantDecisionFormat[] = req.body as ApplicantDecisionFormat[];
+    const updateEntries: AdmissionDecision[] = req.body as AdmissionDecision[];
     const ops = updateEntries.map((entry) =>
         Models.AdmissionDecision.findOneAndUpdate(
             { userId: entry.userId },

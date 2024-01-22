@@ -4,7 +4,6 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import Models from "../../database/models.js";
 import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools.js";
-import { ProfileFormat } from "./profile-formats.js";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -38,7 +37,7 @@ const TESTER_USER_3 = {
     coins: 12,
 } satisfies AttendeeProfile;
 
-const profile: ProfileFormat = {
+const profile: AttendeeProfile = {
     userId: TESTER.id,
     displayName: TESTER.name,
     avatarUrl: TESTER.avatarUrl,
@@ -102,10 +101,6 @@ describe("GET /profile", () => {
 });
 
 describe("GET /profile/userid/:USERID", () => {
-    // it("redirects with no id provided", async () => {
-    //     await getAsUser("/profile/userid").expect(StatusCode.RedirectFound);
-    // });
-
     it("fails to get a profile as a user", async () => {
         const response = await getAsUser("/profile/userid/" + TESTER.id).expect(StatusCode.ClientErrorForbidden);
 
@@ -163,7 +158,6 @@ describe("GET /profile/leaderboard", () => {
         }
 
         const response = await getAsUser("/profile/leaderboard").expect(StatusCode.SuccessOK);
-
         const responseArray = JSON.parse(response.text);
 
         expect(responseArray.profiles.length).toBeLessThan(Config.LEADERBOARD_QUERY_LIMIT + 1);

@@ -1,10 +1,6 @@
-export interface UserFormat {
-    userId: string;
-    name: string;
-    email: string;
-}
+import { UserInfo } from "../../database/user-db.js";
 
-export function isValidUserFormat(u: UserFormat): boolean {
+export function isValidUserFormat(u: UserInfo): boolean {
     if (typeof u.userId !== "string" || typeof u.name !== "string" || typeof u.email !== "string") {
         return false;
     }
