@@ -150,11 +150,13 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
+    const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
 
     if (!officeHours) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
+
+    await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
 
     return res.status(StatusCode.SuccessOK).send("Success");
 });
