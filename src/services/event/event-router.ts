@@ -407,7 +407,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *     "isStaff": true,
  *     "isAsync": false
  * }
- * 
+ *
  *
  * @apiSuccessExample Example Success Response for Staff Event
  * HTTP/1.1 201 Created
