@@ -187,29 +187,36 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  *
  * @apiParamExample {json} Example Request:
  * {
- *     "preferredName": "Ronakin",
- *      "legalName": "Ronakin Kanandini",
- *      "emailAddress": "rpak@gmail.org",
- *      "university": "University of Illinois Urbana-Champaign",
- *      "hackEssay1": "I love hack",
- *      "hackEssay2": "I love hack",
- *      "optionalEssay": "",
- *      "resumeFileName": "https://www.google.com",
- *      "location": "Urbana",
- *      "gender": ["Prefer Not To Answer"],
- *      "degree": "Associates' Degree",
- *      "major": "Computer Science",
- *      "minor": "Math",
- *      "resumeFileName": "https://www.google.com/"
- *      "gradYear": 0,
- *      "isProApplicant": true,
- *      "proEssay": "I wanna be a Knight",
- *      "considerForGeneral": true,
- *      "requestedTravelReimbursement: false,
- *      "dietaryRestrictions": "Vegetarian",
- *      "race": "Prefer Not To Answer",
- *      "hackInterest": ["Mini-Event"],
- *      "hackOutreach": ["Instagram"]
+ *     "preferredName": "L",
+ *     "emailAddress": "wjiwji1j@illinois.edu",
+ *     "location": "Alaska",
+ *     "degree": "Associates' Degree",
+ *     "university": "University of Illinois (Springfield)",
+ *     "major": "Computer Science",
+ *     "minor": "Computer Science",
+ *     "gradYear": 2030,
+ *     "hackEssay1": "yay",
+ *     "hackEssay2": "yay",
+ *     "proEssay": "yay",
+ *     "hackInterest": [
+ *         "Attending technical workshops"
+ *     ],
+ *     "hackOutreach": [
+ *         "Instagram"
+ *     ],
+ *     "dietaryRestrictions": [
+ *         "None"
+ *     ],
+ *     "resumeFileName": "GitHub cheatsheet.pdf",
+ *     "isProApplicant": false,
+ *     "legalName": "lasya neti",
+ *     "considerForGeneral": false,
+ *     "requestedTravelReimbursement": true,
+ *     "gender": "Female",
+ *     "race": [
+ *         "American Indian or Alaska Native"
+ *     ],
+ *     "optionalEssay": ""
  * }
  *
  * @apiSuccess (200: Success) {json} json Returns the POSTed registration information for user
@@ -275,7 +282,49 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
     return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
-// THIS ENDPOINT SHOULD PERFORM ALL THE ACTIONS REQUIRED ONCE YOU SUBMIT REGISTRATION
+/**
+ * @api {post} /registration/submit/ POST /registration/submit/
+ * @apiGroup Registration
+ * @apiDescription Submits registration data for the current user. Cannot edit registration data after this point.
+ *
+ * @apiParamExample {json} Example Request:
+ * {
+ *     "preferredName": "L",
+ *     "emailAddress": "wjiwji1j@illinois.edu",
+ *     "location": "Alaska",
+ *     "degree": "Associates' Degree",
+ *     "university": "University of Illinois (Springfield)",
+ *     "major": "Computer Science",
+ *     "minor": "Computer Science",
+ *     "gradYear": 2030,
+ *     "hackEssay1": "yay",
+ *     "hackEssay2": "yay",
+ *     "proEssay": "yay",
+ *     "hackInterest": [
+ *         "Attending technical workshops"
+ *     ],
+ *     "hackOutreach": [
+ *         "Instagram"
+ *     ],
+ *     "dietaryRestrictions": [
+ *         "None"
+ *     ],
+ *     "resumeFileName": "GitHub cheatsheet.pdf",
+ *     "isProApplicant": false,
+ *     "legalName": "lasya neti",
+ *     "considerForGeneral": false,
+ *     "requestedTravelReimbursement": true,
+ *     "gender": "Female",
+ *     "race": [
+ *         "American Indian or Alaska Native"
+ *     ],
+ *     "optionalEssay": ""
+ * }
+ * @apiSuccess (200: Success) {String} Success
+ * @apiError (404: Bad Request) {String} NoRegistrationInfo User doesn't exist in Database
+ * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
+ * @apiError (500: Internal Server Error) {String} InternalError Server-side error
+ **/
 registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
