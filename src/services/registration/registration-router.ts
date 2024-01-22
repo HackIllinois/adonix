@@ -318,6 +318,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
     };
+
     return sendMailWrapper(res, next, mailInfo);
 });
 
