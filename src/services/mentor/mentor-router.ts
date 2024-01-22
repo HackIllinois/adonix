@@ -175,6 +175,8 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
 
+    await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
+
     return res.status(StatusCode.SuccessOK).send("Success");
 });
 
