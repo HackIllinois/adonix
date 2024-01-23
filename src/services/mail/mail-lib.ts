@@ -19,7 +19,7 @@ export async function sendMailWrapper(res: Response, next: NextFunction, mailInf
     }
 }
 
-function sendMail(mailInfo: MailInfoFormat): Promise<AxiosResponse> {
+export function sendMail(mailInfo: MailInfoFormat): Promise<AxiosResponse> {
     const options = mailInfo.scheduleTime ? { start_time: mailInfo.scheduleTime } : {};
     const recipients = mailInfo.recipients.map((emailAddress: string) => ({ address: `${emailAddress}` }));
     const substitution_data = mailInfo.subs;

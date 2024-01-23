@@ -15,7 +15,7 @@ import { RegistrationFormat, isValidRegistrationFormat } from "./registration-fo
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { sendMailWrapper } from "../mail/mail-lib.js";
+import { sendMail } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
 
 const registrationRouter: Router = Router();
@@ -337,14 +337,20 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    // SEND SUCCESFUL REGISTRATION EMAIL
+    // SEND SUCCESSFUL REGISTRATION EMAIL
     const mailInfo: MailInfoFormat = {
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
         subs: { name: registrationInfo.preferredName },
     };
 
-    return sendMailWrapper(res, next, mailInfo);
+    try {
+        await sendMail(mailInfo);
+    } catch (error) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "EmailFailedToSend", error, error.toString()));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
 export default registrationRouter;

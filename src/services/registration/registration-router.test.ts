@@ -1,10 +1,14 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
+import { RegistrationTemplates } from "./../../config.js";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools.js";
 import { RegistrationFormat } from "./registration-formats.js";
 import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
+import type * as MailLib from "../../services/mail/mail-lib.js";
+import type { AxiosResponse } from "axios";
+import { MailInfoFormat } from "services/mail/mail-formats.js";
 
 const APPLICATION = {
     isProApplicant: false,
@@ -114,5 +118,68 @@ describe("POST /registration/", () => {
 
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorUnprocessableEntity);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
+    });
+});
+
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
+describe("POST /registration/submit/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        await Models.RegistrationApplication.create(UNSUBMITTED_REGISTRATION);
+
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
+    it("should submit registration", async () => {
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+            recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
+            subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
+        } satisfies MailInfoFormat);
+
+        // Stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
+    });
+
+    it("should provide not found error when registration does not exist", async () => {
+        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_REGISTRATION);
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("should provide already submitted error when already submitted", async () => {
+        await Models.RegistrationApplication.updateOne(UNSUBMITTED_REGISTRATION, SUBMITTED_REGISTRATION);
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorUnprocessableEntity);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
+    });
+
+    it("should provide error when email fails to send and still submit registration", async () => {
+        // Mock failure
+        sendMail.mockImplementation(async (_) => {
+            throw new Error("SparkpostDidNotSendEmailOhNo");
+        });
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "EmailFailedToSend");
+
+        // Still stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
     });
 });
