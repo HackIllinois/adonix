@@ -138,7 +138,6 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
     } catch (error) {
         return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
     }
-    
 });
 
 /**
@@ -192,12 +191,12 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
     if (!updatedDecision) {
         return next(new RouterError());
     }
-    
+
     const application = await getApplication(queryResult.userId);
     if (!application) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound"));
-    } 
-    
+    }
+
     const mailInfo: MailInfoFormat = {
         templateId: RegistrationTemplates.RSVP_DECLINED,
         recipients: [application.emailAddress],
@@ -260,16 +259,46 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
+    // collect emails whose status changed from TBD -> NON-TBD
+    const recipients: string[] = [];
+    for (let i = 0; i < updateEntries.length; ++i) {
+        const existingDecision = await Models.AdmissionDecision.findOne({ userId: updateEntries[i]?.userId });
+        if (existingDecision?.status === DecisionStatus.TBD && updateEntries[i]?.status !== DecisionStatus.TBD) {
+            const application = await getApplication(existingDecision?.userId);
+            if (!application) {
+                throw new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound");
+            }
+            recipients.push(application.emailAddress);
+        }
+    }
+
     const ops = updateEntries.map((entry) =>
         Models.AdmissionDecision.findOneAndUpdate(
             { userId: entry.userId },
-            { $set: { status: entry.status, admittedPro: entry.admittedPro, reimbursementValue: entry.reimbursementValue } },
+            {
+                $set: {
+                    status: entry.status,
+                    admittedPro: entry.admittedPro,
+                    emailSent: true,
+                    reimbursementValue: entry.reimbursementValue,
+                },
+            },
         ),
     );
 
     try {
         await Promise.all(ops);
-        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+
+        const mailInfo: MailInfoFormat = {
+            templateId: RegistrationTemplates.STATUS_UPDATE,
+            recipients: recipients,
+        };
+        try {
+            await sendMail(mailInfo);
+            return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+        } catch (error) {
+            return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
+        }
     } catch (error) {
         return next(new RouterError(undefined, undefined, undefined, `${error}`));
     }

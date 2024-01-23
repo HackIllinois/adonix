@@ -46,7 +46,6 @@ const TESTER_APPLICATION = {
     hackOutreach: [HackOutreach.OTHER],
 } satisfies RegistrationFormat;
 
-
 const updateRequest = [
     {
         userId: TESTER.id,
@@ -55,7 +54,7 @@ const updateRequest = [
         emailSent: false,
     },
     {
-        userId: "other-user",
+        userId: OTHER_DECISION.userId,
         status: DecisionStatus.ACCEPTED,
         response: DecisionResponse.PENDING,
         emailSent: false,
@@ -79,7 +78,20 @@ describe("GET /admission/notsent/", () => {
     });
 });
 
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
 describe("PUT /admission/update/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
     it("gives forbidden error for user without elevated perms", async () => {
         const responseUser = await putAsUser("/admission/update/").send(updateRequest).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
@@ -91,6 +103,12 @@ describe("PUT /admission/update/", () => {
 
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.STATUS_UPDATE,
+            recipients: [], // empty because neither test case starts as status = TBD
+        } satisfies MailInfoFormat);
+
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
                 updateRequest.map((item) => expect.objectContaining({ status: item.status, userId: item.userId })),
@@ -160,11 +178,6 @@ describe("GET /admission/rsvp/:USERID", () => {
     });
 });
 
-function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
-    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
-    return jest.spyOn(mailLib, "sendMail");
-}
-
 describe("PUT /admission/rsvp/accept", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
@@ -227,7 +240,6 @@ describe("PUT /admission/rsvp/decline/", () => {
         sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
     });
 
-
     it("returns UserNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
@@ -244,7 +256,7 @@ describe("PUT /admission/rsvp/decline/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.RSVP_DECLINED,
-            recipients: [TESTER_APPLICATION.emailAddress]
+            recipients: [TESTER_APPLICATION.emailAddress],
         } satisfies MailInfoFormat);
 
         expect(stored).toMatchObject({
