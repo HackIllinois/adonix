@@ -15,7 +15,7 @@ import { RegistrationFormat, isValidRegistrationFormat } from "./registration-fo
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
-import { sendMailWrapper } from "../mail/mail-lib.js";
+import { sendMail } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
 
 const registrationRouter: Router = Router();
@@ -71,6 +71,8 @@ const registrationRouter: Router = Router();
  *      "hackInterest": ["Mini-Event"],
  *      "hackOutreach": ["Instagram"]
  *  }
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
+ * @apiUse strongVerifyErrors
  */
 registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload;
@@ -140,7 +142,7 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  *      "hackOutreach": ["Instagram"]
  *  }
  * @apiError (403: Forbidden) {String} Forbidden User doesn't have elevated permissions
- * @apiError (404: Not Found) {String} UserNotFound User not found in database
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
  */
 registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
@@ -153,7 +155,7 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
     const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationData) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
     return res.status(StatusCode.SuccessOK).send(registrationData);
@@ -287,41 +289,10 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
  * @apiGroup Registration
  * @apiDescription Submits registration data for the current user. Cannot edit registration data after this point.
  *
- * @apiParamExample {json} Example Request:
- * {
- *     "preferredName": "L",
- *     "emailAddress": "wjiwji1j@illinois.edu",
- *     "location": "Alaska",
- *     "degree": "Associates' Degree",
- *     "university": "University of Illinois (Springfield)",
- *     "major": "Computer Science",
- *     "minor": "Computer Science",
- *     "gradYear": 2030,
- *     "hackEssay1": "yay",
- *     "hackEssay2": "yay",
- *     "proEssay": "yay",
- *     "hackInterest": [
- *         "Attending technical workshops"
- *     ],
- *     "hackOutreach": [
- *         "Instagram"
- *     ],
- *     "dietaryRestrictions": [
- *         "None"
- *     ],
- *     "resumeFileName": "GitHub cheatsheet.pdf",
- *     "isProApplicant": false,
- *     "legalName": "lasya neti",
- *     "considerForGeneral": false,
- *     "requestedTravelReimbursement": true,
- *     "gender": "Female",
- *     "race": [
- *         "American Indian or Alaska Native"
- *     ],
- *     "optionalEssay": ""
- * }
+ * No body is required for this request.
+ *
  * @apiSuccess (200: Success) {String} Success
- * @apiError (404: Bad Request) {String} NoRegistrationInfo User doesn't exist in Database
+ * @apiError (404: Bad Request) {String} NotFound Registration does not exist
  * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
  * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  **/
@@ -332,7 +303,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
     const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationInfo) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "NoRegistrationInfo"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
     if (registrationInfo?.hasSubmitted ?? false) {
@@ -366,14 +337,20 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    // SEND SUCCESFUL REGISTRATION EMAIL
+    // SEND SUCCESSFUL REGISTRATION EMAIL
     const mailInfo: MailInfoFormat = {
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
         subs: { name: registrationInfo.preferredName },
     };
 
-    return sendMailWrapper(res, next, mailInfo);
+    try {
+        await sendMail(mailInfo);
+    } catch (error) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "EmailFailedToSend", error, error.toString()));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
 export default registrationRouter;
