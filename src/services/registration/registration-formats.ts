@@ -83,12 +83,12 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
-    if (!registration.isProApplicant) {
+    if (registration.isProApplicant) {
         if (isString(registration.proEssay) && (registration.proEssay?.length ?? 0) > 0) {
             return false;
         }
 
-        if (isBoolean(registration.considerForGeneral) && !registration.considerForGeneral) {
+        if (registration.considerForGeneral !== null && isBoolean(registration.considerForGeneral)) {
             return false;
         }
     }
