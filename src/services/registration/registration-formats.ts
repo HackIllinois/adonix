@@ -88,7 +88,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
             return false;
         }
 
-        if (isBoolean(registration.considerForGeneral) && registration.considerForGeneral) {
+        if (isBoolean(registration.considerForGeneral) && !registration.considerForGeneral) {
             return false;
         }
     }
