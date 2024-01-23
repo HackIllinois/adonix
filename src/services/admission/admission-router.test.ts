@@ -1,8 +1,14 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../database/models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
+import { RegistrationFormat } from "../registration/registration-formats.js";
+import { RegistrationTemplates } from "./../../config.js";
+import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models.js";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools.js";
 import { StatusCode } from "status-code-enum";
+import type * as MailLib from "../../services/mail/mail-lib.js";
+import type { AxiosResponse } from "axios";
+import { MailInfoFormat } from "services/mail/mail-formats.js";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -17,6 +23,29 @@ const OTHER_DECISION = {
     response: DecisionResponse.DECLINED,
     emailSent: true,
 } satisfies AdmissionDecision;
+
+const TESTER_APPLICATION = {
+    isProApplicant: false,
+    userId: TESTER.id,
+    preferredName: TESTER.name,
+    legalName: TESTER.name,
+    emailAddress: TESTER.email,
+    university: "ap",
+    hackEssay1: "ap",
+    hackEssay2: "ap",
+    optionalEssay: "ap",
+    location: "ap",
+    gender: Gender.OTHER,
+    degree: Degree.BACHELORS,
+    major: "CS",
+    gradYear: 0,
+    requestedTravelReimbursement: false,
+    dietaryRestrictions: [],
+    race: [Race.NO_ANSWER],
+    hackInterest: [HackInterest.OTHER],
+    hackOutreach: [HackOutreach.OTHER],
+} satisfies RegistrationFormat;
+
 
 const updateRequest = [
     {
@@ -33,33 +62,10 @@ const updateRequest = [
     },
 ] satisfies AdmissionDecision[];
 
-// const TESTER_APPLICATION = {
-//     isProApplicant: false,
-//     userId: TESTER.id,
-//     preferredName: "ap",
-//     legalName: "ap4",
-//     emailAddress: "apirani2@illinois.edu",
-//     university: "ap",
-//     hackEssay1: "ap",
-//     hackEssay2: "ap",
-//     optionalEssay: "ap",
-//     location: "ap",
-//     gender: Gender.OTHER,
-//     degree: Degree.BACHELORS,
-//     major: "CS",
-//     gradYear: 0,
-//     requestedTravelReimbursement: false,
-//     dietaryRestrictions: [],
-//     race: [],
-//     hackInterest: [],
-//     hackOutreach: [],
-// } satisfies RegistrationFormat;
-
-
-
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
+    await Models.RegistrationApplication.create(TESTER_APPLICATION);
 });
 
 describe("GET /admission/notsent/", () => {
@@ -154,7 +160,20 @@ describe("GET /admission/rsvp/:USERID", () => {
     });
 });
 
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
 describe("PUT /admission/rsvp/accept", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
     it("returns UserNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
@@ -168,6 +187,12 @@ describe("PUT /admission/rsvp/accept", () => {
     it("lets applicant accept accepted decision", async () => {
         await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+            recipients: [TESTER_APPLICATION.emailAddress],
+            subs: { name: TESTER_APPLICATION.preferredName },
+        } satisfies MailInfoFormat);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
@@ -194,6 +219,15 @@ describe("PUT /admission/rsvp/accept", () => {
 });
 
 describe("PUT /admission/rsvp/decline/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
+
     it("returns UserNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
@@ -204,9 +238,14 @@ describe("PUT /admission/rsvp/decline/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("lets applicant decline declined decision", async () => {
+    it("lets applicant decline accepted decision", async () => {
         await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.RSVP_DECLINED,
+            recipients: [TESTER_APPLICATION.emailAddress]
+        } satisfies MailInfoFormat);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
