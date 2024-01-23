@@ -10,6 +10,10 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { performRSVP } from "./admission-lib.js";
+import { MailInfoFormat } from "../mail/mail-formats.js";
+import { RegistrationTemplates } from "../../config.js";
+import { getApplication } from "../registration/registration-lib.js";
+import { sendMail } from "../mail/mail-lib.js";
 
 const admissionRouter: Router = Router();
 
@@ -79,7 +83,8 @@ admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: 
  * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (409: Conflict) Failed because RSVP has already happened.
+ * @apiError (409: AlreadyRSVPed) {string} Failed because RSVP has already happened.
+ * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -103,10 +108,35 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.ACCEPTED);
 
-    if (updatedDecision) {
-        return res.status(StatusCode.SuccessOK).send(updatedDecision);
-    } else {
+    if (!updatedDecision) {
         return next(new RouterError());
+    }
+
+    const application = await getApplication(queryResult.userId);
+    if (!application) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound"));
+    }
+
+    let mailInfo: MailInfoFormat;
+    if (application.requestedTravelReimbursement && (queryResult.reimbursementValue ?? 0) > 0) {
+        mailInfo = {
+            templateId: RegistrationTemplates.RSVP_CONFIRMATION_WITH_REIMBURSE,
+            recipients: [application.emailAddress],
+            subs: { name: application.preferredName, amount: queryResult.reimbursementValue },
+        };
+    } else {
+        mailInfo = {
+            templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+            recipients: [application.emailAddress],
+            subs: { name: application.preferredName },
+        };
+    }
+
+    try {
+        await sendMail(mailInfo);
+        return res.status(StatusCode.SuccessOK).send(updatedDecision);
+    } catch (error) {
+        return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
     }
 });
 
@@ -131,7 +161,10 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (409: Conflict) Failed because RSVP has already happened.
+ * @apiError (404: UserNotFound) {string} Failed because user not found.
+ * @apiError (404: ApplicationNotFound) {string} Failed because application not found.
+ * @apiError (409: AlreadyRSVPed) {string} Failed because RSVP has already happened.
+ * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -155,10 +188,25 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.DECLINED);
 
-    if (updatedDecision) {
-        return res.status(StatusCode.SuccessOK).send(updatedDecision);
-    } else {
+    if (!updatedDecision) {
         return next(new RouterError());
+    }
+
+    const application = await getApplication(queryResult.userId);
+    if (!application) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound"));
+    }
+
+    const mailInfo: MailInfoFormat = {
+        templateId: RegistrationTemplates.RSVP_DECLINED,
+        recipients: [application.emailAddress],
+    };
+
+    try {
+        await sendMail(mailInfo);
+        return res.status(StatusCode.SuccessOK).send(updatedDecision);
+    } catch (error) {
+        return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
     }
 });
 
@@ -211,16 +259,46 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
+    // collect emails whose status changed from TBD -> NON-TBD
+    const recipients: string[] = [];
+    for (let i = 0; i < updateEntries.length; ++i) {
+        const existingDecision = await Models.AdmissionDecision.findOne({ userId: updateEntries[i]?.userId });
+        if (existingDecision?.status === DecisionStatus.TBD && updateEntries[i]?.status !== DecisionStatus.TBD) {
+            const application = await getApplication(existingDecision?.userId);
+            if (!application) {
+                throw new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound");
+            }
+            recipients.push(application.emailAddress);
+        }
+    }
+
     const ops = updateEntries.map((entry) =>
         Models.AdmissionDecision.findOneAndUpdate(
             { userId: entry.userId },
-            { $set: { status: entry.status, admittedPro: entry.admittedPro, reimbursementValue: entry.reimbursementValue } },
+            {
+                $set: {
+                    status: entry.status,
+                    admittedPro: entry.admittedPro,
+                    emailSent: true,
+                    reimbursementValue: entry.reimbursementValue,
+                },
+            },
         ),
     );
 
     try {
         await Promise.all(ops);
-        return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+
+        const mailInfo: MailInfoFormat = {
+            templateId: RegistrationTemplates.STATUS_UPDATE,
+            recipients: recipients,
+        };
+        try {
+            await sendMail(mailInfo);
+            return res.status(StatusCode.SuccessOK).send({ message: "StatusSuccess" });
+        } catch (error) {
+            return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
+        }
     } catch (error) {
         return next(new RouterError(undefined, undefined, undefined, `${error}`));
     }
