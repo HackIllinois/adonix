@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools.js";
 import { RegistrationFormat } from "./registration-formats.js";
-import { Degree, Gender } from "./registration-models.js";
+import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
 
 const GENERAL_APPLICATION = {
     isProApplicant: false,
@@ -22,9 +22,9 @@ const GENERAL_APPLICATION = {
     gradYear: 0,
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
-    race: [],
-    hackInterest: [],
-    hackOutreach: [],
+    race: [Race.NO_ANSWER],
+    hackInterest: [HackInterest.OTHER],
+    hackOutreach: [HackOutreach.OTHER],
 } satisfies RegistrationFormat;
 
 const UNSUBMITTED_GENERAL_REGISTRATION_DATA = { hasSubmitted: false, ...GENERAL_APPLICATION };
