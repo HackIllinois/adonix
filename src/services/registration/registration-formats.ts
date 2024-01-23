@@ -84,11 +84,11 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     }
 
     if (registration.isProApplicant) {
-        if (registration.proEssay !== null || !isString(registration.proEssay)) {
+        if (registration.proEssay === null || !isString(registration.proEssay)) {
             return false;
         }
 
-        if (registration.considerForGeneral !== null || !isBoolean(registration.considerForGeneral)) {
+        if (registration.considerForGeneral === null || !isBoolean(registration.considerForGeneral)) {
             return false;
         }
     }
