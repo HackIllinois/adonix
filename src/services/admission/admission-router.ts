@@ -10,6 +10,10 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { performRSVP } from "./admission-lib.js";
+import { MailInfoFormat } from "../mail/mail-formats.js";
+import { RegistrationTemplates } from "../../config.js";
+import { getApplication } from "../registration/registration-lib.js";
+import { sendMail } from "../mail/mail-lib.js";
 
 const admissionRouter: Router = Router();
 
@@ -104,6 +108,26 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.ACCEPTED);
 
     if (updatedDecision) {
+        const application = await getApplication(queryResult.userId);
+        if (application) {
+            let mailInfo: MailInfoFormat;
+            if (application.requestedTravelReimbursement && (queryResult.reimbursementValue ?? 0) > 0) {
+                mailInfo = {
+                    templateId: RegistrationTemplates.RSVP_CONFIRMATION_WITH_REIMBURSE,
+                    recipients: [application.emailAddress],
+                    subs: { name: application.preferredName, amount: queryResult.reimbursementValue },
+                };
+            } else {
+                mailInfo = {
+                    templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+                    recipients: [application.emailAddress],
+                    subs: { name: application.preferredName },
+                };
+            }
+
+            await sendMail(mailInfo);
+        }
+
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
     } else {
         return next(new RouterError());
@@ -156,6 +180,16 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.DECLINED);
 
     if (updatedDecision) {
+        const application = await getApplication(queryResult.userId);
+        if (application) {
+            const mailInfo: MailInfoFormat = {
+                templateId: RegistrationTemplates.RSVP_DECLINED,
+                recipients: [application.emailAddress],
+            };
+
+            await sendMail(mailInfo);
+        }
+
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
     } else {
         return next(new RouterError());

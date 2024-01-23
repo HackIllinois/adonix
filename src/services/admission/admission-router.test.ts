@@ -180,7 +180,7 @@ describe("PUT /admission/rsvp/decline/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
     });
 
-    it("lets applicant accept accepted decision", async () => {
+    it("lets applicant decline declined decision", async () => {
         await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
