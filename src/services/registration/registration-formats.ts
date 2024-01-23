@@ -44,7 +44,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     if (
         !isEnumOfType(registration.gender, Gender) ||
         !isArrayOfType(registration.race, (value) => isEnumOfType(value, Race)) ||
-        !isArrayOfType(registration.dietaryRestrictions, isString)
+        !isArrayOfType(registration.dietaryRestrictions, isString || undefined)
     ) {
         return false;
     }
@@ -53,7 +53,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isString(registration.location) ||
         !isEnumOfType(registration.degree, Degree) ||
         !isString(registration.university) ||
-        !isNumber(registration.gradYear) ||
+        !(isNumber(registration.gradYear) || registration.gradYear == undefined) ||
         !isString(registration.major) ||
         !isString(registration.minor ?? "")
     ) {
@@ -84,11 +84,11 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
     }
 
     if (registration.isProApplicant) {
-        if (isString(registration.proEssay) && (registration.proEssay?.length ?? 0) > 0) {
+        if (registration.proEssay !== null || !isString(registration.proEssay)) {
             return false;
         }
 
-        if (registration.considerForGeneral !== null && isBoolean(registration.considerForGeneral)) {
+        if (registration.considerForGeneral !== null || !isBoolean(registration.considerForGeneral)) {
             return false;
         }
     }
