@@ -129,7 +129,7 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
             try {
                 await sendMail(mailInfo);
             } catch (error) {
-                return res.status(StatusCode.ClientErrorFailedDependency).send('EmailFailed');
+                return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
             }
         }
 
@@ -185,25 +185,26 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
 
     const updatedDecision = await performRSVP(queryResult.userId, DecisionResponse.DECLINED);
 
-    if (updatedDecision) {
-        const application = await getApplication(queryResult.userId);
-        if (application) {
-            const mailInfo: MailInfoFormat = {
-                templateId: RegistrationTemplates.RSVP_DECLINED,
-                recipients: [application.emailAddress],
-            };
-
-            try {
-                await sendMail(mailInfo);
-            } catch (error) {
-                return res.status(StatusCode.ClientErrorFailedDependency).send('EmailFailed');
-            }
-        }
-
-        return res.status(StatusCode.SuccessOK).send(updatedDecision);
-    } else {
+    if (!updatedDecision) {
         return next(new RouterError());
     }
+    const application = await getApplication(queryResult.userId);
+    if (application) {
+        const mailInfo: MailInfoFormat = {
+            templateId: RegistrationTemplates.RSVP_DECLINED,
+            recipients: [application.emailAddress],
+        };
+
+        try {
+            await sendMail(mailInfo);
+        } catch (error) {
+            return res.status(StatusCode.ClientErrorFailedDependency).send("EmailFailed");
+        }
+    } else {
+        // problematic for ur test cases 
+    }
+
+    return res.status(StatusCode.SuccessOK).send(updatedDecision);
 });
 
 /**

@@ -33,6 +33,30 @@ const updateRequest = [
     },
 ] satisfies AdmissionDecision[];
 
+// const TESTER_APPLICATION = {
+//     isProApplicant: false,
+//     userId: TESTER.id,
+//     preferredName: "ap",
+//     legalName: "ap4",
+//     emailAddress: "apirani2@illinois.edu",
+//     university: "ap",
+//     hackEssay1: "ap",
+//     hackEssay2: "ap",
+//     optionalEssay: "ap",
+//     location: "ap",
+//     gender: Gender.OTHER,
+//     degree: Degree.BACHELORS,
+//     major: "CS",
+//     gradYear: 0,
+//     requestedTravelReimbursement: false,
+//     dietaryRestrictions: [],
+//     race: [],
+//     hackInterest: [],
+//     hackOutreach: [],
+// } satisfies RegistrationFormat;
+
+
+
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
