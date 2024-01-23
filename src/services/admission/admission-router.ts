@@ -83,7 +83,8 @@ admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: 
  * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (409: Conflict) Failed because RSVP has already happened.
+ * @apiError (409: AlreadyRSVPed) {string} Failed because RSVP has already happened.
+ * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -125,7 +126,11 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
                 };
             }
 
-            await sendMail(mailInfo);
+            try {
+                await sendMail(mailInfo);
+            } catch (error) {
+                return res.status(StatusCode.ClientErrorFailedDependency).send('EmailFailed');
+            }
         }
 
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
@@ -155,7 +160,8 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * 	}
  *
  * @apiUse strongVerifyErrors
- * @apiError (409: Conflict) Failed because RSVP has already happened.
+ * @apiError (409: AlreadyRSVPed) {string} Failed because RSVP has already happened.
+ * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
@@ -187,7 +193,11 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
                 recipients: [application.emailAddress],
             };
 
-            await sendMail(mailInfo);
+            try {
+                await sendMail(mailInfo);
+            } catch (error) {
+                return res.status(StatusCode.ClientErrorFailedDependency).send('EmailFailed');
+            }
         }
 
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
