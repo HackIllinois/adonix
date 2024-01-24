@@ -356,4 +356,38 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
     return res.status(StatusCode.SuccessOK).send(updatedProfile);
 });
 
+/**
+ * @api {get} /profile/ranking/ GET /profile/ranking/
+ * @apiGroup Profile
+ * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in alphabetical order.
+ *
+ * @apiSuccess (200: Success) {number} ranking Ranking of the user
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "ranking": 1
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal) {String} InternalError An internal server error occured.
+ */
+profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
+
+    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
+    const userIndex = sortedUsers.findIndex((u) => {
+        return u.userId == userId;
+    });
+
+    if (userIndex < 0) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
+    }
+
+    const userRanking = userIndex + Config.RANKING_OFFSET;
+
+    return res.status(StatusCode.SuccessOK).send({ ranking: userRanking });
+});
+
 export default profileRouter;
