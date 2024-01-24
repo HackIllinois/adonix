@@ -380,10 +380,9 @@ profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Re
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
     }
 
-    const userPoints = profile.points;
     const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, displayName: -1 });
     const userIndex = sortedUsers.findIndex((u) => {
-        return u.points === userPoints && u.userId == profile.userId;
+        return u.userId == profile.userId;
     });
     const userRanking = userIndex + Config.RANKING_OFFSET;
 
