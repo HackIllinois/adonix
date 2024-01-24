@@ -377,9 +377,7 @@ profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Re
     const userId: string = payload.id;
 
     const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
-    const userIndex = sortedUsers.findIndex((u) => {
-        return u.userId == userId;
-    });
+    const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
 
     if (userIndex < 0) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
