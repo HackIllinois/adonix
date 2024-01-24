@@ -357,7 +357,7 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
 /**
  * @api {get} /profile/ranking/ GET /profile/ranking/
  * @apiGroup Profile
- * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in ascending alphabetical order.
+ * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in alphabetical order.
  *
  * @apiSuccess (200: Success) {number} ranking Ranking of the user
  *
@@ -374,16 +374,15 @@ profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Re
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    const profile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
+    const userIndex = sortedUsers.findIndex((u) => {
+        return u.userId == userId;
+    });
 
-    if (!profile) {
+    if (userIndex === -1) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
     }
 
-    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, displayName: -1 });
-    const userIndex = sortedUsers.findIndex((u) => {
-        return u.userId == profile.userId;
-    });
     const userRanking = userIndex + Config.RANKING_OFFSET;
 
     return res.status(StatusCode.SuccessOK).send({ ranking: userRanking });
