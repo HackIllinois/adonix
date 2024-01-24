@@ -98,7 +98,7 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
  *     "isPrivate": true,
  *     "isAsync": true,
  *     "displayOnStaffCheckIn": true,
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -143,7 +143,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     ],
  *     "sponsor": "Example sponsor",
  *     "eventType": "WORKSHOP",
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  * @apiSuccessExample Example Success Response (Staff POV)
@@ -167,7 +167,7 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     "eventType": "WORKSHOP",
  *     "isPrivate": True,
  *     "displayOnStaffCheckIn": True,
- *     "mapImageURL": "someurlmapthingy.com",
+ *     "mapImageUrl": "someurlmapthingy.com",
  *   }
  * }
  *
@@ -233,7 +233,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  *          "eventType": "WORKSHOP",
  *          "points": 10,
  *          "isAsync": false,
- *          "mapImageURL": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
+ *          "mapImageUrl": "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/maps/example.png"
  *      },
  *      {
  *          "eventId": "asdcxwjda18ajd",
@@ -360,7 +360,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "isStaff": false,
  *   "isPrivate": false,
  *   "displayOnStaffCheckIn": false,
- *   "mapImageURL": "someurlmapthingy.com",
+ *   "mapImageUrl": "someurlmapthingy.com",
  *   "points": 100,
  *   "exp": 10000
  * }
@@ -382,7 +382,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  *   "eventType": "MEETING",
  *   "isStaff": true,
  *   "isAsync": true,
- *   "mapImageURL": "someurlmapthingy.com",
+ *   "mapImageUrl": "someurlmapthingy.com",
  * }
  *
  * @apiSuccess (201: Created) {Json} event The created event details.
