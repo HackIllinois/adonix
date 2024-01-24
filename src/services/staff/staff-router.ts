@@ -60,16 +60,15 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
-    const metadata: EventMetadata | null = await Models.EventMetadata.findOne({ eventId: eventId });
+    const event = await Models.Event.findOne({ eventId: eventId });
 
-    if (!metadata) {
+    if (!event) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
     const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
-    console.log(metadata.exp, timestamp);
 
-    if (metadata.exp <= timestamp) {
+    if (event.exp && event.exp <= timestamp) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "CodeExpired"));
     }
 

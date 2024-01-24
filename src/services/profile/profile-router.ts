@@ -3,7 +3,8 @@ import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
-import { isValidLimit, updatePoints } from "./profile-lib.js";
+import { Avatars } from "../../config.js";
+import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
 import Models from "../../database/models.js";
 import { Query } from "mongoose";
@@ -11,12 +12,13 @@ import { LeaderboardEntry } from "./profile-models.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
+// import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 
 import { RouterError } from "../../middleware/error-handler.js";
+import { isValidProfileFormat } from "./profile-formats.js";
 
 const profileRouter: Router = Router();
 
@@ -28,7 +30,6 @@ profileRouter.use(cors({ origin: "*" }));
  * @apiDescription Get the top N profiles from the leaderboard, sorted by points.
  *
  * @apiQuery {int} limit Number of profiles to return. If not provided, defaults to all profiles stored in the database.
- *
  *
  * @apiSuccess (200: Success) {Json} profiles Specified number of profiles, sorted in descending point order.
  * @apiSuccessExample Example Success Response:
@@ -78,9 +79,10 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
     }
     // Perform the actual query, filter, and return the results
     const leaderboardProfiles: AttendeeProfile[] = await leaderboardQuery;
-    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => {
-        return { displayName: profile.displayName, points: profile.points };
-    });
+    const filteredLeaderboardEntried: LeaderboardEntry[] = leaderboardProfiles.map((profile) => ({
+        displayName: profile.displayName,
+        points: profile.points,
+    }));
 
     return res.status(StatusCode.SuccessOK).send({
         profiles: filteredLeaderboardEntried,
@@ -95,8 +97,9 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
@@ -106,6 +109,7 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  *    "discordTag": "discordtag",
  *    "avatarUrl": "na",
  *    "points": 0,
+ *    "coins": 10
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -143,8 +147,9 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -155,6 +160,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  *    "discordTag": "hackillinois",
  *    "avatarUrl": "na",
  *    "points": 0,
+ *    "coins": 10
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
@@ -168,7 +174,7 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  *     {"error": "InternalError"}
  */
 
-profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+profileRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -186,26 +192,26 @@ profileRouter.get("/id/:USERID", strongJwtVerification, async (req: Request, res
     return res.status(StatusCode.SuccessOK).send(user);
 });
 
-profileRouter.get("/id", (_: Request, res: Response) => {
+profileRouter.get("/id", (_: Request, res: Response) =>
     // Redirect to the root URL
-    return res.redirect("/user");
-});
+    res.redirect("/user"),
+);
 
 /**
  * @api {post} /profile POST /profile
  * @apiGroup Profile
  * @apiDescription Create a user profile based on their authentication.
  *
- * @apiBody {String} firstName User's first name.
- * @apiBody {String} lastName User's last name.
- * @apiBody {String} discord User's Discord username.
- * @apiBody {String} avatarUrl User's avatar URL.
+ * @apiBody {String} displayName User's displayName.
+ * @apiBody {String} discordTag User's Discord username.
+ * @apiBody {String} avatarId User's requested avatar.
  *
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user selected avatar. If invalid avatar is passed, default avatar is assigned.
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -213,9 +219,10 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *    "_id": "abc12345",
  *    "userId": "github12345",
  *    "displayName": "Hack",
- *    "discord": "HackIllinois",
- *    "avatarUrl": "na",
+ *    "discordTag": "HackIllinois",
+ *    "avatarUrl": "https://hackillinois.org/mushroom.png",
  *    "points": 0,
+ *    "coins": 0
  * }
  *
  * @apiError (400: Bad Request) {String} UserAlreadyExists The user profile already exists.
@@ -224,13 +231,17 @@ profileRouter.get("/id", (_: Request, res: Response) => {
  *     HTTP/1.1 400 Bad Request
  *     {"error": "UserAlreadyExists"}
  *
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
  */
 profileRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const profile: ProfileFormat = req.body as ProfileFormat;
+    const avatarId: string = (Object.values(Avatars) as string[]).includes(req.body.avatarId as string)
+        ? (req.body.avatarId as string)
+        : Config.DEFAULT_AVATAR;
+
+    const profile: AttendeeProfile = req.body as AttendeeProfile;
     profile.points = Config.DEFAULT_POINT_VALUE;
+    profile.coins = Config.DEFAULT_COIN_VALUE;
+    profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
+    console.log(profile.avatarUrl);
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
@@ -288,9 +299,9 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
 });
 
 /**
- * @api {get} /profile/addpoints/ GET /profile/addpoints/
+ * @api {post} /profile/addpoints/ POST /profile/addpoints/
  * @apiGroup Profile
- * @apiDescription Add points to the specified user, given that the currently authenticated user has elevated perms.
+ * @apiDescription Add points to the specified user, given that the currently authenticated user has elevated perms. Note: If points are increasing, coins will also increase the same amount. If points are being decreased, coins remain unchanged.
  *
  * @apiBody {String} userId User to add points to.
  * @apiBody {int} points Number of points to add.
@@ -298,8 +309,9 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  * @apiSuccess (200: Success) {string} userID ID of the user
  * @apiSuccess (200: Success) {string} displayName Publicly-visible display name for the user
  * @apiSuccess (200: Success) {string} discordTag Discord tag for the user
- * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user avatar
+ * @apiSuccess (200: Success) {string} avatarUrl URL that contains the user's selected avatar
  * @apiSuccess (200: Success) {number} points Points that the user has
+ * @apiSuccess (200: Success) {number} coins Coins that the user has
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
@@ -310,13 +322,14 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  *    "discord": "HackIllinois",
  *    "avatarUrl": "na",
  *    "points": 10,
+ *    "coins": 10
  * }
  *
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  * @apiError (400: Forbidden) {String} User not found in database.
  */
 
-profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const points: number = req.body.points;
     const userId: string = req.body.userId;
 
@@ -334,10 +347,45 @@ profileRouter.get("/addpoints", strongJwtVerification, async (req: Request, res:
     }
 
     await updatePoints(userId, points);
+    if (points > 0) {
+        await updateCoins(userId, points);
+    }
 
     const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
     return res.status(StatusCode.SuccessOK).send(updatedProfile);
+});
+
+/**
+ * @api {get} /profile/ranking/ GET /profile/ranking/
+ * @apiGroup Profile
+ * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in alphabetical order.
+ *
+ * @apiSuccess (200: Success) {number} ranking Ranking of the user
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+ *    "ranking": 1
+ * }
+ *
+ * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
+ * @apiError (500: Internal) {String} InternalError An internal server error occured.
+ */
+profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId: string = payload.id;
+
+    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
+    const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
+
+    if (userIndex < 0) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
+    }
+
+    const userRanking = userIndex + Config.RANKING_OFFSET;
+
+    return res.status(StatusCode.SuccessOK).send({ ranking: userRanking });
 });
 
 export default profileRouter;

@@ -24,6 +24,7 @@ const config: Config = {
     setupFiles: ["../jest.presetup.ts"],
     setupFilesAfterEnv: ["../jest.setup.ts"],
 
+    testEnvironment: "node",
     testTimeout: 15 * 1000, // 15 second timeout per test
 
     transform: {

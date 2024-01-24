@@ -20,12 +20,15 @@ export class AdmissionDecision {
     @prop({ required: true })
     public status: DecisionStatus;
 
-    @prop({ required: true })
-    public response: DecisionResponse;
+    @prop({ default: false })
+    public admittedPro?: boolean;
 
-    @prop({ required: true })
-    public reviewer: string;
+    @prop({ default: DecisionResponse.PENDING })
+    public response?: DecisionResponse;
 
-    @prop({ required: true })
-    public emailSent: boolean;
+    @prop({ default: false })
+    public emailSent?: boolean;
+
+    @prop({ default: 0 })
+    public reimbursementValue?: number;
 }

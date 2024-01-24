@@ -158,13 +158,25 @@ authRouter.get(
                 { upsert: true },
             );
 
-            // Generate the token, and return it
-            const isMobile: boolean = device == Device.ANDROID || device == Device.IOS;
-            const token: string = generateJwtToken(payload, isMobile);
+            let token: string;
+            switch (device) {
+                case Device.CHALLENGE:
+                    token = generateJwtToken(payload, false, "720h");
+                    break;
+                case Device.ANDROID:
+                    token = generateJwtToken(payload, true);
+                    break;
+                case Device.IOS:
+                    token = generateJwtToken(payload, true);
+                    break;
+                default:
+                    token = generateJwtToken(payload, false);
+            }
+
             const url: string = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData"));
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData", undefined, error));
         }
     },
 );
@@ -194,9 +206,7 @@ authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, 
     }
 
     return await getUsersWithRole(role)
-        .then((users: string[]) => {
-            return res.status(StatusCode.SuccessOK).send({ userIds: users });
-        })
+        .then((users: string[]) => res.status(StatusCode.SuccessOK).send({ userIds: users }))
         .catch((error: Error) => {
             const message = error instanceof Error ? error.message : `${error}`;
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "UnknownError", undefined, message));
@@ -222,6 +232,8 @@ authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, 
 authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const targetUser: string = payload.id;
+
+    console.log("got request");
 
     await getRoles(targetUser)
         .then((roles: Role[] | undefined) => {

@@ -8,9 +8,9 @@ import * as authLib from "../../auth/auth-lib.js";
 export function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.generateJwtToken> {
     const mockedAuthLib = require("../../auth/auth-lib.js") as typeof authLib;
     const mockedGenerateJwtToken = jest.spyOn(mockedAuthLib, "generateJwtToken");
-    mockedGenerateJwtToken.mockImplementation((payload, shouldNotExpire, expiration) => {
-        return authLib.generateJwtToken(payload, shouldNotExpire, expiration);
-    });
+    mockedGenerateJwtToken.mockImplementation((payload, shouldNotExpire, expiration) =>
+        authLib.generateJwtToken(payload, shouldNotExpire, expiration),
+    );
     return mockedGenerateJwtToken;
 }
 

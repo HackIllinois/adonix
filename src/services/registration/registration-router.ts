@@ -1,13 +1,22 @@
-import { Router, Request, Response } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-
-import { JwtPayload } from "../auth/auth-models.js";
-import Models from "../../database/models.js";
-import { RegistrationInfo, RegistrationApplication } from "../../database/registration-db.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { UpdateRegistrationRecord } from "./registration-formats.js";
-
 import { StatusCode } from "status-code-enum";
+import { NextFunction } from "express-serve-static-core";
+import { Request, Response, Router } from "express";
+
+import { RegistrationTemplates } from "../../config.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { RouterError } from "../../middleware/error-handler.js";
+
+import Models from "../../database/models.js";
+import { RegistrationApplication } from "../../database/registration-db.js";
+import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.js";
+
+import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
+
+import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { JwtPayload } from "../auth/auth-models.js";
+
+import { sendMail } from "../mail/mail-lib.js";
+import { MailInfoFormat } from "../mail/mail-formats.js";
 
 const registrationRouter: Router = Router();
 
@@ -16,48 +25,66 @@ const registrationRouter: Router = Router();
  * @apiGroup Registration
  * @apiDescription Gets registration data for the current user in the JWT token.
  *
- * @apiSuccess (200: Success) {String} userId UserID
- * @apiSuccess (200: Success) {String} preferredName User's preffered name
- * @apiSuccess (200: Success) {String} userName User's online username
- * @apiSuccess (200: Success) {String} resume A FILLER VALUE FOR NOW, WE NEED TO FIGURE OUT HOW TO STORE RESUMES
- * @apiSuccess (200: Success) {String[]} essays User's essays
- * 
+ * @apiSuccess (200: Success) {String} preferredName Applicant's preffered name
+ * @apiSuccess (200: Success) {String} legalName Applicant's full legal name
+ * @apiSuccess (200: Success) {String} emailAddress Applicant's email
+ * @apiSuccess (200: Success) {String} hackEssay1 First required essay
+ * @apiSuccess (200: Success) {String} hackEssay2 Second required essay
+ * @apiSuccess (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
+ * @apiSuccess (200: Success) {String} location Applicant's location
+ * @apiSuccess (200: Success) {String} gender Applicant's gender
+ * @apiSuccess (200: Success) {String} degree Applicant's pursued degree
+ * @apiSuccess (200: Success) {String} major Applicant's pursued major
+ * @apiSuccess (200: Success) {String} minor Applicant's pursued minor (optional)
+ * @apiSuccess (200: Success) {String} gradYear Applicant's graduation year
+ * @apiSuccess (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
+ * @apiSuccess (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
+ * @apiSuccess (200: Success) {Boolean} considerForGeneral True/False indicating if pro attendee wants to be considered for general
+ * @apiSuccess (200: Success) {Boolean} requestedTravelReimbursement True/False indicating if applicant requested reimbursement
+ * @apiSuccess (200: Success) {String} dietaryRestrictions Attendee's restrictions, include provided options and append any custom restrictions as provided by attendee
+ * @apiSuccess (200: Success) {String[]} race True/False Attendee's race/ethnicity
+ * @apiSuccess (200: Success) {String[]} hackInterest  What the attendee is interested in for the event (multi-select)
+ * @apiSuccess (200: Success) {String[]} hackOutreach How the attendee found us  (multi-select)
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
-        "userId": "user123",
-        "preferredName": "John",
-        "userName": "john21",
-        "resume": "john-doe-resume.pdf",
-        "essays": [
-            "essay 1",
-            "essay 2"
-        ]
-    }
- * @apiError (400: Bad Request) {String} User not found in Database
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "UserNotFound"}
+ *  @apiSuccess (200: Success) {String} userId Applicant's userId
+ *      "userId":"user1234",
+ *      "preferredName": "Ronakin",
+ *      "legalName": "Ronakin Kanandini",
+ *      emailAddress: "rpak@gmail.org",
+ *      "university": "University of Illinois Urbana-Champaign",
+ *      "hackEssay1": "I love hack",
+ *      "hackEssay2": "I love hack",
+ *      "optionalEssay": "",
+ *      "resumeFileName": "https://www.google.com",
+ *      "location": "Urbana",
+ *      "gender": ["Prefer Not To Answer"],
+ *      "degree": "Associates' Degree",
+ *      "gradYear": 0,
+ *      "isProApplicant": true,
+ *      "proEssay": "I wanna be a Knight",
+ *      "considerForGeneral": true,
+ *      "requestedTravelReimbursement: false,
+ *      "dietaryRestrictions": "Vegetarian",
+ *      "race": "Prefer Not To Answer",
+ *      "hackInterest": ["Mini-Event"],
+ *      "hackOutreach": ["Instagram"]
+ *  }
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
+ * @apiUse strongVerifyErrors
  */
-registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload;
+    const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+        userId: payload.id,
+    });
 
-    const queryResultInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOne({ userId: userId });
-    const queryResultApp: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
-
-    //Returns error if query is empty
-    if (!queryResultInfo || !queryResultApp) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+    if (!registrationData) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
-    return res.status(StatusCode.SuccessOK).send({
-        userId: queryResultInfo.userId,
-        preferredName: queryResultInfo.preferredName,
-        userName: queryResultInfo.userName,
-        resume: queryResultApp.resume,
-        essays: queryResultApp.essays,
-    });
+    return res.status(StatusCode.SuccessOK).send(registrationData);
 });
 
 /**
@@ -65,54 +92,73 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiGroup Registration
  * @apiDescription Gets registration data for a specific user, provided that the authenticated user has elevated perms
  *
- * @apiSuccess (200: Success) {String} userId UserID
- * @apiSuccess (200: Success) {String} preferredName User's preffered name
- * @apiSuccess (200: Success) {String} userName User's online username
- * @apiSuccess (200: Success) {String} resume A FILLER VALUE FOR NOW, WE NEED TO FIGURE OUT HOW TO STORE RESUMES
- * @apiSuccess (200: Success) {String[]} essays User's essays
- * 
+ * @apiSuccess (200: Success) {String} userId Applicant's userId
+ * @apiSuccess (200: Success) {String} preferredName Applicant's preffered name
+ * @apiSuccess (200: Success) {String} legalName Applicant's full legal name
+ * @apiSuccess (200: Success) {String} emailAddress Applicant's email
+ * @apiSuccess (200: Success) {String} hackEssay1 First required essay
+ * @apiSuccess (200: Success) {String} hackEssay2 Second required essay
+ * @apiSuccess (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
+ * @apiSuccess (200: Success) {String} location Applicant's location
+ * @apiSuccess (200: Success) {String} gender Applicant's gender
+ * @apiSuccess (200: Success) {String} degree Applicant's pursued degree
+ * @apiSuccess (200: Success) {String} major Applicant's pursued major
+ * @apiSuccess (200: Success) {String} minor Applicant's pursued minor (optional)
+ * @apiSuccess (200: Success) {String} gradYear Applicant's graduation year
+ * @apiSuccess (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
+ * @apiSuccess (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
+ * @apiSuccess (200: Success) {Boolean} considerForGeneral True/False indicating if pro attendee wants to be considered for general
+ * @apiSuccess (200: Success) {Boolean} requestedTravelReimbursement True/False indicating if applicant requested reimbursement
+ * @apiSuccess (200: Success) {String} dietaryRestrictions Attendee's restrictions, include provided options and append any custom restrictions as provided by attendee
+ * @apiSuccess (200: Success) {String[]} race True/False Attendee's race/ethnicity
+ * @apiSuccess (200: Success) {String[]} hackInterest  What the attendee is interested in for the event (multi-select)
+ * @apiSuccess (200: Success) {String[]} hackOutreach How the attendee found us  (multi-select)
+ *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
-        "userId": "user123",
-        "preferredName": "John",
-        "userName": "john21",
-        "resume": "john-doe-resume.pdf",
-        "essays": [
-            "essay 1",
-            "essay 2"
-        ]
-    }
- * @apiError (400: Bad Request) {String} User not found in Database
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "UserNotFound"}
+ *      "userId":"user1234",
+ *      "preferredName": "Ronakin",
+ *      "legalName": "Ronakin Kanandini",
+ *      emailAddress: "rpak@gmail.org",
+ *      "university": "University of Illinois Urbana-Champaign",
+ *      "hackEssay1": "I love hack",
+ *      "hackEssay2": "I love hack",
+ *      "optionalEssay": "",
+ *      "location": "Urbana",
+ *      "gender": ["Prefer Not To Answer"],
+ *      "degree": "Associates' Degree",
+ *      "major": "Computer Science",
+ *      "minor": "Math",
+ *      "resumeFileName": "https://www.google.com",
+ *      "gradYear": 0,
+ *      "isProApplicant": true,
+ *      "proEssay": "I wanna be a Knight",
+ *      "considerForGeneral": true,
+ *      "requestedTravelReimbursement: false,
+ *      "dietaryRestrictions": "Vegetarian",
+ *      "race": "Prefer Not To Answer",
+ *      "hackInterest": ["Mini-Event"],
+ *      "hackOutreach": ["Instagram"]
+ *  }
+ * @apiError (403: Forbidden) {String} Forbidden User doesn't have elevated permissions
+ * @apiError (404: Not Found) {String} NotFound Registration does not exist
  */
-registrationRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const userId: string | undefined = req.params.USERID;
-
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    //Sends error if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const queryResultInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOne({ userId: userId });
-    const queryResultApp: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
+    const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
-    //Returns error if query is empty
-    if (!queryResultInfo || !queryResultApp) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+    if (!registrationData) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
-    return res.status(StatusCode.SuccessOK).send({
-        userId: queryResultInfo.userId,
-        preferredName: queryResultInfo.preferredName,
-        userName: queryResultInfo.userName,
-        resume: queryResultApp.resume,
-        essays: queryResultApp.essays,
-    });
+    return res.status(StatusCode.SuccessOK).send(registrationData);
 });
 
 /**
@@ -120,172 +166,191 @@ registrationRouter.get("/:USERID", strongJwtVerification, async (req: Request, r
  * @apiGroup Registration
  * @apiDescription Creates registration data for the current user
  *
- * @apiBody {string} userId UserID
- * @apiBody {string} preferredName User's preffered name
- * @apiBody {string} userName User's online username
- * @apiBody {string} resume A FILLER VALUE FOR NOW, WE NEED TO FIGURE OUT HOW TO STORE RESUMES
- * @apiBody {string[]} essays User's essays
+ * @apiBody (200: Success) {String} preferredName Applicant's preffered name
+ * @apiBody (200: Success) {String} legalName Applicant's full legal name
+ * @apiBody (200: Success) {String} emailAddress Applicant's email
+ * @apiBody (200: Success) {String} hackEssay1 First required essay
+ * @apiBody (200: Success) {String} hackEssay2 Second required essay
+ * @apiBody (200: Success) {String} optionalEssay Space for applicant to share additional thoughts
+ * @apiBody (200: Success) {String} location Applicant's location
+ * @apiBody (200: Success) {String} gender Applicant's gender
+ * @apiBody (200: Success) {String} degree Applicant's pursued degree
+ * @apiBody (200: Success) {String} major Applicant's pursued major
+ * @apiBody (200: Success) {String} minor Applicant's pursued minor (optional)
+ * @apiBody (200: Success) {String} gradYear Applicant's graduation year
+ * @apiBody (200: Success) {Boolean} isProApplicant True/False indicating if they are a pro applicant
+ * @apiBody (200: Success) {String} proEssay Third essay (required for Knights, empty string for General)
+ * @apiBody (200: Success) {Boolean} considerForGeneral True/False indicating if pro attendee wants to be considered for general
+ * @apiBody (200: Success) {Boolean} requestedTravelReimbursement True/False indicating if applicant requested reimbursement
+ * @apiBody (200: Success) {String} dietaryRestrictions Attendee's restrictions, include provided options and append any custom restrictions as provided by attendee
+ * @apiBody (200: Success) {String[]} race True/False Attendee's race/ethnicity
+ * @apiBody (200: Success) {String[]} hackInterest  What the attendee is interested in for the event (multi-select)
+ * @apiBody (200: Success) {String[]} hackOutreach How the attendee found us  (multi-select)
+ *
  * @apiParamExample {json} Example Request:
  * {
-        "userId": "user123",
-        "preferredName": "John",
-        "userName": "john21",
-        "resume": "john-doe-resume.pdf",
-        "essays": ["essay 1", "essay 2"]
+ *     "preferredName": "L",
+ *     "emailAddress": "wjiwji1j@illinois.edu",
+ *     "location": "Alaska",
+ *     "degree": "Associates' Degree",
+ *     "university": "University of Illinois (Springfield)",
+ *     "major": "Computer Science",
+ *     "minor": "Computer Science",
+ *     "gradYear": 2030,
+ *     "hackEssay1": "yay",
+ *     "hackEssay2": "yay",
+ *     "proEssay": "yay",
+ *     "hackInterest": [
+ *         "Attending technical workshops"
+ *     ],
+ *     "hackOutreach": [
+ *         "Instagram"
+ *     ],
+ *     "dietaryRestrictions": [
+ *         "None"
+ *     ],
+ *     "resumeFileName": "GitHub cheatsheet.pdf",
+ *     "isProApplicant": false,
+ *     "legalName": "lasya neti",
+ *     "considerForGeneral": false,
+ *     "requestedTravelReimbursement": true,
+ *     "gender": "Female",
+ *     "race": [
+ *         "American Indian or Alaska Native"
+ *     ],
+ *     "optionalEssay": ""
  * }
  *
- * @apiSuccess (200: Success) {string} newRegistrationInfo The newly created object in registration/info
- * @apiSuccess (200: Success) {string} newRegistrationApplication The newly created object in registration/application
+ * @apiSuccess (200: Success) {json} json Returns the POSTed registration information for user
  * @apiSuccessExample Example Success Response:
  * 	HTTP/1.1 200 OK
  *	{
-        "newRegistrationInfo": {
-            "userId": "user123",
-            "preferredName": "John",
-            "userName": "john21",
-            "_id": "655110b6e84015eeea310fe0"
-        },
-        "newRegistrationApplication": {
-            "userId": "user123",
-            "resume": "john-doe-resume.pdf",
-            "essays": [
-                "essay 1",
-                "essay 2"
-            ],
-            "_id": "655110b6e84015eeea310fe2"
-        }
-    }
- * 
- * @apiError (400: Bad Request) {String} User already exists in Database
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "UserAlreadyExists"}
+ *      "userId": "user123",
+ *      "preferredName": "Ronakin",
+ *      "legalName": "Ronakin Kanandini",
+ *      "emailAddress": "rpak@gmail.org",
+ *      "university": "University of Illinois Urbana-Champaign",
+ *      "hackEssay1": "I love hack",
+ *      "hackEssay2": "I love hack",
+ *      "optionalEssay": "I wanna be a Knight",
+ *      "location": "Urbana",
+ *      "gender": "Prefer Not To Answer",
+ *      "degree": "Associates' Degree",
+ *      "major": "Computer Science",
+ *      "minor": "Math",
+ *      "resumeFileName": "https://www.google.com/"
+ *      "gradYear": 0,
+ *      "isProApplicant": true,
+ *      "proEssay": "I wanna be a Knight",
+ *      "considerForGeneral": true,
+ *      "requestedTravelReimbursement: false.
+ *      "dietaryRestrictions": "Vegetarian"
+ *      "race": "Prefer Not To Answer"
+ *      "hackInterest": "Mini-Event"
+ *      "hackOutreach": "Instagram"
+ *  }
  *
+ * @apiError (400: Bad Request) {String} UserAlreadyExists User already exists in Database
+ * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
+ * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  * @apiUse strongVerifyErrors
  */
-registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response) => {
+registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    const data: UpdateRegistrationRecord = req.body as UpdateRegistrationRecord;
+    const registrationData: RegistrationFormat = req.body as RegistrationFormat;
+    registrationData.userId = userId;
 
-    //Checks if the user is already in the database
-    const queryResultInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOne({ userId: userId });
-
-    //Returns error if the user is already in the database
-    if (queryResultInfo) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserAlreadyExists" });
+    if (!isValidRegistrationFormat(registrationData)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
-    //NOTE: The resume field is just a filler field right now, we'll have to find a way to store resumes
-    //Create objects in each collection
-    const newRegistrationInfo: RegistrationInfo | null = await Models.RegistrationInfo.create({
-        userId: userId,
-        preferredName: data.preferredName,
-        userName: data.userName,
-    });
-    const newRegistrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.create({
-        userId: userId,
-        resume: data.resume,
-        essays: data.essays,
-    });
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
+    if (registrationInfo?.hasSubmitted ?? false) {
+        return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
+    }
 
-    return res.status(StatusCode.SuccessOK).send({ newRegistrationInfo, newRegistrationApplication });
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndReplace(
+        { userId: userId },
+        registrationData,
+        { upsert: true, new: true },
+    );
+
+    if (!newRegistrationInfo) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
 /**
- * @api {patch} /registration/ PATCH /registration/
+ * @api {post} /registration/submit/ POST /registration/submit/
  * @apiGroup Registration
- * @apiDescription Updates registration data for the current user
+ * @apiDescription Submits registration data for the current user. Cannot edit registration data after this point.
  *
- * @apiBody {string} userId UserID
- * @apiBody {string} preferredName User's preffered name
- * @apiBody {string} userName User's online username
- * @apiBody {string} resume A FILLER VALUE FOR NOW, WE NEED TO FIGURE OUT HOW TO STORE RESUMES
- * @apiBody {string[]} essays User's essays
- * @apiParamExample {json} Example Request:
- * {
-        "userId": "user123",
-        "preferredName": "John",
-        "essays": ["essay 1", "essay 2"]
- * }
+ * No body is required for this request.
  *
- * @apiSuccess (200: Success) {string} updatedRegistrationInfo The updated object in registration/info
- * @apiSuccess (200: Success) {string} updatedRegistrationApplication The updated object in registration/application
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	{
-        "newRegistrationInfo": {
-            "userId": "user123",
-            "preferredName": "John",
-            "userName": "john21",
-            "_id": "655110b6e84015eeea310fe0"
-        },
-        "newRegistrationApplication": {
-            "userId": "user123",
-            "resume": "john-doe-resume.pdf",
-            "essays": [
-                "essay 1",
-                "essay 2"
-            ],
-            "_id": "655110b6e84015eeea310fe2"
-        }
-    }
- * 
- * @apiError (400: Bad Request) {String} User doesn't exists in Database
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "UserNotFound"}
- *
- * @apiUse strongVerifyErrors
- */
-registrationRouter.patch("/", strongJwtVerification, async (req: Request, res: Response) => {
+ * @apiSuccess (200: Success) {String} Success
+ * @apiError (404: Bad Request) {String} NotFound Registration does not exist
+ * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
+ * @apiError (500: Internal Server Error) {String} InternalError Server-side error
+ **/
+registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    const data: UpdateRegistrationRecord = req.body as UpdateRegistrationRecord;
+    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
 
-    //check if user exists in database
-    const queryResultInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOne({ userId: userId });
-    const queryResultApplication: RegistrationApplication | null = await Models.RegistrationInfo.findOne({ userId: userId });
-
-    //Returns error if query is empty
-    if (!queryResultInfo || !queryResultApplication) {
-        return res.status(StatusCode.ClientErrorBadRequest).send({ error: "UserNotFound" });
+    if (!registrationInfo) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
     }
 
-    // Define the update object with all possible fields
-    const updateObject: {
-        preferredName?: string;
-        userName?: string;
-        resume?: string;
-        essays?: string[];
-    } = {};
+    if (registrationInfo?.hasSubmitted ?? false) {
+        return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
+    }
 
-    updateObject.preferredName = data.preferredName != null ? data.preferredName : queryResultInfo.preferredName;
-    updateObject.userName = data.userName != null ? data.userName : queryResultInfo.userName;
-    updateObject.resume = data.resume != null ? data.resume : queryResultApplication.resume;
-    updateObject.essays = data.essays != null ? data.essays : queryResultApplication.essays;
-
-    const updatedRegistrationInfo: RegistrationInfo | null = await Models.RegistrationInfo.findOneAndUpdate(
+    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndUpdate(
         { userId: userId },
-        {
-            preferredName: updateObject.preferredName,
-            userName: updateObject.userName,
-        },
+        { hasSubmitted: true },
         { new: true },
     );
 
-    const updatedRegistrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndUpdate(
-        { userId: userId },
+    if (!newRegistrationInfo) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+
+    const admissionDecision: AdmissionDecision = {
+        userId,
+        status: DecisionStatus.TBD,
+    };
+
+    const admissionInfo: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
         {
-            resume: updateObject.resume,
-            essays: updateObject.essays,
+            userId: userId,
         },
-        { new: true },
+        admissionDecision,
+        { upsert: true, new: true },
     );
 
-    return res.status(StatusCode.SuccessOK).send({ updatedRegistrationInfo, updatedRegistrationApplication });
+    if (!admissionInfo) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
+    }
+
+    // SEND SUCCESSFUL REGISTRATION EMAIL
+    const mailInfo: MailInfoFormat = {
+        templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+        recipients: [registrationInfo.emailAddress],
+        subs: { name: registrationInfo.preferredName },
+    };
+
+    try {
+        await sendMail(mailInfo);
+    } catch (error) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "EmailFailedToSend", error, error.toString()));
+    }
+
+    return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
 });
 
 export default registrationRouter;

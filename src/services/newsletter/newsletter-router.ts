@@ -1,34 +1,13 @@
 import { Request, Response, Router } from "express";
-import { regexPasses } from "./newsletter-lib.js";
-import cors, { CorsOptions } from "cors";
-
 import { SubscribeRequest } from "./newsletter-formats.js";
 import { NewsletterSubscription } from "../../database/newsletter-db.js";
 import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
-import Config from "../../config.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { NextFunction } from "express-serve-static-core";
 
 const newsletterRouter: Router = Router();
-
-// Only allow a certain set of regexes to be allowed via CORS
-const allowedOrigins: RegExp[] = [new RegExp(Config.NEWSLETTER_CORS.PROD_REGEX), new RegExp(Config.NEWSLETTER_CORS.DEPLOY_REGEX)];
-
-// CORS options configuration
-const corsOptions: CorsOptions = {
-    origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-        if (!origin || regexPasses(origin, allowedOrigins)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
-};
-
-// Use CORS for exclusively the newsletter - public access
-newsletterRouter.use(cors(corsOptions));
 
 /**
  * @api {post} /newsletter/subscribe/ POST /newsletter/subscribe/

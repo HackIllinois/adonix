@@ -1,12 +1,6 @@
-export interface ProfileFormat {
-    userId: string;
-    avatarUrl: string;
-    discordTag: string;
-    displayName: string;
-    points: number;
-}
+import { AttendeeProfile } from "../../database/attendee-db.js";
 
-export function isValidProfileFormat(profile: ProfileFormat): boolean {
+export function isValidProfileFormat(profile: AttendeeProfile): boolean {
     if (!profile) {
         return false;
     }

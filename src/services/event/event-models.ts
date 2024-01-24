@@ -29,4 +29,5 @@ export interface FilteredEventView {
     eventType: PUBLIC_EVENT_TYPE;
     points: number;
     isAsync: boolean;
+    mapImageUrl?: string;
 }

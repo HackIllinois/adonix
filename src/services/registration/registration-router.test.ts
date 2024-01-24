@@ -1,166 +1,185 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
-import Models from "../../database/models.js";
-import { RegistrationInfo, RegistrationApplication } from "../../database/registration-db.js";
-import { getAsStaff, getAsUser, postAsUser, patchAsUser, TESTER } from "../../testTools.js";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import { UpdateRegistrationRecord } from "./registration-formats.js";
+import Models from "../../database/models.js";
+import { RegistrationApplication } from "../../database/registration-db.js";
+import { RegistrationTemplates } from "./../../config.js";
+import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools.js";
+import { RegistrationFormat } from "./registration-formats.js";
+import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
+import type * as MailLib from "../../services/mail/mail-lib.js";
+import type { AxiosResponse } from "axios";
+import { MailInfoFormat } from "services/mail/mail-formats.js";
 
-const TESTER_INFO = {
+const APPLICATION = {
+    isProApplicant: false,
     userId: TESTER.id,
     preferredName: TESTER.name,
-    userName: TESTER.userName,
-} satisfies RegistrationInfo;
+    legalName: TESTER.name,
+    emailAddress: TESTER.email,
+    university: "ap",
+    hackEssay1: "ap",
+    hackEssay2: "ap",
+    optionalEssay: "ap",
+    location: "ap",
+    gender: Gender.OTHER,
+    degree: Degree.BACHELORS,
+    major: "CS",
+    gradYear: 0,
+    requestedTravelReimbursement: false,
+    dietaryRestrictions: [],
+    race: [Race.NO_ANSWER],
+    hackInterest: [HackInterest.OTHER],
+    hackOutreach: [HackOutreach.OTHER],
+} satisfies RegistrationFormat;
 
-const TESTER_APPLICATION = {
-    userId: TESTER.id,
-    resume: "bob-resume.pdf",
-    essays: ["essay 1", "essay 2"],
+const UNSUBMITTED_REGISTRATION = { hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
+const UNSUBMITTED_OTHER_REGISTRATION = {
+    ...UNSUBMITTED_REGISTRATION,
+    userId: "otherUser",
 } satisfies RegistrationApplication;
-
-const updateRequest = {
-    userId: TESTER.id,
-    preferredName: TESTER.name,
-    userName: TESTER.userName,
-    resume: "bob-resume.pdf",
-    essays: ["essay 1", "essay 2"],
-} satisfies UpdateRegistrationRecord;
-
-beforeEach(async () => {
-    Models.initialize();
-    await Models.RegistrationApplication.create(TESTER_APPLICATION);
-    await Models.RegistrationInfo.create(TESTER_INFO);
-});
+const SUBMITTED_REGISTRATION = { hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
 
 describe("GET /registration/", () => {
-    it("gets registration info for current user", async () => {
-        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            preferredName: TESTER.name,
-            userName: TESTER.userName,
-            resume: "bob-resume.pdf",
-            essays: ["essay 1", "essay 2"],
-        });
+    beforeEach(async () => {
+        await Models.RegistrationApplication.create(UNSUBMITTED_REGISTRATION);
     });
 
-    it("returns UserNotFound if registration info doesn't exist", async () => {
-        await Models.RegistrationInfo.deleteOne({
-            userId: TESTER.id,
-        });
-        await Models.RegistrationApplication.deleteOne({
-            userId: TESTER.id,
-        });
+    it("should retrieve registration", async () => {
+        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+    });
 
-        const response = await getAsUser("/registration/").expect(StatusCode.ClientErrorBadRequest);
+    it("should provide a not found error when registration does not exist", async () => {
+        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_REGISTRATION);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        const response = await getAsUser("/registration/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });
 
-describe("GET /registration/:USERID", () => {
-    it("returns forbidden error if caller doesn't have elevated perms", async () => {
-        const response = await getAsUser(`/registration/${TESTER.id}`).expect(StatusCode.ClientErrorForbidden);
+describe("GET /registration/userid/:USERID", () => {
+    const OTHER_USER_ID = UNSUBMITTED_OTHER_REGISTRATION.userId;
+    beforeEach(async () => {
+        await Models.RegistrationApplication.create(UNSUBMITTED_OTHER_REGISTRATION);
+    });
 
+    it("should retrieve registration", async () => {
+        const response = await getAsAdmin(`/registration/userid/${OTHER_USER_ID}`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_OTHER_REGISTRATION);
+    });
+
+    it("should provide a forbidden error to non-staff user", async () => {
+        const response = await getAsUser(`/registration/userid/${OTHER_USER_ID}`).expect(StatusCode.ClientErrorForbidden);
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
-    it("gets if caller has elevated perms", async () => {
-        const response = await getAsStaff(`/registration/${TESTER.id}`).expect(StatusCode.SuccessOK);
+    it("should provide a not found error when registration does not exist", async () => {
+        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_OTHER_REGISTRATION);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER.id,
-            preferredName: TESTER.name,
-            userName: TESTER.userName,
-            resume: "bob-resume.pdf",
-            essays: ["essay 1", "essay 2"],
-        });
-    });
-
-    it("returns UserNotFound error if user doesn't exist", async () => {
-        const response = await getAsStaff("/registration/idontexist").expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        const response = await getAsAdmin(`/registration/userid/${OTHER_USER_ID}`).expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });
 
 describe("POST /registration/", () => {
-    it("returns UserAlreadyExists for user already in registration database", async () => {
-        const response = await postAsUser("/registration/").send(updateRequest).expect(StatusCode.ClientErrorBadRequest);
+    it("should create registration", async () => {
+        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserAlreadyExists");
+        // Stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject(UNSUBMITTED_REGISTRATION);
     });
 
-    it("works for user NOT already in registration database", async () => {
-        await Models.RegistrationInfo.deleteOne({
-            userId: TESTER.id,
+    it("should update registration", async () => {
+        await Models.RegistrationApplication.create({
+            ...UNSUBMITTED_REGISTRATION,
+            degree: "PhD of Data Corruption",
         });
-        await Models.RegistrationApplication.deleteOne({
-            userId: TESTER.id,
-        });
+        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject({
-            newRegistrationInfo: {
-                userId: TESTER.id,
-                preferredName: TESTER.name,
-                userName: TESTER.userName,
-            },
-            newRegistrationApplication: {
-                userId: TESTER.id,
-                resume: "bob-resume.pdf",
-                essays: ["essay 1", "essay 2"],
-            },
+        // Stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
         });
+        expect(stored).toMatchObject(UNSUBMITTED_REGISTRATION);
+    });
+
+    it("should provide bad request error when registration is invalid", async () => {
+        const response = await postAsUser("/registration/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
+    it("should provide already submitted error when user has already submitted registration", async () => {
+        await Models.RegistrationApplication.create(SUBMITTED_REGISTRATION);
+
+        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorUnprocessableEntity);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
 
-describe("PATCH /registration/", () => {
-    it("gives a UserNotFound error for an non-existent user", async () => {
-        await Models.RegistrationInfo.deleteOne({
-            userId: TESTER.id,
-        });
-        await Models.RegistrationApplication.deleteOne({
-            userId: TESTER.id,
-        });
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
 
-        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.ClientErrorBadRequest);
+describe("POST /registration/submit/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    beforeEach(async () => {
+        await Models.RegistrationApplication.create(UNSUBMITTED_REGISTRATION);
+
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
     });
 
-    it("works for user already in registration database full fields", async () => {
-        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
+    it("should submit registration", async () => {
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(sendMail).toBeCalledWith({
+            templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+            recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
+            subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
+        } satisfies MailInfoFormat);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            updatedRegistrationInfo: {
-                userId: TESTER.id,
-                preferredName: TESTER.name,
-                userName: TESTER.userName,
-            },
-            updatedRegistrationApplication: {
-                userId: TESTER.id,
-                resume: "bob-resume.pdf",
-                essays: ["essay 1", "essay 2"],
-            },
+        // Stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
         });
+        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
     });
 
-    it("works for user already in registration database partial fields", async () => {
-        const response = await patchAsUser("/registration/").send(updateRequest).expect(StatusCode.SuccessOK);
+    it("should provide not found error when registration does not exist", async () => {
+        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_REGISTRATION);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            updatedRegistrationInfo: {
-                userId: TESTER.id,
-                preferredName: TESTER.name,
-                userName: TESTER.userName,
-            },
-            updatedRegistrationApplication: {
-                userId: TESTER.id,
-                resume: "bob-resume.pdf",
-                essays: ["essay 1", "essay 2"],
-            },
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("should provide already submitted error when already submitted", async () => {
+        await Models.RegistrationApplication.updateOne(UNSUBMITTED_REGISTRATION, SUBMITTED_REGISTRATION);
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorUnprocessableEntity);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
+    });
+
+    it("should provide error when email fails to send and still submit registration", async () => {
+        // Mock failure
+        sendMail.mockImplementation(async (_) => {
+            throw new Error("SparkpostDidNotSendEmailOhNo");
         });
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "EmailFailedToSend");
+
+        // Still stored in DB
+        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+            userId: UNSUBMITTED_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
     });
 });

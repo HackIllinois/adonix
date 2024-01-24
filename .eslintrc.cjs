@@ -23,9 +23,10 @@ module.exports = {
         "@typescript-eslint/explicit-function-return-type": "error",
         "@typescript-eslint/no-unsafe-argument": "error",
         "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-floating-promises": "error",
         "consistent-return": ["error"],
         // Suggestions
-        "arrow-body-style": ["error", "always"],
+        "arrow-body-style": ["error", "as-needed"],
         curly: ["error", "all"],
         "no-lonely-if": ["error"],
         "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true, ignore: [0] }],

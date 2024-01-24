@@ -9,7 +9,7 @@ export const TESTER = {
     id: "bob-the-tester101010101011",
     email: "bob-the-tester@hackillinois.org",
     name: "Bob Tester",
-    avatarUrl: "https://www.hackillinois.org",
+    avatarUrl: "https://hackillinois.org/mushroom.png",
     discordTag: "hackillinoistest",
     userName: "bobster_the_mobster",
 };
@@ -62,7 +62,6 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 function app(): Express.Application {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const appExports = require("./app.js");
-    appExports.setupServer();
     return appExports.default;
 }
 
