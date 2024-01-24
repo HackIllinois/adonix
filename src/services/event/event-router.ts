@@ -105,10 +105,10 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
  * @apiUse strongVerifyErrors
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
  * */
-eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+eventsRouter.get("/staff/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasStaffPerms(payload)) {
+    if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
