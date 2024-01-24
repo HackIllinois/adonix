@@ -379,7 +379,7 @@ profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Re
         return u.userId == userId;
     });
 
-    if (userIndex === -1) {
+    if (userIndex < 0) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
     }
 
