@@ -357,45 +357,37 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
 /**
  * @api {get} /profile/ranking/ GET /profile/ranking/
  * @apiGroup Profile
- * @apiDescription Get the ranking of a user based on their authentication
+ * @apiDescription Get the ranking of a user based on their authentication. If users are tied in points, ranking is assigned in ascending alphabetical order.
  *
  * @apiSuccess (200: Success) {number} ranking Ranking of the user
  *
  * @apiSuccessExample Example Success Response:
  * HTTP/1.1 200 OK
  * {
- *    5
+ *    "ranking": 1
  * }
  *
  * @apiError (404: Not Found) {String} UserNotFound The user's profile was not found.
  * @apiError (500: Internal) {String} InternalError An internal server error occured.
- * @apiErrorExample Example Error Response (UserNotFound):
- *     HTTP/1.1 404 Not Found
- *     {"error": "UserNotFound"}
- *
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
- *
  */
 profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 
-    const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+    const profile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
-    if (!user) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
+    if (!profile) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "ProfileNotFound"));
     }
 
-    const userPoints = user.points;
-    const one: number = 1;
-    //count the number of users with points greater than user's points
-    const ranking = await Models.AttendeeProfile.countDocuments({ points: { $gt: userPoints } });
-    //add 1 to include the user themselves in the ranking
-    const userRanking = ranking + one;
+    const userPoints = profile.points;
+    const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, displayName: -1 });
+    const userIndex = sortedUsers.findIndex((u) => {
+        return u.points === userPoints && u.displayName == profile.displayName;
+    });
+    const userRanking = userIndex + Config.RANKING_OFFSET;
 
-    return res.status(StatusCode.SuccessOK).send(userRanking);
+    return res.status(StatusCode.SuccessOK).send({ ranking: userRanking });
 });
 
 export default profileRouter;
