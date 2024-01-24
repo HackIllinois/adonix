@@ -11,6 +11,9 @@ import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
+import { StaffShift } from "database/staff-db.js";
+
+import { Event } from "../../database/event-db.js";
 
 const staffRouter: Router = Router();
 
@@ -72,6 +75,36 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+});
+
+staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    try {
+        const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
+
+        if (!data) {
+            return next(new RouterError(StatusCode.ServerErrorInternal, "ShiftNotFound"));
+        }
+
+        const shifts: string[] = data.shifts;
+
+        console.log(shifts);
+
+        const events: Event[] = await Models.Event.find({
+            isStaff: true,
+            eventId: { $in: shifts },
+        });
+
+        return res.status(StatusCode.SuccessOK).json(events);
+    } catch (error) {
+        console.error(error);
+        return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError"));
+    }
 });
 
 export default staffRouter;
