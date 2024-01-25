@@ -51,7 +51,6 @@ const mentorRouter: Router = Router();
  */
 mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const mentorName: string | undefined = req.body.mentorName;
-    const mentorName: string | undefined = req.body.mentorName;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorName) {
@@ -64,7 +63,6 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     //generate mentorId, add document to database, return generated document in response
     const mentorId: string = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
 
-    const officeHours: OfficeHoursFormat = { mentorId: mentorId, mentorName: mentorName, attendees: [] };
     const officeHours: OfficeHoursFormat = { mentorId: mentorId, mentorName: mentorName, attendees: [] };
 
     const newOfficeHours = await Models.MentorOfficeHours.create(officeHours);
@@ -118,11 +116,9 @@ mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, n
     const officeHours: OfficeHoursFormat[] | null = await Models.MentorOfficeHours.find();
 
     if (!officeHours) {
-    if (!officeHours) {
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    return res.status(StatusCode.SuccessOK).send(officeHours);
     return res.status(StatusCode.SuccessOK).send(officeHours);
 });
 
@@ -157,7 +153,6 @@ mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, n
  */
 mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const mentorId: string | undefined = req.body.mentorId;
-    const mentorId: string | undefined = req.body.mentorId;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
@@ -170,7 +165,6 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
 
     const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
 
-    if (!officeHours) {
     if (!officeHours) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
@@ -225,7 +219,6 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
  */
 mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const mentorId: string | undefined = req.body.mentorId;
-    const mentorId: string | undefined = req.body.mentorId;
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
@@ -239,12 +232,10 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
     const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
 
     if (!officeHours) {
-    if (!officeHours) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
     }
 
     // Checks whether the attendee has already checked in for the office hours
-    if (officeHours.attendees.includes(payload.id)) {
     if (officeHours.attendees.includes(payload.id)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn"));
     }
