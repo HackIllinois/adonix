@@ -4,7 +4,7 @@ import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { NextFunction } from "express-serve-static-core";
 import { updatePoints, updateCoins } from "../profile/profile-lib.js";
@@ -49,7 +49,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     if (!mentorName) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
-    if (!hasAdminPerms(payload) && !hasStaffPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
@@ -101,7 +101,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
 mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasAdminPerms(payload) && !hasStaffPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
@@ -146,7 +146,7 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
 
-    if (!hasAdminPerms(payload) && !hasStaffPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
@@ -204,7 +204,7 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
     // Checks that the caller is an attendee
-    if (hasAdminPerms(payload) || hasStaffPerms(payload)) {
+    if (hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
