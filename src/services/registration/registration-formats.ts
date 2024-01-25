@@ -86,12 +86,18 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         return false;
     }
 
-    if (registration.isProApplicant && (registration.proEssay === null || !isString(registration.proEssay) || registration.considerForGeneral === null || !isBoolean(registration.considerForGeneral))) {
+    if (
+        registration.isProApplicant &&
+        (registration.proEssay === null ||
+            !isString(registration.proEssay) ||
+            registration.considerForGeneral === null ||
+            !isBoolean(registration.considerForGeneral))
+    ) {
         console.log("ERROR: proEssay, considerForGeneral", registration);
         return false;
     }
 
-    // just realized this checks the same thing as above 
+    // just realized this checks the same thing as above
     // if (registration.isProApplicant) {
     //     if (registration.proEssay === null || !isString(registration.proEssay)) {
     //         return false;
