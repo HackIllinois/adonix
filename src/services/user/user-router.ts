@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
@@ -10,7 +10,6 @@ import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
 import Config from "../../config.js";
 import { AttendeeFollowing } from "database/attendee-db.js";
-import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { EventFollowers } from "../../database/event-db.js";
 const userRouter: Router = Router();
@@ -33,9 +32,9 @@ const userRouter: Router = Router();
  *
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
+userRouter.get("/qr/", strongJwtVerification(), (_, res) => {
     // Return the same payload, but with a shorter expiration time
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
     const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
     const uri: string = `hackillinois://user?userToken=${token}`;
     res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
@@ -63,10 +62,10 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.get("/qr/:USERID", strongJwtVerification(), async (req, res, next) => {
     const targetUser: string | undefined = req.params.USERID as string;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
     let newPayload: JwtPayload | undefined;
 
     // Check if target user -> if so, return same payload but modified expiry
@@ -107,9 +106,9 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  *
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+userRouter.get("/", strongJwtVerification(), async (_, res, next) => {
     // Get payload, return user's values
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
 
     const user: UserInfo | null = await Models.UserInfo.findOne({ userId: payload.id });
 
@@ -143,8 +142,8 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
  * @apiError (404: Not Found) {String} UserNotFound User with the given ID not found.
  * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
 */
-userRouter.get("/following/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+userRouter.get("/following/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
     const userId: string | undefined = req.body.userId;
 
     if (!userId) {
@@ -185,8 +184,8 @@ userRouter.get("/following/", strongJwtVerification, async (req: Request, res: R
  * @apiError (404: Bad Request) {String} UserNotFound User with userId not found.
  * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
-userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+userRouter.put("/follow/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
     const eventId: string | undefined = req.body.eventId;
 
     const eventExists: EventFollowers | null = await Models.EventFollowers.findOneAndUpdate(
@@ -234,8 +233,8 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
  * @apiError (404: Bad Request) {String} UserNotFound User with userId not found.
  * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
-userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+userRouter.put("/unfollow/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
     const eventId: string | undefined = req.body.eventId;
 
     // eventID has to exist
@@ -284,11 +283,11 @@ userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Re
  * @apiError (403: Forbidden) {String} Forbidden API access by user (no valid perms).
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.get("/:USERID", strongJwtVerification(), async (req, res, next) => {
     const targetUser: string = req.params.USERID ?? "";
 
     // Get payload, and check if authorized
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
     if (payload.id == targetUser || hasElevatedPerms(payload)) {
         // Authorized -> return the user object
         const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });

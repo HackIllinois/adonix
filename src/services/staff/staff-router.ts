@@ -1,7 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
@@ -9,7 +8,6 @@ import Config from "../../config.js";
 
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
-import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { StaffShift } from "database/staff-db.js";
 
@@ -46,8 +44,8 @@ const staffRouter: Router = Router();
  *     HTTP/1.1 500 Internal Server Error
  *     {"error": "InternalError"}
  */
-staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+staffRouter.post("/attendance/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
 
     const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
     const userId: string = payload.id;
@@ -77,8 +75,8 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
 });
 
-staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+staffRouter.get("/shift/", strongJwtVerification(), async (_, res, next) => {
+    const payload = res.locals.payload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -100,8 +98,8 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
     return res.status(StatusCode.SuccessOK).json(events);
 });
 
-staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+staffRouter.post("/shift/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));

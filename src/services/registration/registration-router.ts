@@ -1,6 +1,5 @@
 import { StatusCode } from "status-code-enum";
-import { NextFunction } from "express-serve-static-core";
-import { Request, Response, Router } from "express";
+import { Router } from "express";
 
 import { RegistrationTemplates } from "../../config.js";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
@@ -13,7 +12,6 @@ import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.j
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
 
 import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
 
 import { sendMail } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
@@ -74,8 +72,8 @@ const registrationRouter: Router = Router();
  * @apiError (404: Not Found) {String} NotFound Registration does not exist
  * @apiUse strongVerifyErrors
  */
-registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload;
+registrationRouter.get("/", strongJwtVerification(), async (_, res, next) => {
+    const payload = res.locals.payload;
     const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
         userId: payload.id,
     });
@@ -144,9 +142,9 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiError (403: Forbidden) {String} Forbidden User doesn't have elevated permissions
  * @apiError (404: Not Found) {String} NotFound Registration does not exist
  */
-registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+registrationRouter.get("/userid/:USERID", strongJwtVerification(), async (req, res, next) => {
     const userId: string | undefined = req.params.USERID;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
 
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -255,8 +253,8 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  * @apiUse strongVerifyErrors
  */
-registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+registrationRouter.post("/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
     const userId: string = payload.id;
 
     const registrationData: RegistrationFormat = req.body as RegistrationFormat;
@@ -296,8 +294,8 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
  * @apiError (422: Unprocessable Entity) {String} AlreadySubmitted User already submitted application (cannot POST more than once)
  * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  **/
-registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+registrationRouter.post("/submit/", strongJwtVerification(), async (_, res, next) => {
+    const payload = res.locals.payload;
     const userId: string = payload.id;
 
     const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });

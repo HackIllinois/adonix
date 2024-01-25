@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Request, Response } from "express-serve-static-core";
 import Metadata from "../../metadata.js";
 import { StatusCode } from "status-code-enum";
 
@@ -18,7 +17,7 @@ const versionRouter: Router = Router();
  * }
  */
 
-versionRouter.get("/android/", async (_: Request, res: Response) => {
+versionRouter.get("/android/", async (_, res) => {
     const androidVersion: string = await Metadata.load("androidVersion");
     res.status(StatusCode.SuccessOK).send({ version: androidVersion });
 });
@@ -35,7 +34,7 @@ versionRouter.get("/android/", async (_: Request, res: Response) => {
  *   "version": "2024.1.1"
  * }
  */
-versionRouter.get("/ios/", async (_: Request, res: Response) => {
+versionRouter.get("/ios/", async (_, res) => {
     const iosVersion: string = await Metadata.load("iosVersion");
     res.status(StatusCode.SuccessOK).send({ version: iosVersion });
 });
