@@ -138,7 +138,7 @@ export function generateJwtToken(payload?: JwtPayload, shouldNotExpire?: boolean
  * @param token JWT token to decode
  * @returns Payload of the token if valid/
  */
-export function decodeJwtToken(token?: string): JwtPayload {
+export function decodeJwtToken(token?: string): string | jsonwebtoken.JwtPayload {
     if (!token) {
         throw new Error("NoToken");
     }
@@ -150,7 +150,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
     }
 
     // Verify already ensures that the token isn't expired. If it is, it returns an error
-    return jsonwebtoken.verify(token, secret) as JwtPayload;
+    return jsonwebtoken.verify(token, secret);
 }
 
 /**

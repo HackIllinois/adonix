@@ -1,9 +1,17 @@
-import { Request, Response, NextFunction } from "express";
+import { RequestHandler } from "express";
 import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
 import { StatusCode } from "status-code-enum";
+import { JwtPayload, jwtValidator } from "../services/auth/auth-models.js";
+import { z } from "zod";
+import { Locals } from "express-serve-static-core";
 
 /**
+ * Middleware function factory that checks if the incoming request strictly has a JWT token.
+ *
+ * TODO: Discuss whether if valid roles should be passed into the factory function (e.g list of Role
+ * enums).
+ *
  * @apiDefine strongVerifyErrors
  * @apiHeader  {String} Authorization JWT token.
  * @apiHeaderExample {json} Example Headers:
@@ -18,46 +26,67 @@ import { StatusCode } from "status-code-enum";
  *     HTTP/1.1 400 Bad Request
  *     {"error": "NoToken"}
  */
-export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
-    const token: string | undefined = req.headers.authorization;
+export function strongJwtVerification(): RequestHandler<
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    Record<string, any> & Locals & { payload: JwtPayload }
+> {
+    return (req, res, next) => {
+        const token: string | undefined = req.headers.authorization;
 
-    if (!token) {
-        res.status(StatusCode.ClientErrorUnauthorized).send({ error: "NoToken" });
-        next("router");
-        return;
-    }
-
-    try {
-        res.locals.payload = decodeJwtToken(token);
-        next();
-    } catch (error) {
-        console.error(error);
-        if (error instanceof jsonwebtoken.TokenExpiredError) {
-            res.status(StatusCode.ClientErrorForbidden).send("TokenExpired");
+        if (!token) {
+            res.status(StatusCode.ClientErrorUnauthorized).send({ error: "NoToken" });
             next("router");
-        } else {
-            res.status(StatusCode.ClientErrorUnauthorized).send({
-                error: "InvalidToken",
-            });
-            next("router");
+            return;
         }
-    }
+
+        try {
+            const parsed = z.object({ payload: jwtValidator }).parse({ payload: decodeJwtToken(token) });
+            res.locals = parsed;
+            next();
+        } catch (error) {
+            console.error(error);
+            if (error instanceof jsonwebtoken.TokenExpiredError) {
+                res.status(StatusCode.ClientErrorForbidden).send("TokenExpired");
+                next("router");
+            } else {
+                res.status(StatusCode.ClientErrorUnauthorized).send({
+                    error: "InvalidToken",
+                });
+                next("router");
+            }
+        }
+    };
 }
 
 /**
+ * Middleware factory function that simply parses the authroization JWT if provided by the request.
+ * Will not terminate further request handling if no token is provided.
+ *
  * @apiDefine weakVerifyErrors
  * @apiHeader  {String} Authorization JWT token.
  * @apiHeaderExample {json} Example Headers:
  *     {"Authorization": "loremipsumdolorsitamet"}
  */
-export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
-    const token: string | undefined = req.headers.authorization;
+export function weakJwtVerification(): RequestHandler<
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */ any,
+    Record<string, any> & Locals & { payload: JwtPayload | undefined }
+> {
+    return (req, res, next) => {
+        const token: string | undefined = req.headers.authorization;
 
-    try {
-        res.locals.payload = decodeJwtToken(token);
-        next();
-    } catch (error) {
-        console.error(error);
-        next();
-    }
+        try {
+            const parsed = z.object({ payload: jwtValidator }).parse({ payload: decodeJwtToken(token) });
+            res.locals = parsed;
+            next();
+        } catch (error) {
+            console.error(error);
+            next();
+        }
+    };
 }
