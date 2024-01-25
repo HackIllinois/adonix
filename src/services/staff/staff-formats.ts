@@ -1,5 +1,5 @@
 import { StaffShift } from "database/staff-db.js";
-import { isArrayOfType, isString } from "formatTools.js";
+import { isArrayOfType, isString } from "../../formatTools.js";
 
 // Format for default staff attendance input
 export interface AttendanceFormat {
