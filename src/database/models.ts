@@ -10,6 +10,7 @@ import { RegistrationApplication } from "./registration-db.js";
 import { ShopItem } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types.js";
+import { StaffShift } from "./staff-db.js";
 
 // Groups for collections
 export enum Group {
@@ -21,6 +22,7 @@ export enum Group {
     NEWSLETTER = "newsletter",
     REGISTRATION = "registration",
     SHOP = "shop",
+    STAFF = "staff",
 }
 
 // Collections for each database, where models will be stored
@@ -41,8 +43,7 @@ enum AdmissionCollection {
 enum EventCollection {
     METADATA = "metadata",
     ATTENDANCE = "attendance",
-    STAFF_EVENTS = "staffevents",
-    PUBLIC_EVENTS = "publicevents",
+    EVENTS = "events",
     FOLLOWERS = "followers",
 }
 
@@ -61,6 +62,10 @@ enum ShopCollection {
 enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
+}
+
+enum StaffCollection {
+    SHIFT = "shift",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -97,7 +102,7 @@ export default class Models {
     );
 
     // Event
-    static Event: Model<Event> = getModel(Event, Group.EVENT, EventCollection.STAFF_EVENTS);
+    static Event: Model<Event> = getModel(Event, Group.EVENT, EventCollection.EVENTS);
     static EventAttendance: Model<EventAttendance> = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
     static EventFollowers: Model<EventFollowers> = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
 
@@ -121,4 +126,7 @@ export default class Models {
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
+
+    // Staff
+    static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
 }

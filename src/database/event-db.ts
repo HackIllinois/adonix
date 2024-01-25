@@ -60,7 +60,7 @@ export class Event {
     @prop({ required: false })
     sponsor?: string;
 
-    @prop({ required: false })
+    @prop({ default: 0 })
     points?: number;
 
     @prop({ required: false })
