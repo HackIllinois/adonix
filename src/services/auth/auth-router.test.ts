@@ -57,7 +57,7 @@ describe("GET /auth/dev/", () => {
         const response = await getAsUser("/auth/dev/?token=123").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            token: "123",
+            Authorization: "123",
         });
     });
 });
@@ -422,7 +422,7 @@ describe("GET /auth/token/refresh", () => {
 
         const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value as string;
         expect(JSON.parse(response.text)).toMatchObject({
-            Authorization: jwtReturned,
+            token: jwtReturned,
         });
     });
 });
