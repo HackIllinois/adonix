@@ -57,7 +57,7 @@ authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoToken"));
     }
 
-    return res.status(StatusCode.SuccessOK).send({ token: token });
+    return res.status(StatusCode.SuccessOK).send({ Authorization: token });
 });
 
 /**
