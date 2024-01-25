@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasStaffPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat } from "./staff-formats.js";
 import Config from "../../config.js";
@@ -84,27 +84,48 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    try {
-        const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
+    const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
 
-        if (!data) {
-            return next(new RouterError(StatusCode.ServerErrorInternal, "ShiftNotFound"));
-        }
-
-        const shifts: string[] = data.shifts;
-
-        console.log(shifts);
-
-        const events: Event[] = await Models.Event.find({
-            isStaff: true,
-            eventId: { $in: shifts },
-        });
-
-        return res.status(StatusCode.SuccessOK).json(events);
-    } catch (error) {
-        console.error(error);
-        return next(new RouterError(StatusCode.ServerErrorInternal, "UndefinedError"));
+    if (!data) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "ShiftNotFound"));
     }
+
+    const shiftIds: string[] = data.shifts;
+
+    const events: Event[] = await Models.Event.find({
+        isStaff: true,
+        eventId: { $in: shiftIds },
+    });
+
+    return res.status(StatusCode.SuccessOK).json(events);
+});
+
+staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const shift: StaffShift = req.body as StaffShift;
+
+    if (!hasAdminPerms(payload) || !shift.userId) {
+        shift.userId = payload.id;
+    }
+
+    await Models.StaffShift.updateOne(
+        { userId: shift.userId },
+        {
+            $push: {
+                shifts: {
+                    $each: shift.shifts,
+                },
+            },
+        },
+        { upsert: true, new: true },
+    );
+
+    return res.status(StatusCode.SuccessOK).json({ success: true });
 });
 
 export default staffRouter;
