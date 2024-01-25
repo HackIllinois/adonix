@@ -5,7 +5,7 @@ import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
 import Config from "../../config.js";
-import { GetObjectCommand, PutObjectCommand, type S3 } from "@aws-sdk/client-s3";
+import { GetObjectCommand, type S3 } from "@aws-sdk/client-s3";
 import { s3ClientMiddleware } from "../../middleware/s3.js";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
@@ -34,7 +34,7 @@ s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req:
         Bucket: Config.S3_BUCKET_NAME,
         Key: `${userId}.pdf`,
         Conditions: [
-            ["content-length-range", 0, 2 * 1024 * 1024], // 5 MB max
+            ["content-length-range", 0, Config.MAX_RESUME_SIZE_BYTES], // 5 MB max
         ],
         Fields: {
             success_action_status: "201",
