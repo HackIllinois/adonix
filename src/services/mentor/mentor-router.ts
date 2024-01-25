@@ -3,7 +3,7 @@ import { OfficeHoursFormat, pointCoinUpdateValue } from "./mentor-formats.js";
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { JwtPayload, Role } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { NextFunction } from "express-serve-static-core";
@@ -225,7 +225,7 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
     // Checks that the caller is an attendee
-    if (hasElevatedPerms(payload)) {
+    if (!payload.roles.includes(Role.ATTENDEE)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 

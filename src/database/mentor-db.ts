@@ -9,9 +9,7 @@ export class MentorOfficeHours {
 
     @prop({
         required: true,
-        type: () => {
-            return String;
-        },
+        type: () => String,
     })
     public attendees: string[];
 }
