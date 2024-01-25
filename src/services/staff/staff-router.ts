@@ -4,7 +4,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { AttendanceFormat } from "./staff-formats.js";
+import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
 import Config from "../../config.js";
 
 import Models from "../../database/models.js";
@@ -111,6 +111,10 @@ staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Res
 
     if (!hasAdminPerms(payload) || !shift.userId) {
         shift.userId = payload.id;
+    }
+
+    if (!isValidStaffShiftFormat(shift)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     await Models.StaffShift.updateOne(
