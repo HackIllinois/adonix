@@ -115,6 +115,7 @@ const Config = {
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
+    MAX_RESUME_SIZE_BYTES: 2 * 1024 * 1024,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,
