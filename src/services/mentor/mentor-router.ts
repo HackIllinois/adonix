@@ -164,7 +164,7 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
     }
 
-    if (!hasAdminPerms(payload) && !hasStaffPerms(payload)) {
+    if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
