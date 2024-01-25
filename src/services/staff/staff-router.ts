@@ -2,15 +2,18 @@ import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasStaffPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { AttendanceFormat } from "./staff-formats.js";
+import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
 import Config from "../../config.js";
 
 import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
+import { StaffShift } from "database/staff-db.js";
+
+import { Event } from "../../database/event-db.js";
 
 const staffRouter: Router = Router();
 
@@ -72,6 +75,61 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
     await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+});
+
+staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
+
+    if (!data) {
+        return next(new RouterError(StatusCode.ServerErrorInternal, "ShiftNotFound"));
+    }
+
+    const shiftIds: string[] = data.shifts;
+
+    const events: Event[] = await Models.Event.find({
+        isStaff: true,
+        eventId: { $in: shiftIds },
+    });
+
+    return res.status(StatusCode.SuccessOK).json(events);
+});
+
+staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const shift: StaffShift = req.body as StaffShift;
+
+    if (!hasAdminPerms(payload) || !shift.userId) {
+        shift.userId = payload.id;
+    }
+
+    if (!isValidStaffShiftFormat(shift)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
+    }
+
+    await Models.StaffShift.updateOne(
+        { userId: shift.userId },
+        {
+            $push: {
+                shifts: {
+                    $each: shift.shifts,
+                },
+            },
+        },
+        { upsert: true, new: true },
+    );
+
+    return res.status(StatusCode.SuccessOK).json({ success: true });
 });
 
 export default staffRouter;

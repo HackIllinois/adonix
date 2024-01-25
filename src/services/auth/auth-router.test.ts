@@ -422,7 +422,7 @@ describe("GET /auth/token/refresh", () => {
 
         const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value as string;
         expect(JSON.parse(response.text)).toMatchObject({
-            token: jwtReturned,
+            Authorization: jwtReturned,
         });
     });
 });
