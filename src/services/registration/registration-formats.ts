@@ -38,6 +38,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isString(registration.legalName) ||
         !isString(registration.emailAddress)
     ) {
+        console.log("ERROR: userId, preferredName, legalName, emailAddress", registration);
         return false;
     }
 
@@ -46,6 +47,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isArrayOfType(registration.race, (value) => isEnumOfType(value, Race)) ||
         !isArrayOfType(registration.dietaryRestrictions, isString || undefined)
     ) {
+        console.log("ERROR: gender, race, dietaryRestrictions", registration);
         return false;
     }
 
@@ -57,6 +59,7 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isString(registration.major) ||
         !isString(registration.minor ?? "")
     ) {
+        console.log("ERROR: location, degree, university, gradYear, major, minor", registration);
         return false;
     }
 
@@ -64,34 +67,46 @@ export function isValidRegistrationFormat(registration: RegistrationFormat): boo
         !isArrayOfType(registration.hackInterest, (value) => isEnumOfType(value, HackInterest)) ||
         !isArrayOfType(registration.hackOutreach, (value) => isEnumOfType(value, HackOutreach))
     ) {
+        console.log("ERROR: hackInterest, hackOutreach", registration);
         return false;
     }
 
     if (!isString(registration.hackEssay1) || !isString(registration.hackEssay2)) {
+        console.log("ERROR: hackEssay1, hackEssay2", registration);
         return false;
     }
 
     if (!isBoolean(registration.isProApplicant) || !isBoolean(registration.requestedTravelReimbursement)) {
+        console.log("ERROR: isProApplicant, requestedTravelReimbursement", registration);
         return false;
     }
 
     if (registration.optionalEssay && !isString(registration.optionalEssay)) {
+        console.log("ERROR: optionalEssay", registration);
         return false;
     }
 
-    if (registration.isProApplicant && (!isString(registration.proEssay) || !isBoolean(registration.considerForGeneral))) {
+    if (
+        registration.isProApplicant &&
+        (registration.proEssay === null ||
+            !isString(registration.proEssay) ||
+            registration.considerForGeneral === null ||
+            !isBoolean(registration.considerForGeneral))
+    ) {
+        console.log("ERROR: proEssay, considerForGeneral", registration);
         return false;
     }
 
-    if (registration.isProApplicant) {
-        if (registration.proEssay === null || !isString(registration.proEssay)) {
-            return false;
-        }
+    // just realized this checks the same thing as above
+    // if (registration.isProApplicant) {
+    //     if (registration.proEssay === null || !isString(registration.proEssay)) {
+    //         return false;
+    //     }
 
-        if (registration.considerForGeneral === null || !isBoolean(registration.considerForGeneral)) {
-            return false;
-        }
-    }
+    //     if (registration.considerForGeneral === null || !isBoolean(registration.considerForGeneral)) {
+    //         return false;
+    //     }
+    // }
 
     return true;
 }
