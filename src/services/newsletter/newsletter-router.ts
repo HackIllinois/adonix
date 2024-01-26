@@ -1,11 +1,11 @@
-import { Request, Response, Router } from "express";
+import { Router } from "express";
+
 import { SubscribeRequest } from "./newsletter-formats.js";
 import { NewsletterSubscription } from "../../database/newsletter-db.js";
 import Models from "../../database/models.js";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler.js";
-import { NextFunction } from "express-serve-static-core";
 
 const newsletterRouter: Router = Router();
 
@@ -31,7 +31,7 @@ const newsletterRouter: Router = Router();
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-newsletterRouter.post("/subscribe/", async (request: Request, res: Response, next: NextFunction) => {
+newsletterRouter.post("/subscribe/", async (request, res, next) => {
     const requestBody: SubscribeRequest = request.body as SubscribeRequest;
     const listName: string | undefined = requestBody.listName;
     const emailAddress: string | undefined = requestBody.emailAddress;

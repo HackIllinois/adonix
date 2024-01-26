@@ -45,7 +45,8 @@
         "passport-google-oauth20": "^2.0.0",
         "passport-strategy": "^1.0.0",
         "status-code-enum": "^1.0.0",
-        "uuid": "^9.0.1"
+        "uuid": "^9.0.1",
+        "zod": "^3.22.4"
     },
     "repository": "git@github.com:HackIllinois/adonix.git",
     "devDependencies": {

@@ -51,7 +51,7 @@ passport.use(
 const authRouter: Router = Router();
 authRouter.use(express.urlencoded({ extended: false }));
 
-authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/dev/", (req, res, next) => {
     const token: string | undefined = req.query.token as string | undefined;
     if (!token) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoToken"));
@@ -79,7 +79,7 @@ authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/login/github/", (req, res, next) => {
     const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
     if (device && !Config.REDIRECT_URLS.has(device)) {
@@ -107,7 +107,7 @@ authRouter.get("/login/github/", (req: Request, res: Response, next: NextFunctio
  *     HTTP/1.1 400 Bad Request
  *     {"error": "InvalidParams"}
  */
-authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/login/google/", (req, res, next) => {
     const device: string = (req.query.device as string | undefined) ?? Config.DEFAULT_DEVICE;
 
     if (device && !Config.REDIRECT_URLS.has(device)) {
@@ -197,9 +197,9 @@ authRouter.get(
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/roles/list/:ROLE", strongJwtVerification(), async (req, res, next) => {
     const role = req.params.ROLE as string;
-    const payload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
 
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -229,8 +229,8 @@ authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, 
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+authRouter.get("/roles/", strongJwtVerification(), async (_, res, next) => {
+    const payload: JwtPayload = res.locals.payload;
     const targetUser: string = payload.id;
 
     await getRoles(targetUser)
@@ -266,10 +266,10 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiError (400: Bad Request) {String} UserNotFound User doesn't exist in the database.
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
-authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+authRouter.get("/roles/:USERID", strongJwtVerification(), async (req, res, next) => {
     const targetUser: string = req.params.USERID as string;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
 
     // Cases: Target user already logged in, auth user is admin
     if (payload.id == targetUser) {
@@ -313,8 +313,8 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
  * @apiError (400: Bad Request) {String} InvalidRole Nonexistent role passed in.
  * @apiUse strongVerifyErrors
  */
-authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+authRouter.put("/roles/:OPERATION/", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
 
     // Not authenticated with modify roles perms
     if (!hasAdminPerms(payload)) {
@@ -360,9 +360,9 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
  *
  * @apiUse strongVerifyErrors
  */
-authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+authRouter.get("/token/refresh", strongJwtVerification(), async (_, res, next) => {
     // Get old data from token
-    const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
+    const oldPayload = res.locals.payload;
     const data: ProfileData = {
         id: oldPayload.id,
         email: oldPayload.email,

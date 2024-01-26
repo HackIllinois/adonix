@@ -1,6 +1,5 @@
-import { Request, Response, Router } from "express";
+import { Router } from "express";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 
@@ -25,8 +24,8 @@ const s3Router: Router = Router();
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+s3Router.get("/upload/", strongJwtVerification(), s3ClientMiddleware, async (_req, res) => {
+    const payload = res.locals.payload;
     const s3 = res.locals.s3 as S3;
     const userId: string = payload.id;
 
@@ -59,8 +58,8 @@ s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req:
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+s3Router.get("/download/", strongJwtVerification(), s3ClientMiddleware, async (_req, res) => {
+    const payload = res.locals.payload;
     const s3 = res.locals.s3 as S3;
     const userId: string = payload.id;
 
@@ -93,9 +92,9 @@ s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_re
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
  */
-s3Router.get("/download/:USERID", strongJwtVerification, s3ClientMiddleware, async (req: Request, res: Response) => {
+s3Router.get("/download/:USERID", strongJwtVerification(), s3ClientMiddleware, async (req, res) => {
     const userId: string | undefined = req.params.USERID;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
     const s3 = res.locals.s3 as S3;
 
     if (!hasElevatedPerms(payload)) {

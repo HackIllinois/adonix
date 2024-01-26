@@ -1,15 +1,13 @@
 import crypto from "crypto";
 import { AttendeeProfile } from "database/attendee-db.js";
 import { ShopItem } from "database/shop-db.js";
-import { Request, Response, Router } from "express";
-import { NextFunction } from "express-serve-static-core";
+import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import Models from "../../database/models.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 import { hasAdminPerms, hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
 import { updateCoins } from "../profile/profile-lib.js";
 import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
 
@@ -43,7 +41,7 @@ import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
  * */
 
 const shopRouter: Router = Router();
-shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
+shopRouter.get("/", weakJwtVerification(), async (_1, res, _2) => {
     const shopItems: ShopItem[] = await Models.ShopItem.find();
 
     const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ShopItem) => ({
@@ -93,8 +91,8 @@ shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: 
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  * */
-shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+shopRouter.post("/item", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
@@ -158,8 +156,8 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
  * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
-shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+shopRouter.put("/item/:ITEMID", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
     const targetItem: string | undefined = req.params.ITEMID as string;
 
     const itemFormat = req.body as ShopItem;
@@ -206,8 +204,8 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
  * @apiError (403: Forbidden) {String} InvalidPermission User does not have admin permissions.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
-shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+shopRouter.delete("/item/:ITEMID", strongJwtVerification(), async (req, res, next) => {
+    const payload = res.locals.payload;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
@@ -244,9 +242,9 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiError (404: Not Found) {String} ItemNotFound Item doesn't exist in the database.
  * @apiUse strongVerifyErrors
  */
-shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+shopRouter.get("/item/qr/:ITEMID", strongJwtVerification(), async (req, res, next) => {
     const targetItem: string | undefined = req.params.ITEMID as string;
-    const token: JwtPayload = res.locals.payload;
+    const token = res.locals.payload;
 
     if (!hasElevatedPerms(token)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -284,9 +282,9 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiError (404: Not Found) {String} InvalidUniqueItem This unique item is already purchased or doesn't exist.
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
-shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+shopRouter.post("/item/buy", strongJwtVerification(), async (req, res, next) => {
     const itemId: string | undefined = req.body.itemId as string;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload;
     const userId: string = payload.id;
 
     const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: itemId });
