@@ -4,7 +4,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms, isPro } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
 import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
@@ -320,17 +320,25 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
 eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    // Get collection from the database, and return it as an array
-    const publicEvents: Event[] = await Models.Event.find({ isStaff: false });
-
-    if (hasStaffPerms(payload)) {
-        return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
+    let publicEvents: Event[];
+    if (payload === undefined) {
+        console.log("no jwt token");
+        publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
+    } else if (hasStaffPerms(payload)) {
+        console.log("has staff perms");
+        publicEvents = await Models.Event.find();
+    } else if (isPro(payload)) {
+        publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
+    } else {
+        // anyone else (not pro)
+        publicEvents = await Models.Event.find({
+            isStaff: false,
+            isPrivate: false,
+            $or: [{ isPro: false }, { isPro: { $exists: false } }],
+        });
     }
 
-    const filteredEvents: FilteredEventView[] = publicEvents
-        .filter((event: Event) => !event.isPrivate)
-        .map(createFilteredEventView);
-    return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
+    return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
 });
 
 /**
