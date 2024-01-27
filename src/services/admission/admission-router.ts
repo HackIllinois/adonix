@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
-import { JwtPayload } from "../auth/auth-models.js";
+import { JwtPayload, Role } from "../auth/auth-models.js";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
 import Models from "../../database/models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
@@ -110,6 +110,12 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
 
     if (!updatedDecision) {
         return next(new RouterError());
+    }
+
+    if (queryResult.admittedPro) {
+        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { shifts: { $each: [Role.PRO, Role.ATTENDEE] } } });
+    } else {
+        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { shifts: { $each: [Role.ATTENDEE] } } });
     }
 
     const application = await getApplication(queryResult.userId);
