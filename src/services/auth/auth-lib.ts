@@ -303,6 +303,19 @@ export function hasAdminPerms(payload?: JwtPayload): boolean {
 }
 
 /**
+ * Check if a user has PRO permissions
+ * @param payload Payload of user performing the actual request
+ * @returns True if the user has PRO, else false
+ */
+export function isPro(payload?: JwtPayload): boolean {
+    if (!payload) {
+        return false;
+    }
+
+    return payload.roles.includes(Role.PRO);
+}
+
+/**
  * Get all id of users that have a particular role within the database.
  * @param role role that we want to filter for
  * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
