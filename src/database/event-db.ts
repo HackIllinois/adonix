@@ -68,6 +68,9 @@ export class Event {
 
     @prop({ required: false })
     displayOnStaffCheckIn?: boolean;
+
+    @prop({ required: false, default: false })
+    isPro?: boolean;
 }
 
 export class EventAttendance {
