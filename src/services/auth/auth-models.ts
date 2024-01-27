@@ -23,6 +23,7 @@ export enum Role {
     USER = "USER",
     SPONSOR = "SPONSOR",
     BLOBSTORE = "BLOBSTORE",
+    PRO = "PRO",
 }
 
 export enum Provider {
