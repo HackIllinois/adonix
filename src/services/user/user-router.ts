@@ -302,4 +302,60 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
 });
 
+/**
+ * @api {put} /user/scan-event/ PUT /user/scan-event/
+ * @apiGroup User
+ * @apiDescription Record user attendance for a self check-in event.
+ *
+ * @apiBody {String} eventId The unique identifier of the event.
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {success: true}
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
+ * @apiError (400: Bad Request) {String} AlreadyCheckedIn Attendee has already been checked in for this event.
+ * @apiError (404: Not Found) {String} EventNotFound This event was not found
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "AlreadyCheckedIn"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "EventNotFound"}
+ */
+userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const userId = payload.id;
+    const eventId: string | undefined = req.body.eventId;
+
+    if (!eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
+    }
+
+    const eventAttendance = await Models.EventAttendance.findOne({ eventId: eventId });
+
+    if (!eventAttendance) {
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
+    }
+
+    if (eventAttendance.attendees.includes(userId)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn"));
+    }
+
+    const userAttendance = await Models.UserAttendance.findOne({ userId: userId });
+    if (!userAttendance) {
+        await Models.UserAttendance.create({ userId: userId, attendance: [eventId] });
+    } else {
+        await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } });
+    }
+
+    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } });
+
+    return res.status(StatusCode.SuccessOK).json({ success: true });
+});
+
 export default userRouter;
