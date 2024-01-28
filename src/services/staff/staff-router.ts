@@ -134,8 +134,7 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
 
     const userAttendance = await Models.UserAttendance.findOne({ userId: userId });
     if (!userAttendance) {
-        const temp = await Models.UserAttendance.create({ userId: userId, attendance: [eventId] });
-        console.log(temp);
+        await Models.UserAttendance.create({ userId: userId, attendance: [eventId] });
     } else {
         await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } });
     }
