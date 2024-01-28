@@ -113,9 +113,9 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
     }
 
     if (queryResult.admittedPro) {
-        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { shifts: { $each: [Role.PRO, Role.ATTENDEE] } } });
+        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { roles: { $each: [Role.PRO, Role.ATTENDEE] } } });
     } else {
-        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { shifts: { $each: [Role.ATTENDEE] } } });
+        await Models.AuthInfo.updateOne({ userId: userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
     }
 
     const application = await getApplication(queryResult.userId);
