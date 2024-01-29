@@ -63,7 +63,7 @@ export class Event {
     @prop({ default: 0 })
     points?: number;
 
-    @prop({ required: true })
+    @prop({ required: true, default: false })
     isPrivate?: boolean;
 
     @prop({ required: false })
