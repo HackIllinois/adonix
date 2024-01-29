@@ -315,6 +315,13 @@ export function isPro(payload?: JwtPayload): boolean {
     return payload.roles.includes(Role.PRO);
 }
 
+export function isAttendee(payload?: JwtPayload): boolean {
+    if (!payload) {
+        return false;
+    }
+
+    return payload.roles.includes(Role.ATTENDEE);
+}
 /**
  * Get all id of users that have a particular role within the database.
  * @param role role that we want to filter for
