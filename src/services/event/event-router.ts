@@ -4,7 +4,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
-import { hasAdminPerms, hasStaffPerms, isPro } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
 import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
@@ -321,13 +321,11 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     let publicEvents: Event[];
-    if (payload === undefined) {
-        console.log("no jwt token");
-        publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
-    } else if (hasStaffPerms(payload)) {
-        console.log("has staff perms");
+
+    if (hasStaffPerms(payload)) {
         publicEvents = await Models.Event.find();
-    } else if (isPro(payload)) {
+        return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
+    } else if (isPro(payload) || !isAttendee(payload)) {
         publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
     } else {
         // anyone else (not pro)
@@ -338,7 +336,10 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
         });
     }
 
-    return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
+    // filter events to only show public data
+    const filteredPublicEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
+
+    return res.status(StatusCode.SuccessOK).send(filteredPublicEvents);
 });
 
 /**
