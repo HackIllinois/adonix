@@ -334,7 +334,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
         publicEvents = await Models.Event.find({
             isStaff: false,
             isPrivate: false,
-            $or: [{ isPro: false }, { isPro: { $exists: false } }],
+            isPro: false,
         });
     }
 
