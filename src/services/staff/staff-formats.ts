@@ -21,3 +21,13 @@ export function isValidStaffShiftFormat(obj: StaffShift): boolean {
 
     return true;
 }
+
+export interface EventError {
+    statuscode: number;
+    name: string;
+}
+
+export interface isValidAttendanceCheckInResult {
+    success: boolean;
+    error?: EventError;
+}
