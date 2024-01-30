@@ -30,6 +30,8 @@ export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
 
     [Role.SPONSOR]: [Role.SPONSOR],
     [Role.BLOBSTORE]: [Role.BLOBSTORE],
+
+    [Role.PRO]: [Role.PRO],
 };
 
 /*

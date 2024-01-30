@@ -63,11 +63,14 @@ export class Event {
     @prop({ default: 0 })
     points?: number;
 
-    @prop({ required: false })
+    @prop({ required: true, default: false })
     isPrivate?: boolean;
 
     @prop({ required: false })
     displayOnStaffCheckIn?: boolean;
+
+    @prop({ required: true, default: false })
+    isPro?: boolean;
 }
 
 export class EventAttendance {
