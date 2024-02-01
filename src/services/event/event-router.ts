@@ -469,8 +469,9 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", { data: eventFormat }));
     }
 
-    // Create the new event
+    // Create the new event and its attendance
     const event: Event = await Models.Event.create(eventFormat);
+    await Models.EventAttendance.create({ eventId: eventId, attendees: [] });
     return res.status(StatusCode.SuccessCreated).send(event);
 });
 

@@ -1,3 +1,4 @@
+import { RouterError } from "middleware/error-handler.js";
 import { StaffShift } from "../../database/staff-db.js";
 import { isArrayOfType, isString } from "../../formatTools.js";
 
@@ -20,4 +21,14 @@ export function isValidStaffShiftFormat(obj: StaffShift): boolean {
     }
 
     return true;
+}
+
+export interface EventError {
+    statuscode: number;
+    name: string;
+}
+
+export interface checkInResult {
+    success: boolean;
+    error?: RouterError;
 }

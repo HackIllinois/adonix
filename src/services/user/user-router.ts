@@ -5,6 +5,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
+import { performCheckIn } from "../staff/staff-lib.js";
 
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
@@ -300,6 +301,49 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
     }
 
     return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+});
+
+/**
+ * @api {put} /user/scan-event/ PUT /user/scan-event/
+ * @apiGroup User
+ * @apiDescription Record user attendance for a self check-in event.
+ *
+ * @apiBody {String} eventId The unique identifier of the event.
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {success: true}
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
+ * @apiError (400: Bad Request) {String} AlreadyCheckedIn Attendee has already been checked in for this event.
+ * @apiError (404: Not Found) {String} EventNotFound This event was not found
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "InvalidParams"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 400 Bad Request
+ *     {"error": "AlreadyCheckedIn"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 404 Not Found
+ *     {"error": "EventNotFound"}
+ */
+userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const userId = payload.id;
+    const eventId: string | undefined = req.body.eventId;
+
+    if (!eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
+    }
+
+    const result = await performCheckIn(eventId, userId);
+
+    if (!result.success) {
+        return next(result.error);
+    }
+
+    return res.status(StatusCode.SuccessOK).json({ success: true });
 });
 
 export default userRouter;

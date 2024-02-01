@@ -1,0 +1,23 @@
+import Models from "../../database/models.js";
+import { StatusCode } from "status-code-enum";
+import { checkInResult } from "./staff-formats.js";
+import { RouterError } from "../../middleware/error-handler.js";
+
+export async function performCheckIn(eventId: string, userId: string): Promise<checkInResult> {
+    const eventAttendance = await Models.EventAttendance.findOne({ eventId: eventId });
+
+    if (!eventAttendance) {
+        const error = new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound");
+        return { success: false, error };
+    }
+
+    if (eventAttendance.attendees.includes(userId)) {
+        const error = new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn");
+        return { success: false, error };
+    }
+
+    await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
+    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
+
+    return { success: true };
+}

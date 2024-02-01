@@ -1,0 +1,64 @@
+import { beforeEach, describe, expect, it } from "@jest/globals";
+import { putAsAttendee, putAsStaff } from "../../testTools.js";
+
+import { EventAttendance } from "database/event-db.js";
+import { StatusCode } from "status-code-enum";
+import Models from "../../database/models.js";
+
+const TESTER_EVENT_ATTENDANCE = {
+    eventId: "some-event",
+    attendees: [],
+} satisfies EventAttendance;
+
+// Before each test, initialize database with Event in EventAttendance
+beforeEach(async () => {
+    await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
+});
+
+describe("PUT /staff/scan-attendee/", () => {
+    it("works for a staff", async () => {
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: "some-event", userId: "some-user" })
+            .expect(StatusCode.SuccessOK);
+
+        const eventAttendance = await Models.EventAttendance.findOne({ eventId: "some-event" });
+        const userAttendance = await Models.UserAttendance.findOne({ userId: "some-user" });
+
+        expect(eventAttendance?.attendees).toContain("some-user");
+        expect(userAttendance?.attendance).toContain("some-event");
+    });
+
+    it("returns Forbidden for non-staff", async () => {
+        const response = await putAsAttendee("/staff/scan-attendee/")
+            .send({ eventId: "some-event", userId: "some-user" })
+            .expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns InvalidParams for missing parameters", async () => {
+        const response = await putAsStaff("/staff/scan-attendee/").send({}).expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
+    });
+
+    it("returns EventNotFound for non-existent event", async () => {
+        const response = await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: "not-some-event", userId: "some-user" })
+            .expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
+    });
+
+    it("returns AlreadyCheckedIn for duplicate calls", async () => {
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: "some-event", userId: "some-user" })
+            .expect(StatusCode.SuccessOK);
+
+        const response = await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: "some-event", userId: "some-user" })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
+    });
+});
