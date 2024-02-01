@@ -69,7 +69,7 @@ export class Event {
     @prop({ required: false })
     displayOnStaffCheckIn?: boolean;
 
-    @prop({ required: true, default: false })
+    @prop({ default: false })
     isPro?: boolean;
 }
 
