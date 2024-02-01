@@ -115,12 +115,12 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
     const userId: string | undefined = req.body.userId;
     const eventId: string | undefined = req.body.eventId;
 
-    if (!userId || !eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
-    }
-
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    if (!userId || !eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
     const result = await performCheckIn(eventId, userId);
