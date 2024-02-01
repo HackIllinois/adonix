@@ -21,6 +21,7 @@ export function createFilteredEventView(baseEvent: Event): FilteredEventView {
         points: baseEvent.points ?? 0,
         isAsync: baseEvent.isAsync,
         mapImageUrl: baseEvent.mapImageUrl,
+        isPro: baseEvent.isPro ?? false,
     };
     return publicEvent;
 }

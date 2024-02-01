@@ -30,4 +30,5 @@ export interface FilteredEventView {
     points: number;
     isAsync: boolean;
     mapImageUrl?: string;
+    isPro: boolean;
 }
