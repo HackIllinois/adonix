@@ -37,7 +37,7 @@ describe("PUT /staff/scan-attendee/", () => {
     });
 
     it("returns InvalidParams for missing parameters", async () => {
-        const response = await putAsAttendee("/staff/scan-attendee/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        const response = await putAsStaff("/staff/scan-attendee/").send({}).expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
     });
