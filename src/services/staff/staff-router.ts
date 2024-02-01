@@ -174,7 +174,6 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
 staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
 
-    console.log(payload.id);
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
