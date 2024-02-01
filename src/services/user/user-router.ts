@@ -5,8 +5,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 
 import { JwtPayload } from "../auth/auth-models.js";
 import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
-import { isValidAttendanceCheckIn } from "../staff/staff-lib.js";
-import { isValidAttendanceCheckInResult } from "../staff/staff-formats.js";
+import { performCheckIn } from "../staff/staff-lib.js";
 
 import { UserInfo } from "../../database/user-db.js";
 import Models from "../../database/models.js";
@@ -338,21 +337,11 @@ userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: 
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
-    const checkValidity = (await isValidAttendanceCheckIn(eventId, userId)) as isValidAttendanceCheckInResult;
-    if (!checkValidity.success) {
-        if (checkValidity.error) {
-            return next(new RouterError(checkValidity.error.statuscode, checkValidity.error.name));
-        }
-    }
+    const result = await performCheckIn(eventId, userId);
 
-    const userAttendance = await Models.UserAttendance.findOne({ userId: userId });
-    if (!userAttendance) {
-        await Models.UserAttendance.create({ userId: userId, attendance: [eventId] });
-    } else {
-        await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } });
+    if (!result.success) {
+        return next(result.error);
     }
-
-    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } });
 
     return res.status(StatusCode.SuccessOK).json({ success: true });
 });

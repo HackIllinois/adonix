@@ -4,7 +4,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
-import { AttendanceFormat, isValidStaffShiftFormat, isValidAttendanceCheckInResult } from "./staff-formats.js";
+import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
 import Config from "../../config.js";
 
 import Models from "../../database/models.js";
@@ -14,7 +14,7 @@ import { RouterError } from "../../middleware/error-handler.js";
 import { StaffShift } from "database/staff-db.js";
 
 import { Event } from "../../database/event-db.js";
-import { isValidAttendanceCheckIn } from "./staff-lib.js";
+import { performCheckIn } from "./staff-lib.js";
 
 const staffRouter: Router = Router();
 
@@ -123,16 +123,12 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const checkValidity = (await isValidAttendanceCheckIn(eventId, userId)) as isValidAttendanceCheckInResult;
+    const result = await performCheckIn(eventId, userId);
 
-    if (!checkValidity.success) {
-        if (checkValidity.error) {
-            return next(new RouterError(checkValidity.error.statuscode, checkValidity.error.name));
-        }
+    if (!result.success) {
+        return next(result.error);
     }
 
-    await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
-    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
     return res.status(StatusCode.SuccessOK).json({ success: true });
 });
 

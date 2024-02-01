@@ -1,3 +1,4 @@
+import { RouterError } from "middleware/error-handler.js";
 import { StaffShift } from "../../database/staff-db.js";
 import { isArrayOfType, isString } from "../../formatTools.js";
 
@@ -27,7 +28,7 @@ export interface EventError {
     name: string;
 }
 
-export interface isValidAttendanceCheckInResult {
+export interface checkInResult {
     success: boolean;
-    error?: EventError;
+    error?: RouterError;
 }
