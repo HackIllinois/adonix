@@ -339,7 +339,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     // filter events to only show public data
     const filteredPublicEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
 
-    return res.status(StatusCode.SuccessOK).send({events: filteredPublicEvents});
+    return res.status(StatusCode.SuccessOK).send({ events: filteredPublicEvents });
 });
 
 /**
