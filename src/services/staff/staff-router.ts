@@ -142,7 +142,7 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
     const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
 
     if (!data) {
-        return next(new RouterError(StatusCode.ServerErrorInternal, "ShiftNotFound"));
+        return res.status(StatusCode.SuccessOK).json({shifts: []});
     }
 
     const shiftIds: string[] = data.shifts;
@@ -152,7 +152,7 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
         eventId: { $in: shiftIds },
     });
 
-    return res.status(StatusCode.SuccessOK).json(events);
+    return res.status(StatusCode.SuccessOK).json({shifts: events});
 });
 
 staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
