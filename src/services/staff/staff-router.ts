@@ -132,6 +132,45 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
     return res.status(StatusCode.SuccessOK).json({ success: true });
 });
 
+/**
+ * @api {get} /staff/shift/ GET /staff/shift/
+ * @apiGroup Staff
+ * @apiDescription Get all shifts for a staff
+ *
+ * @apiHeader {String} Authorization JWT Token with staff permissions.
+ *
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {
+    "shifts": [
+        {
+            "isPro": false,
+            "_id": "65b1a1d8f01ffc67a27d6f09",
+            "eventId": "651df5d3b9dfdaceb46a3120",
+            "isStaff": true,
+            "name": "Test Staff Event 1",
+            "description": "Staff",
+            "startTime": 1698038079,
+            "endTime": 1698038079,
+            "eventType": "OTHER",
+            "exp": 10000,
+            "locations": [],
+            "isAsync": false,
+            "mapImageUrl": "test",
+            "points": 0,
+            "isPrivate": true,
+            "displayOnStaffCheckIn": false
+        }
+    ]
+ * }
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 403 Forbidden
+ *     {"error": "Forbidden"}
+ */
+
 staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
 
@@ -154,6 +193,25 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
 
     return res.status(StatusCode.SuccessOK).json({ shifts: events });
 });
+
+/**
+ * @api {post} /staff/event/ POST /staff/event/
+ * @apiGroup Staff
+ * @apiDescription Add shifts for a given staff member
+ *
+ * @apiHeader {String} Authorization JWT Token with staff/admin permissions.
+ *
+ * @apiBody {String} userId (optional - admin only) The userId of the staff to add shifts for
+ * @apiBody {String[]} shifts String[] of shift IDs
+ *
+ * @apiSuccessExample Example Success Response:
+ * HTTP/1.1 200 OK
+ * {success: true}
+ *
+ * @apiUse strongVerifyErrors
+ * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
+ * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
+ */
 
 staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
