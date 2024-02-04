@@ -343,7 +343,13 @@ userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: 
         return next(result.error);
     }
 
-    return res.status(StatusCode.SuccessOK).json({ success: true });
+    const eventData = await Models.Event.findOne({ eventId: eventId });
+    if (!eventData) {
+        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NonexistantEvent"));
+    }
+    const points = eventData["points"];
+
+    return res.status(StatusCode.SuccessOK).json({ success: true, points: points });
 });
 
 export default userRouter;

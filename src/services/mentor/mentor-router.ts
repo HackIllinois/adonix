@@ -249,7 +249,7 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
         { new: true },
     );
 
-    return res.status(StatusCode.SuccessOK).send("Success");
+    return res.status(StatusCode.SuccessOK).send({ success: true, points: pointCoinUpdateValue });
 });
 
 export default mentorRouter;
