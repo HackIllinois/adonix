@@ -2,7 +2,7 @@ import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../testTools.js";
 
 import { AttendeeFollowing } from "database/attendee-db.js";
-import { EventFollowers, EventAttendance } from "database/event-db.js";
+import { EventFollowers, EventAttendance, Event } from "database/event-db.js";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import { AuthInfo } from "../../database/auth-db.js";
@@ -44,6 +44,31 @@ const TESTER_EVENT_ATTENDANCE = {
     attendees: [],
 } satisfies EventAttendance;
 
+const TESTER_EVENT = {
+    eventId: "some-event",
+    isStaff: false,
+    name: "Example Name",
+    description: "Example Description",
+    startTime: 1707069600,
+    endTime: 1707069900,
+    eventType: "WORKSHOP",
+    locations: [
+        {
+            description: "Siebel ",
+            tags: [],
+            latitude: 40.113812,
+            longitude: -88.224937,
+        },
+    ],
+    isAsync: false,
+    mapImageUrl: "",
+    sponsor: "",
+    points: 100,
+    isPrivate: false,
+    displayOnStaffCheckIn: false,
+    isPro: false,
+} satisfies Event;
+
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.UserInfo.create(TESTER_USER);
@@ -52,6 +77,7 @@ beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
+    await Models.Event.create(TESTER_EVENT);
 });
 
 describe("GET /user/qr/", () => {

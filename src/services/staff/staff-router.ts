@@ -109,6 +109,9 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 404 Not Found
  *     {"error": "EventNotFound"}
+ * @apiErrorExample Example Error Response:
+ *     HTTP/1.1 424 Failed Dependency
+ *     {"error": "NoRegistrationData"}
  */
 staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
@@ -129,7 +132,14 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
         return next(result.error);
     }
 
-    return res.status(StatusCode.SuccessOK).json({ success: true });
+    const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
+
+    if (!registrationData) {
+        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NoRegistrationData"));
+    }
+    const dietaryRestrictions = registrationData["dietaryRestrictions"];
+
+    return res.status(StatusCode.SuccessOK).json({ success: true, dietaryRestrictions: dietaryRestrictions });
 });
 
 /**
