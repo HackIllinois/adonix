@@ -109,7 +109,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
  * @apiErrorExample Example Error Response:
  *     HTTP/1.1 404 Not Found
  *     {"error": "EventNotFound"}
-  * @apiErrorExample Example Error Response:
+ * @apiErrorExample Example Error Response:
  *     HTTP/1.1 424 Failed Dependency
  *     {"error": "NoRegistrationData"}
  */
