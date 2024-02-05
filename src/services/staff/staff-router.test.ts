@@ -54,7 +54,6 @@ describe("PUT /staff/scan-attendee/", () => {
     });
 
     it("works for a staff", async () => {
-
         await putAsStaff("/staff/scan-attendee/")
             .send({ eventId: "some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.SuccessOK);
