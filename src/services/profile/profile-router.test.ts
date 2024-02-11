@@ -12,11 +12,11 @@ const TESTER_USER = {
     discordTag: TESTER.discordTag,
     points: 0,
     coins: 0,
+    foodWave: 1,
 } satisfies AttendeeProfile;
 
 const TESTER_METADATA = {
     userId: TESTER.id,
-    foodWave: 0,
 } satisfies AttendeeMetadata;
 
 const TESTER_USER_2 = {
@@ -26,6 +26,7 @@ const TESTER_USER_2 = {
     discordTag: TESTER.discordTag,
     points: 12,
     coins: 12,
+    foodWave: 2,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -35,6 +36,7 @@ const TESTER_USER_3 = {
     discordTag: TESTER.discordTag,
     points: 12,
     coins: 12,
+    foodWave: 2,
 } satisfies AttendeeProfile;
 
 const profile: AttendeeProfile = {
@@ -44,6 +46,7 @@ const profile: AttendeeProfile = {
     discordTag: TESTER.discordTag,
     points: 0,
     coins: 0,
+    foodWave: 1,
 };
 
 beforeEach(async () => {
