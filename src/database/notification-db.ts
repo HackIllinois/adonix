@@ -19,5 +19,5 @@ export class NotificationMessages {
     public body: string;
 
     @prop({ required: true })
-    public recipientCount: number; 
+    public recipientCount: number;
 }

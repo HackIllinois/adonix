@@ -11,7 +11,6 @@ export interface NotificationSendFormat {
     body: string;
 }
 
-
 /* eslint-disable no-magic-numbers */
 export function isValidNotificationSendFormat(obj: NotificationSendFormat): boolean {
     const validCt = (obj.role ? 1 : 0) + (obj.eventId ? 1 : 0) + (obj.foodWave ? 1 : 0) + (obj.staffShift ? 1 : 0);
@@ -42,6 +41,6 @@ export function isValidNotificationSendFormat(obj: NotificationSendFormat): bool
     if (!isString(obj.body)) {
         return false;
     }
-    
+
     return true;
 }

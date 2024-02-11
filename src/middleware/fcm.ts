@@ -12,7 +12,8 @@ export function NotificationsMiddleware(_: Request, res: Response, next: NextFun
             credential: admin.credential.cert(serviceAccount),
             databaseURL: `https://${projectName}.firebaseio.com/`,
         });
-``    }
+        ``;
+    }
 
     res.locals.fcm = admin;
     next();

@@ -128,10 +128,10 @@ export default class Models {
     );
 
     static NotificationMessages: Model<NotificationMessages> = getModel(
-        NotificationMessages, 
-        Group.NOTIFICATION, 
+        NotificationMessages,
+        Group.NOTIFICATION,
         NotificationCollection.MESSAGES,
-    )
+    );
 
     // Registration
     static RegistrationApplication: Model<RegistrationApplication> = getModel(
