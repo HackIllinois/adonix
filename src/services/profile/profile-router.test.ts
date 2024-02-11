@@ -157,6 +157,7 @@ describe("GET /profile/leaderboard", () => {
                 discordTag: TESTER.discordTag,
                 points: i,
                 coins: i,
+                foodWave: 1,
             });
         }
 
