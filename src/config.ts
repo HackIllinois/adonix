@@ -75,8 +75,15 @@ const Config = {
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
 
     /* OAuth, Keys, & Permissions */
+    CORS: {
+        PROD_REGEX: requireEnv("PROD_REGEX"),
+        DEPLOY_REGEX: requireEnv("DEPLOY_REGEX"),
+    },
+
     DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
     DB_PARAMS: "?retryWrites=true&w=majority",
+
+    FCM_SERVICE_ACCOUNT: requireEnv("FCM_SERVICE_ACCOUNT"),
 
     SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
     SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",
@@ -88,11 +95,6 @@ const Config = {
     GOOGLE_OAUTH_SECRET: requireEnv("GOOGLE_OAUTH_SECRET"),
 
     JWT_SECRET: requireEnv("JWT_SECRET"),
-
-    CORS: {
-        PROD_REGEX: requireEnv("PROD_REGEX"),
-        DEPLOY_REGEX: requireEnv("DEPLOY_REGEX"),
-    },
 
     SYSTEM_ADMIN_LIST: requireEnv("SYSTEM_ADMINS").split(","),
 

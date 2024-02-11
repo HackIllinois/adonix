@@ -11,18 +11,20 @@ import { ShopItem } from "./shop-db.js";
 import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types.js";
 import { StaffShift } from "./staff-db.js";
+import { NotificationMappings, NotificationMessages } from "./notification-db.js";
 
 // Groups for collections
 export enum Group {
     AUTH = "auth",
-    USER = "user",
     EVENT = "event",
     ADMISSION = "admission",
     ATTENDEE = "attendee",
     NEWSLETTER = "newsletter",
+    NOTIFICATION = "notification",
     REGISTRATION = "registration",
     SHOP = "shop",
     STAFF = "staff",
+    USER = "user",
 }
 
 // Collections for each database, where models will be stored
@@ -51,6 +53,11 @@ enum NewsletterCollection {
     SUBSCRIPTIONS = "subscriptions",
 }
 
+enum NotificationCollection {
+    MAPPINGS = "mappings",
+    MESSAGES = "messages",
+}
+
 enum RegistrationCollection {
     APPLICATIONS = "applications",
 }
@@ -59,13 +66,13 @@ enum ShopCollection {
     ITEMS = "items",
 }
 
+enum StaffCollection {
+    SHIFT = "shift",
+}
+
 enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
-}
-
-enum StaffCollection {
-    SHIFT = "shift",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -113,6 +120,19 @@ export default class Models {
         NewsletterCollection.SUBSCRIPTIONS,
     );
 
+    // Notification
+    static NotificationMappings: Model<NotificationMappings> = getModel(
+        NotificationMappings,
+        Group.NOTIFICATION,
+        NotificationCollection.MAPPINGS,
+    );
+
+    static NotificationMessages: Model<NotificationMessages> = getModel(
+        NotificationMessages, 
+        Group.NOTIFICATION, 
+        NotificationCollection.MESSAGES,
+    )
+
     // Registration
     static RegistrationApplication: Model<RegistrationApplication> = getModel(
         RegistrationApplication,
@@ -123,10 +143,10 @@ export default class Models {
     // Shop
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
 
+    // Staff
+    static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
+
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
-
-    // Staff
-    static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
 }
