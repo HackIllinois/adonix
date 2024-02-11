@@ -4,7 +4,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
 
-import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../auth/auth-lib.js"; 
+import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../auth/auth-lib.js";
 import { JwtPayload } from "../auth/auth-models.js";
 
 import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
@@ -323,7 +323,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     let publicEvents: Event[];
 
     if (hasStaffPerms(payload)) {
-        publicEvents = await Models.Event.find( { eventType: { $ne: "STAFFSHIFT" } } );
+        publicEvents = await Models.Event.find({ eventType: { $ne: "STAFFSHIFT" } });
         return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
     } else if (isPro(payload) || !isAttendee(payload)) {
         publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
