@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { putAsAttendee, putAsStaff } from "../../testTools.js";
+import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../testTools.js";
+import { generateJwtToken } from "../auth/auth-lib.js";
 
 import { EventAttendance } from "database/event-db.js";
 import { StatusCode } from "status-code-enum";
@@ -45,9 +46,16 @@ beforeEach(async () => {
 });
 
 describe("PUT /staff/scan-attendee/", () => {
+    const attendeeJWT = generateJwtToken({
+        id: TESTER_REGISTRATION.userId,
+        email: "irrelevant@gmail.com",
+        provider: "github",
+        roles: AUTH_ROLE_TO_ROLES["ATTENDEE"],
+    });
+
     it("works for a staff", async () => {
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "some-event", userId: "some-user" })
+            .send({ eventId: "some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.SuccessOK);
 
         const eventAttendance = await Models.EventAttendance.findOne({ eventId: "some-event" });
@@ -59,7 +67,7 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("returns Forbidden for non-staff", async () => {
         const response = await putAsAttendee("/staff/scan-attendee/")
-            .send({ eventId: "some-event", userId: "some-user" })
+            .send({ eventId: "some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
@@ -73,7 +81,7 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("returns EventNotFound for non-existent event", async () => {
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "not-some-event", userId: "some-user" })
+            .send({ eventId: "not-some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
@@ -81,11 +89,11 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("returns AlreadyCheckedIn for duplicate calls", async () => {
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "some-event", userId: "some-user" })
+            .send({ eventId: "some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.SuccessOK);
 
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "some-event", userId: "some-user" })
+            .send({ eventId: "some-event", attendeeJWT: attendeeJWT as string })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");

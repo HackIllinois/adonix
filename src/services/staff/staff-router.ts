@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt.js";
 import { JwtPayload } from "../auth/auth-models.js";
+import { decodeJwtToken } from "../auth/auth-lib.js";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 
 import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
@@ -85,7 +86,7 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
  *
  * @apiHeader {String} Authorization JWT Token with staff permissions.
  *
- * @apiBody {String} userId The attendee to check in.
+ * @apiBody {String} attendeeJWT The JWT of the attendee to check in.
  * @apiBody {String} eventId The unique identifier of the event.
  *
  * @apiSuccessExample Example Success Response:
@@ -115,16 +116,19 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
  */
 staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
-    const userId: string | undefined = req.body.userId;
+    const attendeeJWT: string | undefined = req.body.attendeeJWT;
     const eventId: string | undefined = req.body.eventId;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    if (!userId || !eventId) {
+    if (!attendeeJWT || !eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
+
+    const attendeePayload: JwtPayload | undefined = decodeJwtToken(attendeeJWT) as JwtPayload;
+    const userId = attendeePayload.id;
 
     const result = await performCheckIn(eventId, userId);
 
