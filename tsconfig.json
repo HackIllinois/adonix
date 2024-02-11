@@ -27,7 +27,8 @@
         "noUnusedParameters": true,
         // Enabling these for mongoose
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true
+        "emitDecoratorMetadata": true,
+	"skipLibCheck": true
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules/**", "doc/", "docs/"]
