@@ -245,9 +245,8 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
     console.log(profile.avatarUrl);
 
-    //const payload: JwtPayload = res.locals.payload as JwtPayload;
-    //profile.userId = payload.id;
-    profile.userId = req.body.userId;
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    profile.userId = payload.id;
 
     const registrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
         userId: profile.userId,
