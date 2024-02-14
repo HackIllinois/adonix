@@ -139,8 +139,8 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
 userRouter.get("/following/", strongJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({userId: payload.id});
-    return res.status(StatusCode.SuccessOK).send({userId: payload.id, events: following?.following});
+    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: payload.id });
+    return res.status(StatusCode.SuccessOK).send({ userId: payload.id, events: following?.following });
 });
 
 /**
