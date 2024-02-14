@@ -265,6 +265,9 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
+    console.log("updatedEntries");
+    console.log(updateEntries);
+
     // collect emails whose status changed from TBD -> NON-TBD
     const recipients: string[] = [];
     for (let i = 0; i < updateEntries.length; ++i) {
