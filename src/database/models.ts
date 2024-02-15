@@ -4,6 +4,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 import { AuthInfo } from "./auth-db.js";
 import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
 import { AdmissionDecision } from "./admission-db.js";
+import { MentorOfficeHours } from "./mentor-db.js";
 import { Event, EventAttendance, EventFollowers } from "./event-db.js";
 import { NewsletterSubscription } from "./newsletter-db.js";
 import { RegistrationApplication } from "./registration-db.js";
@@ -19,6 +20,7 @@ export enum Group {
     EVENT = "event",
     ADMISSION = "admission",
     ATTENDEE = "attendee",
+    MENTOR = "mentor",
     NEWSLETTER = "newsletter",
     NOTIFICATION = "notification",
     REGISTRATION = "registration",
@@ -47,6 +49,10 @@ enum EventCollection {
     ATTENDANCE = "attendance",
     EVENTS = "events",
     FOLLOWERS = "followers",
+}
+
+enum MentorCollection {
+    OFFICE_HOURS = "officehours",
 }
 
 enum NewsletterCollection {
@@ -112,6 +118,9 @@ export default class Models {
     static Event: Model<Event> = getModel(Event, Group.EVENT, EventCollection.EVENTS);
     static EventAttendance: Model<EventAttendance> = getModel(EventAttendance, Group.EVENT, EventCollection.ATTENDANCE);
     static EventFollowers: Model<EventFollowers> = getModel(EventFollowers, Group.EVENT, EventCollection.FOLLOWERS);
+
+    // Mentor
+    static MentorOfficeHours: Model<MentorOfficeHours> = getModel(MentorOfficeHours, Group.MENTOR, MentorCollection.OFFICE_HOURS);
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(

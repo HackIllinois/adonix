@@ -6,6 +6,8 @@ import Config from "../../config.js";
 import { Avatars } from "../../config.js";
 import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
 import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
+import { RegistrationApplication } from "../../database/registration-db.js";
+
 import Models from "../../database/models.js";
 import { Query } from "mongoose";
 import { LeaderboardEntry } from "./profile-models.js";
@@ -246,6 +248,18 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
 
+    const registrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+        userId: profile.userId,
+    });
+    if (registrationApplication) {
+        const dietaryRestrictions: string[] = registrationApplication.dietaryRestrictions;
+        if (dietaryRestrictions.length == 0 || dietaryRestrictions[0] == "None") {
+            profile.foodWave = 2;
+        } else {
+            profile.foodWave = 1;
+        }
+    }
+
     if (!isValidProfileFormat(profile)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
@@ -258,7 +272,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 
     // Create a metadata object, and return it
     try {
-        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId, Config.DEFAULT_FOOD_WAVE);
+        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId);
         const newProfile = await Models.AttendeeProfile.create(profile);
         await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);

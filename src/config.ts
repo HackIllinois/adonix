@@ -122,6 +122,7 @@ const Config = {
     /* Misc */
     SHOP_BYTES_GEN: 2,
     EVENT_BYTES_GEN: 16,
+    MENTOR_BYTES_GEN: 16,
 
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,

@@ -323,7 +323,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     let publicEvents: Event[];
 
     if (hasStaffPerms(payload)) {
-        publicEvents = await Models.Event.find();
+        publicEvents = await Models.Event.find({ eventType: { $ne: "STAFFSHIFT" } });
         return res.status(StatusCode.SuccessOK).send({ events: publicEvents });
     } else if (isPro(payload) || !isAttendee(payload)) {
         publicEvents = await Models.Event.find({ isStaff: false, isPrivate: false });
@@ -339,7 +339,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
     // filter events to only show public data
     const filteredPublicEvents: FilteredEventView[] = publicEvents.map(createFilteredEventView);
 
-    return res.status(StatusCode.SuccessOK).send(filteredPublicEvents);
+    return res.status(StatusCode.SuccessOK).send({ events: filteredPublicEvents });
 });
 
 /**

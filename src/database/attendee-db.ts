@@ -4,12 +4,8 @@ export class AttendeeMetadata {
     @prop({ required: true })
     public userId: string;
 
-    @prop({ required: true })
-    public foodWave: number;
-
-    constructor(id: string, wave: number) {
+    constructor(id: string) {
         this.userId = id;
-        this.foodWave = wave;
     }
 }
 
@@ -31,6 +27,9 @@ export class AttendeeProfile {
 
     @prop({ required: true })
     public coins: number;
+
+    @prop({ required: true })
+    public foodWave: number;
 }
 
 export class AttendeeFollowing {
