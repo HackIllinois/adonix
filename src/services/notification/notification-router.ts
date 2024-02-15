@@ -11,17 +11,16 @@ import { NotificationsMiddleware } from "../../middleware/fcm.js";
 
 const notificationsRouter: Router = Router();
 
-notificationsRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+notificationsRouter.get("/", async (_: Request, res: Response) => {
+    // const payload: JwtPayload = res.locals.payload as JwtPayload;
 
     // if (!hasAdminPerms(payload)) {
     //     return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     // }
 
     const notifs = await Models.NotificationMessages.find();
-    
-    return res.status(StatusCode.SuccessOK).send(notifs ?? []);
 
+    return res.status(StatusCode.SuccessOK).send(notifs ?? []);
 });
 
 // register your current device token as associated with your userId
@@ -81,8 +80,8 @@ notificationsRouter.post(
         }
 
         if (sendRequest.foodWave) {
-            const foodwaves = await Models.AttendeeProfile.find({foodWave: sendRequest.foodWave});
-            const foodUserIds = foodwaves.map(x => x.userId);
+            const foodwaves = await Models.AttendeeProfile.find({ foodWave: sendRequest.foodWave });
+            const foodUserIds = foodwaves.map((x) => x.userId);
             targetUserIds = targetUserIds.concat(foodUserIds);
         }
 
