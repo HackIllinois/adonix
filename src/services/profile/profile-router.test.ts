@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { AttendeeMetadata, AttendeeProfile } from "database/attendee-db.js";
+import { AttendeeProfile } from "database/attendee-db.js";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
 import Models from "../../database/models.js";
@@ -14,10 +14,6 @@ const TESTER_USER = {
     coins: 0,
     foodWave: 1,
 } satisfies AttendeeProfile;
-
-const TESTER_METADATA = {
-    userId: TESTER.id,
-} satisfies AttendeeMetadata;
 
 const TESTER_USER_2 = {
     userId: "tester2",
@@ -51,7 +47,6 @@ const profile: AttendeeProfile = {
 
 beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_USER);
-    await Models.AttendeeMetadata.create(TESTER_METADATA);
     await Models.AttendeeProfile.create(TESTER_USER_2);
     await Models.AttendeeProfile.create(TESTER_USER_3);
 });

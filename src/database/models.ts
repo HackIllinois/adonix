@@ -2,7 +2,7 @@ import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
 import { AuthInfo } from "./auth-db.js";
-import { AttendeeFollowing, AttendeeMetadata, AttendeeProfile } from "./attendee-db.js";
+import { AttendeeFollowing, AttendeeProfile } from "./attendee-db.js";
 import { AdmissionDecision } from "./admission-db.js";
 import { MentorOfficeHours } from "./mentor-db.js";
 import { Event, EventAttendance, EventFollowers } from "./event-db.js";
@@ -31,7 +31,6 @@ export enum Group {
 
 // Collections for each database, where models will be stored
 enum AttendeeCollection {
-    METADATA = "metadata",
     PROFILE = "profile",
     FOLLOWING = "following",
 }
@@ -96,7 +95,6 @@ function getModel<T>(of: AnyParamConstructor<any>, group: Group, collection: str
 // Define models
 export default class Models {
     // Attendee
-    static AttendeeMetadata: Model<AttendeeMetadata> = getModel(AttendeeMetadata, Group.ATTENDEE, AttendeeCollection.METADATA);
     static AttendeeProfile: Model<AttendeeProfile> = getModel(AttendeeProfile, Group.ATTENDEE, AttendeeCollection.PROFILE);
     static AttendeeFollowing: Model<AttendeeFollowing> = getModel(
         AttendeeFollowing,

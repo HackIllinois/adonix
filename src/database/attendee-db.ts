@@ -1,14 +1,5 @@
 import { prop } from "@typegoose/typegoose";
 
-export class AttendeeMetadata {
-    @prop({ required: true })
-    public userId: string;
-
-    constructor(id: string) {
-        this.userId = id;
-    }
-}
-
 export class AttendeeProfile {
     @prop({ required: true })
     public userId: string;
