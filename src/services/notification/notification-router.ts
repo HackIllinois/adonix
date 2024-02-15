@@ -4,7 +4,7 @@ import { RouterError } from "../../middleware/error-handler.js";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasAdminPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
 import { StaffShift } from "database/staff-db.js";
 import { NotificationsMiddleware } from "../../middleware/fcm.js";
@@ -14,7 +14,7 @@ const notificationsRouter: Router = Router();
 notificationsRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasAdminPerms(payload)) {
+    if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
