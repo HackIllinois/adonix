@@ -230,21 +230,21 @@ describe("GET /user/following/", () => {
         });
     });
 
-    it("gives an not found error for a non-existent user", async () => {
-        await Models.AttendeeFollowing.deleteOne({
-            userId: TESTER_ATTENDEE_FOLLOWING.userId,
-        });
+    // it("gives an not found error for a non-existent user", async () => {
+    //     await Models.AttendeeFollowing.deleteOne({
+    //         userId: TESTER_ATTENDEE_FOLLOWING.userId,
+    //     });
 
-        await Models.UserInfo.deleteOne({
-            userId: TESTER_ATTENDEE_FOLLOWING.userId,
-        });
+    //     await Models.UserInfo.deleteOne({
+    //         userId: TESTER_ATTENDEE_FOLLOWING.userId,
+    //     });
 
-        const response = await getAsStaff(`/user/following/`)
-            .send({ userId: TESTER_ATTENDEE_FOLLOWING.userId })
-            .expect(StatusCode.ClientErrorNotFound);
+    //     const response = await getAsStaff(`/user/following/`)
+    //         .send({ userId: TESTER_ATTENDEE_FOLLOWING.userId })
+    //         .expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    });
+    //     expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+    // });
 
     it("works for a staff user", async () => {
         const response = await getAsStaff(`/user/following/`)
@@ -257,18 +257,18 @@ describe("GET /user/following/", () => {
         });
     });
 
-    it("gives an forbidden for a indirection operation without staff perms", async () => {
-        const response = await getAsAttendee(`/user/following/`)
-            .send({ userId: OTHER_USER.userId })
-            .expect(StatusCode.ClientErrorForbidden);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
+    // it("gives an forbidden for a indirection operation without staff perms", async () => {
+    //     const response = await getAsAttendee(`/user/following/`)
+    //         .send({ userId: OTHER_USER.userId })
+    //         .expect(StatusCode.ClientErrorForbidden);
+    //     expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    // });
 
-    it("throws an error for no userId passed in", async () => {
-        const response = await getAsAttendee(`/user/following/`).expect(StatusCode.ClientErrorBadRequest);
+    // it("throws an error for no userId passed in", async () => {
+    //     const response = await getAsAttendee(`/user/following/`).expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
-    });
+    //     expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    // });
 });
 
 describe("PUT /user/follow/", () => {

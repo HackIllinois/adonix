@@ -124,14 +124,9 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
 /**
  * @api {get} /user/following/ GET /user/following/
  * @apiGroup User
- * @apiDescription Get events that a specific user is following.
+ * @apiDescription Get events that the given user is following
  *
- * @apiHeader {String} Authorization User's JWT Token with staff permissions.
- * @apiBody {String} userId The unique identifier of the user.
- * @apiParamExample {json} Request-Example:
- *     {
- *       "userId": "provider00001"
- *     }
+ * @apiHeader {String} Authorization User's JWT Token
  * @apiSuccess (200: Success) {String} userId ID of the user
  * @apiSuccess (200: Success) {String[]} following Events that the user is following AFTER the operation is performed.
  * @apiSuccessExample {json} Example Success:
@@ -140,30 +135,12 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
  		"following": ["event1", "event2", "event3"]
  * 	}
  * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} BadRequest No userId passed in.
- * @apiError (404: Not Found) {String} UserNotFound User with the given ID not found.
- * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
 */
-userRouter.get("/following/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+userRouter.get("/following/", strongJwtVerification, async (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string | undefined = req.body.userId;
 
-    if (!userId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
-    }
-
-    // Reject request if target user isn't the current user and we're not staff
-    if (payload.id != userId && !hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    const userExists: boolean = (await Models.UserInfo.findOne({ userId: userId })) ?? false;
-    if (!userExists) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-    }
-
-    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: userId });
-    return res.status(StatusCode.SuccessOK).send({ userId: userId, events: following?.following || [] });
+    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: payload.id });
+    return res.status(StatusCode.SuccessOK).send({ userId: payload.id, events: following?.following });
 });
 
 /**
