@@ -321,7 +321,7 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
             },
         );
 
-        const itemName = await Models.ShopItem.findOne({ itemId: itemId });
+        const itemName = await Models.ShopItem.findOne({ itemId: itemId }).select("name");
 
         // decrement attendee coins
         if (updatedShopQuantity) {
