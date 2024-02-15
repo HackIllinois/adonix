@@ -263,7 +263,7 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
 });
 
 /**
- * @api {post} /shop/item/buy/:ITEMID/ POST /shop/item/buy/:ITEMID/
+ * @api {post} /shop/item/buy/ POST /shop/item/buy/
  * @apiGroup Shop
  * @apiDescription Purchase item at the point shop using provided QR code.
  *
