@@ -329,7 +329,7 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
         }
         return res
             .status(StatusCode.SuccessOK)
-            .send({ success: true, itemName: targetItem ? ["name"] : "Item Doesn't Exist :(" });
+            .send({ success: true, itemName: targetItem ? targetItem["name"] : "Item Doesn't Exist :(" });
     }
 
     return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
