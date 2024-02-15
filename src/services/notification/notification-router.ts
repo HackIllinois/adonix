@@ -11,12 +11,12 @@ import { NotificationsMiddleware } from "../../middleware/fcm.js";
 
 const notificationsRouter: Router = Router();
 
-notificationsRouter.get("/", async (_: Request, res: Response) => {
-    // const payload: JwtPayload = res.locals.payload as JwtPayload;
+notificationsRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    // if (!hasAdminPerms(payload)) {
-    //     return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    // }
+    if (!hasAdminPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
 
     const notifs = await Models.NotificationMessages.find();
 
