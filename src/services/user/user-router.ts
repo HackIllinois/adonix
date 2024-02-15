@@ -190,10 +190,14 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const eventId: string | undefined = req.body.eventId;
 
+    if (!eventId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
+    }
+
     const eventExists: EventFollowers | null = await Models.EventFollowers.findOneAndUpdate(
         { eventId: eventId },
         { $addToSet: { followers: payload.id } },
-        { new: true },
+        { new: true, upsert: true },
     );
 
     if (!eventExists) {

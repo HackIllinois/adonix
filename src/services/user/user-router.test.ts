@@ -280,16 +280,22 @@ describe("PUT /user/follow/", () => {
         TESTER_ATTENDEE_FOLLOWING.following.pop();
     });
 
-    it("gives an not found error for a non-existent event", async () => {
+    it("works for a non-existent event", async () => {
         await Models.EventFollowers.deleteOne({
             eventId: TESTER_EVENT_FOLLOWING.eventId,
         });
 
         const response = await putAsAttendee(`/user/follow/`)
             .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.ClientErrorNotFound);
+            .expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_ATTENDEE_FOLLOWING);
+
+        const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
+        expect(updatedEvents?.following).toContain(TESTER_EVENT_FOLLOWING.eventId);
+
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
     });
 
     it("works for an attendee user", async () => {
