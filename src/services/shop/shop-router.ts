@@ -278,7 +278,7 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  * }
  *
  * @apiUse strongVerifyErrors
- * @apiError (200: Success) {String} Success Purchase was successful.
+ * @apiError (200: Success) {String} Success Purchase was successful. Returns purchased item name on success.
  * @apiError (404: Forbidden) {String} AttendeeProfileNotFound User has no attendee profile.
  * @apiError (404: Not Found) {String} ItemNotFound Item with itemId not found or already purchased.
  * @apiError (404: Not Found) {String} InvalidUniqueItem This unique item is already purchased or doesn't exist.
@@ -321,11 +321,13 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
             },
         );
 
+        const itemName = await Models.ShopItem.findOne({ itemId: itemId });
+
         // decrement attendee coins
         if (updatedShopQuantity) {
             await updateCoins(userId, -itemFormat.price).then(console.error);
         }
-        return res.status(StatusCode.SuccessOK).send({ success: true });
+        return res.status(StatusCode.SuccessOK).send({ success: true, itemName: itemName });
     }
 
     return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
