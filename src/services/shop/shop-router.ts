@@ -321,13 +321,15 @@ shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Re
             },
         );
 
-        const itemName = await Models.ShopItem.findOne({ itemId: itemId }).select("name");
+        const targetItem = await Models.ShopItem.findOne({ itemId: itemId });
 
         // decrement attendee coins
         if (updatedShopQuantity) {
             await updateCoins(userId, -itemFormat.price).then(console.error);
         }
-        return res.status(StatusCode.SuccessOK).send({ success: true, itemName: itemName });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ success: true, itemName: targetItem ? ["name"] : "Item Doesn't Exist :(" });
     }
 
     return next(new RouterError(StatusCode.ClientErrorNotFound, "InvalidUniqueItem"));
