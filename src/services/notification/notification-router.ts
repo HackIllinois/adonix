@@ -4,12 +4,24 @@ import { RouterError } from "../../middleware/error-handler.js";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasAdminPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
 import { StaffShift } from "database/staff-db.js";
 import { NotificationsMiddleware } from "../../middleware/fcm.js";
 
 const notificationsRouter: Router = Router();
+
+notificationsRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    if (!hasStaffPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const notifs = await Models.NotificationMessages.find();
+
+    return res.status(StatusCode.SuccessOK).send(notifs ?? []);
+});
 
 // register your current device token as associated with your userId
 notificationsRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
@@ -67,7 +79,11 @@ notificationsRouter.post(
             targetUserIds = targetUserIds.concat(staffUserIds);
         }
 
-        // TODO: WAIT ON FOOD WAVE STUFF
+        if (sendRequest.foodWave) {
+            const foodwaves = await Models.AttendeeProfile.find({ foodWave: sendRequest.foodWave });
+            const foodUserIds = foodwaves.map((x) => x.userId);
+            targetUserIds = targetUserIds.concat(foodUserIds);
+        }
 
         const messageTemplate = {
             notification: {

@@ -5,7 +5,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 import Config from "../../config.js";
 import { Avatars } from "../../config.js";
 import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
-import { AttendeeMetadata, AttendeeProfile } from "../../database/attendee-db.js";
+import { AttendeeProfile } from "../../database/attendee-db.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
 
 import Models from "../../database/models.js";
@@ -272,9 +272,7 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
 
     // Create a metadata object, and return it
     try {
-        const profileMetadata: AttendeeMetadata = new AttendeeMetadata(profile.userId);
         const newProfile = await Models.AttendeeProfile.create(profile);
-        await Models.AttendeeMetadata.create(profileMetadata);
         return res.status(StatusCode.SuccessOK).send(newProfile);
     } catch (error) {
         console.error(error);
@@ -304,9 +302,8 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
     const decodedData: JwtPayload = res.locals.payload as JwtPayload;
 
     const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
-    const attendeeMetadataDeleteResponse: DeleteResult = await Models.AttendeeMetadata.deleteOne({ userId: decodedData.id });
 
-    if (attendeeMetadataDeleteResponse.deletedCount == 0 || attendeeProfileDeleteResponse.deletedCount == 0) {
+    if (attendeeProfileDeleteResponse.deletedCount == 0) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeNotFound"));
     }
     return res.status(StatusCode.SuccessOK).send({ success: true });
