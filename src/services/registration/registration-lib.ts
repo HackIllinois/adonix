@@ -7,9 +7,7 @@ export function getApplication(userId: string): Promise<RegistrationApplication 
 }
 
 export function isRegistrationAlive(): boolean {
-    const targetDateTime = new Date(Config.REGISTRATION_CLOSE_DATETIME);
-    const currentDate = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
-    const currentDateTime = new Date(currentDate + "-06:00");
+    const currentDateTime = new Date().getTime();
 
-    return currentDateTime <= targetDateTime;
+    return currentDateTime <= Config.REGISTRATION_CLOSE_TIME;
 }
