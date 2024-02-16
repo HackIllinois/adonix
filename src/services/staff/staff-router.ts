@@ -139,11 +139,11 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
     const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
 
     if (!registrationData) {
-        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NoRegistrationData"));
+        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
     const dietaryRestrictions = registrationData["dietaryRestrictions"];
 
-    return res.status(StatusCode.SuccessOK).json({ success: true, dietaryRestrictions: dietaryRestrictions });
+    return res.status(StatusCode.SuccessOK).json({ success: true, ...result.profile, dietaryRestrictions: dietaryRestrictions });
 });
 
 /**

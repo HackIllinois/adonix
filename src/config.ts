@@ -129,6 +129,7 @@ const Config = {
     MAX_SHOP_STOCK_PER_ITEM: 128,
 
     RANKING_OFFSET: 1,
+    REGISTRATION_CLOSE_DATETIME: "2024-02-16T00:06:15-06:00",
 };
 
 export default Config;
