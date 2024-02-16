@@ -13,6 +13,7 @@ import { UserAttendance, UserInfo } from "./user-db.js";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types.js";
 import { StaffShift } from "./staff-db.js";
 import { NotificationMappings, NotificationMessages } from "./notification-db.js";
+import { PuzzleItem } from "./puzzle-db.js";
 
 // Groups for collections
 export enum Group {
@@ -23,6 +24,7 @@ export enum Group {
     MENTOR = "mentor",
     NEWSLETTER = "newsletter",
     NOTIFICATION = "notification",
+    PUZZLE = "puzzle",
     REGISTRATION = "registration",
     SHOP = "shop",
     STAFF = "staff",
@@ -61,6 +63,10 @@ enum NewsletterCollection {
 enum NotificationCollection {
     MAPPINGS = "mappings",
     MESSAGES = "messages",
+}
+
+enum PuzzleCollection {
+    RUNES_AND_RIDDLES = "runesriddles",
 }
 
 enum RegistrationCollection {
@@ -139,6 +145,9 @@ export default class Models {
         Group.NOTIFICATION,
         NotificationCollection.MESSAGES,
     );
+
+    // Puzzle
+    static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);
 
     // Registration
     static RegistrationApplication: Model<RegistrationApplication> = getModel(

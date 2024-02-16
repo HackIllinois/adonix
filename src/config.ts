@@ -103,6 +103,21 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_BUCKET_NAME: requireEnv("S3_BUCKET_NAME"),
 
+    // Runes and Riddles
+    PUZZLE: [
+        requireEnv("QID1"),
+        requireEnv("QID2"),
+        requireEnv("QID3"),
+        requireEnv("QID4"),
+        requireEnv("QID5"),
+        requireEnv("QID6"),
+        requireEnv("QID7"),
+        requireEnv("QID8"),
+        requireEnv("QID9"),
+    ],
+    TRUE_VALUE: 1,
+    FALSE_VALUE: 0,
+
     /* Timings */
     MILLISECONDS_PER_SECOND: 1000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
