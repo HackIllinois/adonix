@@ -17,8 +17,14 @@ import { JwtPayload } from "../auth/auth-models.js";
 
 import { sendMail } from "../mail/mail-lib.js";
 import { MailInfoFormat } from "../mail/mail-formats.js";
+import { isRegistrationAlive } from "./registration-lib.js";
 
 const registrationRouter: Router = Router();
+
+registrationRouter.get("/status/", async (_: Request, res: Response) => {
+    const isAlive = isRegistrationAlive();
+    return res.status(StatusCode.SuccessOK).send({ alive: isAlive });
+});
 
 /**
  * @api {get} /registration/ GET /registration/
@@ -297,6 +303,10 @@ registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Re
  * @apiError (500: Internal Server Error) {String} InternalError Server-side error
  **/
 registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
+    if (!isRegistrationAlive()) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "RegistrationClosed"));
+    }
+
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const userId: string = payload.id;
 

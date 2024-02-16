@@ -5,7 +5,8 @@ import { generateJwtToken } from "../auth/auth-lib.js";
 import { EventAttendance } from "database/event-db.js";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
-import { RegistrationApplication } from "database/registration-db.js";
+import { RegistrationApplication } from "../../database/registration-db.js";
+import { AttendeeProfile } from "../../database/attendee-db.js";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -39,10 +40,21 @@ const TESTER_REGISTRATION = {
     optionalEssay: "Optional Essay",
 } satisfies RegistrationApplication;
 
+const TESTER_PROFILE = {
+    userId: TESTER_REGISTRATION.userId,
+    displayName: "TestDisplayName",
+    avatarUrl: "TestURL",
+    discordTag: "TestTag",
+    points: 0,
+    coins: 0,
+    foodWave: 0,
+} satisfies AttendeeProfile;
+
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
     await Models.RegistrationApplication.create(TESTER_REGISTRATION);
+    await Models.AttendeeProfile.create(TESTER_PROFILE);
 });
 
 describe("PUT /staff/scan-attendee/", () => {

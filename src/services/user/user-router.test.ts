@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../testTools.js";
 
-import { AttendeeFollowing } from "database/attendee-db.js";
+import { AttendeeFollowing, AttendeeProfile } from "database/attendee-db.js";
 import { EventFollowers, EventAttendance, Event } from "database/event-db.js";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config.js";
@@ -44,6 +44,16 @@ const TESTER_EVENT_ATTENDANCE = {
     attendees: [],
 } satisfies EventAttendance;
 
+const TESTER_PROFILE = {
+    userId: TESTER_USER.userId,
+    displayName: "TestDisplayName",
+    avatarUrl: "TestURL",
+    discordTag: "TestTag",
+    points: 0,
+    coins: 0,
+    foodWave: 0,
+} satisfies AttendeeProfile;
+
 const TESTER_EVENT = {
     eventId: "some-event",
     isStaff: false,
@@ -78,6 +88,7 @@ beforeEach(async () => {
     await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
     await Models.Event.create(TESTER_EVENT);
+    await Models.AttendeeProfile.create(TESTER_PROFILE);
 });
 
 describe("GET /user/qr/", () => {
@@ -368,13 +379,13 @@ describe("PUT /user/unfollow/", () => {
 
 describe("PUT /user/scan-event/", () => {
     it("works for an attendee", async () => {
-        await putAsAttendee("/user/scan-event/").send({ eventId: "some-event" }).expect(StatusCode.SuccessOK);
+        await putAsAttendee("/user/scan-event/").send({ eventId: TESTER_EVENT.eventId }).expect(StatusCode.SuccessOK);
 
-        const eventAttendance = await Models.EventAttendance.findOne({ eventId: "some-event" });
+        const eventAttendance = await Models.EventAttendance.findOne({ eventId: TESTER_EVENT.eventId });
         const userAttendance = await Models.UserAttendance.findOne({ userId: TESTER.id });
 
         expect(eventAttendance?.attendees).toContain(TESTER.id);
-        expect(userAttendance?.attendance).toContain("some-event");
+        expect(userAttendance?.attendance).toContain(TESTER_EVENT.eventId);
     });
 
     it("returns InvalidParams for missing parameters", async () => {
@@ -386,9 +397,9 @@ describe("PUT /user/scan-event/", () => {
     it("returns EventNotFound for non-existent event", async () => {
         const response = await putAsAttendee("/user/scan-event/")
             .send({ eventId: "not-some-event" })
-            .expect(StatusCode.ClientErrorNotFound);
+            .expect(StatusCode.ClientErrorFailedDependency);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NonexistentEvent");
     });
 
     it("returns AlreadyCheckedIn for duplicate calls", async () => {

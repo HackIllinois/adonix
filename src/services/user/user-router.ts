@@ -14,6 +14,7 @@ import { AttendeeFollowing } from "database/attendee-db.js";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler.js";
 import { EventFollowers } from "../../database/event-db.js";
+
 const userRouter: Router = Router();
 
 /**
@@ -318,19 +319,18 @@ userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: 
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
     }
 
-    const result = await performCheckIn(eventId, userId);
+    const eventData = await Models.Event.findOne({ eventId: eventId });
+    if (!eventData) {
+        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NonexistentEvent"));
+    }
+
+    const result = await performCheckIn(eventId, userId, eventData.points);
 
     if (!result.success) {
         return next(result.error);
     }
 
-    const eventData = await Models.Event.findOne({ eventId: eventId });
-    if (!eventData) {
-        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NonexistantEvent"));
-    }
-    const points = eventData["points"];
-
-    return res.status(StatusCode.SuccessOK).json({ success: true, points: points });
+    return res.status(StatusCode.SuccessOK).json({ success: true, ...result.profile });
 });
 
 export default userRouter;

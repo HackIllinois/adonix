@@ -129,6 +129,7 @@ const Config = {
     MAX_SHOP_STOCK_PER_ITEM: 128,
 
     RANKING_OFFSET: 1,
+    REGISTRATION_CLOSE_TIME: 1708149975000,
 };
 
 export default Config;
