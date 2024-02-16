@@ -11,5 +11,5 @@ export function isRegistrationAlive(): boolean {
     const currentDate = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
     const currentDateTime = new Date(currentDate + "-06:00");
 
-    return currentDateTime < targetDateTime;
+    return currentDateTime <= targetDateTime;
 }

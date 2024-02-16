@@ -321,7 +321,7 @@ userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: 
 
     const eventData = await Models.Event.findOne({ eventId: eventId });
     if (!eventData) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "NonexistentEvent"));
+        return next(new RouterError(StatusCode.ClientErrorFailedDependency, "NonexistentEvent"));
     }
 
     const result = await performCheckIn(eventId, userId, eventData.points);
