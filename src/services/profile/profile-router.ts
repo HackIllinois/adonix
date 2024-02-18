@@ -4,7 +4,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 
 import Config from "../../config.js";
 import { Avatars } from "../../config.js";
-import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
+import { isValidLimit, updatePointsAndCoins } from "./profile-lib.js";
 import { AttendeeProfile } from "../../database/attendee-db.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
 
@@ -357,10 +357,7 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
     }
 
-    await updatePoints(userId, points);
-    if (points > 0) {
-        await updateCoins(userId, points);
-    }
+    await updatePointsAndCoins(userId, points);
 
     const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 

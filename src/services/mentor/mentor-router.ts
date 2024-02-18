@@ -7,7 +7,7 @@ import { JwtPayload, Role } from "../auth/auth-models.js";
 import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { NextFunction } from "express-serve-static-core";
-import { updatePoints, updateCoins } from "../profile/profile-lib.js";
+import { updatePointsAndCoins } from "../profile/profile-lib.js";
 import Config from "../../config.js";
 import crypto from "crypto";
 
@@ -240,8 +240,7 @@ mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, re
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn"));
     }
 
-    await updatePoints(payload.id, pointCoinUpdateValue);
-    await updateCoins(payload.id, pointCoinUpdateValue);
+    await updatePointsAndCoins(payload.id, pointCoinUpdateValue);
 
     await Models.MentorOfficeHours.findOneAndUpdate(
         { mentorId: mentorId },
