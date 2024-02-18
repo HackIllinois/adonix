@@ -340,7 +340,7 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  */
 
 profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const points = req.body.points;
+    const points: number = req.body.points;
     const userId: string = req.body.userId;
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
