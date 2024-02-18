@@ -9,5 +9,5 @@ export function getApplication(userId: string): Promise<RegistrationApplication 
 export function isRegistrationAlive(): boolean {
     const currentDateTime = new Date().getTime();
 
-    return currentDateTime <= Config.REGISTRATION_CLOSE_TIME;
+    return currentDateTime <= Config.REGISTRATION_CLOSE_TIME_MS;
 }

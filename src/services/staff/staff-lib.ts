@@ -2,7 +2,7 @@ import Models from "../../database/models.js";
 import { StatusCode } from "status-code-enum";
 import { checkInResult } from "./staff-formats.js";
 import { RouterError } from "../../middleware/error-handler.js";
-import { updatePoints } from "../profile/profile-lib.js";
+import { updatePointsAndCoins } from "../profile/profile-lib.js";
 import { isNumber } from "../../formatTools.js";
 
 export async function performCheckIn(eventId: string, userId: string, points: number = 0): Promise<checkInResult> {
@@ -26,7 +26,7 @@ export async function performCheckIn(eventId: string, userId: string, points: nu
         points = event?.points ?? 0;
     }
 
-    const newProfile = await updatePoints(userId, points);
+    const newProfile = await updatePointsAndCoins(userId, points);
 
     if (!newProfile) {
         return { success: false, error: new RouterError(StatusCode.ServerErrorInternal, "NoPointsUpdate") };

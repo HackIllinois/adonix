@@ -2,23 +2,22 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import Config from "../../config.js";
-import { Avatars } from "../../config.js";
-import { isValidLimit, updatePoints, updateCoins } from "./profile-lib.js";
+import Config, { Avatars } from "../../config.js";
 import { AttendeeProfile } from "../../database/attendee-db.js";
 import { RegistrationApplication } from "../../database/registration-db.js";
+import { isValidLimit, updatePointsAndCoins } from "./profile-lib.js";
 
-import Models from "../../database/models.js";
 import { Query } from "mongoose";
+import Models from "../../database/models.js";
 import { LeaderboardEntry } from "./profile-models.js";
 
-import { JwtPayload } from "../auth/auth-models.js";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-// import { ProfileFormat, isValidProfileFormat } from "./profile-formats.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
+import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { JwtPayload } from "../auth/auth-models.js";
 
+import { isNumber } from "../../formatTools.js";
 import { RouterError } from "../../middleware/error-handler.js";
 import { isValidProfileFormat } from "./profile-formats.js";
 
@@ -346,6 +345,10 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
 
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
+    if (!isNumber(points)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoPoints"));
+    }
+
     //Sends error if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -357,10 +360,7 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "UserNotFound"));
     }
 
-    await updatePoints(userId, points);
-    if (points > 0) {
-        await updateCoins(userId, points);
-    }
+    await updatePointsAndCoins(userId, points);
 
     const updatedProfile: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 

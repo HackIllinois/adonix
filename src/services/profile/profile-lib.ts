@@ -25,13 +25,9 @@ export function isValidLimit(limit: number): boolean {
     return limit > 0;
 }
 
-/**
- * Change a user's points by a specific amount.
- * @param userId ID of the user to modify
- * @param amount Amount of points to change (note that this can be a negative number too!)
- * @returns Promise containing the new user, or the actual attendee profile
- */
-export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
+export async function updatePointsAndCoins(userId: string, amount: number): Promise<AttendeeProfile | null> {
+    await updateCoins(userId, amount);
+
     const updateQuery: UpdateQuery<AttendeeProfile> = {
         $inc: {
             points: amount,
