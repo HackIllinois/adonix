@@ -330,7 +330,7 @@ userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: 
         return next(result.error);
     }
 
-    return res.status(StatusCode.SuccessOK).json({ success: true, ...result.profile });
+    return res.status(StatusCode.SuccessOK).json({ success: true, points: eventData.points });
 });
 
 export default userRouter;
