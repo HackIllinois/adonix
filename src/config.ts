@@ -115,6 +115,7 @@ const Config = {
         requireEnv("QID8"),
         requireEnv("QID9"),
     ],
+    PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
     FALSE_VALUE: 0,
 

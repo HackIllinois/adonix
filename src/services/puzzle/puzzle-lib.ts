@@ -15,7 +15,10 @@ export async function updatePuzzle(userId: string, qid: number): Promise<PuzzleI
             lastCorrect: Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND),
             [`problemComplete.${qid}`]: true,
         },
+        $inc: {
+            score: 1,
+        },
     };
 
-    return Models.PuzzleItem.findOneAndUpdate({ userId: userId }, updateQuery, { new: true });
+    return Models.PuzzleItem.findOneAndUpdate({ userId: userId }, updateQuery, { new: true, upsert: true });
 }

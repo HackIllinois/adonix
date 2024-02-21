@@ -10,16 +10,20 @@ export class PuzzleItem {
     @prop({ required: true })
     public lastCorrect: number;
 
+    @prop({ required: true })
+    public score: number;
+
     @prop({
         required: true,
         type: () => Boolean,
     })
     public problemComplete: boolean[];
 
-    constructor(userId: string, teamName: string, lastCorrect: number, problemComplete: boolean[]) {
+    constructor(userId: string, teamName: string, lastCorrect: number, score: number, problemComplete: boolean[]) {
         this.userId = userId;
         this.teamName = teamName;
         this.lastCorrect = lastCorrect;
         this.problemComplete = problemComplete;
+        this.score = score;
     }
 }
