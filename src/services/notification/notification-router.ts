@@ -107,7 +107,7 @@ notificationsRouter.post(
 
         await Models.NotificationMessages.create({
             sender: payload.id,
-            title: sendRequest.body,
+            title: sendRequest.title,
             body: sendRequest.body,
             recipientCount: tokenOps.length,
         });
