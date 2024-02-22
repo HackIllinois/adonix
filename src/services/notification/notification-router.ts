@@ -98,11 +98,9 @@ notificationsRouter.post(
 
         const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
 
-        let error_ct = 0;
         try {
             await Promise.all(messages);
         } catch (e) {
-            error_ct += 1; // eslint-disable-line no-magic-numbers
         }
 
         await Models.NotificationMessages.create({
@@ -117,7 +115,7 @@ notificationsRouter.post(
 
         return res
             .status(StatusCode.SuccessOK)
-            .send({ status: "Success", errors: error_ct, recipients: targetUserIds.length, time_ms: timeElapsed });
+            .send({ status: "Success", recipients: targetUserIds.length, time_ms: timeElapsed });
     },
 );
 
