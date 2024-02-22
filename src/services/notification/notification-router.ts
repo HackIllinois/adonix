@@ -45,9 +45,10 @@ notificationsRouter.post(
     strongJwtVerification,
     NotificationsMiddleware,
     async (req: Request, res: Response, next: NextFunction) => {
+        const startTime = new Date();
         const admin = res.locals.fcm;
         const payload: JwtPayload = res.locals.payload as JwtPayload;
-
+        
         if (!hasAdminPerms(payload)) {
             return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
         }
@@ -92,27 +93,30 @@ notificationsRouter.post(
             },
         };
 
-        const tokenOps = targetUserIds.map((x) => Models.NotificationMappings.findOne({ userId: x }).exec());
-
-        const notifMappings = await Promise.all(tokenOps);
+        const notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
         const deviceTokens = notifMappings.map((x) => x?.deviceToken).filter((x): x is string => x != undefined);
 
         const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
-
+        
+        let error_ct = 0;
         try {
             await Promise.all(messages);
         } catch (e) {
-            console.log(e);
+            error_ct += 1;
         }
 
         await Models.NotificationMessages.create({
             sender: payload.id,
             title: sendRequest.title,
             body: sendRequest.body,
-            recipientCount: tokenOps.length,
+            recipientCount: targetUserIds.length,
         });
 
-        return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+        let endTime = new Date();
+        let timeElapsed = endTime.getTime() - startTime.getTime();
+        console.log("SENT A NOTIFICATION", targetUserIds.length, timeElapsed, error_ct);
+
+        return res.status(StatusCode.SuccessOK).send({ status: "Success", errors: error_ct });
     },
 );
 
