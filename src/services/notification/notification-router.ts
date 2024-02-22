@@ -48,7 +48,7 @@ notificationsRouter.post(
         const startTime = new Date();
         const admin = res.locals.fcm;
         const payload: JwtPayload = res.locals.payload as JwtPayload;
-        
+
         if (!hasAdminPerms(payload)) {
             return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
         }
@@ -97,12 +97,12 @@ notificationsRouter.post(
         const deviceTokens = notifMappings.map((x) => x?.deviceToken).filter((x): x is string => x != undefined);
 
         const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
-        
+
         let error_ct = 0;
         try {
             await Promise.all(messages);
         } catch (e) {
-            error_ct += 1;
+            error_ct += 1; // eslint-disable-line no-magic-numbers
         }
 
         await Models.NotificationMessages.create({
@@ -112,8 +112,8 @@ notificationsRouter.post(
             recipientCount: targetUserIds.length,
         });
 
-        let endTime = new Date();
-        let timeElapsed = endTime.getTime() - startTime.getTime();
+        const endTime = new Date();
+        const timeElapsed = endTime.getTime() - startTime.getTime();
         console.log("SENT A NOTIFICATION", targetUserIds.length, timeElapsed, error_ct);
 
         return res.status(StatusCode.SuccessOK).send({ status: "Success", errors: error_ct });
