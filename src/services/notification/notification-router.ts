@@ -45,6 +45,7 @@ notificationsRouter.post(
     strongJwtVerification,
     NotificationsMiddleware,
     async (req: Request, res: Response, next: NextFunction) => {
+        const startTime = new Date();
         const admin = res.locals.fcm;
         const payload: JwtPayload = res.locals.payload as JwtPayload;
 
@@ -92,27 +93,34 @@ notificationsRouter.post(
             },
         };
 
-        const tokenOps = targetUserIds.map((x) => Models.NotificationMappings.findOne({ userId: x }).exec());
-
-        const notifMappings = await Promise.all(tokenOps);
+        const notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
         const deviceTokens = notifMappings.map((x) => x?.deviceToken).filter((x): x is string => x != undefined);
 
-        const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
+        let error_ct = 0;
+        const messages = deviceTokens.map((token) =>
+            admin
+                .messaging()
+                .send({ token: token, ...messageTemplate })
+                .catch(() => {
+                    error_ct++;
+                }),
+        );
 
-        try {
-            await Promise.all(messages);
-        } catch (e) {
-            console.log(e);
-        }
+        await Promise.all(messages);
 
         await Models.NotificationMessages.create({
             sender: payload.id,
             title: sendRequest.title,
             body: sendRequest.body,
-            recipientCount: tokenOps.length,
+            recipientCount: targetUserIds.length,
         });
 
-        return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+        const endTime = new Date();
+        const timeElapsed = endTime.getTime() - startTime.getTime();
+
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ status: "Success", recipients: targetUserIds.length, errors: error_ct, time_ms: timeElapsed });
     },
 );
 
