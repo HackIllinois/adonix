@@ -114,9 +114,10 @@ notificationsRouter.post(
 
         const endTime = new Date();
         const timeElapsed = endTime.getTime() - startTime.getTime();
-        console.log("SENT A NOTIFICATION", targetUserIds.length, timeElapsed, error_ct);
 
-        return res.status(StatusCode.SuccessOK).send({ status: "Success", errors: error_ct });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ status: "Success", errors: error_ct, recipients: targetUserIds.length, time_ms: timeElapsed });
     },
 );
 
