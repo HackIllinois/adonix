@@ -96,12 +96,17 @@ notificationsRouter.post(
         const notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
         const deviceTokens = notifMappings.map((x) => x?.deviceToken).filter((x): x is string => x != undefined);
 
-        const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
+        let error_ct = 0;
+        const messages = deviceTokens.map((token) =>
+            admin
+                .messaging()
+                .send({ token: token, ...messageTemplate })
+                .catch(() => {
+                    error_ct++;
+                }),
+        );
 
-        try {
-            await Promise.all(messages);
-        } catch (e) {
-        }
+        await Promise.all(messages);
 
         await Models.NotificationMessages.create({
             sender: payload.id,
@@ -115,7 +120,7 @@ notificationsRouter.post(
 
         return res
             .status(StatusCode.SuccessOK)
-            .send({ status: "Success", recipients: targetUserIds.length, time_ms: timeElapsed });
+            .send({ status: "Success", recipients: targetUserIds.length, errors: error_ct, time_ms: timeElapsed });
     },
 );
 
