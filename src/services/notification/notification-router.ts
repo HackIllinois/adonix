@@ -4,7 +4,7 @@ import { RouterError } from "../../middleware/error-handler.js";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
+import { hasStaffPerms } from "../auth/auth-lib.js";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
 import { StaffShift } from "database/staff-db.js";
 import { NotificationsMiddleware } from "../../middleware/fcm.js";
