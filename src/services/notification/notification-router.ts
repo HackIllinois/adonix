@@ -48,7 +48,7 @@ notificationsRouter.post(
         const admin = res.locals.fcm;
         const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-        if (!hasAdminPerms(payload)) {
+        if (!hasStaffPerms(payload)) {
             return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
         }
 
