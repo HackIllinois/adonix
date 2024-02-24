@@ -43,9 +43,7 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
 });
 
-userRouter.get("/v2-qr/", (_: Request, res: Response) => {
-    return res.redirect("/user/qr/");
-});
+userRouter.get("/v2-qr/", (_: Request, res: Response) => res.redirect("/user/qr/"));
 
 /**
  * @api {get} /user/qr/:USERID/ GET /user/qr/:USERID/

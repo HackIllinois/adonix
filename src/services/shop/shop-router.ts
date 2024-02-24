@@ -58,9 +58,7 @@ shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: 
     return res.status(StatusCode.SuccessOK).send(filteredData);
 });
 
-shopRouter.get("/v2/", (_: Request, res: Response) => {
-    return res.redirect("/shop/");
-});
+shopRouter.get("/v2/", (_: Request, res: Response) => res.redirect("/shop/"));
 
 /**
  * @api {post} /shop/item POST /shop/item
