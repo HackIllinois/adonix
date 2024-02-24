@@ -170,7 +170,7 @@ authRouter.get(
                     token = generateJwtToken(payload, true);
                     break;
                 case Device.PUZZLE:
-                    token = generateJwtToken(payload, true); 
+                    token = generateJwtToken(payload, true);
                     break;
                 default:
                     token = generateJwtToken(payload, false);

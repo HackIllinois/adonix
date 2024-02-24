@@ -152,13 +152,18 @@ puzzleRouter.post("/create", strongJwtVerification, async (req: Request, res: Re
 
     try {
         // Create a new PuzzleItem model
-        const newPuzzleItem = new PuzzleItem(
-            targetUser,
-            teamName,
-            Config.PUZZLE_EVENT_END_TIME,
-            0,
-            [false, false, false, false, false, false, false, false, false, false],
-        );
+        const newPuzzleItem = new PuzzleItem(targetUser, teamName, Config.PUZZLE_EVENT_END_TIME, 0, [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+        ]);
 
         await Models.PuzzleItem.findOneAndUpdate({ userId: targetUser }, newPuzzleItem, { upsert: true, new: true });
 
