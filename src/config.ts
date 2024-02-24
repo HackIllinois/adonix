@@ -14,6 +14,7 @@ export enum Device {
     IOS = "ios",
     ANDROID = "android",
     CHALLENGE = "challenge",
+    PUZZLE = "puzzle",
 }
 
 export enum RegistrationTemplates {
@@ -63,13 +64,14 @@ const Config = {
         [Device.CHALLENGE, "https://adonix.hackillinois.org/auth/dev/"],
         [Device.IOS, "hackillinois://login/"],
         [Device.ANDROID, "hackillinois://login/"],
+        [Device.PUZZLE, "http://localhost:5173/auth/"],
     ]) as Map<string, string>,
 
     CALLBACK_URLS: {
-        GITHUB: "https://adonix.hackillinois.org/auth/github/callback/",
-        // GITHUB: "http://localhost:3000/auth/github/callback/",
-        GOOGLE: "https://adonix.hackillinois.org/auth/google/callback/",
-        // GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
+        // GITHUB: "https://adonix.hackillinois.org/auth/github/callback/",
+        // GOOGLE: "https://adonix.hackillinois.org/auth/google/callback/",
+        GITHUB: "http://localhost:3000/auth/github/callback/",
+        GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
     },
 
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
@@ -105,6 +107,7 @@ const Config = {
 
     // Runes and Riddles
     PUZZLE: [
+        requireEnv("QID0"),
         requireEnv("QID1"),
         requireEnv("QID2"),
         requireEnv("QID3"),
@@ -113,7 +116,6 @@ const Config = {
         requireEnv("QID6"),
         requireEnv("QID7"),
         requireEnv("QID8"),
-        requireEnv("QID9"),
     ],
     PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
