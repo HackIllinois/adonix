@@ -43,7 +43,12 @@ userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
     return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
 });
 
-userRouter.get("/v2-qr/", (_: Request, res: Response) => res.redirect("/user/qr/"));
+userRouter.get("/v2-qr/", strongJwtVerification, (_: Request, res: Response) => {
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
+    const uri: string = `hackillinois://user?userToken=${token}`;
+    return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
+});
 
 /**
  * @api {get} /user/qr/:USERID/ GET /user/qr/:USERID/
