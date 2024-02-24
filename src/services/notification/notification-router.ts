@@ -4,7 +4,7 @@ import { RouterError } from "../../middleware/error-handler.js";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models.js";
 import { JwtPayload } from "../auth/auth-models.js";
-import { hasStaffPerms } from "../auth/auth-lib.js";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
 import { StaffShift } from "database/staff-db.js";
 import { NotificationsMiddleware } from "../../middleware/fcm.js";
@@ -50,6 +50,11 @@ notificationsRouter.post(
         const payload: JwtPayload = res.locals.payload as JwtPayload;
         const admin = res.locals.fcm;
         const sendRequest = req.body as { title: string; body: string; userIds: string[] };
+
+        if (!hasAdminPerms(payload)) {
+            return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+        }
+
         const targetUserIds = sendRequest.userIds;
         if (!targetUserIds || !sendRequest.body || !sendRequest.title) {
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidFormat"));
@@ -96,7 +101,7 @@ notificationsRouter.post("/send/", strongJwtVerification, async (req: Request, r
     const startTime = new Date();
     const payload: JwtPayload = res.locals.payload as JwtPayload;
 
-    if (!hasStaffPerms(payload)) {
+    if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
