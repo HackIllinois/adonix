@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
 import { StatusCode } from "status-code-enum";
-import Config from "config.js";
+import Config from "../config.js";
 
 /**
  * @apiDefine strongVerifyErrors
