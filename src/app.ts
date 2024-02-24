@@ -37,25 +37,23 @@ if (!Config.TEST) {
 // Automatically convert requests from json
 app.use(express.json());
 
-// Initialize database (IMPORTANT: must be before all routers)
-app.use(database);
-
 // Add routers for each sub-service
-app.use("/admission/", admissionRouter);
-app.use("/auth/", authRouter);
-app.use("/event/", eventRouter);
-app.use("/mail/", mailRouter);
-app.use("/mentor/", mentorRouter);
-app.use("/newsletter/", newsletterRouter);
-app.use("/notification/", notificationRouter);
-app.use("/profile/", profileRouter);
-app.use("/puzzle/", puzzleRouter);
-app.use("/registration/", registrationRouter);
+// NOTE: only include database middleware if needed
+app.use("/admission/", database, admissionRouter);
+app.use("/auth/", database, authRouter);
+app.use("/event/", database, eventRouter);
+app.use("/mail/", database, mailRouter);
+app.use("/mentor/", database, mentorRouter);
+app.use("/newsletter/", database, newsletterRouter);
+app.use("/notification/", database, notificationRouter);
+app.use("/profile/", database, profileRouter);
+app.use("/puzzle/", database, puzzleRouter);
+app.use("/registration/", database, registrationRouter);
 app.use("/s3/", s3Router);
-app.use("/shop/", shopRouter);
-app.use("/staff/", staffRouter);
+app.use("/shop/", database, shopRouter);
+app.use("/staff/", database, staffRouter);
 app.use("/version/", versionRouter);
-app.use("/user/", userRouter);
+app.use("/user/", database, userRouter);
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {

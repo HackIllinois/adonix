@@ -91,11 +91,12 @@ beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_PROFILE);
 });
 
-describe("GET /user/qr/", () => {
+// TODO: Revert v2-qr to qr
+describe("GET /user/v2-qr/", () => {
     it("works for a attendee", async () => {
         const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
 
-        const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
+        const response = await getAsAttendee("/user/v2-qr/").expect(StatusCode.SuccessOK);
 
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
 

@@ -22,6 +22,8 @@ const userRouter: Router = Router();
  * @apiGroup User
  * @apiDescription Get a QR code with a pre-defined expiration for the user provided in the JWT token. Since expiry is set to 20 seconds,
  * we recommend that the results from this endpoint are not stored, but instead used immediately.
+ * 
+ * TODO: Rename back from /v2-qr/ to /qr/
  *
  * @apiSuccess (200: Success) {String} userId User to generate a QR code for
  * @apiSuccess (200: Success) {String} qrInfo Stringified QR code for the given user
@@ -35,14 +37,6 @@ const userRouter: Router = Router();
  *
  * @apiUse strongVerifyErrors
  */
-userRouter.get("/qr/", strongJwtVerification, (_: Request, res: Response) => {
-    // Return the same payload, but with a shorter expiration time
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
-    const uri: string = `hackillinois://user?userToken=${token}`;
-    return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
-});
-
 userRouter.get("/v2-qr/", strongJwtVerification, (_: Request, res: Response) => {
     const payload: JwtPayload = res.locals.payload as JwtPayload;
     const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
