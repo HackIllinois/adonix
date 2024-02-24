@@ -64,14 +64,14 @@ const Config = {
         [Device.CHALLENGE, "https://adonix.hackillinois.org/auth/dev/"],
         [Device.IOS, "hackillinois://login/"],
         [Device.ANDROID, "hackillinois://login/"],
-        [Device.PUZZLE, "http://localhost:5173/auth/"],
+        [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
     ]) as Map<string, string>,
 
     CALLBACK_URLS: {
-        // GITHUB: "https://adonix.hackillinois.org/auth/github/callback/",
-        // GOOGLE: "https://adonix.hackillinois.org/auth/google/callback/",
-        GITHUB: "http://localhost:3000/auth/github/callback/",
-        GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
+        GITHUB: "https://adonix.hackillinois.org/auth/github/callback/",
+        GOOGLE: "https://adonix.hackillinois.org/auth/google/callback/",
+        // GITHUB: "http://localhost:3000/auth/github/callback/",
+        // GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
     },
 
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
