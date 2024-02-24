@@ -18,6 +18,8 @@ import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
  * @apiGroup Shop
  * @apiDescription Get item details for all items in point shop.
  *
+ * TODO: Rename back from /shop/v2/ to /shop/
+ *
  * @apiSuccess (200: Success) {Json} items The items details.
  * @apiSuccessExample Example Success Response
  * HTTP/1.1 200 OK
@@ -43,7 +45,7 @@ import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
  * */
 
 const shopRouter: Router = Router();
-shopRouter.get("/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
+shopRouter.get("/v2/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
     const shopItems: ShopItem[] = await Models.ShopItem.find();
 
     const filteredData: FilteredShopItemFormat[] = shopItems.map((item: ShopItem) => ({

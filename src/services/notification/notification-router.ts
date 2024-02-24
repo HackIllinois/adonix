@@ -8,6 +8,8 @@ import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
 import { StaffShift } from "database/staff-db.js";
 import { NotificationsMiddleware } from "../../middleware/fcm.js";
+import Config from "../../config.js";
+import axios from "axios";
 
 const notificationsRouter: Router = Router();
 
@@ -38,82 +40,139 @@ notificationsRouter.post("/", strongJwtVerification, async (req: Request, res: R
     return res.status(StatusCode.SuccessOK).send({ status: "Success" });
 });
 
-// ADMIN ONLY ENDPOINT
-// Send a notification to a set of people
+// Internal public route used to batch send. Sends notifications to specified users.
+// Only accepts Config.NOTIFICATION_BATCH_SIZE users.
 notificationsRouter.post(
-    "/send/",
+    "/send/batch",
     strongJwtVerification,
     NotificationsMiddleware,
     async (req: Request, res: Response, next: NextFunction) => {
-        const admin = res.locals.fcm;
         const payload: JwtPayload = res.locals.payload as JwtPayload;
+        const admin = res.locals.fcm;
+        const sendRequest = req.body as { title: string; body: string; userIds: string[] };
 
         if (!hasAdminPerms(payload)) {
             return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
         }
 
-        const sendRequest = req.body as NotificationSendFormat;
-        sendRequest.role = sendRequest.role?.toUpperCase();
-
-        if (!isValidNotificationSendFormat(sendRequest)) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadSendRequest"));
+        const targetUserIds = sendRequest.userIds;
+        if (!targetUserIds || !sendRequest.body || !sendRequest.title) {
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidFormat"));
         }
-
-        let targetUserIds: string[] = [];
-
-        if (sendRequest.eventId) {
-            const eventFollowers = await Models.EventFollowers.findOne({ eventId: sendRequest.eventId });
-            const eventUserIds = eventFollowers?.followers ?? [];
-            targetUserIds = targetUserIds.concat(eventUserIds);
+        if (targetUserIds.length > Config.NOTIFICATION_BATCH_SIZE) {
+            return next(new RouterError(StatusCode.ClientErrorBadRequest, "TooManyUsers"));
         }
-
-        if (sendRequest.role) {
-            const roles = await Models.AuthInfo.find({ roles: { $in: [sendRequest.role] } }, "userId");
-            const roleUserIds = roles.map((x) => x.userId);
-            targetUserIds = targetUserIds.concat(roleUserIds);
-        }
-
-        if (sendRequest.staffShift) {
-            const staffShifts: StaffShift[] = await Models.StaffShift.find({ shifts: { $in: [sendRequest.staffShift] } });
-            const staffUserIds: string[] = staffShifts.map((x) => x.userId);
-            targetUserIds = targetUserIds.concat(staffUserIds);
-        }
-
-        if (sendRequest.foodWave) {
-            const foodwaves = await Models.AttendeeProfile.find({ foodWave: sendRequest.foodWave });
-            const foodUserIds = foodwaves.map((x) => x.userId);
-            targetUserIds = targetUserIds.concat(foodUserIds);
-        }
-
         const messageTemplate = {
             notification: {
                 title: sendRequest.title,
                 body: sendRequest.body,
             },
         };
-
-        const tokenOps = targetUserIds.map((x) => Models.NotificationMappings.findOne({ userId: x }).exec());
-
-        const notifMappings = await Promise.all(tokenOps);
+        const startTime = new Date();
+        const notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
         const deviceTokens = notifMappings.map((x) => x?.deviceToken).filter((x): x is string => x != undefined);
-
-        const messages = deviceTokens.map((token) => admin.messaging().send({ token: token, ...messageTemplate }));
-
-        try {
-            await Promise.all(messages);
-        } catch (e) {
-            console.log(e);
-        }
-
+        let errors = 0;
+        const messages = deviceTokens.map((token) =>
+            admin
+                .messaging()
+                .send({ token: token, ...messageTemplate })
+                .catch(() => {
+                    errors++;
+                }),
+        );
+        await Promise.all(messages);
         await Models.NotificationMessages.create({
             sender: payload.id,
             title: sendRequest.title,
             body: sendRequest.body,
-            recipientCount: tokenOps.length,
+            recipientCount: targetUserIds.length,
         });
-
-        return res.status(StatusCode.SuccessOK).send({ status: "Success" });
+        const endTime = new Date();
+        const timeElapsed = endTime.getTime() - startTime.getTime();
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ status: "Success", recipients: targetUserIds.length, errors: errors, time_ms: timeElapsed });
     },
 );
+
+// ADMIN ONLY ENDPOINT
+// Send a notification to a set of people
+notificationsRouter.post("/send/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = new Date();
+    const payload: JwtPayload = res.locals.payload as JwtPayload;
+
+    if (!hasAdminPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+
+    const sendRequest = req.body as NotificationSendFormat;
+    sendRequest.role = sendRequest.role?.toUpperCase();
+
+    if (!isValidNotificationSendFormat(sendRequest)) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadSendRequest"));
+    }
+
+    let targetUserIds: string[] = [];
+
+    if (sendRequest.eventId) {
+        const eventFollowers = await Models.EventFollowers.findOne({ eventId: sendRequest.eventId });
+        const eventUserIds = eventFollowers?.followers ?? [];
+        targetUserIds = targetUserIds.concat(eventUserIds);
+    }
+
+    if (sendRequest.role) {
+        const roles = await Models.AuthInfo.find({ roles: { $in: [sendRequest.role] } }, "userId");
+        const roleUserIds = roles.map((x) => x.userId);
+        targetUserIds = targetUserIds.concat(roleUserIds);
+    }
+
+    if (sendRequest.staffShift) {
+        const staffShifts: StaffShift[] = await Models.StaffShift.find({ shifts: { $in: [sendRequest.staffShift] } });
+        const staffUserIds: string[] = staffShifts.map((x) => x.userId);
+        targetUserIds = targetUserIds.concat(staffUserIds);
+    }
+
+    if (sendRequest.foodWave) {
+        const foodwaves = await Models.AttendeeProfile.find({ foodWave: sendRequest.foodWave });
+        const foodUserIds = foodwaves.map((x) => x.userId);
+        targetUserIds = targetUserIds.concat(foodUserIds);
+    }
+
+    let recipients = 0;
+    let errors = 0;
+    const requests = [];
+
+    for (let i = 0; i < targetUserIds.length; i += Config.NOTIFICATION_BATCH_SIZE) {
+        const thisUserIds = targetUserIds.slice(i, i + Config.NOTIFICATION_BATCH_SIZE);
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const reqUrl = `${baseUrl}/notification/send/batch`;
+        const data = {
+            title: sendRequest.title,
+            body: sendRequest.body,
+            userIds: thisUserIds,
+        };
+        const config = {
+            headers: {
+                "content-type": req.headers["content-type"],
+                "user-agent": req.headers["user-agent"],
+                authorization: req.headers.authorization,
+            },
+        };
+        const request = axios.post(reqUrl, data, config).then((res) => {
+            recipients += res.data.recipients;
+            errors += res.data.errors;
+        });
+        requests.push(request);
+    }
+
+    await Promise.all(requests);
+
+    const endTime = new Date();
+    const timeElapsed = endTime.getTime() - startTime.getTime();
+
+    return res
+        .status(StatusCode.SuccessOK)
+        .send({ status: "Success", recipients: recipients, errors: errors, time_ms: timeElapsed });
+});
 
 export default notificationsRouter;

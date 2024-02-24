@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { decodeJwtToken } from "../services/auth/auth-lib.js";
 import jsonwebtoken from "jsonwebtoken";
 import { StatusCode } from "status-code-enum";
+import Config from "../config.js";
 
 /**
  * @apiDefine strongVerifyErrors
@@ -29,6 +30,9 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
 
     try {
         res.locals.payload = decodeJwtToken(token);
+        if (!Config.TEST) {
+            console.log(`new request from user: ${res.locals.payload.id}`);
+        }
         next();
     } catch (error) {
         console.error(error);
@@ -55,6 +59,9 @@ export function weakJwtVerification(req: Request, res: Response, next: NextFunct
 
     try {
         res.locals.payload = decodeJwtToken(token);
+        if (!Config.TEST) {
+            console.log(`new request from user: ${res.locals.payload.id}`);
+        }
         next();
     } catch (error) {
         console.error(error);
