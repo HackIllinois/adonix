@@ -18,6 +18,7 @@
         "build": "tsc",
         "verify": "yarn build && yarn lint:check && yarn format:check",
         "serve": "node scripts/serve.mjs",
+        "send-notif": "node scripts/send-notif.js",
         "start": "vercel dev"
     },
     "keywords": [],
