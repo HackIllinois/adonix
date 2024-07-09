@@ -15,8 +15,6 @@ const config: Config = {
         "^(\\.{1,2}/.*)\\.js$": "$1", // Transforms requires of ./src/x.js -> ./src/x
     },
 
-    preset: "ts-jest/presets/default-esm",
-
     resetModules: true,
 
     rootDir: "src",
@@ -28,16 +26,11 @@ const config: Config = {
     testTimeout: 15 * 1000, // 15 second timeout per test
 
     transform: {
-        "^.+\\.tsx?$": [
-            "ts-jest",
-            {
-                tsconfig: "tsconfig.json",
-                useESM: true,
-            },
-        ],
+        "^.+\\.(t|j)sx?$": "@swc/jest",
     },
 
     verbose: true,
+    extensionsToTreatAsEsm: [".ts", ".tsx"],
 };
 
 /* CI specific config */

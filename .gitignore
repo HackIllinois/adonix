@@ -137,3 +137,6 @@ dist
 docs/
 apidocs/
 devdocs/
+
+# swc
+.swc/
