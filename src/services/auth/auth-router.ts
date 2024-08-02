@@ -4,13 +4,13 @@ import express, { Request, Response, Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import Config, { Device } from "../../config.js";
+import Config, { Device } from "../../config";
 import { StatusCode } from "status-code-enum";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { SelectAuthProvider } from "../../middleware/select-auth.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { SelectAuthProvider } from "../../middleware/select-auth";
 
-import { ModifyRoleRequest } from "./auth-formats.js";
-import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
+import { ModifyRoleRequest } from "./auth-formats";
+import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models";
 import {
     generateJwtToken,
     getJwtPayloadFromProfile,
@@ -20,9 +20,9 @@ import {
     verifyFunction,
     getUsersWithRole,
     hasAdminPerms,
-} from "./auth-lib.js";
-import Models from "../../database/models.js";
-import { RouterError } from "../../middleware/error-handler.js";
+} from "./auth-lib";
+import Models from "../../database/models";
+import { RouterError } from "../../middleware/error-handler";
 
 passport.use(
     Provider.GITHUB,

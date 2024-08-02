@@ -1,4 +1,4 @@
-import Config from "../config.js";
+import Config from "../config";
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 

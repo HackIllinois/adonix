@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../testTools.js";
-import { generateJwtToken } from "../auth/auth-lib.js";
+import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../testTools";
+import { generateJwtToken } from "../auth/auth-lib";
 
-import { EventAttendance } from "database/event-db.js";
+import { EventAttendance } from "database/event-db";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models.js";
-import { RegistrationApplication } from "../../database/registration-db.js";
-import { AttendeeProfile } from "../../database/attendee-db.js";
+import Models from "../../database/models";
+import { RegistrationApplication } from "../../database/registration-db";
+import { AttendeeProfile } from "../../database/attendee-db";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",

@@ -1,14 +1,14 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { RouterError } from "../../middleware/error-handler.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { RouterError } from "../../middleware/error-handler";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
-import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats.js";
-import { StaffShift } from "database/staff-db.js";
-import { NotificationsMiddleware } from "../../middleware/fcm.js";
-import Config from "../../config.js";
+import Models from "../../database/models";
+import { JwtPayload } from "../auth/auth-models";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
+import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats";
+import { StaffShift } from "database/staff-db";
+import { NotificationsMiddleware } from "../../middleware/fcm";
+import Config from "../../config";
 
 const notificationsRouter: Router = Router();
 

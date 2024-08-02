@@ -1,21 +1,21 @@
 import { Router, Request, Response } from "express";
 
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { decodeJwtToken } from "../auth/auth-lib.js";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { JwtPayload } from "../auth/auth-models";
+import { decodeJwtToken } from "../auth/auth-lib";
+import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
 
-import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats.js";
-import Config from "../../config.js";
+import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats";
+import Config from "../../config";
 
-import Models from "../../database/models.js";
+import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
-import { RouterError } from "../../middleware/error-handler.js";
-import { StaffShift } from "database/staff-db.js";
+import { RouterError } from "../../middleware/error-handler";
+import { StaffShift } from "database/staff-db";
 
-import { Event } from "../../database/event-db.js";
-import { performCheckIn } from "./staff-lib.js";
+import { Event } from "../../database/event-db";
+import { performCheckIn } from "./staff-lib";
 
 const staffRouter: Router = Router();
 

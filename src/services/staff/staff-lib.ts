@@ -1,9 +1,9 @@
-import Models from "../../database/models.js";
+import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { checkInResult } from "./staff-formats.js";
-import { RouterError } from "../../middleware/error-handler.js";
-import { updatePointsAndCoins } from "../profile/profile-lib.js";
-import { isNumber } from "../../formatTools.js";
+import { checkInResult } from "./staff-formats";
+import { RouterError } from "../../middleware/error-handler";
+import { updatePointsAndCoins } from "../profile/profile-lib";
+import { isNumber } from "../../formatTools";
 
 export async function performCheckIn(eventId: string, userId: string, points: number = 0): Promise<checkInResult> {
     const eventAttendance = await Models.EventAttendance.findOne({ eventId: eventId });

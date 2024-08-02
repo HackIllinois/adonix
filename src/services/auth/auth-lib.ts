@@ -3,12 +3,12 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import Config from "../../config.js";
+import Config from "../../config";
 
-import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models.js";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models";
 
-import Models from "../../database/models.js";
-import { AuthInfo } from "../../database/auth-db.js";
+import Models from "../../database/models";
+import { AuthInfo } from "../../database/auth-db";
 import { UpdateQuery } from "mongoose";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;

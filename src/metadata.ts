@@ -1,4 +1,4 @@
-import Config from "./config.js";
+import Config from "./config";
 import axios, { AxiosResponse } from "axios";
 
 interface MetadataFormat {

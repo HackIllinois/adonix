@@ -1,9 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-//import { AttendeeFollowing } from "../../database/attendee-db.js";
-import Models from "../../database/models.js";
+//import { AttendeeFollowing } from "../../database/attendee-db";
+import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { OfficeHoursFormat } from "./mentor-formats.js";
-import { postAsAdmin, postAsAttendee, getAsAttendee, getAsAdmin, delAsAttendee, delAsAdmin } from "../../testTools.js";
+import { OfficeHoursFormat } from "./mentor-formats";
+import { postAsAdmin, postAsAttendee, getAsAttendee, getAsAdmin, delAsAttendee, delAsAdmin } from "../../testTools";
 
 const TESTER_OFFICE_HOURS_1 = {
     mentorName: "asdf",

@@ -1,4 +1,4 @@
-import { isString, isArrayOfType } from "../../formatTools.js";
+import { isString, isArrayOfType } from "../../formatTools";
 
 export interface MailInfoFormat {
     templateId: string;

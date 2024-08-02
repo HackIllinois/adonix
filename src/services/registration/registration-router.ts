@@ -2,22 +2,22 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { Request, Response, Router } from "express";
 
-import { RegistrationTemplates } from "../../config.js";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { RouterError } from "../../middleware/error-handler.js";
+import { RegistrationTemplates } from "../../config";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { RouterError } from "../../middleware/error-handler";
 
-import Models from "../../database/models.js";
-import { RegistrationApplication } from "../../database/registration-db.js";
-import { AdmissionDecision, DecisionStatus } from "../../database/admission-db.js";
+import Models from "../../database/models";
+import { RegistrationApplication } from "../../database/registration-db";
+import { AdmissionDecision, DecisionStatus } from "../../database/admission-db";
 
-import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats.js";
+import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats";
 
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { hasElevatedPerms } from "../auth/auth-lib";
+import { JwtPayload } from "../auth/auth-models";
 
-import { sendMail } from "../mail/mail-lib.js";
-import { MailInfoFormat } from "../mail/mail-formats.js";
-import { isRegistrationAlive } from "./registration-lib.js";
+import { sendMail } from "../mail/mail-lib";
+import { MailInfoFormat } from "../mail/mail-formats";
+import { isRegistrationAlive } from "./registration-lib";
 
 const registrationRouter: Router = Router();
 

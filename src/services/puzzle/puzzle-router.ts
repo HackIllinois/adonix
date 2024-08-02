@@ -1,14 +1,14 @@
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models.js";
-import { RouterError } from "../../middleware/error-handler.js";
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { PuzzleItem } from "../../database/puzzle-db.js";
-import Config from "../../config.js";
-import { updatePuzzle } from "./puzzle-lib.js";
-import { isString } from "../../formatTools.js";
+import Models from "../../database/models";
+import { RouterError } from "../../middleware/error-handler";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
+import { JwtPayload } from "../auth/auth-models";
+import { PuzzleItem } from "../../database/puzzle-db";
+import Config from "../../config";
+import { updatePuzzle } from "./puzzle-lib";
+import { isString } from "../../formatTools";
 
 const puzzleRouter: Router = Router();
 

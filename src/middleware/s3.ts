@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { S3 } from "@aws-sdk/client-s3";
 
-import Config from "../config.js";
+import Config from "../config";
 
 export function s3ClientMiddleware(_: Request, res: Response, next: NextFunction): void {
     res.locals.s3 = new S3({
