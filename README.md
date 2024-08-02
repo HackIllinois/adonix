@@ -7,12 +7,10 @@ Official repository for HackIllinois API redesign.
 
 - [node](https://nodejs.org)
 - [yarn](https://yarnpkg.com/getting-started/install)
-- [vercel (cli)](https://vercel.com/docs/cli)
 
 #### Steps for development environment
 
 1. `yarn install`
-2. Install the [EditorConfig plugin](https://editorconfig.org/#download) for your editor if it doesn't support it by default
 
 ## To run locally
 
