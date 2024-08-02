@@ -26,7 +26,27 @@ const config: Config = {
     testTimeout: 15 * 1000, // 15 second timeout per test
 
     transform: {
-        "^.+\\.(t|j)sx?$": "@swc/jest",
+        "^.+\\.(t|j)sx?$": [
+            "@swc/jest",
+            {
+                $schema: "https://swc.rs/schema.json",
+                jsc: {
+                    baseUrl: "./src",
+                    parser: {
+                        syntax: "typescript",
+                        decorators: true,
+                    },
+                    transform: {
+                        decoratorMetadata: true,
+                        legacyDecorator: true,
+                    },
+                    target: "esnext",
+                    experimental: {
+                        plugins: [["swc_mut_cjs_exports", {}]],
+                    },
+                },
+            },
+        ],
     },
 
     verbose: true,

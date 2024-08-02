@@ -5,12 +5,17 @@
         "lib": ["ESNext"],
         "outDir": "out",
         "removeComments": true,
-        "target": "ES6",
-        "module": "NodeNext",
+        "target": "ESNext",
+        "module": "CommonJS",
         // Module resolution
         "baseUrl": "./src",
         "esModuleInterop": true,
-        "moduleResolution": "NodeNext",
+        "moduleResolution": "Node",
+        // Compilation
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true,
+        "isolatedModules": true,
         // Source Map
         "sourceMap": true,
         "sourceRoot": "./src",
@@ -24,11 +29,7 @@
         "noImplicitReturns": true,
         "noUncheckedIndexedAccess": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        // Enabling these for mongoose
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "skipLibCheck": true
+        "noUnusedParameters": true
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules/**", "doc/", "docs/"]
