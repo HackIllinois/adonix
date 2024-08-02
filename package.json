@@ -15,11 +15,11 @@
         "lint:check": "tsc && yarn run eslint src --ext .js,.jsx,.ts,.tsx",
         "lint": "tsc && yarn run eslint src --ext .js,.jsx,.ts,.tsx --fix",
         "test": "jest",
-        "build": "",
+        "build": "tsc",
         "verify": "yarn lint:check && yarn format:check",
-        "serve": "node scripts/serve.mjs",
         "send-notif": "node scripts/send-notif.js",
-        "start": "node out/index.js"
+        "start": "node out/index.js",
+        "serve": "tsc-watch --onSuccess \"node out/index.js\""
     },
     "keywords": [],
     "author": "Aydan Pirani <aydanpirani@gmail.com>",
@@ -48,6 +48,7 @@
         "passport-google-oauth20": "^2.0.0",
         "passport-strategy": "^1.0.0",
         "status-code-enum": "^1.0.0",
+        "tsc-watch": "^6.2.0",
         "uuid": "^9.0.1"
     },
     "repository": "git@github.com:HackIllinois/adonix.git",
