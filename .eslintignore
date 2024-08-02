@@ -1,3 +1,7 @@
 .eslintrc.cjs
 tsconfig.json
+jest.config.ts
+jest.presetup.ts
+jest.setup.ts
 coverage
+scripts
