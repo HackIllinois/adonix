@@ -1,15 +1,15 @@
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
-import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../testTools.js";
+import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../testTools";
 
-import { AttendeeFollowing, AttendeeProfile } from "database/attendee-db.js";
-import { EventFollowers, EventAttendance, Event } from "database/event-db.js";
+import { AttendeeFollowing, AttendeeProfile } from "database/attendee-db";
+import { EventFollowers, EventAttendance, Event } from "database/event-db";
 import { StatusCode } from "status-code-enum";
-import Config from "../../config.js";
-import { AuthInfo } from "../../database/auth-db.js";
-import Models from "../../database/models.js";
-import { UserInfo } from "../../database/user-db.js";
-import { Role } from "../auth/auth-models.js";
-import { mockGenerateJwtTokenWithWrapper } from "../auth/mocks/auth.js";
+import Config from "../../config";
+import { AuthInfo } from "../../database/auth-db";
+import Models from "../../database/models";
+import { UserInfo } from "../../database/user-db";
+import { Role } from "../auth/auth-models";
+import { mockGenerateJwtTokenWithWrapper } from "../auth/mocks/auth";
 // import { afterEach } from "node:test";
 const TESTER_USER = {
     userId: TESTER.id,

@@ -1,19 +1,19 @@
 import { Router, Request, Response } from "express";
 import { StatusCode } from "status-code-enum";
 
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
 
-import { JwtPayload } from "../auth/auth-models.js";
-import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib.js";
-import { performCheckIn } from "../staff/staff-lib.js";
+import { JwtPayload } from "../auth/auth-models";
+import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib";
+import { performCheckIn } from "../staff/staff-lib";
 
-import { UserInfo } from "../../database/user-db.js";
-import Models from "../../database/models.js";
-import Config from "../../config.js";
-import { AttendeeFollowing } from "database/attendee-db.js";
+import { UserInfo } from "../../database/user-db";
+import Models from "../../database/models";
+import Config from "../../config";
+import { AttendeeFollowing } from "database/attendee-db";
 import { NextFunction } from "express-serve-static-core";
-import { RouterError } from "../../middleware/error-handler.js";
-import { EventFollowers } from "../../database/event-db.js";
+import { RouterError } from "../../middleware/error-handler";
+import { EventFollowers } from "../../database/event-db";
 
 const userRouter: Router = Router();
 

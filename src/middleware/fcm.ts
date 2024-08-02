@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import Config from "../config.js";
+import Config from "../config";
 import admin, { ServiceAccount } from "firebase-admin";
 
 export function NotificationsMiddleware(_: Request, res: Response, next: NextFunction): void {

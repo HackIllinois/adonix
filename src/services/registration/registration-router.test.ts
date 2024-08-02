@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models.js";
-import { RegistrationApplication } from "../../database/registration-db.js";
-import { RegistrationTemplates } from "./../../config.js";
-import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools.js";
-import { RegistrationFormat } from "./registration-formats.js";
-import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
-import type * as MailLib from "../../services/mail/mail-lib.js";
+import Models from "../../database/models";
+import { RegistrationApplication } from "../../database/registration-db";
+import { RegistrationTemplates } from "./../../config";
+import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools";
+import { RegistrationFormat } from "./registration-formats";
+import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
+import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "services/mail/mail-formats.js";
+import { MailInfoFormat } from "services/mail/mail-formats";
 
 const APPLICATION = {
     isProApplicant: false,
@@ -122,7 +122,7 @@ describe("POST /registration/", () => {
 });
 
 function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
-    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
     return jest.spyOn(mailLib, "sendMail");
 }
 

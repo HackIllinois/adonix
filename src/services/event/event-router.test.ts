@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers } from "../../database/event-db.js";
-import { AttendeeFollowing } from "../../database/attendee-db.js";
-import Models from "../../database/models.js";
+import { EventFollowers } from "../../database/event-db";
+import { AttendeeFollowing } from "../../database/attendee-db";
+import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff } from "../../testTools.js";
+import { TESTER, getAsAttendee, getAsStaff } from "../../testTools";
 
 const TESTER_EVENT_FOLLOWERS = {
     eventId: "other-event",

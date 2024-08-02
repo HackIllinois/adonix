@@ -2,13 +2,13 @@
 // ➡️ send confirmation email to the email provided in application
 
 import { NextFunction, Request, Response, Router } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { RouterError } from "../../middleware/error-handler.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { RouterError } from "../../middleware/error-handler";
 import { StatusCode } from "status-code-enum";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { MailInfoFormat, isValidMailInfo } from "./mail-formats.js";
-import { sendMailWrapper } from "./mail-lib.js";
+import { hasElevatedPerms } from "../auth/auth-lib";
+import { JwtPayload } from "../auth/auth-models";
+import { MailInfoFormat, isValidMailInfo } from "./mail-formats";
+import { sendMailWrapper } from "./mail-lib";
 
 const mailRouter: Router = Router();
 

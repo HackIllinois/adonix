@@ -1,5 +1,5 @@
-import Config from "../../config.js";
-import { ShopItem } from "../../database/shop-db.js";
+import Config from "../../config";
+import { ShopItem } from "../../database/shop-db";
 export interface FilteredShopItemFormat {
     itemId: string;
     name: string;

@@ -2,7 +2,7 @@
 
 import { describe, expect, test, it } from "@jest/globals";
 
-import { get } from "./testTools.js";
+import { get } from "./testTools";
 import { StatusCode } from "status-code-enum";
 
 describe("sanity tests for app", () => {

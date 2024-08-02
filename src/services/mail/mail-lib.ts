@@ -1,9 +1,9 @@
-import Config from "../../config.js";
+import Config from "../../config";
 import axios, { AxiosResponse } from "axios";
 import { Response, NextFunction } from "express";
 import { StatusCode } from "status-code-enum";
-import { RouterError } from "../../middleware/error-handler.js";
-import { MailInfoFormat } from "./mail-formats.js";
+import { RouterError } from "../../middleware/error-handler";
+import { MailInfoFormat } from "./mail-formats";
 
 export async function sendMailWrapper(res: Response, next: NextFunction, mailInfo: MailInfoFormat): Promise<void | Response> {
     try {

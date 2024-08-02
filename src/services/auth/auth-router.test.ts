@@ -2,23 +2,14 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import {
-    AUTH_ROLE_TO_ROLES,
-    TESTER,
-    get,
-    getAsAttendee,
-    getAsStaff,
-    getAsUser,
-    putAsAdmin,
-    putAsStaff,
-} from "../../testTools.js";
-import Config, { Device } from "../../config.js";
-import * as selectAuthMiddleware from "../../middleware/select-auth.js";
-import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth.js";
-import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models.js";
-import Models from "../../database/models.js";
-import { AuthInfo } from "../../database/auth-db.js";
-import { ModifyRoleRequest } from "./auth-formats.js";
+import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAttendee, getAsStaff, getAsUser, putAsAdmin, putAsStaff } from "../../testTools";
+import Config, { Device } from "../../config";
+import * as selectAuthMiddleware from "../../middleware/select-auth";
+import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth";
+import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models";
+import Models from "../../database/models";
+import { AuthInfo } from "../../database/auth-db";
+import { ModifyRoleRequest } from "./auth-formats";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
 
@@ -66,7 +57,7 @@ describe("GET /auth/dev/", () => {
  * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
  */
 function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider> {
-    const mockedSelectAuthMiddleware = require("../../middleware/select-auth.js") as typeof selectAuthMiddleware;
+    const mockedSelectAuthMiddleware = require("../../middleware/select-auth") as typeof selectAuthMiddleware;
     const mockedSelectAuthProvider = jest.spyOn(mockedSelectAuthMiddleware, "SelectAuthProvider");
     mockedSelectAuthProvider.mockImplementation(() => handler);
     return mockedSelectAuthProvider;

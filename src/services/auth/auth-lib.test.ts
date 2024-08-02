@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
-import { JwtPayload, Provider, Role } from "./auth-models.js";
-import Models from "../../database/models.js";
-import { AuthInfo } from "../../database/auth-db.js";
-import { getJwtPayloadFromProfile } from "../auth/auth-lib.js";
+import { JwtPayload, Provider, Role } from "./auth-models";
+import Models from "../../database/models";
+import { AuthInfo } from "../../database/auth-db";
+import { getJwtPayloadFromProfile } from "../auth/auth-lib";
 
 const USER_PAYLOAD = {
     id: "user",

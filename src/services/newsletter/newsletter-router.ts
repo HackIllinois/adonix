@@ -1,10 +1,10 @@
 import { Request, Response, Router } from "express";
-import { SubscribeRequest } from "./newsletter-formats.js";
-import { NewsletterSubscription } from "../../database/newsletter-db.js";
-import Models from "../../database/models.js";
+import { SubscribeRequest } from "./newsletter-formats";
+import { NewsletterSubscription } from "../../database/newsletter-db";
+import Models from "../../database/models";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
-import { RouterError } from "../../middleware/error-handler.js";
+import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";
 
 const newsletterRouter: Router = Router();

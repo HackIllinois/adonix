@@ -1,17 +1,17 @@
 import crypto from "crypto";
-import { AttendeeProfile } from "database/attendee-db.js";
-import { ShopItem } from "database/shop-db.js";
+import { AttendeeProfile } from "database/attendee-db";
+import { ShopItem } from "database/shop-db";
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
 import { StatusCode } from "status-code-enum";
-import Config from "../../config.js";
-import Models from "../../database/models.js";
-import { RouterError } from "../../middleware/error-handler.js";
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
-import { hasAdminPerms, hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
-import { updateCoins } from "../profile/profile-lib.js";
-import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats.js";
+import Config from "../../config";
+import Models from "../../database/models";
+import { RouterError } from "../../middleware/error-handler";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
+import { hasAdminPerms, hasElevatedPerms } from "../auth/auth-lib";
+import { JwtPayload } from "../auth/auth-models";
+import { updateCoins } from "../profile/profile-lib";
+import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats";
 
 /**
  * @api {get} /shop GET /shop

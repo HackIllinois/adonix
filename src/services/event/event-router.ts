@@ -2,23 +2,23 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
 
-import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../auth/auth-lib";
+import { JwtPayload } from "../auth/auth-models";
 
-import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats.js";
-import { createFilteredEventView } from "./event-lib.js";
-import { FilteredEventView } from "./event-models.js";
+import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats";
+import { createFilteredEventView } from "./event-lib";
+import { FilteredEventView } from "./event-models";
 
 import { StatusCode } from "status-code-enum";
-import { Event, EventFollowers } from "../../database/event-db.js";
-import Models from "../../database/models.js";
+import { Event, EventFollowers } from "../../database/event-db";
+import Models from "../../database/models";
 
-import { RouterError } from "../../middleware/error-handler.js";
+import { RouterError } from "../../middleware/error-handler";
 
 import crypto from "crypto";
-import Config from "../../config.js";
+import Config from "../../config";
 
 const eventsRouter: Router = Router();
 eventsRouter.use(cors({ origin: "*" }));

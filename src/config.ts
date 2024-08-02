@@ -5,7 +5,7 @@
  * can error if they are not defined.
  */
 
-import env from "./env.js";
+import env from "./env";
 
 export enum Device {
     ADMIN = "admin",

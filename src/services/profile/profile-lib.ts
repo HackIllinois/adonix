@@ -1,7 +1,7 @@
-import { AttendeeProfile } from "../../database/attendee-db.js";
-import { LeaderboardEntry } from "./profile-models.js";
+import { AttendeeProfile } from "../../database/attendee-db";
+import { LeaderboardEntry } from "./profile-models";
 import { UpdateQuery } from "mongoose";
-import Models from "../../database/models.js";
+import Models from "../../database/models";
 
 /**
  * Remove non-necessary fields from a leaderboardentry item

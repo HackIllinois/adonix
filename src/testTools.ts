@@ -1,6 +1,6 @@
 import request from "supertest";
 
-import { Provider, Role } from "./services/auth/auth-models.js";
+import { Provider, Role } from "./services/auth/auth-models";
 
 // The tester is the user that will be making requests
 // We provide this object so you can do proper testing based on JWT auth
@@ -44,7 +44,7 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 
     const isStaff = role == Role.STAFF || role == Role.ADMIN;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { generateJwtToken } = require("./services/auth/auth-lib.js");
+    const { generateJwtToken } = require("./services/auth/auth-lib");
 
     // Assumes auth lib works. Therefore we should have some tests for this.
     const jwt = generateJwtToken({
@@ -63,7 +63,7 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 // Dynamically require app so it's always the freshest version
 function app(): Express.Application {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const appExports = require("./app.js");
+    const appExports = require("./app");
     return appExports.default;
 }
 

@@ -1,7 +1,7 @@
-import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../formatTools.js";
-import Config from "../../config.js";
-import { Event, Location } from "../../database/event-db.js";
-import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models.js";
+import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../formatTools";
+import Config from "../../config";
+import { Event, Location } from "../../database/event-db";
+import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models";
 
 export function isValidEvent(event: Event): boolean {
     if (!isValidBase(event)) {

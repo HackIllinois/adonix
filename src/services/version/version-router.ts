@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Request, Response } from "express-serve-static-core";
-import Metadata from "../../metadata.js";
+import Metadata from "../../metadata";
 import { StatusCode } from "status-code-enum";
 
 const versionRouter: Router = Router();

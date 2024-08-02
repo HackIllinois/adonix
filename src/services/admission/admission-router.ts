@@ -1,19 +1,19 @@
 import { Router, Request, Response } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
 
-import { JwtPayload, Role } from "../auth/auth-models.js";
-import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
-import Models from "../../database/models.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { isValidApplicantFormat } from "./admission-formats.js";
+import { JwtPayload, Role } from "../auth/auth-models";
+import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db";
+import Models from "../../database/models";
+import { hasElevatedPerms } from "../auth/auth-lib";
+import { isValidApplicantFormat } from "./admission-formats";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
-import { RouterError } from "../../middleware/error-handler.js";
-import { performRSVP } from "./admission-lib.js";
-import { MailInfoFormat } from "../mail/mail-formats.js";
-import { RegistrationTemplates } from "../../config.js";
-import { getApplication } from "../registration/registration-lib.js";
-import { sendMail } from "../mail/mail-lib.js";
+import { RouterError } from "../../middleware/error-handler";
+import { performRSVP } from "./admission-lib";
+import { MailInfoFormat } from "../mail/mail-formats";
+import { RegistrationTemplates } from "../../config";
+import { getApplication } from "../registration/registration-lib";
+import { sendMail } from "../mail/mail-lib";
 
 const admissionRouter: Router = Router();
 

@@ -2,24 +2,24 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import Config, { Avatars } from "../../config.js";
-import { AttendeeProfile } from "../../database/attendee-db.js";
-import { RegistrationApplication } from "../../database/registration-db.js";
-import { isValidLimit, updatePointsAndCoins } from "./profile-lib.js";
+import Config, { Avatars } from "../../config";
+import { AttendeeProfile } from "../../database/attendee-db";
+import { RegistrationApplication } from "../../database/registration-db";
+import { isValidLimit, updatePointsAndCoins } from "./profile-lib";
 
 import { Query } from "mongoose";
-import Models from "../../database/models.js";
-import { LeaderboardEntry } from "./profile-models.js";
+import Models from "../../database/models";
+import { LeaderboardEntry } from "./profile-models";
 
 import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { hasElevatedPerms } from "../auth/auth-lib";
+import { JwtPayload } from "../auth/auth-models";
 
-import { isNumber } from "../../formatTools.js";
-import { RouterError } from "../../middleware/error-handler.js";
-import { isValidProfileFormat } from "./profile-formats.js";
+import { isNumber } from "../../formatTools";
+import { RouterError } from "../../middleware/error-handler";
+import { isValidProfileFormat } from "./profile-formats";
 
 const profileRouter: Router = Router();
 

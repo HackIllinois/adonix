@@ -1,7 +1,7 @@
-import { RouterError } from "middleware/error-handler.js";
-import { StaffShift } from "../../database/staff-db.js";
-import { isArrayOfType, isString } from "../../formatTools.js";
-import { AttendeeProfile } from "../../database/attendee-db.js";
+import { RouterError } from "middleware/error-handler";
+import { StaffShift } from "../../database/staff-db";
+import { isArrayOfType, isString } from "../../formatTools";
+import { AttendeeProfile } from "../../database/attendee-db";
 
 // Format for default staff attendance input
 export interface AttendanceFormat {

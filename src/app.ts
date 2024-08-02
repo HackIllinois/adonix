@@ -1,28 +1,28 @@
 import morgan from "morgan";
 import express, { Application, Request, Response } from "express";
 
-import admissionRouter from "./services/admission/admission-router.js";
-import authRouter from "./services/auth/auth-router.js";
-import eventRouter from "./services/event/event-router.js";
-import mailRouter from "./services/mail/mail-router.js";
-import mentorRouter from "./services/mentor/mentor-router.js";
-import newsletterRouter from "./services/newsletter/newsletter-router.js";
-import notificationRouter from "./services/notification/notification-router.js";
-import profileRouter from "./services/profile/profile-router.js";
-import puzzleRouter from "./services/puzzle/puzzle-router.js";
-import registrationRouter from "./services/registration/registration-router.js";
-import s3Router from "./services/s3/s3-router.js";
-import shopRouter from "./services/shop/shop-router.js";
-import staffRouter from "./services/staff/staff-router.js";
-import versionRouter from "./services/version/version-router.js";
-import userRouter from "./services/user/user-router.js";
+import admissionRouter from "./services/admission/admission-router";
+import authRouter from "./services/auth/auth-router";
+import eventRouter from "./services/event/event-router";
+import mailRouter from "./services/mail/mail-router";
+import mentorRouter from "./services/mentor/mentor-router";
+import newsletterRouter from "./services/newsletter/newsletter-router";
+import notificationRouter from "./services/notification/notification-router";
+import profileRouter from "./services/profile/profile-router";
+import puzzleRouter from "./services/puzzle/puzzle-router";
+import registrationRouter from "./services/registration/registration-router";
+import s3Router from "./services/s3/s3-router";
+import shopRouter from "./services/shop/shop-router";
+import staffRouter from "./services/staff/staff-router";
+import versionRouter from "./services/version/version-router";
+import userRouter from "./services/user/user-router";
 
-// import { InitializeConfigReader } from "./middleware/config-reader.js";
-import { ErrorHandler } from "./middleware/error-handler.js";
+// import { InitializeConfigReader } from "./middleware/config-reader";
+import { ErrorHandler } from "./middleware/error-handler";
 import { StatusCode } from "status-code-enum";
-import Config from "./config.js";
-import database from "./middleware/database.js";
-import corsSelector from "./middleware/cors-selector.js";
+import Config from "./config";
+import database from "./middleware/database";
+import corsSelector from "./middleware/cors-selector";
 
 const app: Application = express();
 

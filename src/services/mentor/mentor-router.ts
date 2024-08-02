@@ -1,14 +1,14 @@
 import { Request, Response, Router } from "express";
-import { OfficeHoursFormat, pointCoinUpdateValue } from "./mentor-formats.js";
-import Models from "../../database/models.js";
+import { OfficeHoursFormat, pointCoinUpdateValue } from "./mentor-formats";
+import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload, Role } from "../auth/auth-models.js";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
-import { RouterError } from "../../middleware/error-handler.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { JwtPayload, Role } from "../auth/auth-models";
+import { hasElevatedPerms } from "../auth/auth-lib";
+import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";
-import { updatePointsAndCoins } from "../profile/profile-lib.js";
-import Config from "../../config.js";
+import { updatePointsAndCoins } from "../profile/profile-lib";
+import Config from "../../config";
 import crypto from "crypto";
 
 const mentorRouter: Router = Router();

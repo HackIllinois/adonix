@@ -1,5 +1,5 @@
-import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models.js";
-import { isString, isBoolean, isArrayOfType, isNumber, isEnumOfType } from "../../formatTools.js";
+import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
+import { isString, isBoolean, isArrayOfType, isNumber, isEnumOfType } from "../../formatTools";
 
 export interface RegistrationFormat {
     userId: string;

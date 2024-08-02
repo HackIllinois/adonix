@@ -1,12 +1,12 @@
 import { Request, Response, Router } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt.js";
-import { JwtPayload } from "../auth/auth-models.js";
+import { strongJwtVerification } from "../../middleware/verify-jwt";
+import { JwtPayload } from "../auth/auth-models";
 import { StatusCode } from "status-code-enum";
-import { hasElevatedPerms } from "../auth/auth-lib.js";
+import { hasElevatedPerms } from "../auth/auth-lib";
 
-import Config from "../../config.js";
+import Config from "../../config";
 import { GetObjectCommand, type S3 } from "@aws-sdk/client-s3";
-import { s3ClientMiddleware } from "../../middleware/s3.js";
+import { s3ClientMiddleware } from "../../middleware/s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 

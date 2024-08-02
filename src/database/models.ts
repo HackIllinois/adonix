@@ -1,19 +1,19 @@
 import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
-import { AuthInfo } from "./auth-db.js";
-import { AttendeeFollowing, AttendeeProfile } from "./attendee-db.js";
-import { AdmissionDecision } from "./admission-db.js";
-import { MentorOfficeHours } from "./mentor-db.js";
-import { Event, EventAttendance, EventFollowers } from "./event-db.js";
-import { NewsletterSubscription } from "./newsletter-db.js";
-import { RegistrationApplication } from "./registration-db.js";
-import { ShopItem } from "./shop-db.js";
-import { UserAttendance, UserInfo } from "./user-db.js";
-import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types.js";
-import { StaffShift } from "./staff-db.js";
-import { NotificationMappings, NotificationMessages } from "./notification-db.js";
-import { PuzzleItem } from "./puzzle-db.js";
+import { AuthInfo } from "./auth-db";
+import { AttendeeFollowing, AttendeeProfile } from "./attendee-db";
+import { AdmissionDecision } from "./admission-db";
+import { MentorOfficeHours } from "./mentor-db";
+import { Event, EventAttendance, EventFollowers } from "./event-db";
+import { NewsletterSubscription } from "./newsletter-db";
+import { RegistrationApplication } from "./registration-db";
+import { ShopItem } from "./shop-db";
+import { UserAttendance, UserInfo } from "./user-db";
+import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
+import { StaffShift } from "./staff-db";
+import { NotificationMappings, NotificationMessages } from "./notification-db";
+import { PuzzleItem } from "./puzzle-db";
 
 // Groups for collections
 export enum Group {

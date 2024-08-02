@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import Models from "../../database/models.js";
-import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db.js";
-import { RegistrationFormat } from "../registration/registration-formats.js";
-import { RegistrationTemplates } from "./../../config.js";
-import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models.js";
-import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools.js";
+import Models from "../../database/models";
+import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db";
+import { RegistrationFormat } from "../registration/registration-formats";
+import { RegistrationTemplates } from "./../../config";
+import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models";
+import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools";
 import { StatusCode } from "status-code-enum";
-import type * as MailLib from "../../services/mail/mail-lib.js";
+import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "services/mail/mail-formats.js";
+import { MailInfoFormat } from "services/mail/mail-formats";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -79,7 +79,7 @@ describe("GET /admission/notsent/", () => {
 });
 
 function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
-    const mailLib = require("../../services/mail/mail-lib.js") as typeof MailLib;
+    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
     return jest.spyOn(mailLib, "sendMail");
 }
 
