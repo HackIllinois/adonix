@@ -10,12 +10,10 @@ import { performCheckIn } from "../staff/staff-lib";
 import { UserInfo } from "../../database/user-db";
 import Models from "../../database/models";
 import Config from "../../config";
-import { AttendeeFollowing } from "database/attendee-db";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler";
-import { EventFollowers } from "../../database/event-db";
 
-const userRouter: Router = Router();
+const userRouter = Router();
 
 /**
  * @api {get} /user/qr/ GET /user/qr/
@@ -38,9 +36,9 @@ const userRouter: Router = Router();
  * @apiUse strongVerifyErrors
  */
 userRouter.get("/v2-qr/", strongJwtVerification, (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
-    const uri: string = `hackillinois://user?userToken=${token}`;
+    const payload = res.locals.payload as JwtPayload;
+    const token = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
+    const uri = `hackillinois://user?userToken=${token}`;
     return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
 });
 
@@ -67,9 +65,9 @@ userRouter.get("/v2-qr/", strongJwtVerification, (_: Request, res: Response) => 
  * @apiUse strongVerifyErrors
  */
 userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetUser: string | undefined = req.params.USERID as string;
+    const targetUser = req.params.USERID as string;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     let newPayload: JwtPayload | undefined;
 
     // Check if target user -> if so, return same payload but modified expiry
@@ -87,7 +85,7 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
 
     // Generate the token
     const token: string = generateJwtToken(newPayload, false, "20s");
-    const uri: string = `hackillinois://user?userToken=${token}`;
+    const uri = `hackillinois://user?userToken=${token}`;
     return res.status(StatusCode.SuccessOK).send({ userId: newPayload.id, qrInfo: uri });
 });
 
@@ -112,9 +110,9 @@ userRouter.get("/qr/:USERID", strongJwtVerification, async (req: Request, res: R
  */
 userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     // Get payload, return user's values
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
-    const user: UserInfo | null = await Models.UserInfo.findOne({ userId: payload.id });
+    const user = await Models.UserInfo.findOne({ userId: payload.id });
 
     if (user) {
         return res.status(StatusCode.SuccessOK).send(user);
@@ -139,9 +137,9 @@ userRouter.get("/", strongJwtVerification, async (_: Request, res: Response, nex
  * @apiUse strongVerifyErrors
 */
 userRouter.get("/following/", strongJwtVerification, async (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
-    const following: AttendeeFollowing | null = await Models.AttendeeFollowing.findOne({ userId: payload.id });
+    const following = await Models.AttendeeFollowing.findOne({ userId: payload.id });
     return res.status(StatusCode.SuccessOK).send({ userId: payload.id, events: following?.following });
 });
 
@@ -166,14 +164,14 @@ userRouter.get("/following/", strongJwtVerification, async (_: Request, res: Res
  * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
 userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const eventId: string | undefined = req.body.eventId;
+    const payload = res.locals.payload as JwtPayload;
+    const eventId = req.body.eventId;
 
     if (!eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidEventId"));
     }
 
-    const eventExists: EventFollowers | null = await Models.EventFollowers.findOneAndUpdate(
+    const eventExists = await Models.EventFollowers.findOneAndUpdate(
         { eventId: eventId },
         { $addToSet: { followers: payload.id } },
         { new: true, upsert: true },
@@ -183,7 +181,7 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
         return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
     }
 
-    const attendeeFollowing: AttendeeFollowing | null = await Models.AttendeeFollowing.findOneAndUpdate(
+    const attendeeFollowing = await Models.AttendeeFollowing.findOneAndUpdate(
         { userId: payload.id },
         { $addToSet: { following: eventId } },
         { new: true, upsert: true },
@@ -219,8 +217,8 @@ userRouter.put("/follow/", strongJwtVerification, async (req: Request, res: Resp
  * @apiError (404: Bad Request) {String} EventNotFound Event with eventId not found.
  */
 userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const eventId: string | undefined = req.body.eventId;
+    const payload = res.locals.payload as JwtPayload;
+    const eventId = req.body.eventId;
 
     // eventID has to exist
     const eventFollowers = await Models.EventFollowers.findOneAndUpdate(
@@ -269,10 +267,10 @@ userRouter.put("/unfollow/", strongJwtVerification, async (req: Request, res: Re
  * @apiUse strongVerifyErrors
  */
 userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetUser: string = req.params.USERID ?? "";
+    const targetUser = req.params.USERID as string;
 
     // Get payload, and check if authorized
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     if (payload.id == targetUser || hasElevatedPerms(payload)) {
         // Authorized -> return the user object
         const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId: targetUser });
@@ -312,9 +310,9 @@ userRouter.get("/:USERID", strongJwtVerification, async (req: Request, res: Resp
  *     {"error": "EventNotFound"}
  */
 userRouter.put("/scan-event/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     const userId = payload.id;
-    const eventId: string | undefined = req.body.eventId;
+    const eventId = req.body.eventId as string | undefined;
 
     if (!eventId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));

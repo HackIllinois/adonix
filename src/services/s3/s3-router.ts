@@ -10,7 +10,7 @@ import { s3ClientMiddleware } from "../../middleware/s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 
-const s3Router: Router = Router();
+const s3Router = Router();
 
 /**
  * @api {get} /s3/upload GET /s3/upload
@@ -26,9 +26,9 @@ const s3Router: Router = Router();
    }
  */
 s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     const s3 = res.locals.s3 as S3;
-    const userId: string = payload.id;
+    const userId = payload.id;
 
     const { url, fields } = await createPresignedPost(s3, {
         Bucket: Config.S3_BUCKET_NAME,
@@ -60,9 +60,9 @@ s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req:
    }
  */
 s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     const s3 = res.locals.s3 as S3;
-    const userId: string = payload.id;
+    const userId = payload.id;
 
     const command = new GetObjectCommand({
         Bucket: Config.S3_BUCKET_NAME,
@@ -94,8 +94,8 @@ s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_re
  *     {"error": "Forbidden"}
  */
 s3Router.get("/download/:USERID", strongJwtVerification, s3ClientMiddleware, async (req: Request, res: Response) => {
-    const userId: string | undefined = req.params.USERID;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId = req.params.USERID;
+    const payload = res.locals.payload as JwtPayload;
     const s3 = res.locals.s3 as S3;
 
     if (!hasElevatedPerms(payload)) {

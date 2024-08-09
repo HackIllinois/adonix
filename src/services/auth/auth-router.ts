@@ -48,7 +48,7 @@ passport.use(
     ),
 );
 
-const authRouter: Router = Router();
+const authRouter = Router();
 authRouter.use(express.urlencoded({ extended: false }));
 
 authRouter.get("/dev/", (req: Request, res: Response, next: NextFunction) => {
@@ -119,7 +119,7 @@ authRouter.get("/login/google/", (req: Request, res: Response, next: NextFunctio
 authRouter.get(
     "/:PROVIDER/callback/:DEVICE",
     (req: Request, res: Response, next: NextFunction) => {
-        const provider: string = req.params.PROVIDER ?? "";
+        const provider = req.params.PROVIDER ?? "";
         try {
             const device = req.params.DEVICE;
 
@@ -140,18 +140,18 @@ authRouter.get(
         }
 
         try {
-            const device: string = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
+            const device = (res.locals.device ?? Config.DEFAULT_DEVICE) as string;
             const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
-            const data: ProfileData = user._json as ProfileData;
+            const data = user._json as ProfileData;
             const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
 
             data.id = data.id ?? user.id;
             data.displayName = data.name ?? data.displayName ?? data.login;
 
             // Load in the payload with the actual values stored in the database
-            const payload: JwtPayload = await getJwtPayloadFromProfile(user.provider, data, true);
+            const payload = await getJwtPayloadFromProfile(user.provider, data, true);
 
-            const userId: string = payload.id;
+            const userId = payload.id;
             await Models.UserInfo.findOneAndUpdate(
                 { userId: userId },
                 { email: data.email, name: data.displayName, userId: userId },
@@ -176,7 +176,7 @@ authRouter.get(
                     token = generateJwtToken(payload, false);
             }
 
-            const url: string = `${redirect}?token=${token}`;
+            const url = `${redirect}?token=${token}`;
             return res.redirect(url);
         } catch (error) {
             return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidData", undefined, error));
@@ -233,8 +233,8 @@ authRouter.get("/roles/list/:ROLE", strongJwtVerification, async (req: Request, 
  * @apiUse strongVerifyErrors
  */
 authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const targetUser = payload.id;
 
     await getRoles(targetUser)
         .then((roles: Role[] | undefined) => {
@@ -270,9 +270,9 @@ authRouter.get("/roles/", strongJwtVerification, async (_: Request, res: Respons
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  */
 authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetUser: string = req.params.USERID as string;
+    const targetUser = req.params.USERID as string;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Cases: Target user already logged in, auth user is admin
     if (payload.id == targetUser) {
@@ -317,7 +317,7 @@ authRouter.get("/roles/:USERID", strongJwtVerification, async (req: Request, res
  * @apiUse strongVerifyErrors
  */
 authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Not authenticated with modify roles perms
     if (!hasAdminPerms(payload)) {
@@ -333,7 +333,7 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
     }
 
     // Check if role to add/remove actually exists
-    const data: ModifyRoleRequest = req.body as ModifyRoleRequest;
+    const data = req.body as ModifyRoleRequest;
 
     const role: Role | undefined = Role[data.role.toUpperCase() as keyof typeof Role];
     if (!role) {
@@ -365,18 +365,18 @@ authRouter.put("/roles/:OPERATION/", strongJwtVerification, async (req: Request,
  */
 authRouter.get("/token/refresh", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
     // Get old data from token
-    const oldPayload: JwtPayload = res.locals.payload as JwtPayload;
-    const data: ProfileData = {
+    const oldPayload = res.locals.payload as JwtPayload;
+    const data = {
         id: oldPayload.id,
         email: oldPayload.email,
     };
 
     try {
         // Generate a new payload for the token
-        const newPayload: JwtPayload = await getJwtPayloadFromProfile(oldPayload.provider, data, false);
+        const newPayload = await getJwtPayloadFromProfile(oldPayload.provider, data, false);
 
         // Create and return a new token with the payload
-        const newToken: string = generateJwtToken(newPayload);
+        const newToken = generateJwtToken(newPayload);
         return res.status(StatusCode.SuccessOK).send({ token: newToken });
     } catch (error) {
         const message = error instanceof Error ? error.message : `${error}`;

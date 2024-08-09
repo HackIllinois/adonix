@@ -10,10 +10,10 @@ import { JwtPayload } from "../auth/auth-models";
 import { MailInfoFormat, isValidMailInfo } from "./mail-formats";
 import { sendMailWrapper } from "./mail-lib";
 
-const mailRouter: Router = Router();
+const mailRouter = Router();
 
 mailRouter.post("/send/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));

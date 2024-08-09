@@ -20,7 +20,7 @@ import { RouterError } from "../../middleware/error-handler";
 import crypto from "crypto";
 import Config from "../../config";
 
-const eventsRouter: Router = Router();
+const eventsRouter = Router();
 eventsRouter.use(cors({ origin: "*" }));
 
 /**
@@ -49,8 +49,8 @@ eventsRouter.use(cors({ origin: "*" }));
  * @apiError (403: Forbidden) {String} Forbidden User does not have staff permissions.
  */
 eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const eventId: string | undefined = req.body.eventId;
+    const payload = res.locals.payload as JwtPayload;
+    const eventId = req.body.eventId as string | undefined;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -106,7 +106,7 @@ eventsRouter.get("/followers/", strongJwtVerification, async (req: Request, res:
  * @apiError (403: Forbidden) {String} Forbidden Not a valid staff token.
  * */
 eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -178,14 +178,14 @@ eventsRouter.get("/staff/", strongJwtVerification, async (_: Request, res: Respo
  *     {"error": "PrivateEvent"}
  */
 eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const eventId: string | undefined = req.params.EVENTID;
+    const eventId = req.params.EVENTID as string | undefined;
 
     if (!eventId) {
         return res.redirect("/");
     }
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const isStaff: boolean = hasStaffPerms(payload);
+    const payload = res.locals.payload as JwtPayload;
+    const isStaff = hasStaffPerms(payload);
 
     const event = await Models.Event.findOne({ eventId: eventId });
 
@@ -199,7 +199,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
         }
         return res.status(StatusCode.SuccessOK).send(event);
     } else {
-        const filteredEvent: FilteredEventView = createFilteredEventView(event);
+        const filteredEvent = createFilteredEventView(event);
         return res.status(StatusCode.SuccessOK).send(filteredEvent);
     }
 });
@@ -318,7 +318,7 @@ eventsRouter.get("/:EVENTID/", weakJwtVerification, async (req: Request, res: Re
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     let publicEvents: Event[];
 
@@ -448,7 +448,7 @@ eventsRouter.get("/", weakJwtVerification, async (_: Request, res: Response) => 
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
@@ -462,7 +462,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ExtraIdProvided", { extraEventId: eventFormat.eventId }));
     }
 
-    const eventId: string = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
+    const eventId = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
     eventFormat.eventId = eventId;
 
     if (!isValidEvent(eventFormat)) {
@@ -470,7 +470,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     }
 
     // Create the new event and its attendance
-    const event: Event = await Models.Event.create(eventFormat);
+    const event = await Models.Event.create(eventFormat);
     await Models.EventAttendance.create({ eventId: eventId, attendees: [] });
     return res.status(StatusCode.SuccessCreated).send(event);
 });
@@ -492,7 +492,7 @@ eventsRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while deleting the event.
  */
 eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const eventId: string | undefined = req.params.EVENTID;
+    const eventId = req.params.EVENTID as string | undefined;
 
     // Check if request sender has permission to delete the event
     if (!hasAdminPerms(res.locals.payload as JwtPayload)) {
@@ -533,7 +533,7 @@ eventsRouter.delete("/:EVENTID/", strongJwtVerification, async (req: Request, re
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server while fetching metadata.
  */
 eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
@@ -576,14 +576,14 @@ eventsRouter.get("/metadata/:EVENTID", strongJwtVerification, async (req: Reques
  * @apiError (404: Not Found) {String} EventNotFound Metadata for the given event was not found
  */
 eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
     // Check if the request information is valid
-    const metadata: MetadataFormat = req.body as MetadataFormat;
+    const metadata = req.body as MetadataFormat;
     if (!isValidMetadataFormat(metadata)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", metadata));
     }
@@ -639,7 +639,7 @@ eventsRouter.put("/metadata/", strongJwtVerification, async (req: Request, res: 
  * @apiError (404: Not Found) {String} EventNotFound Metadata for the given event was not found
  */
 eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Check if the token has elevated permissions
     if (!hasAdminPerms(payload)) {
@@ -647,8 +647,8 @@ eventsRouter.put("/", strongJwtVerification, async (req: Request, res: Response,
     }
 
     // Verify that the input format is valid to create a new event
-    const event: Event = req.body as Event;
-    const eventId: string = event.eventId;
+    const event = req.body as Event;
+    const eventId = event.eventId;
 
     if (!isValidEvent(event)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams", event));

@@ -15,7 +15,7 @@ import { RegistrationTemplates } from "../../config";
 import { getApplication } from "../registration/registration-lib";
 import { sendMail } from "../mail/mail-lib";
 
-const admissionRouter: Router = Router();
+const admissionRouter = Router();
 
 /**
  * @api {get} /admission/notsent/ GET /admission/notsent/
@@ -53,7 +53,7 @@ const admissionRouter: Router = Router();
  * @apiError (500: Internal Server Error) {String} InternalError occurred on the server.
  * */
 admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const token: JwtPayload = res.locals.payload as JwtPayload;
+    const token = res.locals.payload as JwtPayload;
     if (!hasElevatedPerms(token)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
@@ -87,8 +87,8 @@ admissionRouter.get("/notsent/", strongJwtVerification, async (_: Request, res: 
  * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
     const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userId });
 
@@ -173,8 +173,8 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
  * @apiError (424: EmailFailed) {string} Failed because depencency (mail service) failed.
  */
 admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
     const queryResult: AdmissionDecision | null = await Models.AdmissionDecision.findOne({ userId: userId });
 
@@ -253,7 +253,7 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
  * @apiError (403: Forbidden) {String} Forbidden API accessed by user without valid perms.
  * */
 admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const token: JwtPayload = res.locals.payload as JwtPayload;
+    const token = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(token)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -336,8 +336,8 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
  * @apiUse strongVerifyErrors
  */
 admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
     if (hasElevatedPerms(payload)) {
         const staffQueryResult: AdmissionDecision[] | null = await Models.AdmissionDecision.find();
@@ -383,9 +383,9 @@ admissionRouter.get("/rsvp/", strongJwtVerification, async (_: Request, res: Res
  * @apiUse strongVerifyErrors
  */
 admissionRouter.get("/rsvp/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const userId: string | undefined = req.params.USERID;
+    const userId = req.params.USERID;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     //Sends error if caller doesn't have elevated perms
     if (!hasElevatedPerms(payload)) {

@@ -11,7 +11,7 @@ import { updatePointsAndCoins } from "../profile/profile-lib";
 import Config from "../../config";
 import crypto from "crypto";
 
-const mentorRouter: Router = Router();
+const mentorRouter = Router();
 
 /**
  * @api {post} /mentor POST /mentor
@@ -50,8 +50,8 @@ const mentorRouter: Router = Router();
  *     {"error": "InvalidPermission"}
  */
 mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorName: string | undefined = req.body.mentorName;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const mentorName = req.body.mentorName as string | undefined;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!mentorName) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
@@ -61,7 +61,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
     }
 
     //generate mentorId, add document to database, return generated document in response
-    const mentorId: string = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
+    const mentorId = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
 
     const officeHours: OfficeHoursFormat = { mentorId: mentorId, mentorName: mentorName, attendees: [] };
 
@@ -107,7 +107,7 @@ mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response
  *     {"error": "InternalError"}
  */
 mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
@@ -153,7 +153,7 @@ mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, n
  */
 mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
     const mentorId: string | undefined = req.body.mentorId;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
@@ -218,8 +218,8 @@ mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Respon
  *     {"error": "AlreadyCheckedIn"}
  */
 mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorId: string | undefined = req.body.mentorId;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const mentorId = req.body.mentorId as string | undefined;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!mentorId) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));

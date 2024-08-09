@@ -10,7 +10,7 @@ import Config from "../../config";
 import { updatePuzzle } from "./puzzle-lib";
 import { isString } from "../../formatTools";
 
-const puzzleRouter: Router = Router();
+const puzzleRouter = Router();
 
 /**
  * @api {get} /puzzle/status GET /status
@@ -43,8 +43,8 @@ const puzzleRouter: Router = Router();
  * @apiError (404: User Not Found) {String} UserNotFound User does not exist.
  **/
 puzzleRouter.get("/status", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const targetUser = payload.id;
 
     const puzzle: PuzzleItem | null = await Models.PuzzleItem.findOne({ userId: targetUser });
 
@@ -92,15 +92,15 @@ puzzleRouter.get("/status", strongJwtVerification, async (_: Request, res: Respo
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  * */
 puzzleRouter.post("/submit/:QID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const targetUser = payload.id;
 
     if (!req.params.QID || !isString(req.params.QID)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "Bad Request"));
     }
 
-    const qid: number = parseInt(req.params.QID);
-    const answer: string = req.body.answer as string;
+    const qid = parseInt(req.params.QID);
+    const answer = req.body.answer as string;
 
     // already completed this question
     const puzzle: PuzzleItem | null = await Models.PuzzleItem.findOne({ userId: targetUser });
@@ -144,9 +144,9 @@ puzzleRouter.post("/submit/:QID", strongJwtVerification, async (req: Request, re
  * @apiError (404: User Not Found) {String} UserNotFound User does not exist.
  * */
 puzzleRouter.post("/create", strongJwtVerification, async (req: Request, res: Response, _: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetUser: string = payload.id;
-    const teamName: string = req.body.teamName;
+    const payload = res.locals.payload as JwtPayload;
+    const targetUser = payload.id;
+    const teamName = req.body.teamName as string;
 
     // no need to check that user exists, handled by strongJwtVerification
 

@@ -1,5 +1,5 @@
 import Config from "./config";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 
 interface MetadataFormat {
     androidVersion: string;
@@ -14,8 +14,8 @@ export default class Metadata {
             return this.metadata[key];
         }
 
-        const response: AxiosResponse = await axios.get(Config.METADATA_URL);
-        const loaded: MetadataFormat = response.data as MetadataFormat;
+        const response = await axios.get(Config.METADATA_URL);
+        const loaded = response.data as MetadataFormat;
 
         if (!loaded) {
             return Promise.reject("InvalidConfigFormat");

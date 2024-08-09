@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { AttendeeProfile } from "database/attendee-db";
 import { ShopItem } from "database/shop-db";
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
@@ -44,7 +43,7 @@ import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats";
  * @apiUse weakVerifyErrors
  * */
 
-const shopRouter: Router = Router();
+const shopRouter = Router();
 shopRouter.get("/v2/", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
     const shopItems: ShopItem[] = await Models.ShopItem.find();
 
@@ -96,7 +95,7 @@ shopRouter.get("/v2/", weakJwtVerification, async (_1: Request, res: Response, _
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  * */
 shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
@@ -122,7 +121,7 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
     };
 
     // Ensure that item doesn't already exist before creating
-    const itemExists: boolean = (await Models.ShopItem.findOne({ name: itemFormat.name })) ?? false;
+    const itemExists = (await Models.ShopItem.findOne({ name: itemFormat.name })) ?? false;
     if (itemExists) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "ItemAlreadyExists"));
     }
@@ -161,8 +160,8 @@ shopRouter.post("/item", strongJwtVerification, async (req: Request, res: Respon
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const targetItem: string | undefined = req.params.ITEMID as string;
+    const payload = res.locals.payload as JwtPayload;
+    const targetItem = req.params.ITEMID as string | undefined;
 
     const itemFormat = req.body as ShopItem;
 
@@ -209,14 +208,14 @@ shopRouter.put("/item/:ITEMID", strongJwtVerification, async (req: Request, res:
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     // Check if the token has admin permissions
     if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
     }
 
-    const targetItem: string | undefined = req.params.ITEMID as string;
+    const targetItem = req.params.ITEMID as string | undefined;
     await Models.ShopItem.deleteOne({ itemId: targetItem });
     return res.status(StatusCode.SuccessNoContent).send({ success: true });
 });
@@ -247,14 +246,14 @@ shopRouter.delete("/item/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiUse strongVerifyErrors
  */
 shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const targetItem: string | undefined = req.params.ITEMID as string;
-    const token: JwtPayload = res.locals.payload;
+    const targetItem = req.params.ITEMID as string | undefined;
+    const token = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(token)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: targetItem });
+    const itemFormat = await Models.ShopItem.findOne({ itemId: targetItem });
 
     if (!itemFormat) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
@@ -287,12 +286,12 @@ shopRouter.get("/item/qr/:ITEMID", strongJwtVerification, async (req: Request, r
  * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
  */
 shopRouter.post("/item/buy", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const itemId: string | undefined = req.body.itemId as string;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const itemId = req.body.itemId as string;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
-    const itemFormat: ShopItem | null = await Models.ShopItem.findOne({ itemId: itemId });
-    const userData: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
+    const itemFormat = await Models.ShopItem.findOne({ itemId: itemId });
+    const userData = await Models.AttendeeProfile.findOne({ userId: userId });
 
     if (!itemFormat) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ItemNotFound"));
