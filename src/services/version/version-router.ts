@@ -3,7 +3,7 @@ import { Request, Response } from "express-serve-static-core";
 import Metadata from "../../metadata";
 import { StatusCode } from "status-code-enum";
 
-const versionRouter: Router = Router();
+const versionRouter = Router();
 
 /**
  * @api {get} /version/android/ GET /version/android/
@@ -19,7 +19,7 @@ const versionRouter: Router = Router();
  */
 
 versionRouter.get("/android/", async (_: Request, res: Response) => {
-    const androidVersion: string = await Metadata.load("androidVersion");
+    const androidVersion = await Metadata.load("androidVersion");
     res.status(StatusCode.SuccessOK).send({ version: androidVersion });
 });
 
@@ -36,7 +36,7 @@ versionRouter.get("/android/", async (_: Request, res: Response) => {
  * }
  */
 versionRouter.get("/ios/", async (_: Request, res: Response) => {
-    const iosVersion: string = await Metadata.load("iosVersion");
+    const iosVersion = await Metadata.load("iosVersion");
     res.status(StatusCode.SuccessOK).send({ version: iosVersion });
 });
 

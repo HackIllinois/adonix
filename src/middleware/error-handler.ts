@@ -26,8 +26,8 @@ export class RouterError {
 // _next is intentionally not used in this middleware
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ErrorHandler(error: RouterError, _req: Request, resp: Response, _next: NextFunction): Response {
-    const statusCode: number = error.statusCode;
-    const message: string = error.message;
+    const statusCode = error.statusCode;
+    const message = error.message;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any | undefined = error.data;
     const catchErrorMessage: string | undefined = error.catchErrorMessage;

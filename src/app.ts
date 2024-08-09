@@ -1,5 +1,5 @@
 import morgan from "morgan";
-import express, { Application, Request, Response } from "express";
+import express, { Request, Response } from "express";
 
 import admissionRouter from "./services/admission/admission-router";
 import authRouter from "./services/auth/auth-router";
@@ -24,7 +24,7 @@ import Config from "./config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
 
-const app: Application = express();
+const app = express();
 
 // Utility packages (detailed in the readme)
 app.use(corsSelector);
@@ -79,7 +79,7 @@ export async function startServer(): Promise<Express.Application> {
     const port = Config.PORT;
 
     // Connect express server
-    const server: Express.Application = await promiseListen(port);
+    const server = await promiseListen(port);
 
     // Log success
     console.log(`✅ Server started on http://localhost:${port}...`);

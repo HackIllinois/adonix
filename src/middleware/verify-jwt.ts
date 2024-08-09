@@ -20,7 +20,7 @@ import Config from "../config";
  *     {"error": "NoToken"}
  */
 export function strongJwtVerification(req: Request, res: Response, next: NextFunction): void {
-    const token: string | undefined = req.headers.authorization;
+    const token = req.headers.authorization;
 
     if (!token) {
         res.status(StatusCode.ClientErrorUnauthorized).send({ error: "NoToken" });
@@ -55,7 +55,7 @@ export function strongJwtVerification(req: Request, res: Response, next: NextFun
  *     {"Authorization": "loremipsumdolorsitamet"}
  */
 export function weakJwtVerification(req: Request, res: Response, next: NextFunction): void {
-    const token: string | undefined = req.headers.authorization;
+    const token = req.headers.authorization;
 
     try {
         res.locals.payload = decodeJwtToken(token);

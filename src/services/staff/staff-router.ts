@@ -17,7 +17,7 @@ import { StaffShift } from "database/staff-db";
 import { Event } from "../../database/event-db";
 import { performCheckIn } from "./staff-lib";
 
-const staffRouter: Router = Router();
+const staffRouter = Router();
 
 /**
  * @api {post} /staff/attendance/ POST /staff/attendance/
@@ -49,10 +49,10 @@ const staffRouter: Router = Router();
  *     {"error": "InternalError"}
  */
 staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
-    const eventId: string | undefined = (req.body as AttendanceFormat).eventId;
-    const userId: string = payload.id;
+    const eventId = (req.body as AttendanceFormat).eventId;
+    const userId = payload.id;
     // Only staff can mark themselves as attending these events
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -115,9 +115,9 @@ staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res
  *     {"error": "NoRegistrationData"}
  */
 staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
-    const attendeeJWT: string | undefined = req.body.attendeeJWT;
-    const eventId: string | undefined = req.body.eventId;
+    const payload = res.locals.payload as JwtPayload;
+    const attendeeJWT = req.body.attendeeJWT as string | undefined;
+    const eventId = req.body.eventId as string | undefined;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -186,19 +186,19 @@ staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, r
  */
 
 staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const data: StaffShift | null = await Models.StaffShift.findOne({ userId: payload.id });
+    const data = await Models.StaffShift.findOne({ userId: payload.id });
 
     if (!data) {
         return res.status(StatusCode.SuccessOK).json({ shifts: [] });
     }
 
-    const shiftIds: string[] = data.shifts;
+    const shiftIds = data.shifts;
 
     const events: Event[] = await Models.Event.find({
         isStaff: true,
@@ -228,13 +228,13 @@ staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Respon
  */
 
 staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload | undefined = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
     }
 
-    const shift: StaffShift = req.body as StaffShift;
+    const shift = req.body as StaffShift;
 
     if (!hasAdminPerms(payload) || !shift.userId) {
         shift.userId = payload.id;

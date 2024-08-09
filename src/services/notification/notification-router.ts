@@ -10,10 +10,10 @@ import { StaffShift } from "database/staff-db";
 import { NotificationsMiddleware } from "../../middleware/fcm";
 import Config from "../../config";
 
-const notificationsRouter: Router = Router();
+const notificationsRouter = Router();
 
 notificationsRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasStaffPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -26,10 +26,10 @@ notificationsRouter.get("/", strongJwtVerification, async (_: Request, res: Resp
 
 // register your current device token as associated with your userId
 notificationsRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     const deviceToken: string | undefined = req.body.deviceToken;
-    const userId: string = payload.id;
+    const userId = payload.id;
 
     if (!deviceToken) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoDeviceToken"));
@@ -43,7 +43,7 @@ notificationsRouter.post("/", strongJwtVerification, async (req: Request, res: R
 // Gets batches that can be used to send notifications
 // Call this first, then call /send for each batchId you get
 notificationsRouter.post("/batch/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasAdminPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -107,7 +107,7 @@ notificationsRouter.post(
     strongJwtVerification,
     NotificationsMiddleware,
     async (req: Request, res: Response, next: NextFunction) => {
-        const payload: JwtPayload = res.locals.payload as JwtPayload;
+        const payload = res.locals.payload as JwtPayload;
         const admin = res.locals.fcm;
         const sendRequest = req.body as { batchId: string };
 

@@ -19,7 +19,7 @@ import { sendMail } from "../mail/mail-lib";
 import { MailInfoFormat } from "../mail/mail-formats";
 import { isRegistrationAlive } from "./registration-lib";
 
-const registrationRouter: Router = Router();
+const registrationRouter = Router();
 
 registrationRouter.get("/status/", async (_: Request, res: Response) => {
     const isAlive = isRegistrationAlive();
@@ -81,8 +81,8 @@ registrationRouter.get("/status/", async (_: Request, res: Response) => {
  * @apiUse strongVerifyErrors
  */
 registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload;
-    const registrationData: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
+    const payload = res.locals.payload;
+    const registrationData = await Models.RegistrationApplication.findOne({
         userId: payload.id,
     });
 
@@ -151,8 +151,8 @@ registrationRouter.get("/", strongJwtVerification, async (_: Request, res: Respo
  * @apiError (404: Not Found) {String} NotFound Registration does not exist
  */
 registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const userId: string | undefined = req.params.USERID;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId = req.params.USERID;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!hasElevatedPerms(payload)) {
         return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
@@ -262,26 +262,25 @@ registrationRouter.get("/userid/:USERID", strongJwtVerification, async (req: Req
  * @apiUse strongVerifyErrors
  */
 registrationRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
-    const registrationData: RegistrationFormat = req.body as RegistrationFormat;
+    const registrationData = req.body as RegistrationFormat;
     registrationData.userId = userId;
 
     if (!isValidRegistrationFormat(registrationData)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
     }
 
-    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
+    const registrationInfo = await Models.RegistrationApplication.findOne({ userId: userId });
     if (registrationInfo?.hasSubmitted ?? false) {
         return next(new RouterError(StatusCode.ClientErrorUnprocessableEntity, "AlreadySubmitted"));
     }
 
-    const newRegistrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOneAndReplace(
-        { userId: userId },
-        registrationData,
-        { upsert: true, new: true },
-    );
+    const newRegistrationInfo = await Models.RegistrationApplication.findOneAndReplace({ userId: userId }, registrationData, {
+        upsert: true,
+        new: true,
+    });
 
     if (!newRegistrationInfo) {
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
@@ -307,10 +306,10 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ClientErrorForbidden, "RegistrationClosed"));
     }
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
-    const registrationInfo: RegistrationApplication | null = await Models.RegistrationApplication.findOne({ userId: userId });
+    const registrationInfo = await Models.RegistrationApplication.findOne({ userId: userId });
 
     if (!registrationInfo) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "NotFound"));
@@ -335,7 +334,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         status: DecisionStatus.TBD,
     };
 
-    const admissionInfo: AdmissionDecision | null = await Models.AdmissionDecision.findOneAndUpdate(
+    const admissionInfo = await Models.AdmissionDecision.findOneAndUpdate(
         {
             userId: userId,
         },

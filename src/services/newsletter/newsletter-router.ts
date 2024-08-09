@@ -7,7 +7,7 @@ import { StatusCode } from "status-code-enum";
 import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";
 
-const newsletterRouter: Router = Router();
+const newsletterRouter = Router();
 
 /**
  * @api {post} /newsletter/subscribe/ POST /newsletter/subscribe/
@@ -32,9 +32,9 @@ const newsletterRouter: Router = Router();
  *     {"error": "InvalidParams"}
  */
 newsletterRouter.post("/subscribe/", async (request: Request, res: Response, next: NextFunction) => {
-    const requestBody: SubscribeRequest = request.body as SubscribeRequest;
-    const listName: string | undefined = requestBody.listName;
-    const emailAddress: string | undefined = requestBody.emailAddress;
+    const requestBody = request.body as SubscribeRequest;
+    const listName = requestBody.listName as string | undefined;
+    const emailAddress = requestBody.emailAddress as string | undefined;
 
     // Verify that both parameters do exist
     if (!listName || !emailAddress) {

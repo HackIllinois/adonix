@@ -11,7 +11,6 @@ import { Query } from "mongoose";
 import Models from "../../database/models";
 import { LeaderboardEntry } from "./profile-models";
 
-import { DeleteResult } from "mongodb";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { hasElevatedPerms } from "../auth/auth-lib";
@@ -21,7 +20,7 @@ import { isNumber } from "../../formatTools";
 import { RouterError } from "../../middleware/error-handler";
 import { isValidProfileFormat } from "./profile-formats";
 
-const profileRouter: Router = Router();
+const profileRouter = Router();
 
 profileRouter.use(cors({ origin: "*" }));
 
@@ -55,7 +54,7 @@ profileRouter.use(cors({ origin: "*" }));
  *     {"error": "InvalidInput"}
  */
 profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: NextFunction) => {
-    const limitString: string | undefined = req.query.limit as string | undefined;
+    const limitString = req.query.limit as string | undefined;
 
     // Initialize the metadata
     let leaderboardQuery: Query<AttendeeProfile[], AttendeeProfile> = Models.AttendeeProfile.find().sort({ points: -1 });
@@ -125,9 +124,9 @@ profileRouter.get("/leaderboard/", async (req: Request, res: Response, next: Nex
  */
 
 profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
-    const userId: string = payload.id;
+    const userId = payload.id;
 
     const user: AttendeeProfile | null = await Models.AttendeeProfile.findOne({ userId: userId });
 
@@ -176,8 +175,8 @@ profileRouter.get("/", strongJwtVerification, async (_: Request, res: Response, 
  */
 
 profileRouter.get("/userid/:USERID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const userId: string | undefined = req.params.USERID;
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const userId = req.params.USERID as string | undefined;
+    const payload = res.locals.payload as JwtPayload;
 
     // Trying to perform elevated operation (getting someone else's profile without elevated perms)
     if (!hasElevatedPerms(payload)) {
@@ -238,13 +237,13 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
         ? (req.body.avatarId as string)
         : Config.DEFAULT_AVATAR;
 
-    const profile: AttendeeProfile = req.body as AttendeeProfile;
+    const profile = req.body as AttendeeProfile;
     profile.points = Config.DEFAULT_POINT_VALUE;
     profile.coins = Config.DEFAULT_COIN_VALUE;
     profile.avatarUrl = `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
     console.log(profile.avatarUrl);
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
     profile.userId = payload.id;
 
     const registrationApplication: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
@@ -298,9 +297,9 @@ profileRouter.post("/", strongJwtVerification, async (req: Request, res: Respons
  */
 
 profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const decodedData: JwtPayload = res.locals.payload as JwtPayload;
+    const decodedData = res.locals.payload as JwtPayload;
 
-    const attendeeProfileDeleteResponse: DeleteResult = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
+    const attendeeProfileDeleteResponse = await Models.AttendeeProfile.deleteOne({ userId: decodedData.id });
 
     if (attendeeProfileDeleteResponse.deletedCount == 0) {
         return next(new RouterError(StatusCode.ClientErrorNotFound, "AttendeeNotFound"));
@@ -340,10 +339,10 @@ profileRouter.delete("/", strongJwtVerification, async (_: Request, res: Respons
  */
 
 profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const points: number = req.body.points;
-    const userId: string = req.body.userId;
+    const points = req.body.points as number;
+    const userId = req.body.userId as string;
 
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
+    const payload = res.locals.payload as JwtPayload;
 
     if (!isNumber(points)) {
         return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoPoints"));
@@ -384,8 +383,8 @@ profileRouter.post("/addpoints", strongJwtVerification, async (req: Request, res
  * @apiError (500: Internal) {String} InternalError An internal server error occured.
  */
 profileRouter.get("/ranking/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload: JwtPayload = res.locals.payload as JwtPayload;
-    const userId: string = payload.id;
+    const payload = res.locals.payload as JwtPayload;
+    const userId = payload.id;
 
     const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
     const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
