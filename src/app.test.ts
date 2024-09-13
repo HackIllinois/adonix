@@ -23,12 +23,16 @@ describe("sanity tests for app", () => {
     it("should generate valid API specification", async () => {
         await get("/docs/").expect(StatusCode.SuccessOK);
         const response = await get("/docs/json/").expect(StatusCode.SuccessOK);
+        const parsed = JSON.parse(response.text);
 
-        expect(JSON.parse(response.text)).toHaveProperty(
-            "info",
-            expect.objectContaining({
+        expect(parsed).toMatchObject({
+            info: expect.objectContaining({
                 title: "adonix",
             }),
-        );
+            paths: expect.objectContaining({}),
+            components: expect.objectContaining({}),
+        });
+        expect(Object.keys((parsed as { paths: Record<string, unknown> }).paths)).not.toHaveLength(0);
+        expect(Object.keys((parsed as { components: Record<string, unknown> }).components)).not.toHaveLength(0);
     });
 });
