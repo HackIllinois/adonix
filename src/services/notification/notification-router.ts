@@ -7,8 +7,8 @@ import { JwtPayload } from "../auth/auth-models";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats";
 import { StaffShift } from "database/staff-db";
-import { NotificationsMiddleware } from "../../middleware/fcm";
 import Config from "../../config";
+import { sendNotification } from "./notification-service";
 
 const notificationsRouter = Router();
 
@@ -102,72 +102,64 @@ notificationsRouter.post("/batch/", strongJwtVerification, async (req: Request, 
 
 // Sends notifications to a batch of users, gotten from /notification/batch
 // Only accepts Config.NOTIFICATION_BATCH_SIZE users.
-notificationsRouter.post(
-    "/send",
-    strongJwtVerification,
-    NotificationsMiddleware,
-    async (req: Request, res: Response, next: NextFunction) => {
-        const payload = res.locals.payload as JwtPayload;
-        const admin = res.locals.fcm;
-        const sendRequest = req.body as { batchId: string };
+notificationsRouter.post("/send", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
+    const payload = res.locals.payload as JwtPayload;
+    const sendRequest = req.body as { batchId: string };
 
-        if (!hasAdminPerms(payload)) {
-            return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-        }
-        if (!sendRequest.batchId) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoBatchId"));
-        }
+    if (!hasAdminPerms(payload)) {
+        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
+    }
+    if (!sendRequest.batchId) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "NoBatchId"));
+    }
 
-        const decodedBatchId = Buffer.from(sendRequest.batchId, "base64url").toString("utf-8");
-        const [messageId, targetUserIds] = JSON.parse(decodedBatchId) as [string, string[]];
+    const decodedBatchId = Buffer.from(sendRequest.batchId, "base64url").toString("utf-8");
+    const [messageId, targetUserIds] = JSON.parse(decodedBatchId) as [string, string[]];
 
-        const message = await Models.NotificationMessages.findById(messageId);
+    const message = await Models.NotificationMessages.findById(messageId);
 
-        if (!message || !targetUserIds || targetUserIds.length > Config.NOTIFICATION_BATCH_SIZE) {
-            return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidBatch"));
-        }
-        const messageTemplate = {
-            notification: {
-                title: message.title,
-                body: message.body,
-            },
-        };
-        const startTime = new Date();
-        let notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
-        notifMappings = notifMappings.filter((x) => x?.deviceToken != undefined);
+    if (!message || !targetUserIds || targetUserIds.length > Config.NOTIFICATION_BATCH_SIZE) {
+        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidBatch"));
+    }
+    const messageTemplate = {
+        notification: {
+            title: message.title,
+            body: message.body,
+        },
+    };
+    const startTime = new Date();
+    let notifMappings = await Models.NotificationMappings.find({ userId: { $in: targetUserIds } }).exec();
+    notifMappings = notifMappings.filter((x) => x?.deviceToken != undefined);
 
-        const sent: string[] = [];
-        const failed: string[] = [];
+    const sent: string[] = [];
+    const failed: string[] = [];
 
-        const messages = notifMappings.map((mapping) =>
-            admin
-                .messaging()
-                .send({ token: mapping.deviceToken, ...messageTemplate })
-                .then(() => {
-                    sent.push(mapping.userId);
-                })
-                .catch(() => {
-                    failed.push(mapping.userId);
-                }),
-        );
-        await Promise.all(messages);
-        await Models.NotificationMessages.findOneAndUpdate(
-            {
-                _id: messageId,
-            },
-            {
-                $push: {
-                    batches: {
-                        sent,
-                        failed,
-                    },
+    const messages = notifMappings.map((mapping) =>
+        sendNotification({ token: mapping.deviceToken, ...messageTemplate })
+            .then(() => {
+                sent.push(mapping.userId);
+            })
+            .catch(() => {
+                failed.push(mapping.userId);
+            }),
+    );
+    await Promise.all(messages);
+    await Models.NotificationMessages.findOneAndUpdate(
+        {
+            _id: messageId,
+        },
+        {
+            $push: {
+                batches: {
+                    sent,
+                    failed,
                 },
             },
-        );
-        const endTime = new Date();
-        const timeElapsed = endTime.getTime() - startTime.getTime();
-        return res.status(StatusCode.SuccessOK).send({ status: "Success", sent, failed, time_ms: timeElapsed });
-    },
-);
+        },
+    );
+    const endTime = new Date();
+    const timeElapsed = endTime.getTime() - startTime.getTime();
+    return res.status(StatusCode.SuccessOK).send({ status: "Success", sent, failed, time_ms: timeElapsed });
+});
 
 export default notificationsRouter;
