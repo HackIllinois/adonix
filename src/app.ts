@@ -1,5 +1,7 @@
+import "./types";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
+import swaggerUi from "swagger-ui-express";
 
 import admissionRouter from "./services/admission/admission-router";
 import authRouter from "./services/auth/auth-router";
@@ -23,6 +25,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "./config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
+import { getOpenAPISpec } from "./openapi";
 
 const app = express();
 
@@ -36,6 +39,8 @@ if (!Config.TEST) {
 
 // Automatically convert requests from json
 app.use(express.json());
+// eslint-disable-next-line no-magic-numbers
+app.set("json spaces", 4);
 
 // Add routers for each sub-service
 // NOTE: only include database middleware if needed
@@ -55,9 +60,25 @@ app.use("/staff/", database, staffRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", database, userRouter);
 
+// Docs
+app.use("/docs/json", (_req, res) => res.json(getOpenAPISpec()));
+app.use(
+    "/docs",
+    swaggerUi.serveFiles(undefined, {
+        swaggerUrl: `${Config.ROOT_URL}/docs/json`,
+    }),
+    swaggerUi.setup(undefined, {
+        swaggerUrl: `${Config.ROOT_URL}/docs/json`,
+    }),
+);
+
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {
-    res.end("API is working!!!");
+    res.json({
+        ok: true,
+        info: "Welcome to HackIllinois' backend API!",
+        docs: `${Config.ROOT_URL}/docs/`,
+    });
 });
 
 // Throw an error if call is made to the wrong API endpoint

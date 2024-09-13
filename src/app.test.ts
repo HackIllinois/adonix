@@ -13,6 +13,22 @@ describe("sanity tests for app", () => {
     it("should run", async () => {
         const response = await get("/").expect(StatusCode.SuccessOK);
 
-        expect(response.text).toBe("API is working!!!");
+        expect(JSON.parse(response.text)).toMatchObject({
+            ok: true,
+            info: "Welcome to HackIllinois' backend API!",
+            docs: expect.stringMatching(/\/docs\/$/),
+        });
+    });
+
+    it("should generate valid API specification", async () => {
+        await get("/docs/").expect(StatusCode.SuccessOK);
+        const response = await get("/docs/json/").expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toHaveProperty(
+            "info",
+            expect.objectContaining({
+                title: "adonix",
+            }),
+        );
     });
 });

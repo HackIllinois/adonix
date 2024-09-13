@@ -48,12 +48,16 @@ function requireEnv(name: string): string {
     return value;
 }
 
+const PORT = env.PORT ? parseInt(env.PORT) : 3000;
+
 const Config = {
-    /* Jest */
+    /* Environments */
     TEST: false, // False by default, will be mocked over
+    PROD: env.PROD ? true : false,
 
     /* URLs */
-    PORT: env.PORT ? parseInt(env.PORT) : 3000,
+    PORT,
+    ROOT_URL: env.PROD ? "https://adonix.hackillinois.org" : `http://localhost:${PORT}`,
 
     DEFAULT_DEVICE: Device.WEB,
 
