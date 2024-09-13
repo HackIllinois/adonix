@@ -8,7 +8,7 @@ import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsAppli
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "services/mail/mail-formats";
+import { MailInfoFormat } from "../mail/mail-formats";
 
 const TESTER_DECISION = {
     userId: TESTER.id,

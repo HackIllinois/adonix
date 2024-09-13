@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../testTools";
 import { generateJwtToken } from "../auth/auth-lib";
 
-import { EventAttendance } from "database/event-db";
+import { EventAttendance } from "../../database/event-db";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { RegistrationApplication } from "../../database/registration-db";

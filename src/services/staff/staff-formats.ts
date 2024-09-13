@@ -1,4 +1,4 @@
-import { RouterError } from "middleware/error-handler";
+import { RouterError } from "../../middleware/error-handler";
 import { StaffShift } from "../../database/staff-db";
 import { isArrayOfType, isString } from "../../formatTools";
 import { AttendeeProfile } from "../../database/attendee-db";

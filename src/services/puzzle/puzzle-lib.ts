@@ -1,6 +1,6 @@
 import Config from "../../config";
 import Models from "../../database/models";
-import { PuzzleItem } from "database/puzzle-db";
+import { PuzzleItem } from "../../database/puzzle-db";
 import { UpdateQuery } from "mongoose";
 
 /**

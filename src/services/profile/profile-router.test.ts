@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { AttendeeProfile } from "database/attendee-db";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config";
+import { AttendeeProfile } from "../../database/attendee-db";
 import Models from "../../database/models";
 import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools";
 

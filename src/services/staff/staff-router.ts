@@ -12,7 +12,7 @@ import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler";
-import { StaffShift } from "database/staff-db";
+import { StaffShift } from "../../database/staff-db";
 
 import { Event } from "../../database/event-db";
 import { performCheckIn } from "./staff-lib";

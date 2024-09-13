@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { ShopItem } from "database/shop-db";
+import { ShopItem } from "../../database/shop-db";
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
 import { StatusCode } from "status-code-enum";

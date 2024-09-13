@@ -1,8 +1,8 @@
 import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../testTools";
 
-import { AttendeeFollowing, AttendeeProfile } from "database/attendee-db";
-import { EventFollowers, EventAttendance, Event } from "database/event-db";
+import { AttendeeFollowing, AttendeeProfile } from "../../database/attendee-db";
+import { EventFollowers, EventAttendance, Event } from "../../database/event-db";
 import { StatusCode } from "status-code-enum";
 import Config from "../../config";
 import { AuthInfo } from "../../database/auth-db";

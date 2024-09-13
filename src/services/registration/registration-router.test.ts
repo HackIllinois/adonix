@@ -8,7 +8,7 @@ import { RegistrationFormat } from "./registration-formats";
 import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "services/mail/mail-formats";
+import { MailInfoFormat } from "../../services/mail/mail-formats";
 
 const APPLICATION = {
     isProApplicant: false,
