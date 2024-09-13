@@ -18,8 +18,8 @@
         "build": "tsc",
         "verify": "yarn lint:check && yarn format:check",
         "send-notif": "node scripts/send-notif.js",
-        "start": "node out/index.js",
-        "serve": "tsc-watch --onSuccess \"node out/index.js\""
+        "start": "node --enable-source-maps out/index.js",
+        "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\""
     },
     "keywords": [],
     "author": "Aydan Pirani <aydanpirani@gmail.com>",
