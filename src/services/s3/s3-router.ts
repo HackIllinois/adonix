@@ -3,12 +3,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { JwtPayload } from "../auth/auth-models";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../auth/auth-lib";
-
-import Config from "../../config";
-import { GetObjectCommand, type S3 } from "@aws-sdk/client-s3";
-import { s3ClientMiddleware } from "../../middleware/s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { createSignedPostUrl, getSignedDownloadUrl } from "./s3-service";
 
 const s3Router = Router();
 
@@ -25,23 +20,11 @@ const s3Router = Router();
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
+s3Router.get("/upload/", strongJwtVerification, async (_req: Request, res: Response) => {
     const payload = res.locals.payload as JwtPayload;
-    const s3 = res.locals.s3 as S3;
     const userId = payload.id;
 
-    const { url, fields } = await createPresignedPost(s3, {
-        Bucket: Config.S3_BUCKET_NAME,
-        Key: `${userId}.pdf`,
-        Conditions: [
-            ["content-length-range", 0, Config.MAX_RESUME_SIZE_BYTES], // 5 MB max
-        ],
-        Fields: {
-            success_action_status: "201",
-            "Content-Type": "application/pdf",
-        },
-        Expires: Config.RESUME_URL_EXPIRY_SECONDS,
-    });
+    const { url, fields } = await createSignedPostUrl(userId);
 
     return res.status(StatusCode.SuccessOK).send({ url: url, fields: fields });
 });
@@ -59,19 +42,10 @@ s3Router.get("/upload/", strongJwtVerification, s3ClientMiddleware, async (_req:
         "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
    }
  */
-s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_req: Request, res: Response) => {
+s3Router.get("/download/", strongJwtVerification, async (_req: Request, res: Response) => {
     const payload = res.locals.payload as JwtPayload;
-    const s3 = res.locals.s3 as S3;
     const userId = payload.id;
-
-    const command = new GetObjectCommand({
-        Bucket: Config.S3_BUCKET_NAME,
-        Key: `${userId}.pdf`,
-    });
-
-    const downloadUrl = await getSignedUrl(s3, command, {
-        expiresIn: Config.RESUME_URL_EXPIRY_SECONDS,
-    });
+    const downloadUrl = getSignedDownloadUrl(userId);
 
     return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
 });
@@ -93,23 +67,15 @@ s3Router.get("/download/", strongJwtVerification, s3ClientMiddleware, async (_re
  *     HTTP/1.1 403 Forbidden
  *     {"error": "Forbidden"}
  */
-s3Router.get("/download/:USERID", strongJwtVerification, s3ClientMiddleware, async (req: Request, res: Response) => {
-    const userId = req.params.USERID;
+s3Router.get("/download/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
+    const userId = req.params.USERID as string;
     const payload = res.locals.payload as JwtPayload;
-    const s3 = res.locals.s3 as S3;
 
     if (!hasElevatedPerms(payload)) {
         return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
     }
 
-    const command = new GetObjectCommand({
-        Bucket: Config.S3_BUCKET_NAME,
-        Key: `${userId}.pdf`,
-    });
-
-    const downloadUrl = await getSignedUrl(s3, command, {
-        expiresIn: Config.RESUME_URL_EXPIRY_SECONDS,
-    });
+    const downloadUrl = await getSignedDownloadUrl(userId);
 
     return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
 });
