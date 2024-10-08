@@ -7,6 +7,13 @@ import { ResponsesObject, Specification } from "./middleware/specification";
 let openAPISpec: OpenAPIObject | undefined = undefined;
 export const Registry = new OpenAPIRegistry();
 
+// Security component
+const bearerAuth = Registry.registerComponent("securitySchemes", "bearerAuth", {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "jwt",
+});
+
 function generateOpenAPISpec(): OpenAPIObject {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
     return generator.generateDocument({
@@ -38,7 +45,21 @@ export function registerPathSpecification<
     Responses extends ResponsesObject,
     Body extends AnyZodObject,
 >(specification: Specification<Params, Responses, Body>): void {
-    const { method, path, summary, parameters: params, tag } = specification;
+    const { method, path, tag, role, summary, description, parameters: params } = specification;
+    const security = role
+        ? [
+              {
+                  [bearerAuth.name]: [role],
+              },
+          ]
+        : undefined;
+    const descriptionHeader = role && `**Required role: ${role}**`;
+    let combinedDescription: string | undefined = undefined;
+    if (description && descriptionHeader) {
+        combinedDescription = `${descriptionHeader}\n\n${description}`;
+    } else {
+        combinedDescription = descriptionHeader || description;
+    }
 
     const responses: RouteConfig["responses"] = {};
     for (const [statusCode, response] of Object.entries(specification.responses)) {
@@ -66,9 +87,11 @@ export function registerPathSpecification<
     Registry.registerPath({
         method,
         path,
+        security,
         responses,
         request,
         summary,
+        description: combinedDescription,
         tags: [tag],
     });
 }

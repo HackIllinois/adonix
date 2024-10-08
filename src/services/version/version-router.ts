@@ -12,7 +12,11 @@ versionRouter.get(
         method: "get",
         path: "/version/android/",
         tag: Tag.VERSION,
+        role: null,
         summary: "Gets the current android version",
+        description:
+            "Note that this version is pulled from the adonix-metadata repo " +
+            "([https://github.com/hackIllinois/adonix-metadata](https://github.com/hackIllinois/adonix-metadata))",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The current version",
@@ -32,7 +36,11 @@ versionRouter.get(
         method: "get",
         path: "/version/ios/",
         tag: Tag.VERSION,
+        role: null,
         summary: "Gets the current ios version",
+        description:
+            "Note that this version is pulled from the adonix-metadata repo " +
+            "([https://github.com/hackIllinois/adonix-metadata](https://github.com/hackIllinois/adonix-metadata))",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The current version",

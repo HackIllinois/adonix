@@ -4,6 +4,8 @@ import jsonwebtoken from "jsonwebtoken";
 import { StatusCode } from "status-code-enum";
 import Config from "../config";
 
+// TODO: Remove all usages of these
+
 /**
  * @apiDefine strongVerifyErrors
  * @apiHeader  {String} Authorization JWT token.
