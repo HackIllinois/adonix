@@ -149,6 +149,11 @@ export function decodeJwtToken(token?: string): JwtPayload {
         throw new Error("NoSecret");
     }
 
+    // Remove Bearer if included
+    if (token.startsWith("Bearer ")) {
+        token = token.substring("Bearer ".length);
+    }
+
     // Verify already ensures that the token isn't expired. If it is, it returns an error
     return jsonwebtoken.verify(token, secret) as JwtPayload;
 }
