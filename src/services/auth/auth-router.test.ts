@@ -119,7 +119,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     it("provides an error when authentication fails", async () => {
         // Mock select auth to return not authenticated
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => false;
+            req.isAuthenticated = ((): boolean => false) as typeof req.isAuthenticated;
 
             next();
         });
@@ -132,7 +132,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     it("provides an error when invalid data is provided", async () => {
         // Mock select auth to successfully authenticate & return invalid user data
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => true;
+            req.isAuthenticated = ((): boolean => true) as typeof req.isAuthenticated;
 
             req.user = {
                 // no content
@@ -155,7 +155,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => true;
+            req.isAuthenticated = ((): boolean => true) as typeof req.isAuthenticated;
 
             req.user = {
                 provider,
