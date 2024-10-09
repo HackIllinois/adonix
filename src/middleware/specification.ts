@@ -5,7 +5,7 @@ import { Response, Request, NextFunction } from "express";
 import { registerPathSpecification } from "../common/openapi";
 import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { Role } from "../services/auth/auth-models";
-import { decodeJwtToken } from "../common/auth";
+import { getAuthenticatedUser } from "../common/auth";
 import { TokenExpiredError } from "jsonwebtoken";
 
 export type Method = RouteConfig["method"];
@@ -60,7 +60,7 @@ export default function specification<Params extends AnyZodObject, Responses ext
     return async (req: Request, res: Response, next: NextFunction) => {
         if (spec.role) {
             try {
-                const jwt = decodeJwtToken(req.headers.authorization);
+                const jwt = getAuthenticatedUser(req);
                 if (!jwt.roles.includes(spec.role)) {
                     return res.status(StatusCode.ClientErrorForbidden).json({
                         error: "Forbidden",

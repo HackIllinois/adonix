@@ -1,5 +1,6 @@
 import ms from "ms";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
+import { Request } from "express";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
@@ -156,6 +157,15 @@ export function decodeJwtToken(token?: string): JwtPayload {
 
     // Verify already ensures that the token isn't expired. If it is, it returns an error
     return jsonwebtoken.verify(token, secret) as JwtPayload;
+}
+
+/**
+ * Gets the authenticated user from a request
+ * @param req The request
+ * @returns User payload
+ */
+export function getAuthenticatedUser(req: Request): JwtPayload {
+    return decodeJwtToken(req.headers.authorization);
 }
 
 /**
