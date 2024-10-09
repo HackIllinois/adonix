@@ -5,7 +5,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { StaffShift } from "../../database/staff-db";
 import { JwtPayload } from "../auth/auth-models";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
+import { hasAdminPerms, hasStaffPerms } from "../../common/auth";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats";
 import Config from "../../common/config";
 import { sendNotification } from "./notification-service";

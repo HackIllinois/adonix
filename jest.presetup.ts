@@ -6,7 +6,7 @@ import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import type zodType from "zod";
 
 // Mock the env loading to load from .test.env instead
-jest.mock("./src/env.js", () => {
+jest.mock("./src/common/env.js", () => {
     const rawEnv = readFileSync(path.join(__dirname, ".test.env"));
     const env = dotenv.parse(rawEnv);
 

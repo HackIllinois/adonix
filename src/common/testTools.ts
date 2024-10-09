@@ -44,7 +44,7 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 
     const isStaff = role == Role.STAFF || role == Role.ADMIN;
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { generateJwtToken } = require("./services/auth/auth-lib");
+    const { generateJwtToken } = require("./auth");
 
     // Assumes auth lib works. Therefore we should have some tests for this.
     const jwt = generateJwtToken({
@@ -63,7 +63,7 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
 // Dynamically require app so it's always the freshest version
 function app(): Express.Application {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const appExports = require("./app");
+    const appExports = require("../app");
     return appExports.default;
 }
 

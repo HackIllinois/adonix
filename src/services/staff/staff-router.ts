@@ -2,8 +2,8 @@ import { Router, Request, Response } from "express";
 
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { JwtPayload } from "../auth/auth-models";
-import { decodeJwtToken } from "../auth/auth-lib";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
+import { decodeJwtToken } from "../../common/auth";
+import { hasAdminPerms, hasStaffPerms } from "../../common/auth";
 
 import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats";
 import Config from "../../common/config";

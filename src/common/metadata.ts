@@ -1,4 +1,4 @@
-import Config from "../config";
+import Config from "../common/config";
 import axios from "axios";
 
 interface MetadataFormat {

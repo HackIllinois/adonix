@@ -4,7 +4,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { JwtPayload, Role } from "../auth/auth-models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db";
 import Models from "../../database/models";
-import { hasElevatedPerms } from "../auth/auth-lib";
+import { hasElevatedPerms } from "../../common/auth";
 import { isValidApplicantFormat } from "./admission-formats";
 import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";

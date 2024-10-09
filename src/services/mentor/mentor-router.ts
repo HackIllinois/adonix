@@ -4,7 +4,7 @@ import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { JwtPayload, Role } from "../auth/auth-models";
-import { hasElevatedPerms } from "../auth/auth-lib";
+import { hasElevatedPerms } from "../../common/auth";
 import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";
 import { updatePointsAndCoins } from "../profile/profile-lib";

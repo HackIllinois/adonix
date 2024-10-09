@@ -12,7 +12,7 @@ import { AdmissionDecision, DecisionStatus } from "../../database/admission-db";
 
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats";
 
-import { hasElevatedPerms } from "../auth/auth-lib";
+import { hasElevatedPerms } from "../../common/auth";
 import { JwtPayload } from "../auth/auth-models";
 
 import { sendMail } from "../mail/mail-lib";

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../common/testTools";
-import { generateJwtToken } from "../auth/auth-lib";
+import { generateJwtToken } from "../../common/auth";
 
 import { EventAttendance } from "../../database/event-db";
 import { StatusCode } from "status-code-enum";

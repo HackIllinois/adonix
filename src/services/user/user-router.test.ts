@@ -9,7 +9,7 @@ import { AuthInfo } from "../../database/auth-db";
 import Models from "../../database/models";
 import { UserInfo } from "../../database/user-db";
 import { Role } from "../auth/auth-models";
-import { mockGenerateJwtTokenWithWrapper } from "../auth/mocks/auth";
+import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
 // import { afterEach } from "node:test";
 const TESTER_USER = {
     userId: TESTER.id,

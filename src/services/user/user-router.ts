@@ -4,7 +4,7 @@ import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 
 import { JwtPayload } from "../auth/auth-models";
-import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../auth/auth-lib";
+import { generateJwtToken, getJwtPayloadFromDB, hasElevatedPerms, hasStaffPerms } from "../../common/auth";
 import { performCheckIn } from "../staff/staff-lib";
 
 import { UserInfo } from "../../database/user-db";

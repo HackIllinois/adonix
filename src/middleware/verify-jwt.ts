@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { decodeJwtToken } from "../services/auth/auth-lib";
+import { decodeJwtToken } from "../common/auth";
 import jsonwebtoken from "jsonwebtoken";
 import { StatusCode } from "status-code-enum";
 import Config from "../common/config";

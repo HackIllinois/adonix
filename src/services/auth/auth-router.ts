@@ -20,7 +20,7 @@ import {
     verifyFunction,
     getUsersWithRole,
     hasAdminPerms,
-} from "./auth-lib";
+} from "../../common/auth";
 import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 

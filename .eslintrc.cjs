@@ -46,7 +46,7 @@ module.exports = {
             },
         },
         {
-            files: ["src/config.ts"], // Disable specific rules for config
+            files: ["src/common/config.ts"], // Disable specific rules for config
             rules: {
                 "no-magic-numbers": "off",
             },
