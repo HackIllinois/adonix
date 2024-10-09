@@ -4,7 +4,7 @@ import express, { Request, Response, Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import Config, { Device } from "../../config";
+import Config, { Device } from "../../common/config";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { SelectAuthProvider } from "../../middleware/select-auth";

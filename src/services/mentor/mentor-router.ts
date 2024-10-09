@@ -8,7 +8,7 @@ import { hasElevatedPerms } from "../auth/auth-lib";
 import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";
 import { updatePointsAndCoins } from "../profile/profile-lib";
-import Config from "../../config";
+import Config from "../../common/config";
 import crypto from "crypto";
 
 const mentorRouter = Router();

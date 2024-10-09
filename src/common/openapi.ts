@@ -2,7 +2,7 @@ import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutio
 import { AnyZodObject } from "zod";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 import Config from "./config";
-import { ResponsesObject, Specification } from "./middleware/specification";
+import { ResponsesObject, Specification } from "../middleware/specification";
 
 let openAPISpec: OpenAPIObject | undefined = undefined;
 export const Registry = new OpenAPIRegistry();

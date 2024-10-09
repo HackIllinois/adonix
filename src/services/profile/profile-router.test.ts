@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import Config from "../../config";
+import Config from "../../common/config";
 import { AttendeeProfile } from "../../database/attendee-db";
 import Models from "../../database/models";
-import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../testTools";
+import { TESTER, delAsUser, getAsAdmin, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../common/testTools";
 
 const TESTER_USER = {
     userId: TESTER.id,

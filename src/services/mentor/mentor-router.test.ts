@@ -3,7 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { OfficeHoursFormat } from "./mentor-formats";
-import { postAsAdmin, postAsAttendee, getAsAttendee, getAsAdmin, delAsAttendee, delAsAdmin } from "../../testTools";
+import { postAsAdmin, postAsAttendee, getAsAttendee, getAsAdmin, delAsAttendee, delAsAdmin } from "../../common/testTools";
 
 const TESTER_OFFICE_HOURS_1 = {
     mentorName: "asdf",

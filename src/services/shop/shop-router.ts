@@ -3,7 +3,7 @@ import { ShopItem } from "../../database/shop-db";
 import { Request, Response, Router } from "express";
 import { NextFunction } from "express-serve-static-core";
 import { StatusCode } from "status-code-enum";
-import Config from "../../config";
+import Config from "../../common/config";
 import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";

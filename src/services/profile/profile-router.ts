@@ -2,7 +2,7 @@ import cors from "cors";
 import { Request, Router } from "express";
 import { NextFunction, Response } from "express-serve-static-core";
 
-import Config, { Avatars } from "../../config";
+import Config, { Avatars } from "../../common/config";
 import { AttendeeProfile } from "../../database/attendee-db";
 import { RegistrationApplication } from "../../database/registration-db";
 import { isValidLimit, updatePointsAndCoins } from "./profile-lib";
@@ -16,7 +16,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { hasElevatedPerms } from "../auth/auth-lib";
 import { JwtPayload } from "../auth/auth-models";
 
-import { isNumber } from "../../formatTools";
+import { isNumber } from "../../common/formatTools";
 import { RouterError } from "../../middleware/error-handler";
 import { isValidProfileFormat } from "./profile-formats";
 

@@ -11,7 +11,7 @@ import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler";
 import { performRSVP } from "./admission-lib";
 import { MailInfoFormat } from "../mail/mail-formats";
-import { RegistrationTemplates } from "../../config";
+import { RegistrationTemplates } from "../../common/config";
 import { getApplication } from "../registration/registration-lib";
 import { sendMail } from "../mail/mail-lib";
 

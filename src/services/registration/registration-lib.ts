@@ -1,4 +1,4 @@
-import Config from "../../config";
+import Config from "../../common/config";
 import Models from "../../database/models";
 import { RegistrationApplication } from "../../database/registration-db";
 

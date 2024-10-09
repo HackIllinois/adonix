@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import { checkInResult } from "./staff-formats";
 import { RouterError } from "../../middleware/error-handler";
 import { updatePointsAndCoins } from "../profile/profile-lib";
-import { isNumber } from "../../formatTools";
+import { isNumber } from "../../common/formatTools";
 
 export async function performCheckIn(eventId: string, userId: string, points: number = 0): Promise<checkInResult> {
     const eventAttendance = await Models.EventAttendance.findOne({ eventId: eventId });

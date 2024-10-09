@@ -9,7 +9,7 @@ import { performCheckIn } from "../staff/staff-lib";
 
 import { UserInfo } from "../../database/user-db";
 import Models from "../../database/models";
-import Config from "../../config";
+import Config from "../../common/config";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler";
 

@@ -3,7 +3,7 @@ import { EventFollowers } from "../../database/event-db";
 import { AttendeeFollowing } from "../../database/attendee-db";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff } from "../../testTools";
+import { TESTER, getAsAttendee, getAsStaff } from "../../common/testTools";
 
 const TESTER_EVENT_FOLLOWERS = {
     eventId: "other-event",

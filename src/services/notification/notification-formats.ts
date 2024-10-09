@@ -1,4 +1,4 @@
-import { isEnumOfType, isNumber, isString } from "../../formatTools";
+import { isEnumOfType, isNumber, isString } from "../../common/formatTools";
 import { Role } from "../auth/auth-models";
 
 export interface NotificationSendFormat {

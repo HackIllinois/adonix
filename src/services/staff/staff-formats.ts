@@ -1,6 +1,6 @@
 import { RouterError } from "../../middleware/error-handler";
 import { StaffShift } from "../../database/staff-db";
-import { isArrayOfType, isString } from "../../formatTools";
+import { isArrayOfType, isString } from "../../common/formatTools";
 import { AttendeeProfile } from "../../database/attendee-db";
 
 // Format for default staff attendance input

@@ -2,7 +2,7 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { Request, Response, Router } from "express";
 
-import { RegistrationTemplates } from "../../config";
+import { RegistrationTemplates } from "../../common/config";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { RouterError } from "../../middleware/error-handler";
 

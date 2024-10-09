@@ -2,8 +2,17 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAttendee, getAsStaff, getAsUser, putAsAdmin, putAsStaff } from "../../testTools";
-import Config, { Device } from "../../config";
+import {
+    AUTH_ROLE_TO_ROLES,
+    TESTER,
+    get,
+    getAsAttendee,
+    getAsStaff,
+    getAsUser,
+    putAsAdmin,
+    putAsStaff,
+} from "../../common/testTools";
+import Config, { Device } from "../../common/config";
 import * as selectAuthMiddleware from "../../middleware/select-auth";
 import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth";
 import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models";

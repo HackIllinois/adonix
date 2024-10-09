@@ -1,4 +1,4 @@
-import Config from "../../config";
+import Config from "../../common/config";
 import axios, { AxiosResponse } from "axios";
 import { Response, NextFunction } from "express";
 import { StatusCode } from "status-code-enum";

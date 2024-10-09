@@ -6,7 +6,7 @@ import { decodeJwtToken } from "../auth/auth-lib";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
 
 import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats";
-import Config from "../../config";
+import Config from "../../common/config";
 
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";

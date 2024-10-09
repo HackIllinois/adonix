@@ -2,7 +2,7 @@ import { AuthenticateOptions } from "passport";
 import { RequestHandler } from "express-serve-static-core";
 
 import { authenticateFunction } from "../services/auth/auth-lib";
-import Config from "../config";
+import Config from "../common/config";
 
 const googleOptions: AuthenticateOptions = {
     session: false,

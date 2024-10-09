@@ -2,7 +2,7 @@ import { RequestHandler } from "express";
 import { AnyZodObject, z } from "zod";
 import StatusCode from "status-code-enum";
 import { Response, Request, NextFunction } from "express";
-import { registerPathSpecification } from "../openapi";
+import { registerPathSpecification } from "../common/openapi";
 import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { Role } from "../services/auth/auth-models";
 import { decodeJwtToken } from "../services/auth/auth-lib";

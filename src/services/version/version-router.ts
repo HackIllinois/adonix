@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Metadata from "../../metadata";
+import Metadata from "../../common/metadata";
 import { StatusCode } from "status-code-enum";
 import specification, { Tag } from "../../middleware/specification";
 import { versionResponseSchema } from "./version-schema";

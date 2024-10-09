@@ -1,5 +1,5 @@
 import cors, { CorsOptions } from "cors";
-import Config from "../config";
+import Config from "../common/config";
 
 // Only allow a certain set of regexes to be allowed via CORS
 const allowedOrigins = [new RegExp(Config.CORS.PROD_REGEX), new RegExp(Config.CORS.DEPLOY_REGEX)];

@@ -1,6 +1,6 @@
 import request from "supertest";
 
-import { Provider, Role } from "./services/auth/auth-models";
+import { Provider, Role } from "../services/auth/auth-models";
 
 // The tester is the user that will be making requests
 // We provide this object so you can do proper testing based on JWT auth

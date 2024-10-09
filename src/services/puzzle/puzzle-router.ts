@@ -6,9 +6,9 @@ import { RouterError } from "../../middleware/error-handler";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
 import { JwtPayload } from "../auth/auth-models";
 import { PuzzleItem } from "../../database/puzzle-db";
-import Config from "../../config";
+import Config from "../../common/config";
 import { updatePuzzle } from "./puzzle-lib";
-import { isString } from "../../formatTools";
+import { isString } from "../../common/formatTools";
 
 const puzzleRouter = Router();
 

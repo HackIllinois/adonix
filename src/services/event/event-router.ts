@@ -18,7 +18,7 @@ import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 
 import crypto from "crypto";
-import Config from "../../config";
+import Config from "../../common/config";
 
 const eventsRouter = Router();
 eventsRouter.use(cors({ origin: "*" }));

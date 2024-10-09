@@ -3,7 +3,7 @@ import jsonwebtoken, { SignOptions } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import Config from "../../config";
+import Config from "../../common/config";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "./auth-models";
 

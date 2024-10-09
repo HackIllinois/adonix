@@ -1,4 +1,4 @@
-import Config from "../../config";
+import Config from "../../common/config";
 import { ShopItem } from "../../database/shop-db";
 export interface FilteredShopItemFormat {
     itemId: string;

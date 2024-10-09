@@ -1,5 +1,5 @@
-import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../formatTools";
-import Config from "../../config";
+import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../common/formatTools";
+import Config from "../../common/config";
 import { Event, Location } from "../../database/event-db";
 import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models";
 

@@ -1,4 +1,4 @@
-import "./types";
+import "./common/types";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
@@ -22,10 +22,10 @@ import userRouter from "./services/user/user-router";
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
 import { StatusCode } from "status-code-enum";
-import Config from "./config";
+import Config from "./common/config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
-import { getOpenAPISpec } from "./openapi";
+import { getOpenAPISpec } from "./common/openapi";
 
 const app = express();
 

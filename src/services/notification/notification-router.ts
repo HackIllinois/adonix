@@ -7,7 +7,7 @@ import { StaffShift } from "../../database/staff-db";
 import { JwtPayload } from "../auth/auth-models";
 import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats";
-import Config from "../../config";
+import Config from "../../common/config";
 import { sendNotification } from "./notification-service";
 
 const notificationsRouter = Router();
