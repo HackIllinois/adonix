@@ -48,34 +48,34 @@ function requireEnv(name: string): string {
     return value;
 }
 
+const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
+const ROOT_URL = env.PROD ? "https://adonix.hackillinois.org" : `http://localhost:${PORT}`;
 
 const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
-    PROD: env.PROD ? true : false,
+    PROD,
 
     /* URLs */
     PORT,
-    ROOT_URL: env.PROD ? "https://adonix.hackillinois.org" : `http://localhost:${PORT}`,
+    ROOT_URL,
 
     DEFAULT_DEVICE: Device.WEB,
 
     REDIRECT_URLS: new Map([
         [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-        [Device.DEV, "https://adonix.hackillinois.org/auth/dev/"],
+        [Device.DEV, `${ROOT_URL}/auth/dev/`],
         [Device.WEB, "https://www.hackillinois.org/auth/"],
-        [Device.CHALLENGE, "https://adonix.hackillinois.org/auth/dev/"],
+        [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
         [Device.IOS, "hackillinois://login/"],
         [Device.ANDROID, "hackillinois://login/"],
         [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
     ]) as Map<string, string>,
 
     CALLBACK_URLS: {
-        GITHUB: "https://adonix.hackillinois.org/auth/github/callback/",
-        GOOGLE: "https://adonix.hackillinois.org/auth/google/callback/",
-        // GITHUB: "http://localhost:3000/auth/github/callback/",
-        // GOOGLE: "http://127.0.0.1:3000/auth/google/callback/",
+        GITHUB: `${ROOT_URL}/auth/github/callback/`,
+        GOOGLE: `${ROOT_URL}/auth/google/callback/`,
     },
 
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",

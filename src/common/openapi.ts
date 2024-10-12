@@ -1,14 +1,33 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { AnyZodObject } from "zod";
-import type { OpenAPIObject } from "openapi3-ts/oas31";
+import type { InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 
 let openAPISpec: OpenAPIObject | undefined = undefined;
 export const Registry = new OpenAPIRegistry();
 
+// Basic metadata
+const openapi = "3.1.0";
+
+const info: InfoObject = {
+    title: "adonix",
+    version: "1.0.0",
+    description:
+        "HackIllinois' backend API\n\n" +
+        `[Attendee Authentication](${Config.ROOT_URL}/auth/login/github?device=dev)\n\n` +
+        `[Staff Authentication](${Config.ROOT_URL}/auth/login/google?device=dev)`,
+};
+
+const servers: ServerObject[] = [
+    {
+        url: Config.ROOT_URL,
+        description: Config.PROD ? "Production" : "Local",
+    },
+];
+
 // Security component
-const bearerAuth = Registry.registerComponent("securitySchemes", "bearerAuth", {
+const authentication = Registry.registerComponent("securitySchemes", "Authentication", {
     type: "http",
     scheme: "bearer",
     bearerFormat: "jwt",
@@ -17,18 +36,9 @@ const bearerAuth = Registry.registerComponent("securitySchemes", "bearerAuth", {
 function generateOpenAPISpec(): OpenAPIObject {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
     return generator.generateDocument({
-        info: {
-            title: "adonix",
-            version: "1.0.0",
-            description: "HackIllinois' backend API",
-        },
-        openapi: "3.1.0",
-        servers: [
-            {
-                url: Config.ROOT_URL,
-                description: Config.PROD ? "Production" : "Local",
-            },
-        ],
+        info,
+        openapi,
+        servers,
     });
 }
 
@@ -49,7 +59,7 @@ export function registerPathSpecification<
     const security = role
         ? [
               {
-                  [bearerAuth.name]: [role],
+                  [authentication.name]: [role],
               },
           ]
         : undefined;
