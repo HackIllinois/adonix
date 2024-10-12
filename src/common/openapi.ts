@@ -55,6 +55,7 @@ export function registerPathSpecification<
     Responses extends ResponsesObject,
     Body extends AnyZodObject,
 >(specification: Specification<Params, Responses, Body>): void {
+    // Convert specification into RouteConfig
     const { method, path, tag, role, summary, description, parameters: params } = specification;
     const security = role
         ? [
@@ -94,6 +95,16 @@ export function registerPathSpecification<
         };
     }
 
+    // Check for duplicate definitions
+    const existingDefinitions = Registry.definitions.filter(
+        (def) => def.type == "route" && def.route.method == method && def.route.path == path,
+    );
+
+    if (existingDefinitions.length > 0) {
+        throw Error(`Duplicate definition of ${method} ${path}`);
+    }
+
+    // Register
     Registry.registerPath({
         method,
         path,
