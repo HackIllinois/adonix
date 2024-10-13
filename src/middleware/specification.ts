@@ -36,7 +36,7 @@ export interface ResponsesObject {
     [statusCode: string]: ResponseObject;
 }
 
-export interface Specification<Params = AnyZodObject, Responses = ResponsesObject, Body = AnyZodObject> {
+export interface Specification<Params = AnyZodObject, Query = AnyZodObject, Responses = ResponsesObject, Body = AnyZodObject> {
     path: string;
     method: Method;
     tag: Tag;
@@ -44,6 +44,7 @@ export interface Specification<Params = AnyZodObject, Responses = ResponsesObjec
     summary: string;
     description?: string;
     parameters?: Params;
+    query?: Query;
     body?: Body;
     responses: Responses;
 }
@@ -52,9 +53,12 @@ export interface Specification<Params = AnyZodObject, Responses = ResponsesObjec
 type InferResponseBody<T> = T extends ResponseObject ? z.infer<T["schema"]> : never;
 type ResponseBody<T extends ResponsesObject> = InferResponseBody<T[keyof T]>;
 
-export default function specification<Params extends AnyZodObject, Responses extends ResponsesObject, Body extends AnyZodObject>(
-    spec: Specification<Params, Responses, Body>,
-): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>> {
+export default function specification<
+    Params extends AnyZodObject,
+    Query extends AnyZodObject,
+    Responses extends ResponsesObject,
+    Body extends AnyZodObject,
+>(spec: Specification<Params, Query, Responses, Body>): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>> {
     registerPathSpecification(spec);
 
     return async (req: Request, res: Response, next: NextFunction) => {

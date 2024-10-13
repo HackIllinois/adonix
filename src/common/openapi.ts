@@ -52,11 +52,12 @@ export function getOpenAPISpec(): OpenAPIObject {
 
 export function registerPathSpecification<
     Params extends AnyZodObject,
+    Query extends AnyZodObject,
     Responses extends ResponsesObject,
     Body extends AnyZodObject,
->(specification: Specification<Params, Responses, Body>): void {
+>(specification: Specification<Params, Query, Responses, Body>): void {
     // Convert specification into RouteConfig
-    const { method, path, tag, role, summary, description, parameters: params } = specification;
+    const { method, path, tag, role, summary, description, parameters: params, query } = specification;
     const security = role
         ? [
               {
@@ -84,7 +85,7 @@ export function registerPathSpecification<
         };
     }
 
-    const request: RouteConfig["request"] = { params };
+    const request: RouteConfig["request"] = { params, query };
     if (specification.body) {
         request.body = {
             content: {
