@@ -8,7 +8,7 @@ import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
 import { hasAdminPerms, hasElevatedPerms } from "../../common/auth";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 import { updateCoins } from "../profile/profile-lib";
 import { FilteredShopItemFormat, isValidItemFormat } from "./shop-formats";
 

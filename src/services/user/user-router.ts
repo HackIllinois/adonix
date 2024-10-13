@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 
-import { Role } from "../auth/auth-models";
+import { Role } from "../auth/auth-schemas";
 import { generateJwtToken, getAuthenticatedUser, getJwtPayloadFromDB } from "../../common/auth";
 import { performCheckIn, PerformCheckInErrors } from "../staff/staff-lib";
 

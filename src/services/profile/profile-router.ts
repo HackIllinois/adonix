@@ -14,7 +14,7 @@ import { LeaderboardEntry } from "./profile-models";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { hasElevatedPerms } from "../../common/auth";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 
 import { isNumber } from "../../common/formatTools";
 import { RouterError } from "../../middleware/error-handler";

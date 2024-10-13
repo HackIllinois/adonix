@@ -4,7 +4,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 import { PuzzleItem } from "../../database/puzzle-db";
 import Config from "../../common/config";
 import { updatePuzzle } from "./puzzle-lib";

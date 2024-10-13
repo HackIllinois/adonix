@@ -6,7 +6,7 @@ import { strongJwtVerification } from "../../middleware/verify-jwt";
 import { RouterError } from "../../middleware/error-handler";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../../common/auth";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 import { MailInfoFormat, isValidMailInfo } from "./mail-formats";
 import { sendMailWrapper } from "./mail-lib";
 

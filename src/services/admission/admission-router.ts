@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
 
-import { JwtPayload, Role } from "../auth/auth-models";
+import { JwtPayload, Role } from "../auth/auth-schemas";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db";
 import Models from "../../database/models";
 import { hasElevatedPerms } from "../../common/auth";

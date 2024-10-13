@@ -1,7 +1,7 @@
 import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
-import { AuthInfo } from "./auth-db";
+import { AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeFollowing, AttendeeProfile } from "./attendee-db";
 import { AdmissionDecision } from "./admission-db";
 import { MentorOfficeHours } from "./mentor-db";

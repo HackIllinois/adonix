@@ -3,7 +3,7 @@ import { OfficeHoursFormat, pointCoinUpdateValue } from "./mentor-formats";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload, Role } from "../auth/auth-models";
+import { JwtPayload, Role } from "../auth/auth-schemas";
 import { hasElevatedPerms } from "../../common/auth";
 import { RouterError } from "../../middleware/error-handler";
 import { NextFunction } from "express-serve-static-core";

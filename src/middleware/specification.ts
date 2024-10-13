@@ -4,7 +4,7 @@ import StatusCode from "status-code-enum";
 import { Response, Request, NextFunction } from "express";
 import { registerPathSpecification } from "../common/openapi";
 import { RouteConfig } from "@asteasolutions/zod-to-openapi";
-import { Role } from "../services/auth/auth-models";
+import { Role } from "../services/auth/auth-schemas";
 import { getAuthenticatedUser } from "../common/auth";
 import { TokenExpiredError } from "jsonwebtoken";
 

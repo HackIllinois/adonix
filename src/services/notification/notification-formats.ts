@@ -1,5 +1,5 @@
 import { isEnumOfType, isNumber, isString } from "../../common/formatTools";
-import { Role } from "../auth/auth-models";
+import { Role } from "../auth/auth-schemas";
 
 export interface NotificationSendFormat {
     role?: string;

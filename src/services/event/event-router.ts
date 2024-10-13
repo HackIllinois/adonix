@@ -5,7 +5,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
 
 import { hasAdminPerms, hasStaffPerms, isAttendee, isPro } from "../../common/auth";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 
 import { MetadataFormat, isValidEvent, isValidMetadataFormat } from "./event-formats";
 import { createFilteredEventView } from "./event-lib";

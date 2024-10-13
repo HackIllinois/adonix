@@ -5,10 +5,10 @@ import { AttendeeFollowing, AttendeeProfile } from "../../database/attendee-db";
 import { EventFollowers, EventAttendance, Event } from "../../database/event-db";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
-import { AuthInfo } from "../../database/auth-db";
+import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../database/models";
 import { UserAttendance, UserInfo } from "./user-schemas";
-import { Role } from "../auth/auth-models";
+import { Role } from "../auth/auth-schemas";
 import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
 
 const TESTER_USER = {

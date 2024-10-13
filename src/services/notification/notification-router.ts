@@ -4,7 +4,7 @@ import { RouterError } from "../../middleware/error-handler";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { StaffShift } from "../staff/staff-schemas";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 import { hasAdminPerms, hasStaffPerms } from "../../common/auth";
 import { NotificationSendFormat, isValidNotificationSendFormat } from "./notification-formats";
 import Config from "../../common/config";

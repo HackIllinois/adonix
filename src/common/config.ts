@@ -71,7 +71,7 @@ const Config = {
         [Device.IOS, "hackillinois://login/"],
         [Device.ANDROID, "hackillinois://login/"],
         [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
-    ]) as Map<string, string>,
+    ]),
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,

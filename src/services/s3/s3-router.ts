@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload } from "../auth/auth-models";
+import { JwtPayload } from "../auth/auth-schemas";
 import { StatusCode } from "status-code-enum";
 import { hasElevatedPerms } from "../../common/auth";
 import { createSignedPostUrl, getSignedDownloadUrl } from "./s3-service";

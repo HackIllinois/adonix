@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { JwtPayload, Role } from "../auth/auth-models";
+import { JwtPayload, Role } from "../auth/auth-schemas";
 import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
 import {
     AttendanceFormat,

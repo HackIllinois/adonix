@@ -6,10 +6,10 @@ import passport, { AuthenticateOptions, Profile } from "passport";
 
 import Config from "./config";
 
-import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../services/auth/auth-models";
+import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../services/auth/auth-schemas";
 
 import Models from "../database/models";
-import { AuthInfo } from "../database/auth-db";
+import { AuthInfo } from "../services/auth/auth-schemas";
 import { UpdateQuery } from "mongoose";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
@@ -252,7 +252,7 @@ export async function getRoles(id: string): Promise<Role[] | undefined> {
  * @param operation Operation to perform
  * @returns Promise - if valid, then update operation worked. If invalid, then contains why.
  */
-export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<Role[]> {
+export async function updateRoles(userId: string, role: Role, operation: RoleOperation): Promise<Role[] | undefined> {
     let updateQuery: UpdateQuery<AuthInfo>;
 
     // Get filter, representing operation to perform on mongoDB
@@ -274,7 +274,7 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
         if (updatedInfo) {
             return updatedInfo.roles as Role[];
         } else {
-            return Promise.reject("UserNotFound");
+            return undefined;
         }
     } catch (error) {
         return Promise.reject(error);
@@ -342,7 +342,7 @@ export function isAttendee(payload?: JwtPayload): boolean {
  * @param role role that we want to filter for
  * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
  */
-export async function getUsersWithRole(role: string): Promise<string[]> {
+export async function getUsersWithRole(role: Role): Promise<string[]> {
     try {
         //Array of users as MongoDb schema that have role as one of its roles
         const queryResult: AuthInfo[] = await Models.AuthInfo.find({ roles: { $in: [role] } }).select("userId");
