@@ -16,7 +16,7 @@ import { hasElevatedPerms } from "../../common/auth";
 import { JwtPayload } from "../auth/auth-schemas";
 
 import { sendMail } from "../mail/mail-lib";
-import { MailInfoFormat } from "../mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 import { isRegistrationAlive } from "./registration-lib";
 
 const registrationRouter = Router();
@@ -347,7 +347,7 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
     }
 
     // SEND SUCCESSFUL REGISTRATION EMAIL
-    const mailInfo: MailInfoFormat = {
+    const mailInfo: MailInfo = {
         templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
         recipients: [registrationInfo.emailAddress],
         subs: { name: registrationInfo.preferredName },

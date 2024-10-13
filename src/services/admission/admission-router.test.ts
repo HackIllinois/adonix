@@ -8,7 +8,7 @@ import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsAppli
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "../mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -107,7 +107,7 @@ describe("PUT /admission/update/", () => {
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.STATUS_UPDATE,
             recipients: [], // empty because neither test case starts as status = TBD
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
@@ -205,7 +205,7 @@ describe("PUT /admission/rsvp/accept", () => {
             templateId: RegistrationTemplates.RSVP_CONFIRMATION,
             recipients: [TESTER_APPLICATION.emailAddress],
             subs: { name: TESTER_APPLICATION.preferredName },
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
@@ -257,7 +257,7 @@ describe("PUT /admission/rsvp/decline/", () => {
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.RSVP_DECLINED,
             recipients: [TESTER_APPLICATION.emailAddress],
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,

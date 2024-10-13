@@ -8,7 +8,7 @@ import { RegistrationFormat } from "./registration-formats";
 import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "../../services/mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
     isProApplicant: false,
@@ -144,7 +144,7 @@ describe("POST /registration/submit/", () => {
             templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
             recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
             subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({

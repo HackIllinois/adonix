@@ -10,7 +10,7 @@ import { StatusCode } from "status-code-enum";
 import { NextFunction } from "express-serve-static-core";
 import { RouterError } from "../../middleware/error-handler";
 import { performRSVP } from "./admission-lib";
-import { MailInfoFormat } from "../mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 import { RegistrationTemplates } from "../../common/config";
 import { getApplication } from "../registration/registration-lib";
 import { sendMail } from "../mail/mail-lib";
@@ -123,7 +123,7 @@ admissionRouter.put("/rsvp/accept/", strongJwtVerification, async (_: Request, r
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound"));
     }
 
-    let mailInfo: MailInfoFormat;
+    let mailInfo: MailInfo;
     if (application.requestedTravelReimbursement && (queryResult.reimbursementValue ?? 0) > 0) {
         mailInfo = {
             templateId: RegistrationTemplates.RSVP_CONFIRMATION_WITH_REIMBURSE,
@@ -203,7 +203,7 @@ admissionRouter.put("/rsvp/decline/", strongJwtVerification, async (_: Request, 
         return next(new RouterError(StatusCode.ClientErrorNotFound, "ApplicationNotFound"));
     }
 
-    const mailInfo: MailInfoFormat = {
+    const mailInfo: MailInfo = {
         templateId: RegistrationTemplates.RSVP_DECLINED,
         recipients: [application.emailAddress],
     };
@@ -298,7 +298,7 @@ admissionRouter.put("/update/", strongJwtVerification, async (req: Request, res:
     try {
         await Promise.all(ops);
 
-        const mailInfo: MailInfoFormat = {
+        const mailInfo: MailInfo = {
             templateId: RegistrationTemplates.STATUS_UPDATE,
             recipients: recipients,
         };
