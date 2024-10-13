@@ -1,5 +1,5 @@
-import { beforeEach, afterEach, describe, expect, it } from "@jest/globals";
-import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAdmin, getAsAttendee, getAsStaff, putAsAttendee } from "../../common/testTools";
+import { beforeEach, describe, expect, it } from "@jest/globals";
+import { AUTH_ROLE_TO_ROLES, TESTER, delAsAttendee, get, getAsAttendee, getAsStaff, putAsAttendee } from "../../common/testTools";
 
 import { AttendeeFollowing, AttendeeProfile } from "../../database/attendee-db";
 import { EventFollowers, EventAttendance, Event } from "../../database/event-db";
@@ -7,10 +7,10 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AuthInfo } from "../../database/auth-db";
 import Models from "../../database/models";
-import { UserInfo } from "../../database/user-db";
+import { UserAttendance, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-models";
 import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
-// import { afterEach } from "node:test";
+
 const TESTER_USER = {
     userId: TESTER.id,
     name: TESTER.name,
@@ -29,20 +29,10 @@ const OTHER_USER_AUTH = {
     roles: AUTH_ROLE_TO_ROLES[Role.ATTENDEE],
 } satisfies AuthInfo;
 
-const TESTER_EVENT_FOLLOWING = {
-    eventId: "other-event",
-    followers: ["user5", "user8"],
-} satisfies EventFollowers;
-
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,
     following: ["event3", "event9"],
 } satisfies AttendeeFollowing;
-
-const TESTER_EVENT_ATTENDANCE = {
-    eventId: "some-event",
-    attendees: [],
-} satisfies EventAttendance;
 
 const TESTER_PROFILE = {
     userId: TESTER_USER.userId,
@@ -54,7 +44,22 @@ const TESTER_PROFILE = {
     foodWave: 0,
 } satisfies AttendeeProfile;
 
-const TESTER_EVENT = {
+const TESTER_ATTENDANCE = {
+    userId: TESTER.id,
+    attendance: ["event1", "event2"],
+} satisfies UserAttendance;
+
+const TEST_EVENT_FOLLOWERS = {
+    eventId: "some-event",
+    followers: ["user5", "user8"],
+} satisfies EventFollowers;
+
+const TEST_EVENT_ATTENDANCE = {
+    eventId: "some-event",
+    attendees: [],
+} satisfies EventAttendance;
+
+const TEST_EVENT = {
     eventId: "some-event",
     isStaff: false,
     name: "Example Name",
@@ -84,19 +89,19 @@ beforeEach(async () => {
     await Models.UserInfo.create(TESTER_USER);
     await Models.UserInfo.create(OTHER_USER);
     await Models.AuthInfo.create(OTHER_USER_AUTH);
-    await Models.EventFollowers.create(TESTER_EVENT_FOLLOWING);
-    await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
-    await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
-    await Models.Event.create(TESTER_EVENT);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
+    await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
+    await Models.UserAttendance.create(TESTER_ATTENDANCE);
+    await Models.EventFollowers.create(TEST_EVENT_FOLLOWERS);
+    await Models.EventAttendance.create(TEST_EVENT_ATTENDANCE);
+    await Models.Event.create(TEST_EVENT);
 });
 
-// TODO: Revert v2-qr to qr
-describe("GET /user/v2-qr/", () => {
+describe("GET /user/qr/", () => {
     it("works for a attendee", async () => {
         const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
 
-        const response = await getAsAttendee("/user/v2-qr/").expect(StatusCode.SuccessOK);
+        const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
 
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
 
@@ -115,32 +120,11 @@ describe("GET /user/v2-qr/", () => {
     });
 });
 
-describe("GET /user/qr/:USERID/", () => {
+describe("GET /user/qr/:id/", () => {
     it("gives a forbidden error for a non-staff user", async () => {
         const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
-
-    it("works for a non-staff user requesting their qr code", async () => {
-        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
-
-        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
-
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
-
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER_USER.userId,
-            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
-        });
-
-        expect(mockedGenerateJwtToken).toBeCalledWith(
-            expect.objectContaining({
-                id: TESTER_USER.userId,
-            }),
-            false,
-            Config.QR_EXPIRY_TIME,
-        );
     });
 
     it("works for a staff user", async () => {
@@ -179,7 +163,7 @@ describe("GET /user/", () => {
 
         const response = await getAsAttendee("/user/").expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("works for an attendee user", async () => {
@@ -193,15 +177,9 @@ describe("GET /user/", () => {
 
         expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
     });
-
-    it("works for an admin user", async () => {
-        const response = await getAsAdmin("/user/").expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
-    });
 });
 
-describe("GET /user/:USERID/", () => {
+describe("GET /user/:id/", () => {
     it("gives an forbidden error for a non-staff user", async () => {
         const response = await getAsAttendee(`/user/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
 
@@ -215,13 +193,7 @@ describe("GET /user/:USERID/", () => {
 
         const response = await getAsStaff(`/user/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    });
-
-    it("works for a non-staff user requesting themselves", async () => {
-        const response = await getAsAttendee(`/user/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_USER);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("works for a staff user", async () => {
@@ -238,25 +210,9 @@ describe("GET /user/following/", () => {
             .expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject({
             userId: TESTER_ATTENDEE_FOLLOWING.userId,
-            events: TESTER_ATTENDEE_FOLLOWING.following,
+            following: TESTER_ATTENDEE_FOLLOWING.following,
         });
     });
-
-    // it("gives an not found error for a non-existent user", async () => {
-    //     await Models.AttendeeFollowing.deleteOne({
-    //         userId: TESTER_ATTENDEE_FOLLOWING.userId,
-    //     });
-
-    //     await Models.UserInfo.deleteOne({
-    //         userId: TESTER_ATTENDEE_FOLLOWING.userId,
-    //     });
-
-    //     const response = await getAsStaff(`/user/following/`)
-    //         .send({ userId: TESTER_ATTENDEE_FOLLOWING.userId })
-    //         .expect(StatusCode.ClientErrorNotFound);
-
-    //     expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    // });
 
     it("works for a staff user", async () => {
         const response = await getAsStaff(`/user/following/`)
@@ -265,151 +221,153 @@ describe("GET /user/following/", () => {
 
         expect(JSON.parse(response.text)).toMatchObject({
             userId: TESTER_ATTENDEE_FOLLOWING.userId,
-            events: TESTER_ATTENDEE_FOLLOWING.following,
+            following: TESTER_ATTENDEE_FOLLOWING.following,
         });
     });
-
-    // it("gives an forbidden for a indirection operation without staff perms", async () => {
-    //     const response = await getAsAttendee(`/user/following/`)
-    //         .send({ userId: OTHER_USER.userId })
-    //         .expect(StatusCode.ClientErrorForbidden);
-    //     expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    // });
-
-    // it("throws an error for no userId passed in", async () => {
-    //     const response = await getAsAttendee(`/user/following/`).expect(StatusCode.ClientErrorBadRequest);
-
-    //     expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
-    // });
 });
 
-describe("PUT /user/follow/", () => {
-    beforeEach(() => {
-        TESTER_ATTENDEE_FOLLOWING.following.push(TESTER_EVENT_FOLLOWING.eventId);
-    });
-
-    afterEach(() => {
-        TESTER_ATTENDEE_FOLLOWING.following.pop();
-    });
-
-    it("works for a non-existent event", async () => {
-        await Models.EventFollowers.deleteOne({
-            eventId: TESTER_EVENT_FOLLOWING.eventId,
+describe("PUT /user/follow/:id/", () => {
+    it("gives an not found error for a non-existent event", async () => {
+        await Models.Event.deleteOne({
+            eventId: TEST_EVENT.eventId,
         });
 
-        const response = await putAsAttendee(`/user/follow/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.SuccessOK);
+        const response = await putAsAttendee(`/user/follow/${TEST_EVENT.eventId}`).expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_ATTENDEE_FOLLOWING);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
 
-        const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        expect(updatedEvents?.following).toContain(TESTER_EVENT_FOLLOWING.eventId);
+    it("works for an event without followers", async () => {
+        await Models.EventFollowers.deleteOne({
+            eventId: TEST_EVENT.eventId,
+        });
 
-        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
-        expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
+        const response = await putAsAttendee(`/user/follow/${TEST_EVENT.eventId}`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER.id,
+            following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
+        });
+
+        const attendeeFollowing = await Models.AttendeeFollowing.findOne({ userId: TESTER.id });
+        expect(attendeeFollowing?.toObject()).toMatchObject({
+            userId: TESTER.id,
+            following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
+        });
+
+        const eventFollowers = await Models.EventFollowers.findOne({ eventId: TEST_EVENT.eventId });
+        expect(eventFollowers?.toObject()).toMatchObject({
+            eventId: TEST_EVENT.eventId,
+            followers: [TESTER.id],
+        });
     });
 
     it("works for an attendee user", async () => {
-        const response = await putAsAttendee(`/user/follow/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_ATTENDEE_FOLLOWING);
+        const response = await putAsAttendee(`/user/follow/${TEST_EVENT.eventId}`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER.id,
+            following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
+        });
 
-        const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        expect(updatedEvents?.following).toContain(TESTER_EVENT_FOLLOWING.eventId);
+        const attendeeFollowing = await Models.AttendeeFollowing.findOne({ userId: TESTER.id });
+        expect(attendeeFollowing?.toObject()).toMatchObject({
+            userId: TESTER.id,
+            following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
+        });
 
-        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
-        expect(updatedUsers?.followers).toContain(TESTER_ATTENDEE_FOLLOWING.userId);
+        const eventFollowers = await Models.EventFollowers.findOne({ eventId: TEST_EVENT.eventId });
+        expect(eventFollowers?.toObject()).toMatchObject({
+            eventId: TEST_EVENT.eventId,
+            followers: [...TEST_EVENT_FOLLOWERS.followers, TESTER.id],
+        });
     });
 });
 
-describe("PUT /user/unfollow/", () => {
-    it("gives an not found error for a non-existent user", async () => {
-        await Models.AttendeeFollowing.deleteOne({
-            userId: TESTER_ATTENDEE_FOLLOWING.userId,
-        });
-
-        const response = await putAsAttendee(`/user/unfollow/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    });
-
+describe("DELETE /user/unfollow/:id/", () => {
     it("gives an not found error for a non-existent event", async () => {
-        await Models.EventFollowers.deleteOne({
-            eventId: TESTER_EVENT_FOLLOWING.eventId,
+        await Models.Event.deleteOne({
+            eventId: TEST_EVENT.eventId,
         });
 
-        // await Models.EventMetadata.deleteOne({
-        //     eventId: TESTER_EVENT_FOLLOWING.eventId,
-        // });
+        const response = await delAsAttendee(`/user/unfollow/${TEST_EVENT.eventId}`).expect(StatusCode.ClientErrorNotFound);
 
-        const response = await putAsAttendee(`/user/unfollow/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("works for an attendee user", async () => {
         await Models.EventFollowers.findOneAndUpdate(
-            { eventId: TESTER_EVENT_FOLLOWING.eventId },
+            { eventId: TEST_EVENT.eventId },
             { $addToSet: { followers: TESTER_ATTENDEE_FOLLOWING.userId } },
             { new: true },
         );
         await Models.AttendeeFollowing.findOneAndUpdate(
             { userId: TESTER_ATTENDEE_FOLLOWING.userId },
-            { $addToSet: { following: TESTER_EVENT_FOLLOWING.eventId } },
+            { $addToSet: { following: TEST_EVENT.eventId } },
             { new: true },
         );
 
-        const response = await putAsAttendee(`/user/unfollow/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWING.eventId })
-            .expect(StatusCode.SuccessOK);
+        const response = await delAsAttendee(`/user/unfollow/${TEST_EVENT.eventId}`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(TESTER_ATTENDEE_FOLLOWING);
 
         const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
-        expect(updatedEvents).toEqual(expect.not.arrayContaining([TESTER_EVENT_FOLLOWING.eventId]));
+        expect(updatedEvents).toEqual(expect.not.arrayContaining([TEST_EVENT.eventId]));
 
-        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TESTER_EVENT_FOLLOWING.eventId });
+        const updatedUsers = await Models.EventFollowers.findOne({ eventId: TEST_EVENT.eventId });
         expect(updatedUsers).toEqual(expect.not.arrayContaining([TESTER_ATTENDEE_FOLLOWING.userId]));
     });
 });
 
 describe("PUT /user/scan-event/", () => {
-    it("works for an attendee", async () => {
-        await putAsAttendee("/user/scan-event/").send({ eventId: TESTER_EVENT.eventId }).expect(StatusCode.SuccessOK);
+    it("returns not found for non-existent event", async () => {
+        const response = await putAsAttendee("/user/scan-event/")
+            .send({ eventId: "not-a-event" })
+            .expect(StatusCode.ClientErrorNotFound);
 
-        const eventAttendance = await Models.EventAttendance.findOne({ eventId: TESTER_EVENT.eventId });
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("works for an attendee without existing attendance", async () => {
+        await Models.UserAttendance.deleteOne({ userId: TESTER.id });
+        await putAsAttendee("/user/scan-event/").send({ eventId: TEST_EVENT.eventId }).expect(StatusCode.SuccessOK);
+
+        const eventAttendance = await Models.EventAttendance.findOne({ eventId: TEST_EVENT.eventId });
+
+        expect(eventAttendance?.toObject()).toMatchObject({
+            eventId: TEST_EVENT.eventId,
+            attendees: [...TEST_EVENT_ATTENDANCE.attendees, TESTER.id],
+        });
+
         const userAttendance = await Models.UserAttendance.findOne({ userId: TESTER.id });
-
-        expect(eventAttendance?.attendees).toContain(TESTER.id);
-        expect(userAttendance?.attendance).toContain(TESTER_EVENT.eventId);
-    });
-
-    it("returns InvalidParams for missing parameters", async () => {
-        const response = await putAsAttendee("/user/scan-event/").send({}).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidParams");
-    });
-
-    it("returns EventNotFound for non-existent event", async () => {
-        const response = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: "not-some-event" })
-            .expect(StatusCode.ClientErrorFailedDependency);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NonexistentEvent");
-    });
-
-    it("returns AlreadyCheckedIn for duplicate calls", async () => {
-        await putAsAttendee("/user/scan-event/")
-            .send({ eventId: "some-event", userId: "some-user" })
-            .expect(StatusCode.SuccessOK);
+        expect(userAttendance?.toObject()).toMatchObject({
+            userId: TESTER.id,
+            attendance: [TEST_EVENT.eventId],
+        });
 
         const response = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: "some-event", userId: "some-user" })
+            .send({ eventId: TEST_EVENT.eventId })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
+    });
+
+    it("works for an attendee and returns already checked in if already checked in", async () => {
+        await putAsAttendee("/user/scan-event/").send({ eventId: TEST_EVENT.eventId }).expect(StatusCode.SuccessOK);
+
+        const eventAttendance = await Models.EventAttendance.findOne({ eventId: TEST_EVENT.eventId });
+
+        expect(eventAttendance?.toObject()).toMatchObject({
+            eventId: TEST_EVENT.eventId,
+            attendees: [...TEST_EVENT_ATTENDANCE.attendees, TESTER.id],
+        });
+
+        const userAttendance = await Models.UserAttendance.findOne({ userId: TESTER.id });
+        expect(userAttendance?.toObject()).toMatchObject({
+            userId: TESTER.id,
+            attendance: [...TESTER_ATTENDANCE.attendance, TEST_EVENT.eventId],
+        });
+
+        const response = await putAsAttendee("/user/scan-event/")
+            .send({ eventId: TEST_EVENT.eventId })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
