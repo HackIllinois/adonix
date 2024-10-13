@@ -81,10 +81,7 @@ const Config = {
     METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
 
     /* OAuth, Keys, & Permissions */
-    CORS: {
-        PROD_REGEX: requireEnv("PROD_REGEX"),
-        DEPLOY_REGEX: requireEnv("DEPLOY_REGEX"),
-    },
+    CORS_REGEX: requireEnv("CORS_REGEX"),
 
     DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
     DB_PARAMS: "?retryWrites=true&w=majority",
