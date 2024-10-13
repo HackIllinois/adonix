@@ -101,6 +101,18 @@ export default function specification<
                 });
             }
         }
+
+        if (spec.query) {
+            const result = await spec.query.safeParseAsync(req.query);
+            if (!result.success) {
+                return res.status(StatusCode.ClientErrorBadRequest).json({
+                    error: "BadRequest",
+                    message: "Bad request made - invalid query format",
+                    validationErrors: result.error.errors,
+                });
+            }
+        }
+
         if (spec.body) {
             const result = await spec.body.safeParseAsync(req.body);
             if (!result.success) {
