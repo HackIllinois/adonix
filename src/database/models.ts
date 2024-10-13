@@ -11,7 +11,7 @@ import { RegistrationApplication } from "./registration-db";
 import { ShopItem } from "./shop-db";
 import { UserAttendance, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
-import { StaffShift } from "./staff-db";
+import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "./notification-db";
 import { PuzzleItem } from "./puzzle-db";
 

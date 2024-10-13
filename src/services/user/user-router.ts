@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 
 import { Role } from "../auth/auth-models";
 import { generateJwtToken, getAuthenticatedUser, getJwtPayloadFromDB } from "../../common/auth";
-import { betterPerformCheckIn } from "../staff/staff-lib";
+import { performCheckIn, PerformCheckInErrors } from "../staff/staff-lib";
 
 import {
     QRInfoSchema,
@@ -22,7 +22,6 @@ import Models from "../../database/models";
 import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { CheckInErrors } from "../staff/staff-formats";
 
 const userRouter = Router();
 
@@ -273,7 +272,7 @@ userRouter.get(
 userRouter.put(
     "/scan-event/",
     specification({
-        method: "get",
+        method: "put",
         path: "/user/scan-event/",
         tag: Tag.USER,
         role: Role.USER,
@@ -284,14 +283,14 @@ userRouter.put(
                 description: "Successfully checked in",
                 schema: ScanEventSchema,
             },
-            ...CheckInErrors,
+            ...PerformCheckInErrors,
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
         const eventId = req.body.eventId;
 
-        const result = await betterPerformCheckIn(eventId, userId);
+        const result = await performCheckIn(eventId, userId);
 
         if (!result.success) {
             return res.status(result.status).json(result.error);
