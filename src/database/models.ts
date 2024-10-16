@@ -6,7 +6,7 @@ import { AttendeeFollowing, AttendeeProfile } from "./attendee-db";
 import { AdmissionDecision } from "./admission-db";
 import { MentorOfficeHours } from "./mentor-db";
 import { Event, EventAttendance, EventFollowers } from "./event-db";
-import { NewsletterSubscription } from "./newsletter-db";
+import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import { RegistrationApplication } from "./registration-db";
 import { ShopItem } from "../services/shop/shop-schemas";
 import { UserAttendance, UserInfo } from "../services/user/user-schemas";
