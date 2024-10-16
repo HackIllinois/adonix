@@ -46,7 +46,6 @@ enum AdmissionCollection {
 }
 
 enum EventCollection {
-    METADATA = "metadata",
     ATTENDANCE = "attendance",
     EVENTS = "events",
     FOLLOWERS = "followers",
