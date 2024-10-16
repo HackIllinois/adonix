@@ -4,7 +4,12 @@ import Models from "../../database/models";
 import { StaffShift } from "../staff/staff-schemas";
 import { Role } from "../auth/auth-schemas";
 import { getAuthenticatedUser } from "../../common/auth";
-import { NotificationSendRequestSchema, NotificationSendSchema, NotificationsSchema } from "./notification-schemas";
+import {
+    NotificationSendRequestSchema,
+    NotificationSendSchema,
+    NotificationsSchema,
+    RegisterDeviceTokenSchema,
+} from "./notification-schemas";
 import { sendNotification } from "./notification-service";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
@@ -41,6 +46,7 @@ notificationsRouter.post(
         tag: Tag.NOTIFICATION,
         role: Role.USER,
         summary: "Registers a device token to be associate with the currently authenticated user",
+        body: RegisterDeviceTokenSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully registered",

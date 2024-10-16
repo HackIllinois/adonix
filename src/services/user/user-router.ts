@@ -200,6 +200,9 @@ userRouter.delete(
         tag: Tag.USER,
         role: Role.USER,
         summary: "Unfollows the specified event",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Events followed after successfully unfollowing",

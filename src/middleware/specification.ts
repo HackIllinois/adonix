@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { AnyZodObject, z, ZodType } from "zod";
+import { AnyZodObject, z, ZodObject, ZodType, ZodUnknown } from "zod";
 import StatusCode from "status-code-enum";
 import { Response, Request, NextFunction } from "express";
 import { registerPathSpecification } from "../common/openapi";
@@ -36,7 +36,7 @@ export interface ResponsesObject {
     [statusCode: string]: ResponseObject;
 }
 
-export interface Specification<Params = AnyZodObject, Query = AnyZodObject, Responses = ResponsesObject, Body = ZodType> {
+export interface Specification<Params = ZodUnknown, Query = ZodUnknown, Responses = ResponsesObject, Body = ZodUnknown> {
     path: string;
     method: Method;
     tag: Tag;
@@ -53,11 +53,14 @@ export interface Specification<Params = AnyZodObject, Query = AnyZodObject, Resp
 type InferResponseBody<T> = T extends ResponseObject ? z.infer<T["schema"]> : never;
 type ResponseBody<T extends ResponsesObject> = InferResponseBody<T[keyof T]>;
 
+// Utility type for a zod object which is really just empty
+type ZodEmptyObject = ZodObject<NonNullable<unknown>>;
+
 export default function specification<
-    Params extends AnyZodObject,
-    Query extends AnyZodObject,
     Responses extends ResponsesObject,
-    Body extends ZodType,
+    Params extends AnyZodObject = ZodEmptyObject,
+    Query extends AnyZodObject = ZodEmptyObject,
+    Body extends ZodType = ZodUnknown,
 >(spec: Specification<Params, Query, Responses, Body>): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>> {
     registerPathSpecification(spec);
 
