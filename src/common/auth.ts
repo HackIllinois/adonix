@@ -191,20 +191,19 @@ export async function updateUserRoles(id: string, provider: Provider, roles: Rol
  * @returns List of roles that the uer containss
  */
 export function initializeUserRoles(provider: Provider, email: string): Role[] {
-    const roles: Role[] = [];
+    const roles: Role[] = [Role.USER];
 
-    // Check if this is a staff email
-    if (provider == Provider.GOOGLE && email.endsWith("@hackillinois.org")) {
+    if (provider == Provider.GOOGLE) {
+        if (!email.endsWith("@hackillinois.org")) {
+            // Disallow any google emails that aren't hack
+            return [];
+        }
+        // Otherwise, add staff
         roles.push(Role.STAFF);
         // If email in the system admin list, add the admin role
         if (Config.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
             roles.push(Role.ADMIN);
         }
-    }
-
-    // Add the basic USER role in the provider
-    if (provider == Provider.GITHUB) {
-        roles.push(Role.USER);
     }
 
     return roles;
