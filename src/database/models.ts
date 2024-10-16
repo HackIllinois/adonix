@@ -12,7 +12,7 @@ import { ShopItem } from "./shop-db";
 import { UserAttendance, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
-import { NotificationMappings, NotificationMessages } from "./notification-db";
+import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { PuzzleItem } from "./puzzle-db";
 
 // Groups for collections
