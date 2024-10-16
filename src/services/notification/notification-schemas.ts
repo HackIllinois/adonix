@@ -44,11 +44,7 @@ export const NotificationMessageSchema = z.object({
     failed: z.array(UserIdSchema),
 });
 
-export const NotificationsSchema = z
-    .object({
-        notifications: z.array(NotificationMessageSchema).openapi("Notifications"),
-    })
-    .openapi("Notifications");
+export const NotificationsSchema = z.array(NotificationMessageSchema).openapi("Notifications");
 
 export const NotificationSendRequestSchema = z
     .object({

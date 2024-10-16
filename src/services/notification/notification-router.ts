@@ -29,7 +29,7 @@ notificationsRouter.get(
     async (_req, res) => {
         const notifications = (await Models.NotificationMessages.find()) || [];
 
-        return res.status(StatusCode.SuccessOK).send({ notifications });
+        return res.status(StatusCode.SuccessOK).send(notifications);
     },
 );
 
