@@ -26,8 +26,6 @@ const ADMIN_PAYLOAD = {
 } satisfies JwtPayload;
 
 // NOTE: This test suite will only test functions not well covered elsewhere.
-// Ideally, we shouldn't have this as a lib and instead as a globally shared thing, but that's a future
-// problem to solve.
 
 describe("getJwtPayloadFromProfile", () => {
     it.each([
