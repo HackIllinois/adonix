@@ -61,7 +61,9 @@ export default function specification<
     Params extends AnyZodObject = ZodEmptyObject,
     Query extends AnyZodObject = ZodEmptyObject,
     Body extends ZodType = ZodUnknown,
->(spec: Specification<Params, Query, Responses, Body>): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>> {
+>(
+    spec: Specification<Params, Query, Responses, Body>,
+): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>, z.infer<Query>> {
     registerPathSpecification(spec);
 
     return async (req: Request, res: Response, next: NextFunction) => {
