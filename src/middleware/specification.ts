@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { AnyZodObject, z } from "zod";
+import { AnyZodObject, z, ZodType } from "zod";
 import StatusCode from "status-code-enum";
 import { Response, Request, NextFunction } from "express";
 import { registerPathSpecification } from "../common/openapi";
@@ -30,13 +30,13 @@ export enum Tag {
 
 export interface ResponseObject {
     description: string;
-    schema: AnyZodObject;
+    schema: ZodType;
 }
 export interface ResponsesObject {
     [statusCode: string]: ResponseObject;
 }
 
-export interface Specification<Params = AnyZodObject, Query = AnyZodObject, Responses = ResponsesObject, Body = AnyZodObject> {
+export interface Specification<Params = AnyZodObject, Query = AnyZodObject, Responses = ResponsesObject, Body = ZodType> {
     path: string;
     method: Method;
     tag: Tag;
@@ -57,7 +57,7 @@ export default function specification<
     Params extends AnyZodObject,
     Query extends AnyZodObject,
     Responses extends ResponsesObject,
-    Body extends AnyZodObject,
+    Body extends ZodType,
 >(spec: Specification<Params, Query, Responses, Body>): RequestHandler<z.infer<Params>, ResponseBody<Responses>, z.infer<Body>> {
     registerPathSpecification(spec);
 

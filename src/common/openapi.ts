@@ -1,5 +1,5 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
-import { AnyZodObject } from "zod";
+import { AnyZodObject, ZodType } from "zod";
 import type { InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
@@ -54,7 +54,7 @@ export function registerPathSpecification<
     Params extends AnyZodObject,
     Query extends AnyZodObject,
     Responses extends ResponsesObject,
-    Body extends AnyZodObject,
+    Body extends ZodType,
 >(specification: Specification<Params, Query, Responses, Body>): void {
     // Convert specification into RouteConfig
     const { method, path, tag, role, summary, description, parameters: params, query } = specification;
