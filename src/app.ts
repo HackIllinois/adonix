@@ -25,7 +25,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "./common/config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
-import { getOpenAPISpec } from "./common/openapi";
+import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
 
 const app = express();
 
@@ -62,15 +62,7 @@ app.use("/user/", database, userRouter);
 
 // Docs
 app.use("/docs/json", (_req, res) => res.json(getOpenAPISpec()));
-app.use(
-    "/docs",
-    swaggerUi.serveFiles(undefined, {
-        swaggerUrl: `${Config.ROOT_URL}/docs/json`,
-    }),
-    swaggerUi.setup(undefined, {
-        swaggerUrl: `${Config.ROOT_URL}/docs/json`,
-    }),
-);
+app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
 
 // Ensure that API is running
 app.get("/", (_: Request, res: Response) => {

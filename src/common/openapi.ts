@@ -3,9 +3,19 @@ import { AnyZodObject, ZodType } from "zod";
 import type { InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
+import { SwaggerUiOptions } from "swagger-ui-express";
 
 let openAPISpec: OpenAPIObject | undefined = undefined;
 export const Registry = new OpenAPIRegistry();
+
+// Swagger settings
+export const SWAGGER_UI_OPTIONS: SwaggerUiOptions = {
+    swaggerUrl: `${Config.ROOT_URL}/docs/json`,
+    customSiteTitle: "Adonix API Docs",
+    swaggerOptions: {
+        persistAuthorization: true,
+    },
+};
 
 // Basic metadata
 const openapi = "3.1.0";
