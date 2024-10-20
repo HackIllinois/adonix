@@ -1,158 +1,174 @@
-import { Request, Response, Router } from "express";
-import { NextFunction } from "express-serve-static-core";
+import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
-import { RouterError } from "../../middleware/error-handler";
-import { strongJwtVerification, weakJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload } from "../auth/auth-schemas";
-import { PuzzleItem } from "../../database/puzzle-db";
+import { Role } from "../auth/auth-schemas";
+import {
+    PuzzleAnswerRequestSchema,
+    PuzzleCreateRequestSchema,
+    PuzzleIncorrectAnswerError,
+    PuzzleIncorrectAnswerErrorSchema,
+    PuzzleItem,
+    PuzzleNotCreatedError,
+    PuzzleNotCreatedErrorSchema,
+    PuzzleQuestionIdSchema,
+    PuzzleQuestionNotFoundError,
+    PuzzleQuestionNotFoundErrorSchema,
+    PuzzleSchema,
+} from "./puzzle-schemas";
 import Config from "../../common/config";
-import { updatePuzzle } from "./puzzle-lib";
-import { isString } from "../../common/formatTools";
+import specification, { Tag } from "../../middleware/specification";
+import { getAuthenticatedUser } from "../../common/auth";
+import { z } from "zod";
 
 const puzzleRouter = Router();
 
-/**
- * @api {get} /puzzle/status GET /status
- * @apiGroup Puzzle
- * @apiDescription Get status on current user's puzzle.
- *
- * @apiHeader {String} Authorization User's JWT Token with admin permissions.
- *
- * @apiSuccess (200: Success) {String} userId Player's userId.
- * @apiSuccess (200: Success) {String} teamName Player's chosen team name.
- * @apiSuccess (200: Success) {Number} lastCorrect Timestamp in epoch of last correct submission.
- * @apiSuccess (200: Success) {Array} problemComplete Boolean array representing which problems were complete.
- * @apiSuccessExample Example Success Response
- * HTTP/1.1 200 OK
- * {
- *   userId: "user1234",
- *   teamName: "team1234",
- *   lastCorrect: 19828219231,
- *   problemComplete: [
- *      true,
- *      false,
- *      true,
- *      false,
- *      true,
- *      true
- *   ]
- * }
- *
- * @apiUse strongVerifyErrors
- * @apiError (404: User Not Found) {String} UserNotFound User does not exist.
- **/
-puzzleRouter.get("/status", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-    const targetUser = payload.id;
+puzzleRouter.get(
+    "/status",
+    specification({
+        method: "get",
+        path: "/puzzle/status/",
+        tag: Tag.PUZZLE,
+        role: Role.USER,
+        summary: "Gets the status on the currently authenticated user's puzzle",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The status",
+                schema: PuzzleSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "The user's puzzle hasn't been created yet",
+                schema: PuzzleNotCreatedErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
 
-    const puzzle: PuzzleItem | null = await Models.PuzzleItem.findOne({ userId: targetUser });
+        const puzzle = await Models.PuzzleItem.findOne({ userId });
 
-    if (!puzzle) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-    }
+        if (!puzzle) {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleNotCreatedError);
+        }
 
-    return res.status(StatusCode.SuccessOK).send(puzzle);
-});
-
-/**
- * @api {post} /puzzle/submit/:QID POST /puzzle/submit/:QID
- * @apiGroup Puzzle
- * @apiDescription Submit answer to puzzle based on question number (0-indexed).
- *
- * @apiHeader {String} Authorization User's JWT Token with admin permissions.
- *
- * @apiBody {json} answer The user's submitted answer.
- * @apiParamExample {Json} Request Body Example for an Item:
- * {
- *      "answer": "abcd"
- * }
- *
- * @apiSuccess (200: Success) {Json} updated items.
- * @apiSuccessExample Example Success Response
- * HTTP/1.1 200 OK
- * {
- *   userId: "user1234",
- *   teamName: "team1234",
- *   lastCorrect: 19828219231,
- *   problemComplete: [
- *      true,
- *      false,
- *      true,
- *      false,
- *      true,
- *      true
- *   ]
- * }
- *
- * @apiUse strongVerifyErrors
- * @apiError (400: Bad Request) {String} BadRequest Incorrectly formatted input.
- * @apiError (404: User Not Found) {String} UserNotFound User does not exist.
- * @apiError (406: Not Acceptable) {String} IncorrectAnswer Solution was right but incorrectly formatted.
- * @apiError (500: Internal Server Error) {String} InternalError An error occurred on the server.
- * */
-puzzleRouter.post("/submit/:QID", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-    const targetUser = payload.id;
-
-    if (!req.params.QID || !isString(req.params.QID)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "Bad Request"));
-    }
-
-    const qid = parseInt(req.params.QID);
-    const answer = req.body.answer as string;
-
-    // already completed this question
-    const puzzle: PuzzleItem | null = await Models.PuzzleItem.findOne({ userId: targetUser });
-
-    if (!puzzle) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "UserNotFound"));
-    }
-
-    if (puzzle.problemComplete[qid]) {
         return res.status(StatusCode.SuccessOK).send(puzzle);
-    }
+    },
+);
 
-    // incorrect answer
-    if (answer !== Config.PUZZLE[qid]) {
-        return next(new RouterError(StatusCode.ClientErrorNotAcceptable, "IncorrectAnswer"));
-    }
+puzzleRouter.post(
+    "/submit/:qid/",
+    specification({
+        method: "post",
+        path: "/puzzle/submit/{qid}/",
+        tag: Tag.PUZZLE,
+        role: Role.USER,
+        summary: "Submits an answer to a specific question",
+        parameters: z.object({
+            qid: PuzzleQuestionIdSchema,
+        }),
+        body: PuzzleAnswerRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The new puzzle status",
+                schema: PuzzleSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: [
+                {
+                    id: PuzzleNotCreatedError.error,
+                    description: "The user's puzzle hasn't been created yet",
+                    schema: PuzzleNotCreatedErrorSchema,
+                },
+                {
+                    id: PuzzleQuestionNotFoundError.error,
+                    description: "The question requested doesn't exist",
+                    schema: PuzzleQuestionNotFoundErrorSchema,
+                },
+            ],
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The answer was incorrect",
+                schema: PuzzleIncorrectAnswerErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
 
-    try {
-        const updatedPuzzleItem = await updatePuzzle(targetUser, qid);
+        const qidString = req.params.qid;
+        const { answer } = req.body;
+
+        // Invalid question
+        let qid;
+        try {
+            qid = parseInt(qidString, 10);
+        } catch {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
+        }
+
+        if (qid < 0 || qid >= Config.PUZZLE.length) {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
+        }
+
+        const puzzle = await Models.PuzzleItem.findOne({ userId });
+
+        // Not yet created
+        if (!puzzle) {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleNotCreatedError);
+        }
+
+        // Already completed, good to go
+        if (puzzle.problemComplete[qid]) {
+            return res.status(StatusCode.SuccessOK).send(puzzle);
+        }
+
+        // Incorrect
+        if (answer !== Config.PUZZLE[qid]) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(PuzzleIncorrectAnswerError);
+        }
+
+        // Otherwise, correct
+        const updatedPuzzleItem = await Models.PuzzleItem.findOneAndUpdate(
+            { userId },
+            {
+                $set: {
+                    lastCorrect: Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND),
+                    [`problemComplete.${qid}`]: true,
+                },
+                $inc: {
+                    score: 1,
+                },
+            },
+            { new: true },
+        );
+
+        if (!updatedPuzzleItem) {
+            throw Error("Failed to update existing puzzle");
+        }
+
         return res.status(StatusCode.SuccessOK).send(updatedPuzzleItem);
-    } catch (error) {
-        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
-    }
-});
+    },
+);
 
-/**
- * @api {post} /puzzle/create POST /puzzle/create
- * @apiGroup Puzzle
- * @apiDescription Create a puzzle item for user.
- *
- * @apiHeader {String} Authorization User's JWT Token with admin permissions.
- *
- * @apiBody {json} teamName The user's requested team name.
- * @apiParamExample {Json} Request Body Example for a teamName:
- * {
- *      "teamName": "myTeam"
- * }
- *
- * @apiSuccess (200: Success) {Json} Success!.
- *
- * @apiError (404: User Not Found) {String} UserNotFound User does not exist.
- * */
-puzzleRouter.post("/create", strongJwtVerification, async (req: Request, res: Response, _: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-    const targetUser = payload.id;
-    const teamName = req.body.teamName as string;
+puzzleRouter.post(
+    "/create",
+    specification({
+        method: "post",
+        path: "/puzzle/create/",
+        tag: Tag.PUZZLE,
+        role: Role.USER,
+        summary: "Create the currently authenticated user's puzzle",
+        body: PuzzleCreateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The newly created puzzle status",
+                schema: PuzzleSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { teamName } = req.body;
 
-    // no need to check that user exists, handled by strongJwtVerification
-
-    try {
         // Create a new PuzzleItem model
-        const newPuzzleItem = new PuzzleItem(targetUser, teamName, Config.PUZZLE_EVENT_END_TIME, 0, [
+        const newPuzzleItem = new PuzzleItem(userId, teamName, Config.PUZZLE_EVENT_END_TIME, 0, [
             false,
             false,
             false,
@@ -165,49 +181,10 @@ puzzleRouter.post("/create", strongJwtVerification, async (req: Request, res: Re
             false,
         ]);
 
-        await Models.PuzzleItem.findOneAndUpdate({ userId: targetUser }, newPuzzleItem, { upsert: true, new: true });
+        await Models.PuzzleItem.findOneAndUpdate({ userId }, newPuzzleItem, { upsert: true, new: true });
 
-        return res.status(StatusCode.SuccessOK).send({ newPuzzleItem });
-    } catch (error) {
-        console.log(error);
-        return res.status(StatusCode.ServerErrorInternal).send({ status: false, error: "Internal Server Error" });
-    }
-});
-
-/**
- * @api {get} /puzzle/ranking GET /puzzle/ranking
- * @apiGroup Puzzle
- * @apiDescription Get the current ranking of participants in puzzle.
- *
- * @apiSuccess (200: Success) {Array} ranking List of all teamnames ranked.
- * @apiSuccess (200: Success) {String} qrInfo Array of stringified QR codes for the requested item 
-
- * @apiSuccessExample Example Success Response:
- * 	HTTP/1.1 200 OK
- *	[
- *      "team1",
- *      "team2",
- *      "team3",
- *      "team4",
- *      "team5"
- *  ]
- *
- * @apiUse weakVerifyErrors
- */
-puzzleRouter.get("/ranking", weakJwtVerification, async (_1: Request, res: Response, _2: NextFunction) => {
-    const teamsRanked: PuzzleItem[] = await Models.PuzzleItem.find();
-
-    const sortedPuzzleItems = teamsRanked.sort((a, b) => {
-        if (a.score !== b.score) {
-            return b.score - a.score;
-        } else {
-            return a.lastCorrect - b.lastCorrect;
-        }
-    });
-
-    const sortedTeams: string[] = sortedPuzzleItems.map((p) => p.teamName);
-
-    return res.status(StatusCode.SuccessOK).send({ sortedTeams });
-});
+        return res.status(StatusCode.SuccessOK).send(newPuzzleItem);
+    },
+);
 
 export default puzzleRouter;

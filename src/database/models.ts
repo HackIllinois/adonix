@@ -13,7 +13,7 @@ import { UserAttendance, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
-import { PuzzleItem } from "./puzzle-db";
+import { PuzzleItem } from "../services/puzzle/puzzle-schemas";
 
 // Groups for collections
 export enum Group {
