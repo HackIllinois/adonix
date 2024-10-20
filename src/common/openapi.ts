@@ -1,6 +1,6 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
-import { AnyZodObject, ZodType } from "zod";
-import type { InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
+import { AnyZodObject, z, ZodType } from "zod";
+import type { ExampleObject, InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 import { SwaggerUiOptions } from "swagger-ui-express";
@@ -60,6 +60,65 @@ export function getOpenAPISpec(): OpenAPIObject {
     return openAPISpec;
 }
 
+// Given a specification, returns the route responses in openapi format
+function getPathResponsesForSpecification<
+    Params extends AnyZodObject,
+    Query extends AnyZodObject,
+    Responses extends ResponsesObject,
+    Body extends ZodType,
+>(specification: Specification<Params, Query, Responses, Body>): RouteConfig["responses"] {
+    const responses: RouteConfig["responses"] = {};
+
+    for (const [statusCode, response] of Object.entries(specification.responses)) {
+        // response can be a single response or an array of responses for this status code
+        // First, check for the easy singular case
+        if (!Array.isArray(response)) {
+            const { description, schema } = response;
+            responses[statusCode] = {
+                description,
+                content: {
+                    "application/json": {
+                        schema,
+                    },
+                },
+            };
+        } else {
+            // Otherwise, we need to combine these multiple responses for the same status code into a singular entry
+            const description =
+                "One of:\n" +
+                response.map((r) => `- ${r.id}: ${r.description}`).join("\n") +
+                "\n\n**See examples dropdown below**";
+            const schemas = response.map((r) => r.schema) as [ZodType, ZodType, ...ZodType[]];
+            const examples = response.reduce<Record<string, ExampleObject>>((acc, r) => {
+                const example = r.schema._def.openapi?.metadata?.example;
+                if (example) {
+                    if (acc[r.id]) {
+                        throw Error(
+                            `Duplicate definition of response id ${r.id} for ${specification.method} ${specification.path} status ${statusCode}`,
+                        );
+                    }
+                    acc[r.id] = {
+                        description: r.description,
+                        value: example,
+                    };
+                }
+                return acc;
+            }, {});
+            responses[statusCode] = {
+                description,
+                content: {
+                    "application/json": {
+                        schema: z.union(schemas),
+                        examples,
+                    },
+                },
+            };
+        }
+    }
+
+    return responses;
+}
+
 export function registerPathSpecification<
     Params extends AnyZodObject,
     Query extends AnyZodObject,
@@ -83,17 +142,7 @@ export function registerPathSpecification<
         combinedDescription = descriptionHeader || description;
     }
 
-    const responses: RouteConfig["responses"] = {};
-    for (const [statusCode, response] of Object.entries(specification.responses)) {
-        responses[statusCode] = {
-            description: response.description,
-            content: {
-                "application/json": {
-                    schema: response.schema,
-                },
-            },
-        };
-    }
+    const responses = getPathResponsesForSpecification(specification);
 
     const request: RouteConfig["request"] = { params, query };
     if (specification.body) {

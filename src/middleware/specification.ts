@@ -32,8 +32,10 @@ export interface ResponseObject {
     description: string;
     schema: ZodType;
 }
+type ResponseObjectWithId = ResponseObject & { id: string };
+export type ResponseObjectsWithId = [ResponseObjectWithId, ResponseObjectWithId, ...ResponseObjectWithId[]];
 export interface ResponsesObject {
-    [statusCode: string]: ResponseObject;
+    [statusCode: string]: ResponseObject | ResponseObjectsWithId;
 }
 
 export interface Specification<Params = ZodUnknown, Query = ZodUnknown, Responses = ResponsesObject, Body = ZodUnknown> {
@@ -50,10 +52,17 @@ export interface Specification<Params = ZodUnknown, Query = ZodUnknown, Response
 }
 
 // Utility types to convert Responses into a set of possible schemas
-type InferResponseBody<T> = T extends ResponseObject ? z.infer<T["schema"]> : never;
+// This type takes in a ResponseObject or ResponseObjectsWithId and returns the underlying inferred zod types
+type InferResponseBody<T> = T extends ResponseObject
+    ? z.infer<T["schema"]>
+    : T extends ResponseObjectsWithId
+    ? z.infer<T[number]["schema"]>
+    : never;
+
+// This type indexes each possible key in the ResponsesObject and passes it to InferResponseBody to get the underlying types
 type ResponseBody<T extends ResponsesObject> = InferResponseBody<T[keyof T]>;
 
-// Utility type for a zod object which is really just empty
+// Utility type for a zod object which is really just empty (not just {} in ts)
 type ZodEmptyObject = ZodObject<NonNullable<unknown>>;
 
 export default function specification<
