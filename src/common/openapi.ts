@@ -45,11 +45,37 @@ const authentication = Registry.registerComponent("securitySchemes", "Authentica
 
 function generateOpenAPISpec(): OpenAPIObject {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
-    return generator.generateDocument({
+    const document = generator.generateDocument({
         info,
         openapi,
         servers,
     });
+
+    // Sort paths by name
+    if (document.paths) {
+        const sortedEntries = Object.entries(document.paths).sort();
+        document.paths = sortedEntries.reduce(
+            (acc, [k, v]) => {
+                acc[k] = v;
+                return acc;
+            },
+            {} satisfies typeof document.paths as typeof document.paths,
+        );
+    }
+
+    // Sort components by name
+    if (document.components?.schemas) {
+        const sortedEntries = Object.entries(document.components?.schemas).sort();
+        document.components.schemas = sortedEntries.reduce(
+            (acc, [k, v]) => {
+                acc[k] = v;
+                return acc;
+            },
+            {} satisfies typeof document.components.schemas as typeof document.components.schemas,
+        );
+    }
+
+    return document;
 }
 
 export function getOpenAPISpec(): OpenAPIObject {
