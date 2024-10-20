@@ -43,7 +43,7 @@ export const PuzzleSchema = z.object({
 });
 
 export const PuzzleAnswerRequestSchema = z.object({
-    answer: z.string().openapi("tacocat"),
+    answer: z.string().openapi({ example: "tacocat" }),
 });
 
 export const PuzzleCreateRequestSchema = z.object({
