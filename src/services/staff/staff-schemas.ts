@@ -3,7 +3,7 @@ import { RouterError } from "../../middleware/error-handler";
 import { AttendeeProfile } from "../../database/attendee-db";
 import { UserIdSchema } from "../user/user-schemas";
 import { z } from "zod";
-import { SuccessResponseSchema } from "../../common/schemas";
+import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 
 export class StaffShift {
     @prop({ required: true })
@@ -60,12 +60,7 @@ export const ShiftsAddRequestSchema = z.object({
     shifts: z.array(z.string()).openapi({ example: ["event1"] }),
 });
 
-export const CodeExpiredErrorSchema = z.object({
-    error: z.literal("CodeExpired"),
-    message: z.literal("The code for this event has expired"),
-});
-
-export const CodeExpiredError: z.infer<typeof CodeExpiredErrorSchema> = {
+export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({
     error: "CodeExpired",
     message: "The code for this event has expired",
-};
+});

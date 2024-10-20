@@ -1,5 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
+import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class ShopItem {
     @prop({ required: true })
@@ -111,32 +112,17 @@ export const ShopItemBuyRequestSchema = z.object({
     instance: z.string().openapi({ example: "1x3" }),
 });
 
-export const ShopItemAlreadyExistsErrorSchema = z.object({
-    error: z.literal("AlreadyExists"),
-    message: z.literal("An item with that id already exists, did you mean to update it instead?"),
-});
-
-export const ShopItemAlreadyExistsError: z.infer<typeof ShopItemAlreadyExistsErrorSchema> = {
+export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",
     message: "An item with that id already exists, did you mean to update it instead?",
-};
-
-export const ShopItemNotFoundErrorSchema = z.object({
-    error: z.literal("NotFound"),
-    message: z.literal("Failed to find item"),
 });
 
-export const ShopItemNotFoundError: z.infer<typeof ShopItemNotFoundErrorSchema> = {
+export const [ShopItemNotFoundError, ShopItemNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Failed to find item",
-};
-
-export const ShopInsufficientFundsErrorSchema = z.object({
-    error: z.literal("InsufficientFunds"),
-    message: z.literal("You don't have enough to purchase that item!"),
 });
 
-export const ShopInsufficientFundsError: z.infer<typeof ShopInsufficientFundsErrorSchema> = {
+export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
     message: "You don't have enough to purchase that item!",
-};
+});

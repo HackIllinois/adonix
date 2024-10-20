@@ -1,5 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
+import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class UserInfo {
     @prop({ required: true })
@@ -61,40 +62,6 @@ export const ScanEventRequestSchema = z
     })
     .openapi("ScanEventRequest");
 
-export const UserNotFoundErrorSchema = z.object({
-    error: z.literal("NotFound"),
-    message: z.literal("Failed to find user"),
-});
-
-export const UserNotFoundError: z.infer<typeof UserNotFoundErrorSchema> = {
-    error: "NotFound",
-    message: "Failed to find user",
-};
-
-export const EventNotFoundErrorSchema = z.object({
-    error: z.literal("NotFound"),
-    message: z.literal("Could not find event"),
-});
-
-export const EventNotFoundError: z.infer<typeof EventNotFoundErrorSchema> = {
-    error: "NotFound",
-    message: "Could not find event",
-};
-
-export type EventNotFoundError = typeof EventNotFoundError;
-
-export const AlreadyCheckedInErrorSchema = z.object({
-    error: z.literal("AlreadyCheckedIn"),
-    message: z.literal("You're already checked in to this event"),
-});
-
-export const AlreadyCheckedInError: z.infer<typeof AlreadyCheckedInErrorSchema> = {
-    error: "AlreadyCheckedIn",
-    message: "You're already checked in to this event",
-};
-
-export type AlreadyCheckedInError = typeof AlreadyCheckedInError;
-
 export const ScanEventSchema = z
     .object({
         success: z.literal(true),
@@ -104,3 +71,22 @@ export const ScanEventSchema = z
         }),
     })
     .openapi("ScanEvent");
+
+export const [UserNotFoundError, UserNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NotFound",
+    message: "Failed to find user",
+});
+
+export const [EventNotFoundError, EventNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NotFound",
+    message: "Could not find event",
+});
+
+export type EventNotFoundError = typeof EventNotFoundError;
+
+export const [AlreadyCheckedInError, AlreadyCheckedInErrorSchema] = CreateErrorAndSchema({
+    error: "AlreadyCheckedIn",
+    message: "You're already checked in to this event",
+});
+
+export type AlreadyCheckedInError = typeof AlreadyCheckedInError;

@@ -2,6 +2,7 @@ import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { Device } from "../../common/config";
 import { UserIdSchema } from "../user/user-schemas";
+import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class AuthInfo {
     @prop({ required: true })
@@ -91,12 +92,7 @@ export const RefreshTokenSchema = z
     })
     .openapi("RefreshToken");
 
-export const AuthorizationFailedErrorSchema = z.object({
-    error: z.literal("AuthorizationFailed"),
-    message: z.literal("Failed to authenticate"),
-});
-
-export const AuthorizationFailedError: z.infer<typeof AuthorizationFailedErrorSchema> = {
+export const [AuthorizationFailedError, AuthorizationFailedErrorSchema] = CreateErrorAndSchema({
     error: "AuthorizationFailed",
     message: "Failed to authenticate",
-};
+});
