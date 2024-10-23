@@ -67,8 +67,3 @@ export const [DecisionNotFoundError, DecisionNotFoundErrorSchema] = CreateErrorA
     error: "DecisionNotFound",
     message: "Couldn't find your decision!",
 });
-
-export const [ApplicationNotFoundError, ApplicationNotFoundErrorSchema] = CreateErrorAndSchema({
-    error: "ApplicationNotFound",
-    message: "Couldn't find your application!",
-});

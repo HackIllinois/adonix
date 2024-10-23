@@ -10,10 +10,8 @@ import {
     DecisionRequestSchema,
     DecisionAlreadyRSVPdError,
     DecisionAlreadyRSVPdErrorSchema,
-    ApplicationNotFoundError,
     DecisionNotFoundError,
     DecisionNotFoundErrorSchema,
-    ApplicationNotFoundErrorSchema,
     AdmissionDecisionSchema,
 } from "./admission-schemas";
 import Models from "../../database/models";
@@ -25,6 +23,7 @@ import { sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
+import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
 
 const admissionRouter = Router();
 
@@ -72,9 +71,9 @@ admissionRouter.put(
                     schema: DecisionNotFoundErrorSchema,
                 },
                 {
-                    id: ApplicationNotFoundError.error,
+                    id: RegistrationNotFoundError.error,
                     description: "Couldn't find user's application",
-                    schema: ApplicationNotFoundErrorSchema,
+                    schema: RegistrationNotFoundErrorSchema,
                 },
             ],
             [StatusCode.ClientErrorForbidden]: {
@@ -99,7 +98,7 @@ admissionRouter.put(
         // Verify they have an application
         const application = await Models.RegistrationApplication.findOne({ userId });
         if (!application) {
-            return res.status(StatusCode.ClientErrorNotFound).send(ApplicationNotFoundError);
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
 
         // Must be accepted to make a decision
@@ -171,7 +170,7 @@ admissionRouter.put(
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "A applicant's application was not found",
-                schema: ApplicationNotFoundErrorSchema,
+                schema: RegistrationNotFoundErrorSchema,
             },
         },
     }),
@@ -189,7 +188,7 @@ admissionRouter.put(
             if (existingDecision?.status === DecisionStatus.TBD && status !== DecisionStatus.TBD) {
                 const application = await Models.RegistrationApplication.findOne({ userId: existingDecision.userId });
                 if (!application) {
-                    return res.status(StatusCode.ClientErrorNotFound).send(ApplicationNotFoundError);
+                    return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
                 }
                 recipients.push(application.emailAddress);
             }

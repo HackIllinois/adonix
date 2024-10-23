@@ -3,15 +3,21 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { RegistrationTemplates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
-import { RegistrationFormat } from "./registration-formats";
-import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "./registration-schemas";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplication,
+    RegistrationApplicationRequest,
+} from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
     isProApplicant: false,
-    userId: TESTER.id,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
@@ -29,14 +35,14 @@ const APPLICATION = {
     race: [Race.NO_ANSWER],
     hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
     hackOutreach: [HackOutreach.INSTAGRAM],
-} satisfies RegistrationFormat;
+} satisfies RegistrationApplicationRequest;
 
-const UNSUBMITTED_REGISTRATION = { hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
+const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
 const UNSUBMITTED_OTHER_REGISTRATION = {
     ...UNSUBMITTED_REGISTRATION,
     userId: "otherUser",
 } satisfies RegistrationApplication;
-const SUBMITTED_REGISTRATION = { hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
+const SUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
@@ -83,7 +89,7 @@ describe("GET /registration/userid/:USERID", () => {
 describe("POST /registration/", () => {
     it("should create registration", async () => {
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
@@ -98,7 +104,7 @@ describe("POST /registration/", () => {
             degree: "PhD of Data Corruption",
         });
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({

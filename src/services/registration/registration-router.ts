@@ -7,6 +7,7 @@ import Models from "../../database/models";
 import {
     RegistrationAlreadySubmittedError,
     RegistrationAlreadySubmittedErrorSchema,
+    RegistrationApplication,
     RegistrationApplicationRequestSchema,
     RegistrationApplicationSchema,
     RegistrationClosedError,
@@ -141,17 +142,26 @@ registrationRouter.post(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const registrationData = req.body;
+        const setRequest = req.body;
 
         const registrationInfo = await Models.RegistrationApplication.findOne({ userId: userId });
         if (registrationInfo?.hasSubmitted ?? false) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const newRegistrationInfo = await Models.RegistrationApplication.findOneAndReplace({ userId: userId }, registrationData, {
-            upsert: true,
-            new: true,
-        });
+        const updateRegistration: RegistrationApplication = {
+            ...setRequest,
+            userId,
+            hasSubmitted: false,
+        };
+        const newRegistrationInfo = await Models.RegistrationApplication.findOneAndReplace(
+            { userId: userId },
+            updateRegistration,
+            {
+                upsert: true,
+                new: true,
+            },
+        );
         if (!newRegistrationInfo) {
             throw Error("Failed to update registration info");
         }
