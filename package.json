@@ -11,6 +11,8 @@
         "lint:check": "tsc --noEmit && yarn run eslint src --ext .js,.jsx,.ts,.tsx",
         "lint": "tsc --noEmit && yarn run eslint src --ext .js,.jsx,.ts,.tsx --fix",
         "test": "jest",
+        "test:watch": "jest --coverage=off --watch",
+        "test:watchAll": "jest --coverage=off --watchAll",
         "build": "tsc",
         "verify": "yarn lint:check && yarn format:check",
         "send-notif": "node scripts/send-notif.js",
