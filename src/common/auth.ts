@@ -160,12 +160,25 @@ export function decodeJwtToken(token?: string): JwtPayload {
 }
 
 /**
- * Gets the authenticated user from a request
+ * Gets the authenticated user from a request, errors if fails
  * @param req The request
  * @returns User payload
  */
 export function getAuthenticatedUser(req: Request): JwtPayload {
     return decodeJwtToken(req.headers.authorization);
+}
+
+/**
+ * Gets the authenticated user from a request, returns null if fails
+ * @param req The request
+ * @returns User payload
+ */
+export function tryGetAuthenticatedUser(req: Request): JwtPayload | null {
+    try {
+        return decodeJwtToken(req.headers.authorization);
+    } catch {
+        return null;
+    }
 }
 
 /**
