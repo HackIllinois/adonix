@@ -65,17 +65,22 @@ app.use("/docs/json", (_req, res) => res.json(getOpenAPISpec()));
 app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
 
 // Ensure that API is running
+const docsUrl = `${Config.ROOT_URL}/docs/`;
 app.get("/", (_: Request, res: Response) => {
     res.json({
         ok: true,
         info: "Welcome to HackIllinois' backend API!",
-        docs: `${Config.ROOT_URL}/docs/`,
+        docs: docsUrl,
     });
 });
 
 // Throw an error if call is made to the wrong API endpoint
 app.use("/", (_: Request, res: Response) => {
-    res.status(StatusCode.ClientErrorNotFound).end("API endpoint does not exist!");
+    res.status(StatusCode.ClientErrorNotFound).json({
+        error: "EndpointNotFound",
+        message: "This endpoint doesn't exist, see the docs!",
+        docs: docsUrl,
+    });
 });
 
 app.use(ErrorHandler);
