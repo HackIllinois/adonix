@@ -1,254 +1,160 @@
-import { Request, Response, Router } from "express";
-import { OfficeHoursFormat, pointCoinUpdateValue } from "./mentor-formats";
+import { Router } from "express";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload, Role } from "../auth/auth-schemas";
-import { hasElevatedPerms } from "../../common/auth";
-import { RouterError } from "../../middleware/error-handler";
-import { NextFunction } from "express-serve-static-core";
+import { Role } from "../auth/auth-schemas";
 import { updatePointsAndCoins } from "../profile/profile-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
+import specification, { Tag } from "../../middleware/specification";
+import {
+    MentorAttendanceRequestSchema,
+    MentorAttendanceSchema,
+    MentorCreateOfficeHoursRequest,
+    MentorIdSchema,
+    MentorNotFoundError,
+    MentorNotFoundErrorSchema,
+    MentorOfficeHours,
+    MentorOfficeHoursSchema,
+} from "./mentor-schemas";
+import { z } from "zod";
+import { SuccessResponseSchema } from "../../common/schemas";
+import { getAuthenticatedUser } from "../../common/auth";
+import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";
 
 const mentorRouter = Router();
 
-/**
- * @api {post} /mentor POST /mentor
- * @apiGroup Mentor
- * @apiDescription Create a mentor's office hours in the database.
- *
- * @apiBody {String} mentorName name of the mentor to add
- * @apiParamExample {json} Example Request:
- * { "mentorName": "Jojos" }
- *
- * @apiSuccess (201: Success) {Json} success Indicates successful creation of the mentor's office hours.
- * @apiBody {String} mentorName name of the mentor to add
- * @apiParamExample {json} Example Request:
- * { "mentorName": "Jojos" }
- *
- * @apiSuccess (201: Success) {Json} success Indicates successful creation of the mentor's office hours.
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 201 CREATED
- * HTTP/1.1 201 CREATED
- * {
- *     "mentorId": "7072a6565209be28b4e3e8a3a3e5810e",
- *     "mentorName": "Jojos",
- *     "attendees": [],
- *     "_id": "65ad7fcd5d7f20c924270947"
- * }
- *
- * @apiError (400: Invalid Request) {String} InvalidRequest
- * @apiErrorExample Example Error Response (InvalidRequest):
- *     HTTP/1.1 400 Invalid Request
- *     {"error": "InvalidRequest"}
- *
- *
- * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Permission
- *     {"error": "InvalidPermission"}
- */
-mentorRouter.post("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorName = req.body.mentorName as string | undefined;
-    const payload = res.locals.payload as JwtPayload;
+mentorRouter.post(
+    "/",
+    specification({
+        method: "post",
+        path: "/mentor/",
+        tag: Tag.MENTOR,
+        role: Role.STAFF,
+        summary: "Create a mentor's office hours",
+        body: MentorCreateOfficeHoursRequest,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The new office hours",
+                schema: MentorOfficeHoursSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { mentorName } = req.body;
 
-    if (!mentorName) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
-    }
-    if (!hasElevatedPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
-    }
+        const mentorId = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
+        const officeHours: MentorOfficeHours = { mentorId, mentorName, attendees: [] };
+        const newOfficeHours = await Models.MentorOfficeHours.create(officeHours);
 
-    //generate mentorId, add document to database, return generated document in response
-    const mentorId = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
+        return res.status(StatusCode.SuccessCreated).send(newOfficeHours);
+    },
+);
 
-    const officeHours: OfficeHoursFormat = { mentorId: mentorId, mentorName: mentorName, attendees: [] };
+mentorRouter.get(
+    "/",
+    specification({
+        method: "get",
+        path: "/mentor/",
+        tag: Tag.MENTOR,
+        role: Role.STAFF,
+        summary: "Gets all mentor office hours",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The office hours",
+                schema: z.array(MentorOfficeHoursSchema),
+            },
+        },
+    }),
+    async (_req, res) => {
+        const officeHours = await Models.MentorOfficeHours.find();
+        return res.status(StatusCode.SuccessOK).send(officeHours);
+    },
+);
 
-    const newOfficeHours = await Models.MentorOfficeHours.create(officeHours);
+mentorRouter.delete(
+    "/:id/",
+    specification({
+        method: "delete",
+        path: "/mentor/{id}/",
+        tag: Tag.MENTOR,
+        role: Role.STAFF,
+        summary: "Deletes the specified mentor's office hours",
+        parameters: z.object({
+            id: MentorIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully deleted",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Failed to find the mentor requested",
+                schema: MentorNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: mentorId } = req.params;
 
-    return res.status(StatusCode.SuccessCreated).send(newOfficeHours);
-});
+        const result = await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
+        if (!result) {
+            return res.status(StatusCode.ClientErrorNotFound).send(MentorNotFoundError);
+        }
 
-/**
- * @api {get} /mentor GET /mentor
- * @apiGroup Mentor
- * @apiDescription Get all mentors office hours.
- *
- * @apiSuccess (200: Success) {Json} success Indicates successful getting of all mentors office hours.
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * [
- *  {
- *     "_id": "65ad734fc840a099ca27c7f2",
- *     "mentorId": "90c0ed9f97dc08f318cefe0f733384d4",
- *     "mentorName": "Joe",
- *     "attendees": [
- *         "google107002865535727235753"
- *     ]
- * },
- * {
- *     "_id": "65ad7fcd5d7f20c924270947",
- *     "mentorId": "7072a6565209be28b4e3e8a3a3e5810e",
- *     "mentorName": "Jojos",
- *     "attendees": []
- * }
- * ]
- *
- * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Permission
- *     {"error": "InvalidPermission"}
- *
- *
- * @apiError (500: Internal Error) {String} InternalError An internal server error occurred.
- * @apiErrorExample Example Error Response (InternalError):
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
- */
-mentorRouter.get("/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
 
-    if (!hasElevatedPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
-    }
+mentorRouter.post(
+    "/attendance/",
+    specification({
+        method: "post",
+        path: "/mentor/attendance/",
+        tag: Tag.MENTOR,
+        role: Role.ATTENDEE,
+        summary: "Checks into a mentor's office hours",
+        body: MentorAttendanceRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully checked in, returns the points rewarded",
+                schema: MentorAttendanceSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Failed to find the mentor requested",
+                schema: MentorNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Already checked in to office hours",
+                schema: AlreadyCheckedInErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { mentorId } = req.body;
 
-    const officeHours: OfficeHoursFormat[] | null = await Models.MentorOfficeHours.find();
+        const officeHours = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
 
-    if (!officeHours) {
-        return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
-    }
+        if (!officeHours) {
+            return res.status(StatusCode.ClientErrorNotFound).send(MentorNotFoundError);
+        }
 
-    return res.status(StatusCode.SuccessOK).send(officeHours);
-});
+        // Not already checked in
+        if (officeHours.attendees.includes(userId)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(AlreadyCheckedInError);
+        }
 
-/**
- * @api {delete} /mentor DELETE /mentor
- * @apiGroup Mentor
- * @apiDescription Delete a mentor's office hours in the database.
- *
- * @apiBody {String} mentorId id of the mentor to delete
- * @apiParamExample {json} Example Request:
- * { "mentorId": "Jojos" }
- *
- * @apiBody {String} mentorId id of the mentor to delete
- * @apiParamExample {json} Example Request:
- * { "mentorId": "Jojos" }
- *
- * @apiSuccess (200: Success) {String} success Indicates successful deletion of the mentor's office hours.
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- *   "Success"
- *
- * @apiError (400: Invalid Request) {String} InvalidRequest
- * @apiErrorExample Example Error Response (InvalidRequest):
- *     HTTP/1.1 400 Invalid Request
- *     {"error": "InvalidRequest"}
- *
- *
- * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Permission
- *     {"error": "InvalidPermission"}
- */
-mentorRouter.delete("/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorId: string | undefined = req.body.mentorId;
-    const payload = res.locals.payload as JwtPayload;
+        const points = Config.MENTOR_OFFICE_HOURS_POINT_REWARD;
+        await updatePointsAndCoins(userId, points);
 
-    if (!mentorId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
-    }
+        await Models.MentorOfficeHours.findOneAndUpdate(
+            { mentorId: mentorId },
+            { $addToSet: { attendees: userId } },
+            { new: true },
+        );
 
-    if (!hasElevatedPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
-    }
-
-    const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
-
-    if (!officeHours) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
-    }
-
-    await Models.MentorOfficeHours.findOneAndDelete({ mentorId: mentorId });
-
-    return res.status(StatusCode.SuccessOK).send("Success");
-});
-
-/**
- * @api {post} /mentor/attendance POST /mentor/attendance
- * @apiGroup Mentor
- * @apiDescription Checks an attendee into a mentor's office hours.
- *
- * @apiBody {String} mentorId id of the mentor to delete
- * @apiParamExample {json} Example Request:
- * { "mentorId": "Jojos" }
- *
- *
- * @apiBody {String} mentorId id of the mentor to delete
- * @apiParamExample {json} Example Request:
- * { "mentorId": "Jojos" }
- *
- *
- * @apiSuccess (200: Success) {String} success Indicates successful checkin.
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- *   "Success"
- *
- * @apiError (400: Invalid Request) {String} InvalidRequest
- * @apiErrorExample Example Error Response (InvalidRequest):
- *     HTTP/1.1 400 Invalid Request
- *     {"error": "InvalidRequest"}
- *
- *
- * @apiError (403: Invalid Permission) {String} InvalidPermission Caller has invalid permissions.
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Permission
- *     {"error": "InvalidPermission"}
- *
- *
- * @apiError (400: Invalid Request) {String} MentorNotFound
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Request
- *     {"error": "MentorNotFound"}
- *
- *
- * @apiError (400: Invalid Request) {String} AlreadyCheckedIn
- * @apiErrorExample Example Error Response (InvalidPermission):
- *     HTTP/1.1 403 Invalid Request
- *     {"error": "AlreadyCheckedIn"}
- */
-mentorRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const mentorId = req.body.mentorId as string | undefined;
-    const payload = res.locals.payload as JwtPayload;
-
-    if (!mentorId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidRequest"));
-    }
-    // Checks that the caller is an attendee
-    if (!payload.roles.includes(Role.ATTENDEE)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "InvalidPermission"));
-    }
-
-    const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: mentorId });
-
-    if (!officeHours) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "MentorNotFound"));
-    }
-
-    // Checks whether the attendee has already checked in for the office hours
-    if (officeHours.attendees.includes(payload.id)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "AlreadyCheckedIn"));
-    }
-
-    await updatePointsAndCoins(payload.id, pointCoinUpdateValue);
-
-    await Models.MentorOfficeHours.findOneAndUpdate(
-        { mentorId: mentorId },
-        { $addToSet: { attendees: payload.id } },
-        { new: true },
-    );
-
-    return res.status(StatusCode.SuccessOK).send({ success: true, points: pointCoinUpdateValue });
-});
+        return res.status(StatusCode.SuccessOK).send({ points });
+    },
+);
 
 export default mentorRouter;

@@ -135,6 +135,9 @@ const Config = {
     DEFAULT_COIN_VALUE: 0,
     DEFAULT_AVATAR: Avatar.GOBLIN,
 
+    /* Rewards */
+    MENTOR_OFFICE_HOURS_POINT_REWARD: 50,
+
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
     MAX_RESUME_SIZE_BYTES: 2 * 1024 * 1024,

@@ -1,20 +1,20 @@
 import { describe, expect, it } from "@jest/globals";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { OfficeHoursFormat } from "./mentor-formats";
-import { postAsAdmin, postAsAttendee, getAsAttendee, getAsAdmin, delAsAttendee, delAsAdmin } from "../../common/testTools";
+import { postAsAdmin, postAsAttendee, getAsAttendee, delAsAttendee, delAsAdmin, getAsStaff } from "../../common/testTools";
+import { MentorOfficeHours } from "./mentor-schemas";
 
 const TESTER_OFFICE_HOURS_1 = {
     mentorName: "asdf",
     mentorId: "io213123012",
     attendees: [],
-} satisfies OfficeHoursFormat;
+} satisfies MentorOfficeHours;
 
 const TESTER_OFFICE_HOURS_2 = {
     mentorName: "3211",
     mentorId: "2k2kk3mmn3",
     attendees: [],
-} satisfies OfficeHoursFormat;
+} satisfies MentorOfficeHours;
 
 describe("POST /mentor", () => {
     it("gives an invalid perms error for a non-staff user", async () => {
@@ -22,20 +22,13 @@ describe("POST /mentor", () => {
             .send({ mentorName: "John Sanson" })
             .expect(StatusCode.ClientErrorForbidden);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidPermission");
-    });
-
-    it("gives a bad request error for missing fields", async () => {
-        const response = await postAsAttendee(`/mentor/`).send({}).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidRequest");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("works for staff", async () => {
         const response = await postAsAdmin(`/mentor/`).send({ mentorName: "John Sanson" }).expect(StatusCode.SuccessCreated);
 
         expect(JSON.parse(response.text)).toHaveProperty("mentorName", "John Sanson");
-        //mentorId will be randomly generated, and attendees will be empty after initialization
     });
 });
 
@@ -45,46 +38,39 @@ describe("GET /mentor", () => {
             .send({ mentorName: "John Sanson" })
             .expect(StatusCode.ClientErrorForbidden);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidPermission");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("works for staff", async () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_2);
 
-        const response = await getAsAdmin(`/mentor/`).expect(StatusCode.SuccessOK);
-
-        console.log(response);
-
+        const response = await getAsStaff(`/mentor/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject([TESTER_OFFICE_HOURS_1, TESTER_OFFICE_HOURS_2]);
     });
 });
 
-describe("DELETE /mentor", () => {
+describe("DELETE /mentor/id/", () => {
     it("gives an invalid perms error for a non-staff user", async () => {
-        const response = await delAsAttendee(`/mentor/`).send({ mentorId: "12312312" }).expect(StatusCode.ClientErrorForbidden);
+        const response = await delAsAttendee(`/mentor/${TESTER_OFFICE_HOURS_1.mentorId}/`).expect(
+            StatusCode.ClientErrorForbidden,
+        );
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidPermission");
-    });
-
-    it("gives a bad request error for missing fields", async () => {
-        const response = await delAsAdmin(`/mentor/`).send({}).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidRequest");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gives a not found error for a nonexistent mentor", async () => {
-        const response = await delAsAdmin(`/mentor/`).send({ mentorId: "dne" }).expect(StatusCode.ClientErrorBadRequest);
+        const response = await delAsAdmin(`/mentor/${TESTER_OFFICE_HOURS_1.mentorId}/`).expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "MentorNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("works for staff", async () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
 
-        await delAsAdmin(`/mentor/`).send({ mentorId: "io213123012" }).expect(StatusCode.SuccessOK);
+        await delAsAdmin(`/mentor/${TESTER_OFFICE_HOURS_1.mentorId}/`).expect(StatusCode.SuccessOK);
 
-        const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: "io213123012" });
+        const officeHours = await Models.MentorOfficeHours.findOne({ mentorId: TESTER_OFFICE_HOURS_1.mentorId });
         expect(officeHours).toBeNull();
     });
 });
@@ -94,33 +80,29 @@ describe("POST /mentor/attendance", () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
 
         const response = await postAsAdmin(`/mentor/attendance`)
-            .send({ mentorId: "io213123012" })
+            .send({ mentorId: TESTER_OFFICE_HOURS_1.mentorId })
             .expect(StatusCode.ClientErrorForbidden);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidPermission");
-    });
-
-    it("gives a bad request error for missing fields", async () => {
-        const response = await postAsAttendee(`/mentor/attendance`).send({}).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidRequest");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("gives a not found error for a nonexistent mentor", async () => {
         const response = await postAsAttendee(`/mentor/attendance`)
             .send({ mentorId: "dne" })
-            .expect(StatusCode.ClientErrorBadRequest);
+            .expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "MentorNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("gives an already checked in error if an attendee tries to check in twice", async () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
 
-        await postAsAttendee(`/mentor/attendance`).send({ mentorId: "io213123012" }).expect(StatusCode.SuccessOK);
+        await postAsAttendee(`/mentor/attendance`)
+            .send({ mentorId: TESTER_OFFICE_HOURS_1.mentorId })
+            .expect(StatusCode.SuccessOK);
 
         const response = await postAsAttendee(`/mentor/attendance`)
-            .send({ mentorId: "io213123012" })
+            .send({ mentorId: TESTER_OFFICE_HOURS_1.mentorId })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
@@ -129,9 +111,11 @@ describe("POST /mentor/attendance", () => {
     it("works for attendee", async () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
 
-        await postAsAttendee(`/mentor/attendance/`).send({ mentorId: "io213123012" }).expect(StatusCode.SuccessOK);
+        await postAsAttendee(`/mentor/attendance/`)
+            .send({ mentorId: TESTER_OFFICE_HOURS_1.mentorId })
+            .expect(StatusCode.SuccessOK);
 
-        const officeHours: OfficeHoursFormat | null = await Models.MentorOfficeHours.findOne({ mentorId: "io213123012" });
+        const officeHours = await Models.MentorOfficeHours.findOne({ mentorId: TESTER_OFFICE_HOURS_1.mentorId });
 
         expect(officeHours?.attendees).toContain("bob-the-tester101010101011");
     });

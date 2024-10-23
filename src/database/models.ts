@@ -4,7 +4,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 import { AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeProfile } from "../services/profile/profile-schemas";
 import { AdmissionDecision } from "../services/admission/admission-schemas";
-import { MentorOfficeHours } from "./mentor-db";
+import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import { RegistrationApplication } from "../services/registration/registration-schemas";
