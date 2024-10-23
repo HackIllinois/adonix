@@ -1,6 +1,6 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { AnyZodObject, z, ZodType } from "zod";
-import type { ExampleObject, InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
+import type { ExampleObject, InfoObject, OpenAPIObject, SecurityRequirementObject, ServerObject } from "openapi3-ts/oas31";
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 import { SwaggerUiOptions } from "swagger-ui-express";
@@ -145,6 +145,32 @@ function getPathResponsesForSpecification<
     return responses;
 }
 
+function getSecurityForRole(role: Specification["role"]): SecurityRequirementObject[] | undefined {
+    if (role) {
+        return [
+            {
+                [authentication.name]: [role],
+            },
+        ];
+    }
+    return [
+        {},
+        {
+            [authentication.name]: [],
+        },
+    ];
+}
+
+function getCombinedDescriptionWithRole(description: string | undefined, role: Specification["role"]): string | undefined {
+    const header = role && `**Required role: ${role}**`;
+
+    if (description && header) {
+        return `${header}\n\n${description}`;
+    } else {
+        return header || description;
+    }
+}
+
 export function registerPathSpecification<
     Params extends AnyZodObject,
     Query extends AnyZodObject,
@@ -153,20 +179,8 @@ export function registerPathSpecification<
 >(specification: Specification<Params, Query, Responses, Body>): void {
     // Convert specification into RouteConfig
     const { method, path, tag, role, summary, description, parameters: params, query } = specification;
-    const security = role
-        ? [
-              {
-                  [authentication.name]: [role],
-              },
-          ]
-        : undefined;
-    const descriptionHeader = role && `**Required role: ${role}**`;
-    let combinedDescription: string | undefined = undefined;
-    if (description && descriptionHeader) {
-        combinedDescription = `${descriptionHeader}\n\n${description}`;
-    } else {
-        combinedDescription = descriptionHeader || description;
-    }
+    const security = getSecurityForRole(role);
+    const combinedDescription = getCombinedDescriptionWithRole(description, role);
 
     const responses = getPathResponsesForSpecification(specification);
 
