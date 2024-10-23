@@ -18,7 +18,7 @@ import {
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
 import { z } from "zod";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
 import { filterEvent, restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";

@@ -1,4 +1,4 @@
-import Models from "../../database/models";
+import Models from "../../common/models";
 
 /**
  * Get user's current coin balance.

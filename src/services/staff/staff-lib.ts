@@ -1,4 +1,4 @@
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { updatePointsAndCoins } from "../profile/profile-lib";
 import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";

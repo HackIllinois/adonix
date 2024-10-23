@@ -1,6 +1,6 @@
 import { AttendeeProfile } from "./profile-schemas";
 import { UpdateQuery } from "mongoose";
-import Models from "../../database/models";
+import Models from "../../common/models";
 
 export async function updatePointsAndCoins(userId: string, amount: number): Promise<AttendeeProfile | null> {
     await updateCoins(userId, amount);

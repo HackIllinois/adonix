@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { Role } from "../auth/auth-schemas";
 import { updatePointsAndCoins } from "../profile/profile-lib";

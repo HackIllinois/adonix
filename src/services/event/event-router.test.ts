@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { EventFollowers } from "./event-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff } from "../../common/testTools";
 import { UserFollowing } from "../user/user-schemas";

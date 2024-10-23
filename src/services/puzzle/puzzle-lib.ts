@@ -1,5 +1,5 @@
 import Config from "../../common/config";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { PuzzleItem } from "./puzzle-schemas";
 import { UpdateQuery } from "mongoose";
 

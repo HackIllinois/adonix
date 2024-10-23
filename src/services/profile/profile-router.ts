@@ -17,7 +17,7 @@ import {
 } from "./profile-schemas";
 import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
 import { updatePointsAndCoins } from "./profile-lib";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { getAuthenticatedUser } from "../../common/auth";
 import { Role } from "../auth/auth-schemas";

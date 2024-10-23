@@ -11,7 +11,7 @@ import {
     ShiftsSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { Event } from "../event/event-schemas";
 import { performCheckIn, PerformCheckInErrors } from "./staff-lib";

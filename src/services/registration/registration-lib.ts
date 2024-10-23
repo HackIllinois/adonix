@@ -1,5 +1,5 @@
 import Config from "../../common/config";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { RegistrationApplication } from "./registration-schemas";
 
 export function getApplication(userId: string): Promise<RegistrationApplication | null> {

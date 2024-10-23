@@ -17,7 +17,7 @@ import {
 } from "./user-schemas";
 import { UserIdSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest } from "./profile-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../common/testTools";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 

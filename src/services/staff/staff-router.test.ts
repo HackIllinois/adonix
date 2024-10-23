@@ -4,7 +4,7 @@ import { generateJwtToken } from "../../common/auth";
 
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 

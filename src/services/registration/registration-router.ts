@@ -3,7 +3,7 @@ import { Router } from "express";
 
 import { RegistrationTemplates } from "../../common/config";
 
-import Models from "../../database/models";
+import Models from "../../common/models";
 import {
     RegistrationAlreadySubmittedError,
     RegistrationAlreadySubmittedErrorSchema,

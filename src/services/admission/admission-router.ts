@@ -14,7 +14,7 @@ import {
     DecisionNotFoundErrorSchema,
     AdmissionDecisionSchema,
 } from "./admission-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
 import { MailInfo } from "../mail/mail-schemas";

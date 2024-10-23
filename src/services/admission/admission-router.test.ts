@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
 import { RegistrationTemplates } from "../../common/config";
 import { Gender, Degree, Race, HackInterest, HackOutreach, RegistrationApplication } from "../registration/registration-schemas";

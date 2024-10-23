@@ -17,7 +17,7 @@ import Config, { Device } from "../../common/config";
 import * as selectAuthMiddleware from "../../middleware/select-auth";
 import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "../../common/mocks/auth";
 import { JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { AuthInfo } from "./auth-schemas";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];

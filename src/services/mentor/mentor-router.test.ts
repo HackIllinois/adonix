@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { postAsAdmin, postAsAttendee, getAsAttendee, delAsAttendee, delAsAdmin, getAsStaff } from "../../common/testTools";
 import { MentorOfficeHours } from "./mentor-schemas";

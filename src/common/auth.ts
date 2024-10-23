@@ -8,7 +8,7 @@ import Config from "./config";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../services/auth/auth-schemas";
 
-import Models from "../database/models";
+import Models from "./models";
 import { AuthInfo } from "../services/auth/auth-schemas";
 import { UpdateQuery } from "mongoose";
 

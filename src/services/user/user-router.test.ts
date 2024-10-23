@@ -6,7 +6,7 @@ import { EventFollowers, EventAttendance, Event, EventType } from "../event/even
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AuthInfo } from "../auth/auth-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
 import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";

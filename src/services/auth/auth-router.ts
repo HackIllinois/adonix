@@ -32,7 +32,7 @@ import {
     getUsersWithRole,
     getAuthenticatedUser,
 } from "../../common/auth";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { RouterError } from "../../middleware/error-handler";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";

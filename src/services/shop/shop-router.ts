@@ -18,7 +18,7 @@ import {
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { JwtPayload, Role } from "../auth/auth-schemas";
 import { updateCoins } from "../profile/profile-lib";
 import specification, { Tag } from "../../middleware/specification";

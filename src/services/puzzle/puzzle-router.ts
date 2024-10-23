@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { Role } from "../auth/auth-schemas";
 import {
     PuzzleAnswerRequestSchema,

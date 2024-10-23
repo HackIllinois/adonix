@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { RegistrationTemplates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
 import {

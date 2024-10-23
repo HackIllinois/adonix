@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { NewsletterSubscription, SubscribeRequestSchema } from "./newsletter-schemas";
-import Models from "../../database/models";
+import Models from "../../common/models";
 import { UpdateQuery } from "mongoose";
 import { StatusCode } from "status-code-enum";
 import specification, { Tag } from "../../middleware/specification";
