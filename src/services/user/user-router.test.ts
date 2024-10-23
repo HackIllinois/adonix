@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, TESTER, delAsAttendee, get, getAsAttendee, getAsStaff, putAsAttendee } from "../../common/testTools";
 
-import { AttendeeFollowing, AttendeeProfile } from "../../database/attendee-db";
+import { AttendeeProfile } from "../../database/attendee-db";
 import { EventFollowers, EventAttendance, Event, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../database/models";
-import { UserAttendance, UserInfo } from "./user-schemas";
+import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
 import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
 
@@ -32,7 +32,7 @@ const OTHER_USER_AUTH = {
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,
     following: ["event3", "event9"],
-} satisfies AttendeeFollowing;
+} satisfies UserFollowing;
 
 const TESTER_PROFILE = {
     userId: TESTER_USER.userId,
@@ -90,7 +90,7 @@ beforeEach(async () => {
     await Models.UserInfo.create(OTHER_USER);
     await Models.AuthInfo.create(OTHER_USER_AUTH);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
-    await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
+    await Models.UserFollowing.create(TESTER_ATTENDEE_FOLLOWING);
     await Models.UserAttendance.create(TESTER_ATTENDANCE);
     await Models.EventFollowers.create(TEST_EVENT_FOLLOWERS);
     await Models.EventAttendance.create(TEST_EVENT_ATTENDANCE);
@@ -249,8 +249,8 @@ describe("PUT /user/follow/:id/", () => {
             following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
         });
 
-        const attendeeFollowing = await Models.AttendeeFollowing.findOne({ userId: TESTER.id });
-        expect(attendeeFollowing?.toObject()).toMatchObject({
+        const userFollowing = await Models.UserFollowing.findOne({ userId: TESTER.id });
+        expect(userFollowing?.toObject()).toMatchObject({
             userId: TESTER.id,
             following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
         });
@@ -269,8 +269,8 @@ describe("PUT /user/follow/:id/", () => {
             following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
         });
 
-        const attendeeFollowing = await Models.AttendeeFollowing.findOne({ userId: TESTER.id });
-        expect(attendeeFollowing?.toObject()).toMatchObject({
+        const userFollowing = await Models.UserFollowing.findOne({ userId: TESTER.id });
+        expect(userFollowing?.toObject()).toMatchObject({
             userId: TESTER.id,
             following: [...TESTER_ATTENDEE_FOLLOWING.following, TEST_EVENT.eventId],
         });
@@ -300,7 +300,7 @@ describe("DELETE /user/unfollow/:id/", () => {
             { $addToSet: { followers: TESTER_ATTENDEE_FOLLOWING.userId } },
             { new: true },
         );
-        await Models.AttendeeFollowing.findOneAndUpdate(
+        await Models.UserFollowing.findOneAndUpdate(
             { userId: TESTER_ATTENDEE_FOLLOWING.userId },
             { $addToSet: { following: TEST_EVENT.eventId } },
             { new: true },
@@ -309,7 +309,7 @@ describe("DELETE /user/unfollow/:id/", () => {
         const response = await delAsAttendee(`/user/unfollow/${TEST_EVENT.eventId}`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(TESTER_ATTENDEE_FOLLOWING);
 
-        const updatedEvents = await Models.AttendeeFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
+        const updatedEvents = await Models.UserFollowing.findOne({ userId: TESTER_ATTENDEE_FOLLOWING.userId });
         expect(updatedEvents).toEqual(expect.not.arrayContaining([TEST_EVENT.eventId]));
 
         const updatedUsers = await Models.EventFollowers.findOne({ eventId: TEST_EVENT.eventId });

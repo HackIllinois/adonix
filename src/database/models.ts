@@ -2,14 +2,14 @@ import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
 import { AuthInfo } from "../services/auth/auth-schemas";
-import { AttendeeFollowing, AttendeeProfile } from "./attendee-db";
+import { AttendeeProfile } from "./attendee-db";
 import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "./mentor-db";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import { RegistrationApplication } from "./registration-db";
 import { ShopItem } from "../services/shop/shop-schemas";
-import { UserAttendance, UserInfo } from "../services/user/user-schemas";
+import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
@@ -34,7 +34,6 @@ export enum Group {
 // Collections for each database, where models will be stored
 enum AttendeeCollection {
     PROFILE = "profile",
-    FOLLOWING = "following",
 }
 
 enum AuthCollection {
@@ -83,6 +82,7 @@ enum StaffCollection {
 enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
+    FOLLOWING = "following",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -101,11 +101,6 @@ function getModel<T>(of: AnyParamConstructor<any>, group: Group, collection: str
 export default class Models {
     // Attendee
     static AttendeeProfile: Model<AttendeeProfile> = getModel(AttendeeProfile, Group.ATTENDEE, AttendeeCollection.PROFILE);
-    static AttendeeFollowing: Model<AttendeeFollowing> = getModel(
-        AttendeeFollowing,
-        Group.ATTENDEE,
-        AttendeeCollection.FOLLOWING,
-    );
 
     // Auth
     static AuthInfo: Model<AuthInfo> = getModel(AuthInfo, Group.AUTH, AuthCollection.INFO);
@@ -164,4 +159,5 @@ export default class Models {
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
+    static UserFollowing: Model<UserFollowing> = getModel(UserFollowing, Group.USER, UserCollection.FOLLOWING);
 }

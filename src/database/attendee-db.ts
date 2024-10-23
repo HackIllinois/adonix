@@ -22,14 +22,3 @@ export class AttendeeProfile {
     @prop({ required: true })
     public foodWave: number;
 }
-
-export class AttendeeFollowing {
-    @prop({ required: true })
-    public userId: string;
-
-    @prop({
-        required: true,
-        type: () => String,
-    })
-    public following: string[];
-}

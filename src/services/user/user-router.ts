@@ -11,7 +11,7 @@ import {
     UserNotFoundError,
     UserNotFoundErrorSchema,
     UserInfoSchema,
-    EventsFollowingSchema,
+    UserFollowingSchema,
     ScanEventRequestSchema,
     ScanEventSchema,
 } from "./user-schemas";
@@ -131,14 +131,14 @@ userRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The followed events",
-                schema: EventsFollowingSchema,
+                schema: UserFollowingSchema,
             },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const following = await Models.AttendeeFollowing.findOne({ userId });
+        const following = await Models.UserFollowing.findOne({ userId });
         return res.status(StatusCode.SuccessOK).send({ userId, following: following?.following || [] });
     },
 );
@@ -157,7 +157,7 @@ userRouter.put(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Events followed after successfully following",
-                schema: EventsFollowingSchema,
+                schema: UserFollowingSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Could not find the event to follow",
@@ -181,7 +181,7 @@ userRouter.put(
             { new: true, upsert: true },
         );
 
-        const { following } = await Models.AttendeeFollowing.findOneAndUpdate(
+        const { following } = await Models.UserFollowing.findOneAndUpdate(
             { userId },
             { $addToSet: { following: eventId } },
             { new: true, upsert: true },
@@ -205,7 +205,7 @@ userRouter.delete(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Events followed after successfully unfollowing",
-                schema: EventsFollowingSchema,
+                schema: UserFollowingSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Could not find the event to unfollow",
@@ -225,13 +225,13 @@ userRouter.delete(
 
         await Models.EventFollowers.findOneAndUpdate({ eventId: eventId }, { $pull: { followers: userId } }, { new: true });
 
-        const attendeeFollowing = await Models.AttendeeFollowing.findOneAndUpdate(
+        const userFollowing = await Models.UserFollowing.findOneAndUpdate(
             { userId },
             { $pull: { following: eventId } },
             { new: true },
         );
 
-        return res.status(StatusCode.SuccessOK).send({ userId, following: attendeeFollowing?.following || [] });
+        return res.status(StatusCode.SuccessOK).send({ userId, following: userFollowing?.following || [] });
     },
 );
 

@@ -24,6 +24,17 @@ export class UserAttendance {
     public attendance: string[];
 }
 
+export class UserFollowing {
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({
+        required: true,
+        type: () => String,
+    })
+    public following: string[];
+}
+
 export const UserInfoSchema = z
     .object({
         userId: UserIdSchema,
@@ -43,12 +54,12 @@ export const QRInfoSchema = z
         description: "A user's QR code",
     });
 
-export const EventsFollowingSchema = z
+export const UserFollowingSchema = z
     .object({
         userId: UserIdSchema,
         following: z.array(EventIdSchema),
     })
-    .openapi("EventsFollowing", {
+    .openapi("UserFollowing", {
         description: "A user's events they are following",
     });
 

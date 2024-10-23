@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { EventFollowers } from "./event-schemas";
-import { AttendeeFollowing } from "../../database/attendee-db";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff } from "../../common/testTools";
+import { UserFollowing } from "../user/user-schemas";
 
 const TESTER_EVENT_FOLLOWERS = {
     eventId: "other-event",
@@ -13,12 +13,12 @@ const TESTER_EVENT_FOLLOWERS = {
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,
     following: ["event3", "event9"],
-} satisfies AttendeeFollowing;
+} satisfies UserFollowing;
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
-    await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
+    await Models.UserFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
 describe("GET /event/followers/", () => {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-//import { AttendeeFollowing } from "../../database/attendee-db";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { OfficeHoursFormat } from "./mentor-formats";
