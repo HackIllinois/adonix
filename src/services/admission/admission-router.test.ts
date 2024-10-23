@@ -3,7 +3,7 @@ import Models from "../../database/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
 import { RegistrationFormat } from "../registration/registration-formats";
 import { RegistrationTemplates } from "../../common/config";
-import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models";
+import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
@@ -46,8 +46,8 @@ const TESTER_APPLICATION = {
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.OTHER],
-    hackOutreach: [HackOutreach.OTHER],
+    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
+    hackOutreach: [HackOutreach.INSTAGRAM],
 } satisfies RegistrationFormat;
 
 const updateRequest = [

@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
-import { RegistrationApplication } from "../../database/registration-db";
 import { RegistrationTemplates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
 import { RegistrationFormat } from "./registration-formats";
-import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
+import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
@@ -28,8 +27,8 @@ const APPLICATION = {
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.OTHER],
-    hackOutreach: [HackOutreach.OTHER],
+    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
+    hackOutreach: [HackOutreach.INSTAGRAM],
 } satisfies RegistrationFormat;
 
 const UNSUBMITTED_REGISTRATION = { hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
@@ -116,7 +115,7 @@ describe("POST /registration/", () => {
     it("should provide already submitted error when user has already submitted registration", async () => {
         await Models.RegistrationApplication.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorUnprocessableEntity);
+        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
@@ -163,14 +162,14 @@ describe("POST /registration/submit/", () => {
     it("should provide already submitted error when already submitted", async () => {
         await Models.RegistrationApplication.updateOne(UNSUBMITTED_REGISTRATION, SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorUnprocessableEntity);
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 
     it("should provide error when email fails to send and still submit registration", async () => {
         // Mock failure
         sendMail.mockImplementation(async (_) => {
-            throw new Error("SparkpostDidNotSendEmailOhNo");
+            throw new Error("EmailFailedToSend");
         });
 
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);

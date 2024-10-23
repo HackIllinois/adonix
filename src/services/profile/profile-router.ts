@@ -4,7 +4,7 @@ import { NextFunction, Response } from "express-serve-static-core";
 
 import Config, { Avatars } from "../../common/config";
 import { AttendeeProfile } from "../../database/attendee-db";
-import { RegistrationApplication } from "../../database/registration-db";
+import { RegistrationApplication } from "../registration/registration-schemas";
 import { isValidLimit, updatePointsAndCoins } from "./profile-lib";
 
 import { Query } from "mongoose";

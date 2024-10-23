@@ -1,6 +1,6 @@
 import Config from "../../common/config";
 import Models from "../../database/models";
-import { RegistrationApplication } from "../../database/registration-db";
+import { RegistrationApplication } from "./registration-schemas";
 
 export function getApplication(userId: string): Promise<RegistrationApplication | null> {
     return Models.RegistrationApplication.findOne({ userId: userId });

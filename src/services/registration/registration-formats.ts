@@ -1,4 +1,4 @@
-import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
+import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-schemas";
 import { isString, isBoolean, isArrayOfType, isNumber, isEnumOfType } from "../../common/formatTools";
 
 export interface RegistrationFormat {

@@ -5,7 +5,7 @@ import { generateJwtToken } from "../../common/auth";
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
-import { RegistrationApplication } from "../../database/registration-db";
+import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../../database/attendee-db";
 
 const TESTER_EVENT_ATTENDANCE = {
@@ -19,7 +19,7 @@ const TESTER_REGISTRATION = {
     preferredName: "W",
     emailAddress: "w@illinois.edu",
     location: "Illinois",
-    degree: "Associates' Degree",
+    degree: Degree.ASSOCIATES,
     university: "University of Illinois (Chicago)",
     major: "Computer Science",
     minor: "Computer Science",
@@ -27,16 +27,16 @@ const TESTER_REGISTRATION = {
     hackEssay1: "yay",
     hackEssay2: "yay",
     proEssay: "",
-    hackInterest: ["Attending technical workshops"],
-    hackOutreach: ["Instagram"],
+    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
+    hackOutreach: [HackOutreach.INSTAGRAM],
     dietaryRestrictions: ["Vegan", "No Pork"],
     resumeFileName: "GitHub cheatsheet.pdf",
     isProApplicant: false,
     legalName: "Ronakin Kanandani",
     considerForGeneral: false,
     requestedTravelReimbursement: true,
-    gender: "Prefer Not To Answer",
-    race: ["Prefer Not To Answer"],
+    gender: Gender.NO_ANSWER,
+    race: [Race.NO_ANSWER],
     optionalEssay: "Optional Essay",
 } satisfies RegistrationApplication;
 
