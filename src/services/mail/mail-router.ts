@@ -2,7 +2,6 @@
 // ➡️ send confirmation email to the email provided in application
 
 import { Router } from "express";
-import { RouterError } from "../../middleware/error-handler";
 import { StatusCode } from "status-code-enum";
 import { Role } from "../auth/auth-schemas";
 import { sendMail } from "./mail-lib";
@@ -29,20 +28,11 @@ mailRouter.post(
             },
         },
     }),
-    async (req, res, next) => {
+    async (req, res) => {
         const mailInfo = req.body;
 
-        try {
-            const result = await sendMail(mailInfo);
-            return res.status(StatusCode.SuccessOK).json(result.data);
-        } catch (error) {
-            return next(
-                new RouterError(StatusCode.ClientErrorBadRequest, "EmailNotSent", {
-                    status: error.response?.status,
-                    code: error.code,
-                }),
-            );
-        }
+        const result = await sendMail(mailInfo);
+        return res.status(StatusCode.SuccessOK).json(result.data);
     },
 );
 

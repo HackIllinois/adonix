@@ -1,5 +1,5 @@
 import ms from "ms";
-import jsonwebtoken, { SignOptions } from "jsonwebtoken";
+import jsonwebtoken, { SignOptions, TokenExpiredError } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
@@ -10,10 +10,44 @@ import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../servi
 import Models from "./models";
 import { AuthInfo } from "../services/auth/auth-schemas";
 import { UpdateQuery } from "mongoose";
+import { IncomingMessage } from "http";
+import StatusCode from "status-code-enum";
+import { APIError } from "./schemas";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
 type VerifyCallback = (err: Error | null, user?: Profile | false, info?: object) => void;
 type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => void;
+
+export enum AuthenticationErrorType {
+    TOKEN_EXPIRED,
+    NO_TOKEN,
+    TOKEN_INVALID,
+}
+
+const TYPE_TO_DETAILS = {
+    [AuthenticationErrorType.TOKEN_EXPIRED]: {
+        error: "TokenExpired",
+        message: "Your session has expired, please log in again",
+        status: StatusCode.ClientErrorForbidden,
+    },
+    [AuthenticationErrorType.NO_TOKEN]: {
+        error: "NoToken",
+        message: "A authorization token must be sent for this request",
+        status: StatusCode.ClientErrorUnauthorized,
+    },
+    [AuthenticationErrorType.TOKEN_INVALID]: {
+        error: "TokenInvalid",
+        message: "Your session is invalid, please log in again",
+        status: StatusCode.ClientErrorUnauthorized,
+    },
+};
+
+export class AuthenticationError extends APIError<string, string> {
+    constructor(type: AuthenticationErrorType) {
+        const { error, message, status } = TYPE_TO_DETAILS[type];
+        super(error, message, status);
+    }
+}
 
 /**
  * Perform authentication step. Use this information to redirect to provider, perform auth, and then redirect user back to main website if successful or unsuccessful.
@@ -140,13 +174,7 @@ export function generateJwtToken(payload?: JwtPayload, shouldNotExpire?: boolean
  */
 export function decodeJwtToken(token?: string): JwtPayload {
     if (!token) {
-        throw new Error("NoToken");
-    }
-
-    // Ensure that we have a secret to parse token
-    const secret: string | undefined = Config.JWT_SECRET;
-    if (!secret) {
-        throw new Error("NoSecret");
+        throw new AuthenticationError(AuthenticationErrorType.NO_TOKEN);
     }
 
     // Remove Bearer if included
@@ -155,7 +183,16 @@ export function decodeJwtToken(token?: string): JwtPayload {
     }
 
     // Verify already ensures that the token isn't expired. If it is, it returns an error
-    return jsonwebtoken.verify(token, secret) as JwtPayload;
+    try {
+        return jsonwebtoken.verify(token, Config.JWT_SECRET) as JwtPayload;
+    } catch (e) {
+        // Handle errors by casting them to our type
+        if (e instanceof TokenExpiredError) {
+            throw new AuthenticationError(AuthenticationErrorType.TOKEN_EXPIRED);
+        } else {
+            throw new AuthenticationError(AuthenticationErrorType.TOKEN_INVALID);
+        }
+    }
 }
 
 /**
@@ -163,8 +200,12 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * @param req The request
  * @returns User payload
  */
-export function getAuthenticatedUser(req: IncomingMessage): JwtPayload {
-    return decodeJwtToken(req.headers.authorization);
+export function getAuthenticatedUser(req: IncomingMessage & { authorizationPayload?: JwtPayload }): JwtPayload {
+    // Basic caching if we request the parsed jwt on the same request multiple times
+    if (!req.authorizationPayload) {
+        req.authorizationPayload = decodeJwtToken(req.headers.authorization);
+    }
+    return req.authorizationPayload;
 }
 
 /**
@@ -174,7 +215,7 @@ export function getAuthenticatedUser(req: IncomingMessage): JwtPayload {
  */
 export function tryGetAuthenticatedUser(req: IncomingMessage): JwtPayload | null {
     try {
-        return decodeJwtToken(req.headers.authorization);
+        return getAuthenticatedUser(req);
     } catch {
         return null;
     }
@@ -292,62 +333,6 @@ export async function updateRoles(userId: string, role: Role, operation: RoleOpe
     }
 }
 
-/**
- * Catch-all function to check if a user should have permissions to perform operations on attendees
- * @param payload Payload of user performing the actual request
- * @returns True if the user is an ADMIN or a STAFF, else false
- */
-export function hasElevatedPerms(payload: JwtPayload): boolean {
-    return hasStaffPerms(payload) || hasAdminPerms(payload);
-}
-
-/**
- * Check if a user has permissions to perform staff operations
- * @param payload Payload of user performing the actual request
- * @returns True if the user is a STAFF, else false
- */
-
-export function hasStaffPerms(payload?: JwtPayload): boolean {
-    if (!payload) {
-        return false;
-    }
-
-    return payload.roles.includes(Role.STAFF);
-}
-
-/**
- * Check if a user has permissions to perform admin operations
- * @param payload Payload of user performing the actual request
- * @returns True if the user is an ADMIN, else false
- */
-export function hasAdminPerms(payload?: JwtPayload): boolean {
-    if (!payload) {
-        return false;
-    }
-
-    return payload.roles.includes(Role.ADMIN);
-}
-
-/**
- * Check if a user has PRO permissions
- * @param payload Payload of user performing the actual request
- * @returns True if the user has PRO, else false
- */
-export function isPro(payload?: JwtPayload): boolean {
-    if (!payload) {
-        return false;
-    }
-
-    return payload.roles.includes(Role.PRO);
-}
-
-export function isAttendee(payload?: JwtPayload): boolean {
-    if (!payload) {
-        return false;
-    }
-
-    return payload.roles.includes(Role.ATTENDEE);
-}
 /**
  * Get all id of users that have a particular role within the database.
  * @param role role that we want to filter for

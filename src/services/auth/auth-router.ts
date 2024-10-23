@@ -33,7 +33,6 @@ import {
     getAuthenticatedUser,
 } from "../../common/auth";
 import Models from "../../common/models";
-import { RouterError } from "../../middleware/error-handler";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
@@ -149,19 +148,14 @@ authRouter.get(
     }),
     (req, res, next) => {
         const provider = req.params.provider ?? "";
-        try {
-            const device = req.params.device;
+        const device = req.params.device;
 
-            if (!device || !Config.REDIRECT_URLS.has(device)) {
-                throw Error(`Bad device ${device}`);
-            }
-
-            res.locals.device = device;
-            return SelectAuthProvider(provider, device)(req, res, next);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : `${error}`;
-            return next(new RouterError(undefined, undefined, undefined, message));
+        if (!device || !Config.REDIRECT_URLS.has(device)) {
+            throw Error(`Bad device ${device}`);
         }
+
+        res.locals.device = device;
+        return SelectAuthProvider(provider, device)(req, res, next);
     },
     async (req, res) => {
         if (!req.isAuthenticated()) {

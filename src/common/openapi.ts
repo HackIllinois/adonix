@@ -4,6 +4,7 @@ import type { ExampleObject, InfoObject, OpenAPIObject, SecurityRequirementObjec
 import Config from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 import { SwaggerUiOptions } from "swagger-ui-express";
+import { readFileSync } from "fs";
 
 let openAPISpec: OpenAPIObject | undefined = undefined;
 export const Registry = new OpenAPIRegistry();
@@ -15,6 +16,20 @@ export const SWAGGER_UI_OPTIONS: SwaggerUiOptions = {
     swaggerOptions: {
         persistAuthorization: true,
     },
+    customCss: `
+code {
+    padding: 2px 4px !important;
+}
+pre > code {
+    padding: 5px 7px !important;
+}
+html {
+    line-height: 1.15;
+}
+li {
+  margin: 10px 0;
+}
+`,
 };
 
 // Basic metadata
@@ -23,10 +38,6 @@ const openapi = "3.1.0";
 const info: InfoObject = {
     title: "adonix",
     version: "1.0.0",
-    description:
-        "HackIllinois' backend API\n\n" +
-        `[Attendee Authentication](${Config.ROOT_URL}/auth/login/github?device=dev)\n\n` +
-        `[Staff Authentication](${Config.ROOT_URL}/auth/login/google?device=dev)`,
 };
 
 const servers: ServerObject[] = [
@@ -43,8 +54,9 @@ const authentication = Registry.registerComponent("securitySchemes", "Authentica
     bearerFormat: "jwt",
 });
 
-function generateOpenAPISpec(): OpenAPIObject {
+async function generateOpenAPISpec(): Promise<OpenAPIObject> {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
+    info.description = (await readFileSync("DOCS_HEADER.md")).toString();
     const document = generator.generateDocument({
         info,
         openapi,
@@ -78,9 +90,9 @@ function generateOpenAPISpec(): OpenAPIObject {
     return document;
 }
 
-export function getOpenAPISpec(): OpenAPIObject {
+export async function getOpenAPISpec(): Promise<OpenAPIObject> {
     if (!openAPISpec) {
-        openAPISpec = generateOpenAPISpec();
+        openAPISpec = await generateOpenAPISpec();
     }
 
     return openAPISpec;

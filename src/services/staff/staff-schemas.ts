@@ -1,6 +1,4 @@
 import { prop } from "@typegoose/typegoose";
-import { RouterError } from "../../middleware/error-handler";
-import { AttendeeProfile } from "../profile/profile-schemas";
 import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
@@ -24,12 +22,6 @@ export interface AttendanceFormat {
 export interface EventError {
     statuscode: number;
     name: string;
-}
-
-export interface checkInResult {
-    success: boolean;
-    error?: RouterError;
-    profile?: AttendeeProfile;
 }
 
 export const StaffAttendanceRequestSchema = z.object({

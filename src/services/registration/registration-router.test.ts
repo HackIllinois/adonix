@@ -179,7 +179,7 @@ describe("POST /registration/submit/", () => {
         });
 
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EmailFailedToSend");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "InternalError");
 
         // Still stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({

@@ -65,7 +65,7 @@ app.use("/version/", versionRouter);
 app.use("/user/", database, userRouter);
 
 // Docs
-app.use("/docs/json", (_req, res) => res.json(getOpenAPISpec()));
+app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
 app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
 
 // Ensure that API is running

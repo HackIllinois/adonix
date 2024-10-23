@@ -73,11 +73,11 @@ notificationsRouter.post(
         summary: "Sends a notification to a specified group of users",
         description:
             "Can filter by: \n" +
-            "- `eventId`: users following a event\n\n" +
-            "- `role`: users that have a role\n\n" +
-            "- `staffShift`: staff in a staff shift\n\n" +
-            "- `foodWave`: users in a food wave \n\n" +
-            "- `userIds`: some set of users\n\n" +
+            "- `eventId`: users following a event\n" +
+            "- `role`: users that have a role\n" +
+            "- `staffShift`: staff in a staff shift\n" +
+            "- `foodWave`: users in a food wave \n" +
+            "- `userIds`: some set of users\n" +
             "Filters are intersecting, so `eventId = 123` and `foodWave = 1` would get users following event 123 AND in food wave 1.",
         body: NotificationSendRequestSchema,
         responses: {
