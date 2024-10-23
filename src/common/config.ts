@@ -133,7 +133,7 @@ const Config = {
     DEFAULT_POINT_VALUE: 0,
     DEFAULT_FOOD_WAVE: 0,
     DEFAULT_COIN_VALUE: 0,
-    DEFAULT_AVATAR: "goblin",
+    DEFAULT_AVATAR: Avatar.GOBLIN,
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
