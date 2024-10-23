@@ -6,7 +6,7 @@ import { createSignedPostUrl, getSignedDownloadUrl } from "./s3-service";
 import specification, { Tag } from "../../middleware/specification";
 import Config from "../../common/config";
 import { S3DownloadURLSchema, S3UploadURLSchema } from "./s3-schemas";
-import { UserIdSchema } from "../user/user-schemas";
+import { UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 
 const s3Router = Router();

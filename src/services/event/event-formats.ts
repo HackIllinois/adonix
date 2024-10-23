@@ -1,6 +1,6 @@
 import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isObject, isString } from "../../common/formatTools";
 import Config from "../../common/config";
-import { Event, Location } from "../../database/event-db";
+import { Event, Location } from "./event-schemas";
 import { PUBLIC_EVENT_TYPE, STAFF_EVENT_TYPE } from "./event-models";
 
 export function isValidEvent(event: Event): boolean {

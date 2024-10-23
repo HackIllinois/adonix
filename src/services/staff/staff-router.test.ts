@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../common/testTools";
 import { generateJwtToken } from "../../common/auth";
 
-import { Event, EventAttendance } from "../../database/event-db";
+import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { RegistrationApplication } from "../../database/registration-db";
@@ -57,7 +57,7 @@ const TEST_EVENT = {
     description: "Example Description",
     startTime: 1707069600,
     endTime: 1707069900,
-    eventType: "WORKSHOP",
+    eventType: EventType.WORKSHOP,
     locations: [
         {
             description: "Siebel ",

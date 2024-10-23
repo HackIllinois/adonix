@@ -1,6 +1,6 @@
 // Enum representing the type of the event
 
-import { Location } from "../../database/event-db";
+import { Location } from "./event-schemas";
 
 // MEAL, SPEAKER, WORKSHOP, MINIEVENT, QNA, or OTHER
 export enum PUBLIC_EVENT_TYPE {

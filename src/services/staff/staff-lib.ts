@@ -1,14 +1,10 @@
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { updatePointsAndCoins } from "../profile/profile-lib";
-import {
-    AlreadyCheckedInError,
-    AlreadyCheckedInErrorSchema,
-    EventNotFoundError,
-    EventNotFoundErrorSchema,
-} from "../user/user-schemas";
+import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";
 import { AttendeeProfile } from "../../database/attendee-db";
 import { Specification } from "../../middleware/specification";
+import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 
 export type PerformCheckInResult =
     | { success: true; profile: AttendeeProfile; points: number }

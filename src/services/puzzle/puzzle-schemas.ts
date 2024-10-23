@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import { UserIdSchema } from "../user/user-schemas";
+import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class PuzzleItem {

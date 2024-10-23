@@ -4,6 +4,13 @@ export const SuccessResponseSchema = z.object({
     success: z.literal(true),
 });
 
+export const UserIdSchema = z.string().openapi("UserId", {
+    description: "Id of a specific user. Can start with github or google.",
+    example: "github1234",
+});
+
+export const EventIdSchema = z.string().openapi("EventId", { example: "event1" });
+
 /**
  * Creates a error object and schema zod given a error type and message
  * @param params the error type and message

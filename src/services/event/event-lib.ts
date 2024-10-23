@@ -1,27 +1,43 @@
-import { PUBLIC_EVENT_TYPE, FilteredEventView } from "./event-models";
-import { Event } from "../../database/event-db";
+import { FilterQuery } from "mongoose";
+import { Role } from "../auth/auth-schemas";
+import { Event, PublicEvent } from "./event-schemas";
 
 /**
- * Truncates a InternalEvent object to create an ExternalEvent by omitting
- * the 'isPrivate', 'displayOnStaffCheckIn', and 'isStaff' properties.
- *
- * @param baseEvent The object to convert into a public event.
- * @returns The truncated ExternalEvent object.
+ * Truncates a event into a public event by removing metadata (namely exp)
+ * @param event The event to filter
+ * @returns The filtered event
  */
-export function createFilteredEventView(baseEvent: Event): FilteredEventView {
-    const publicEvent: FilteredEventView = {
-        eventId: baseEvent.eventId,
-        name: baseEvent.name,
-        description: baseEvent.description,
-        startTime: baseEvent.startTime,
-        endTime: baseEvent.endTime,
-        locations: baseEvent.locations,
-        sponsor: baseEvent.sponsor,
-        eventType: baseEvent.eventType as PUBLIC_EVENT_TYPE,
-        points: baseEvent.points ?? 0,
-        isAsync: baseEvent.isAsync,
-        mapImageUrl: baseEvent.mapImageUrl,
-        isPro: baseEvent.isPro ?? false,
+export function filterEvent(event: Event): PublicEvent {
+    return {
+        eventId: event.eventId,
+        isStaff: event.isStaff,
+        name: event.name,
+        description: event.description,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        eventType: event.eventType,
+        locations: event.locations,
+        isAsync: event.isAsync,
+        mapImageUrl: event.mapImageUrl,
+        sponsor: event.sponsor,
+        points: event.points,
+        isPrivate: event.isPrivate,
+        displayOnStaffCheckIn: event.displayOnStaffCheckIn,
+        isPro: event.isPro,
     };
-    return publicEvent;
+}
+
+/**
+ * Returns a filter query to filter out events that the roles specified cannot access
+ * @param roles The roles to restrict by
+ * @returns A filter query to restrict events based on roles
+ */
+export function restrictEventsByRoles(roles: Role[]): FilterQuery<Event> {
+    if (roles.includes(Role.STAFF)) {
+        return {};
+    } else if (roles.includes(Role.PRO)) {
+        return { isPrivate: false, isStaff: false };
+    } else {
+        return { isPrivate: false, isStaff: false, isPro: false };
+    }
 }

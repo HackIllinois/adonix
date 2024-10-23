@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import { UserIdSchema } from "../user/user-schemas";
+import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { Role, RoleSchema } from "../auth/auth-schemas";
 
 export class NotificationMappings {
@@ -51,8 +51,8 @@ export const NotificationSendRequestSchema = z
         title: z.string(),
         body: z.string(),
         role: z.optional(RoleSchema),
-        eventId: z.string().optional().openapi({ example: "event1" }),
-        staffShift: z.string().optional().openapi({ example: "event1" }),
+        eventId: z.optional(EventIdSchema),
+        staffShift: z.optional(EventIdSchema),
         foodWave: z.number().optional(),
         userIds: z.array(UserIdSchema).optional(),
     })

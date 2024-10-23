@@ -36,7 +36,8 @@ import Models from "../../database/models";
 import { RouterError } from "../../middleware/error-handler";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { UserIdSchema, UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
+import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
+import { UserIdSchema } from "../../common/schemas";
 
 passport.use(
     Provider.GITHUB,

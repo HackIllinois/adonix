@@ -7,17 +7,16 @@ import { performCheckIn, PerformCheckInErrors } from "../staff/staff-lib";
 
 import {
     QRInfoSchema,
-    UserIdSchema,
     UserInfo,
     UserNotFoundError,
     UserNotFoundErrorSchema,
     UserInfoSchema,
     EventsFollowingSchema,
-    EventNotFoundErrorSchema,
-    EventNotFoundError,
     ScanEventRequestSchema,
     ScanEventSchema,
 } from "./user-schemas";
+import { UserIdSchema } from "../../common/schemas";
+import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import Models from "../../database/models";
 import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";

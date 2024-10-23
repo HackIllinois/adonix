@@ -1,7 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { Device } from "../../common/config";
-import { UserIdSchema } from "../user/user-schemas";
+import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class AuthInfo {

@@ -1,6 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import { CreateErrorAndSchema } from "../../common/schemas";
+import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
+import { EventIdSchema } from "../../common/schemas";
 
 export class UserInfo {
     @prop({ required: true })
@@ -22,11 +23,6 @@ export class UserAttendance {
     })
     public attendance: string[];
 }
-
-export const UserIdSchema = z.string().openapi("UserId", {
-    description: "Id of a specific user. Can start with github or google.",
-    example: "github1234",
-});
 
 export const UserInfoSchema = z
     .object({
@@ -50,7 +46,7 @@ export const QRInfoSchema = z
 export const EventsFollowingSchema = z
     .object({
         userId: UserIdSchema,
-        following: z.array(z.string()).openapi({ example: ["event1", "event2", "event3"] }),
+        following: z.array(EventIdSchema),
     })
     .openapi("EventsFollowing", {
         description: "A user's events they are following",
@@ -58,7 +54,7 @@ export const EventsFollowingSchema = z
 
 export const ScanEventRequestSchema = z
     .object({
-        eventId: z.string().openapi({ example: "event1" }),
+        eventId: EventIdSchema,
     })
     .openapi("ScanEventRequest");
 
@@ -76,13 +72,6 @@ export const [UserNotFoundError, UserNotFoundErrorSchema] = CreateErrorAndSchema
     error: "NotFound",
     message: "Failed to find user",
 });
-
-export const [EventNotFoundError, EventNotFoundErrorSchema] = CreateErrorAndSchema({
-    error: "NotFound",
-    message: "Could not find event",
-});
-
-export type EventNotFoundError = typeof EventNotFoundError;
 
 export const [AlreadyCheckedInError, AlreadyCheckedInErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyCheckedIn",

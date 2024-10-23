@@ -1,7 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { RouterError } from "../../middleware/error-handler";
 import { AttendeeProfile } from "../../database/attendee-db";
-import { UserIdSchema } from "../user/user-schemas";
+import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 
@@ -33,12 +33,12 @@ export interface checkInResult {
 }
 
 export const StaffAttendanceRequestSchema = z.object({
-    eventId: z.string().openapi({ example: "event1" }),
+    eventId: EventIdSchema,
 });
 
 export const ScanAttendeeRequestSchema = z
     .object({
-        eventId: z.string().openapi({ example: "event1" }),
+        eventId: EventIdSchema,
         attendeeJWT: z.string().openapi({ description: "The scanned QR code token", example: "a35FG==" }),
     })
     .openapi("ScanAttendeeRequest");
@@ -57,7 +57,7 @@ export const ShiftsSchema = z
 
 export const ShiftsAddRequestSchema = z.object({
     userId: UserIdSchema,
-    shifts: z.array(z.string()).openapi({ example: ["event1"] }),
+    shifts: z.array(EventIdSchema),
 });
 
 export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({

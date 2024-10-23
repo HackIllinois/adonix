@@ -13,11 +13,11 @@ import {
 import Config from "../../common/config";
 import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
-import { Event } from "../../database/event-db";
+import { Event } from "../event/event-schemas";
 import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
-import { EventNotFoundError, EventNotFoundErrorSchema } from "../user/user-schemas";
+import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 
 const staffRouter = Router();
 
