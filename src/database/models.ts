@@ -3,7 +3,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 
 import { AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeFollowing, AttendeeProfile } from "./attendee-db";
-import { AdmissionDecision } from "./admission-db";
+import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "./mentor-db";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";

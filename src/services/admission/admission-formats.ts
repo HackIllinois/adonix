@@ -1,5 +1,5 @@
 import { isArrayOfType, isBoolean, isEnumOfType, isNumber, isString } from "../../common/formatTools";
-import { AdmissionDecision, DecisionResponse, DecisionStatus } from "../../database/admission-db";
+import { AdmissionDecision, DecisionResponse, DecisionStatus } from "./admission-schemas";
 
 export function isValidApplicantFormat(obj: AdmissionDecision[]): boolean {
     return isArrayOfType(obj, isValidApplicantDecision);

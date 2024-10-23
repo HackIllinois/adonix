@@ -8,7 +8,7 @@ import { RouterError } from "../../middleware/error-handler";
 
 import Models from "../../database/models";
 import { RegistrationApplication } from "../../database/registration-db";
-import { AdmissionDecision, DecisionStatus } from "../../database/admission-db";
+import { DecisionStatus } from "../admission/admission-schemas";
 
 import { RegistrationFormat, isValidRegistrationFormat } from "./registration-formats";
 
@@ -329,16 +329,14 @@ registrationRouter.post("/submit/", strongJwtVerification, async (_: Request, re
         return next(new RouterError(StatusCode.ServerErrorInternal, "InternalError"));
     }
 
-    const admissionDecision: AdmissionDecision = {
-        userId,
-        status: DecisionStatus.TBD,
-    };
-
     const admissionInfo = await Models.AdmissionDecision.findOneAndUpdate(
         {
             userId: userId,
         },
-        admissionDecision,
+        {
+            userId,
+            status: DecisionStatus.TBD,
+        },
         { upsert: true, new: true },
     );
 
