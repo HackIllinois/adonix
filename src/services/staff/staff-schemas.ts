@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { RouterError } from "../../middleware/error-handler";
-import { AttendeeProfile } from "../../database/attendee-db";
+import { AttendeeProfile } from "../profile/profile-schemas";
 import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";

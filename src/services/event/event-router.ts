@@ -112,8 +112,6 @@ eventsRouter.get(
         const { id: eventId } = req.params;
         const roles = tryGetAuthenticatedUser(req)?.roles || [];
 
-        console.log(eventId, roles, restrictEventsByRoles(roles));
-
         const event = await Models.Event.findOne({ eventId, ...restrictEventsByRoles(roles) });
 
         if (!event) {

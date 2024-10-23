@@ -2,7 +2,7 @@ import Models from "../../database/models";
 import { StatusCode } from "status-code-enum";
 import { updatePointsAndCoins } from "../profile/profile-lib";
 import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";
-import { AttendeeProfile } from "../../database/attendee-db";
+import { AttendeeProfile } from "../profile/profile-schemas";
 import { Specification } from "../../middleware/specification";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 

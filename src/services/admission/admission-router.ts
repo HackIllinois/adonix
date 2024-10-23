@@ -177,9 +177,6 @@ admissionRouter.put(
     async (req, res) => {
         const updateEntries = req.body;
 
-        console.log("updatedEntries");
-        console.log(updateEntries);
-
         // collect emails whose status changed from TBD -> NON-TBD
         const recipients: string[] = [];
         for (const entry of updateEntries) {

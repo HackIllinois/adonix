@@ -6,7 +6,7 @@ import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../database/models";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
-import { AttendeeProfile } from "../../database/attendee-db";
+import { AttendeeProfile } from "../profile/profile-schemas";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",

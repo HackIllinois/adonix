@@ -1,29 +1,6 @@
-import { AttendeeProfile } from "../../database/attendee-db";
-import { LeaderboardEntry } from "./profile-models";
+import { AttendeeProfile } from "./profile-schemas";
 import { UpdateQuery } from "mongoose";
 import Models from "../../database/models";
-
-/**
- * Remove non-necessary fields from a leaderboardentry item
- * @param initial Initial entry with extra items
- * @returns New LeaderboardEntry, but this time with only the needed fields
- */
-export function castLeaderboardEntries(initial: AttendeeProfile): LeaderboardEntry {
-    const final: LeaderboardEntry = {
-        points: initial.points,
-        displayName: initial.displayName,
-    };
-    return final;
-}
-
-/**
- * Check if the limit is valid or not
- * @param limit Initial value to check
- * @returns True if limit is non-negative, else false
- */
-export function isValidLimit(limit: number): boolean {
-    return limit > 0;
-}
 
 export async function updatePointsAndCoins(userId: string, amount: number): Promise<AttendeeProfile | null> {
     await updateCoins(userId, amount);

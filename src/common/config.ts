@@ -27,7 +27,7 @@ export enum RegistrationTemplates {
     RSVP_REMINDER_1_DAY = "2024_rsvp-reminder",
 }
 
-export enum Avatars {
+export enum Avatar {
     BUNNY = "bunny",
     SQUIRREL = "squirrel",
     GOBLIN = "goblin",
