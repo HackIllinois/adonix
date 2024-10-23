@@ -1,6 +1,5 @@
 import ms from "ms";
 import jsonwebtoken, { SignOptions } from "jsonwebtoken";
-import { Request } from "express";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
@@ -164,7 +163,7 @@ export function decodeJwtToken(token?: string): JwtPayload {
  * @param req The request
  * @returns User payload
  */
-export function getAuthenticatedUser(req: Request): JwtPayload {
+export function getAuthenticatedUser(req: IncomingMessage): JwtPayload {
     return decodeJwtToken(req.headers.authorization);
 }
 
@@ -173,7 +172,7 @@ export function getAuthenticatedUser(req: Request): JwtPayload {
  * @param req The request
  * @returns User payload
  */
-export function tryGetAuthenticatedUser(req: Request): JwtPayload | null {
+export function tryGetAuthenticatedUser(req: IncomingMessage): JwtPayload | null {
     try {
         return decodeJwtToken(req.headers.authorization);
     } catch {

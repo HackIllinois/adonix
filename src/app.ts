@@ -26,6 +26,7 @@ import Config from "./common/config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
 import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
+import { tryGetAuthenticatedUser } from "./common/auth";
 
 const app = express();
 
@@ -34,7 +35,10 @@ app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
-    app.use(morgan("dev"));
+    morgan.token("id", function (req, _res) {
+        return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
+    });
+    app.use(morgan(":status :method :url :id :response-time ms"));
 }
 
 // Automatically convert requests from json
