@@ -251,7 +251,8 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
             // Disallow any google emails that aren't hack
             return [];
         }
-        // Otherwise, add staff
+        // Otherwise, is staff, staff are also attendees
+        roles.push(Role.ATTENDEE);
         roles.push(Role.STAFF);
         // If email in the system admin list, add the admin role
         if (Config.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
