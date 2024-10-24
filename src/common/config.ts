@@ -50,7 +50,8 @@ function requireEnv(name: string): string {
 
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
-const ROOT_URL = env.PROD ? "https://adonix.hackillinois.org" : `http://localhost:${PORT}`;
+export const PROD_ROOT_URL = "https://adonix.hackillinois.org";
+const ROOT_URL = env.PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
 
 const Config = {
     /* Environments */

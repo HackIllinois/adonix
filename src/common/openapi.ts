@@ -1,7 +1,7 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { AnyZodObject, z, ZodType } from "zod";
 import type { ExampleObject, InfoObject, OpenAPIObject, SecurityRequirementObject, ServerObject } from "openapi3-ts/oas31";
-import Config from "./config";
+import Config, { PROD_ROOT_URL } from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 import { SwaggerUiOptions } from "swagger-ui-express";
 import { readFileSync } from "fs";
@@ -56,7 +56,7 @@ const authentication = Registry.registerComponent("securitySchemes", "Authentica
 
 async function generateOpenAPISpec(): Promise<OpenAPIObject> {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
-    info.description = (await readFileSync("DOCS_HEADER.md")).toString();
+    info.description = (await readFileSync("DOCS_HEADER.md")).toString().replaceAll(PROD_ROOT_URL, Config.ROOT_URL);
     const document = generator.generateDocument({
         info,
         openapi,
