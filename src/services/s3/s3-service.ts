@@ -1,5 +1,5 @@
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
-import Config from "../../config";
+import Config from "../../common/config";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createPresignedPost, PresignedPost } from "@aws-sdk/s3-presigned-post";
 

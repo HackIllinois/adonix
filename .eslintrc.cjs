@@ -29,7 +29,7 @@ module.exports = {
         curly: ["error", "all"],
         "consistent-return": "error",
         "no-lonely-if": "error",
-        "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true, ignore: [0] }],
+        "no-magic-numbers": ["error", { ignoreClassFieldInitialValues: true, ignore: [0, 1, 2] }],
         "no-multi-assign": "error",
         "no-nested-ternary": "error",
         "no-var": "error",
@@ -46,7 +46,7 @@ module.exports = {
             },
         },
         {
-            files: ["src/config.ts"], // Disable specific rules for config
+            files: ["src/common/config.ts"], // Disable specific rules for config
             rules: {
                 "no-magic-numbers": "off",
             },

@@ -2,13 +2,13 @@
 
 import { beforeEach, afterAll, expect, jest } from "@jest/globals";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import * as Config from "./src/config.js";
+import * as Config from "./src/common/config.js";
 import mongoose from "mongoose";
 import { MatcherState } from "expect";
 
 function mockConfig(dbUrl: string) {
-    jest.mock("./src/config.js", () => {
-        const actual = jest.requireActual("./src/config.js") as typeof Config;
+    jest.mock("./src/common/config.js", () => {
+        const actual = jest.requireActual("./src/common/config.js") as typeof Config;
 
         const newConfig: typeof Config.default = {
             ...actual.default,

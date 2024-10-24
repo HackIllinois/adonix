@@ -1,83 +1,89 @@
-import { Request, Response, Router } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload } from "../auth/auth-models";
+import { Router } from "express";
+import { Role } from "../auth/auth-schemas";
 import { StatusCode } from "status-code-enum";
-import { hasElevatedPerms } from "../auth/auth-lib";
+import { getAuthenticatedUser } from "../../common/auth";
 import { createSignedPostUrl, getSignedDownloadUrl } from "./s3-service";
+import specification, { Tag } from "../../middleware/specification";
+import Config from "../../common/config";
+import { S3DownloadURLSchema, S3UploadURLSchema } from "./s3-schemas";
+import { UserIdSchema } from "../../common/schemas";
+import { z } from "zod";
 
 const s3Router = Router();
 
-/**
- * @api {get} /s3/upload GET /s3/upload
- * @apiGroup s3
- * @apiDescription Gets a presigned upload url to the resume s3 bucket for the currently authenticated user, valid for 60s.
- *
- * @apiSuccess (200: Success) {String} url presigned URL
- * 
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
-        "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
-   }
- */
-s3Router.get("/upload/", strongJwtVerification, async (_req: Request, res: Response) => {
-    const payload = res.locals.payload as JwtPayload;
-    const userId = payload.id;
+s3Router.get(
+    "/upload/",
+    specification({
+        method: "get",
+        path: "/s3/upload/",
+        tag: Tag.S3,
+        role: Role.USER,
+        summary: "Gets a upload url for the resume of the currently authenticated user",
+        description: `This is a presigned url from s3 that is valid for ${Config.RESUME_URL_EXPIRY_SECONDS} seconds`,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The upload url",
+                schema: S3UploadURLSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { url, fields } = await createSignedPostUrl(userId);
+        return res.status(StatusCode.SuccessOK).send({ url, fields });
+    },
+);
 
-    const { url, fields } = await createSignedPostUrl(userId);
+s3Router.get(
+    "/download/",
+    specification({
+        method: "get",
+        path: "/s3/download/",
+        tag: Tag.S3,
+        role: Role.USER,
+        summary: "Gets a download url for the resume of the currently authenticated user",
+        description: `This is a presigned url from s3 that is valid for ${Config.RESUME_URL_EXPIRY_SECONDS} seconds`,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The download url",
+                schema: S3DownloadURLSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const downloadUrl = await getSignedDownloadUrl(userId);
+        return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
+    },
+);
 
-    return res.status(StatusCode.SuccessOK).send({ url: url, fields: fields });
-});
+s3Router.get(
+    "/download/:id",
+    specification({
+        method: "get",
+        path: "/s3/download/{id}",
+        tag: Tag.S3,
+        role: Role.ADMIN,
+        summary: "Gets a download url for the resume of the specified user",
+        description:
+            "Admin-only because this is for a specific user, use `GET /s3/download/` for the currently authenticated user",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The download url",
+                schema: S3DownloadURLSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const userId = req.params.id;
 
-/**
- * @api {get} /s3/download GET /s3/download
- * @apiGroup s3
- * @apiDescription Gets a presigned download url for the resume of the currently authenticated user, valid for 60s.
- *
- * @apiSuccess (200: Success) {String} url presigned URL
- * 
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
-        "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
-   }
- */
-s3Router.get("/download/", strongJwtVerification, async (_req: Request, res: Response) => {
-    const payload = res.locals.payload as JwtPayload;
-    const userId = payload.id;
-    const downloadUrl = getSignedDownloadUrl(userId);
+        const downloadUrl = await getSignedDownloadUrl(userId);
 
-    return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
-});
-
-/**
- * @api {get} /s3/download/:USERID GET /s3/download/:USERID
- * @apiGroup s3
- * @apiDescription Gets a presigned download url for the resume of the specified user, given that the caller has elevated perms
- *
- * @apiSuccess (200: Success) {String} url presigned URL
- * 
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
-        "url": "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/randomuser?randomstuffs",
-   }
- * @apiError (403: Forbidden) {String} Forbidden
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 403 Forbidden
- *     {"error": "Forbidden"}
- */
-s3Router.get("/download/:USERID", strongJwtVerification, async (req: Request, res: Response) => {
-    const userId = req.params.USERID as string;
-    const payload = res.locals.payload as JwtPayload;
-
-    if (!hasElevatedPerms(payload)) {
-        return res.status(StatusCode.ClientErrorForbidden).send({ error: "Forbidden" });
-    }
-
-    const downloadUrl = await getSignedDownloadUrl(userId);
-
-    return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
-});
+        return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
+    },
+);
 
 export default s3Router;

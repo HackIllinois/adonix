@@ -1,25 +1,8 @@
-import Config from "../../config";
+import Config from "../../common/config";
 import axios, { AxiosResponse } from "axios";
-import { Response, NextFunction } from "express";
-import { StatusCode } from "status-code-enum";
-import { RouterError } from "../../middleware/error-handler";
-import { MailInfoFormat } from "./mail-formats";
+import { MailInfo, MailSendResults } from "./mail-schemas";
 
-export async function sendMailWrapper(res: Response, next: NextFunction, mailInfo: MailInfoFormat): Promise<void | Response> {
-    try {
-        const result = await sendMail(mailInfo);
-        return res.status(StatusCode.SuccessOK).send(result.data);
-    } catch (error) {
-        return next(
-            new RouterError(StatusCode.ClientErrorBadRequest, "EmailNotSent", {
-                status: error.response?.status,
-                code: error.code,
-            }),
-        );
-    }
-}
-
-export function sendMail(mailInfo: MailInfoFormat): Promise<AxiosResponse> {
+export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResults>> {
     const options = mailInfo.scheduleTime ? { start_time: mailInfo.scheduleTime } : {};
     const recipients = mailInfo.recipients.map((emailAddress: string) => ({ address: `${emailAddress}` }));
     const substitution_data = mailInfo.subs;
@@ -46,5 +29,5 @@ export function sendMail(mailInfo: MailInfoFormat): Promise<AxiosResponse> {
         data: data,
     };
 
-    return axios.post(Config.SPARKPOST_URL, data, config);
+    return axios.post<MailSendResults>(Config.SPARKPOST_URL, data, config);
 }

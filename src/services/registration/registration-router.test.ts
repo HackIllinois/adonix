@@ -1,18 +1,23 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import Models from "../../database/models";
-import { RegistrationApplication } from "../../database/registration-db";
-import { RegistrationTemplates } from "./../../config";
-import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../testTools";
-import { RegistrationFormat } from "./registration-formats";
-import { Degree, Gender, HackInterest, HackOutreach, Race } from "./registration-models";
+import Models from "../../common/models";
+import { RegistrationTemplates } from "../../common/config";
+import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplication,
+    RegistrationApplicationRequest,
+} from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "../../services/mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
     isProApplicant: false,
-    userId: TESTER.id,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
@@ -28,16 +33,16 @@ const APPLICATION = {
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.OTHER],
-    hackOutreach: [HackOutreach.OTHER],
-} satisfies RegistrationFormat;
+    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
+    hackOutreach: [HackOutreach.INSTAGRAM],
+} satisfies RegistrationApplicationRequest;
 
-const UNSUBMITTED_REGISTRATION = { hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
+const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
 const UNSUBMITTED_OTHER_REGISTRATION = {
     ...UNSUBMITTED_REGISTRATION,
     userId: "otherUser",
 } satisfies RegistrationApplication;
-const SUBMITTED_REGISTRATION = { hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
+const SUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
@@ -84,7 +89,7 @@ describe("GET /registration/userid/:USERID", () => {
 describe("POST /registration/", () => {
     it("should create registration", async () => {
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
@@ -99,7 +104,7 @@ describe("POST /registration/", () => {
             degree: "PhD of Data Corruption",
         });
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
@@ -116,7 +121,7 @@ describe("POST /registration/", () => {
     it("should provide already submitted error when user has already submitted registration", async () => {
         await Models.RegistrationApplication.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorUnprocessableEntity);
+        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
@@ -144,7 +149,7 @@ describe("POST /registration/submit/", () => {
             templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
             recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
             subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         // Stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
@@ -163,18 +168,18 @@ describe("POST /registration/submit/", () => {
     it("should provide already submitted error when already submitted", async () => {
         await Models.RegistrationApplication.updateOne(UNSUBMITTED_REGISTRATION, SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorUnprocessableEntity);
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 
     it("should provide error when email fails to send and still submit registration", async () => {
         // Mock failure
         sendMail.mockImplementation(async (_) => {
-            throw new Error("SparkpostDidNotSendEmailOhNo");
+            throw new Error("EmailFailedToSend");
         });
 
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EmailFailedToSend");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "InternalError");
 
         // Still stored in DB
         const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({

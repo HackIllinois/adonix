@@ -1,5 +1,7 @@
+import "./common/types";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
+import swaggerUi from "swagger-ui-express";
 
 import admissionRouter from "./services/admission/admission-router";
 import authRouter from "./services/auth/auth-router";
@@ -20,9 +22,11 @@ import userRouter from "./services/user/user-router";
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
 import { StatusCode } from "status-code-enum";
-import Config from "./config";
+import Config from "./common/config";
 import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
+import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
+import { tryGetAuthenticatedUser } from "./common/auth";
 
 const app = express();
 
@@ -31,11 +35,16 @@ app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
-    app.use(morgan("dev"));
+    morgan.token("id", function (req, _res) {
+        return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
+    });
+    app.use(morgan(":status :method :url :id :response-time ms"));
 }
 
 // Automatically convert requests from json
 app.use(express.json());
+// eslint-disable-next-line no-magic-numbers
+app.set("json spaces", 4);
 
 // Add routers for each sub-service
 // NOTE: only include database middleware if needed
@@ -55,14 +64,27 @@ app.use("/staff/", database, staffRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", database, userRouter);
 
+// Docs
+app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
+app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
+
 // Ensure that API is running
+const docsUrl = `${Config.ROOT_URL}/docs/`;
 app.get("/", (_: Request, res: Response) => {
-    res.end("API is working!!!");
+    res.json({
+        ok: true,
+        info: "Welcome to HackIllinois' backend API!",
+        docs: docsUrl,
+    });
 });
 
 // Throw an error if call is made to the wrong API endpoint
 app.use("/", (_: Request, res: Response) => {
-    res.status(StatusCode.ClientErrorNotFound).end("API endpoint does not exist!");
+    res.status(StatusCode.ClientErrorNotFound).json({
+        error: "EndpointNotFound",
+        message: "This endpoint doesn't exist, see the docs!",
+        docs: docsUrl,
+    });
 });
 
 app.use(ErrorHandler);

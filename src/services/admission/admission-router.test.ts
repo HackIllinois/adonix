@@ -1,20 +1,21 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import Models from "../../database/models";
-import { DecisionStatus, DecisionResponse, AdmissionDecision } from "../../database/admission-db";
-import { RegistrationFormat } from "../registration/registration-formats";
-import { RegistrationTemplates } from "./../../config";
-import { Gender, Degree, Race, HackInterest, HackOutreach } from "../registration/registration-models";
-import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../testTools";
+import Models from "../../common/models";
+import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
+import { RegistrationTemplates } from "../../common/config";
+import { Gender, Degree, Race, HackInterest, HackOutreach, RegistrationApplication } from "../registration/registration-schemas";
+import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
-import { MailInfoFormat } from "../mail/mail-formats";
+import { MailInfo } from "../mail/mail-schemas";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
     status: DecisionStatus.ACCEPTED,
     response: DecisionResponse.PENDING,
     emailSent: false,
+    admittedPro: false,
+    reimbursementValue: 0,
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -22,6 +23,8 @@ const OTHER_DECISION = {
     status: DecisionStatus.REJECTED,
     response: DecisionResponse.DECLINED,
     emailSent: true,
+    admittedPro: false,
+    reimbursementValue: 0,
 } satisfies AdmissionDecision;
 
 const TESTER_APPLICATION = {
@@ -42,9 +45,10 @@ const TESTER_APPLICATION = {
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.OTHER],
-    hackOutreach: [HackOutreach.OTHER],
-} satisfies RegistrationFormat;
+    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
+    hackOutreach: [HackOutreach.INSTAGRAM],
+    hasSubmitted: false,
+} satisfies RegistrationApplication;
 
 const updateRequest = [
     {
@@ -52,12 +56,16 @@ const updateRequest = [
         status: DecisionStatus.WAITLISTED,
         response: DecisionResponse.PENDING,
         emailSent: false,
+        admittedPro: false,
+        reimbursementValue: 0,
     },
     {
         userId: OTHER_DECISION.userId,
         status: DecisionStatus.ACCEPTED,
         response: DecisionResponse.PENDING,
         emailSent: false,
+        admittedPro: false,
+        reimbursementValue: 0,
     },
 ] satisfies AdmissionDecision[];
 
@@ -99,7 +107,7 @@ describe("PUT /admission/update/", () => {
 
     it("should update application status of applicants", async () => {
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toHaveProperty("message", "StatusSuccess");
+        expect(JSON.parse(response.text)).toEqual({ success: true });
 
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
@@ -107,7 +115,7 @@ describe("PUT /admission/update/", () => {
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.STATUS_UPDATE,
             recipients: [], // empty because neither test case starts as status = TBD
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
@@ -118,14 +126,14 @@ describe("PUT /admission/update/", () => {
 });
 
 describe("GET /admission/rsvp/", () => {
-    it("gives a UserNotFound error for an non-existent user", async () => {
+    it("gives a DecisionNotFound error for an non-existent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
         });
 
         const response = await getAsAttendee("/admission/rsvp/").expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 
     it("works for an attendee user and returns filtered data", async () => {
@@ -137,9 +145,17 @@ describe("GET /admission/rsvp/", () => {
             response: TESTER_DECISION.response,
         });
     });
+});
+describe("GET /admission/rsvp/staff/", () => {
+    it("gives forbidden error for user without elevated perms", async () => {
+        const responseUser = await getAsUser("/admission/rsvp/staff/")
+            .send(updateRequest)
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(responseUser.text)).toHaveProperty("error", "Forbidden");
+    });
 
     it("works for a staff user and returns unfiltered data", async () => {
-        const response = await getAsStaff("/admission/rsvp/").expect(StatusCode.SuccessOK);
+        const response = await getAsStaff("/admission/rsvp/staff/").expect(StatusCode.SuccessOK);
 
         // expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
         expect(JSON.parse(response.text)).toEqual(
@@ -158,7 +174,7 @@ describe("GET /admission/rsvp/", () => {
     });
 });
 
-describe("GET /admission/rsvp/:USERID", () => {
+describe("GET /admission/rsvp/:id", () => {
     it("returns forbidden error if caller doesn't have elevated perms", async () => {
         const response = await getAsAttendee(`/admission/rsvp/${TESTER.id}`).expect(StatusCode.ClientErrorForbidden);
 
@@ -171,10 +187,10 @@ describe("GET /admission/rsvp/:USERID", () => {
         expect(JSON.parse(response.text)).toMatchObject(TESTER_DECISION);
     });
 
-    it("returns UserNotFound error if user doesn't exist", async () => {
+    it("returns DecisionNotFound error if user doesn't exist", async () => {
         const response = await getAsStaff("/admission/rsvp/idontexist").expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 });
 
@@ -187,14 +203,14 @@ describe("PUT /admission/rsvp/accept", () => {
         sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
     });
 
-    it("returns UserNotFound for nonexistent user", async () => {
+    it("returns DecisionNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
         });
 
         const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 
     it("lets applicant accept accepted decision", async () => {
@@ -205,7 +221,7 @@ describe("PUT /admission/rsvp/accept", () => {
             templateId: RegistrationTemplates.RSVP_CONFIRMATION,
             recipients: [TESTER_APPLICATION.emailAddress],
             subs: { name: TESTER_APPLICATION.preferredName },
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
@@ -240,14 +256,14 @@ describe("PUT /admission/rsvp/decline/", () => {
         sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
     });
 
-    it("returns UserNotFound for nonexistent user", async () => {
+    it("returns DecisionNotFound for nonexistent user", async () => {
         await Models.AdmissionDecision.deleteOne({
             userId: TESTER.id,
         });
 
         const response = await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.ClientErrorNotFound);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 
     it("lets applicant decline accepted decision", async () => {
@@ -257,7 +273,7 @@ describe("PUT /admission/rsvp/decline/", () => {
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.RSVP_DECLINED,
             recipients: [TESTER_APPLICATION.emailAddress],
-        } satisfies MailInfoFormat);
+        } satisfies MailInfo);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,

@@ -1,5 +1,5 @@
 import { Message } from "firebase-admin/lib/messaging/messaging-api";
-import Config from "../../config";
+import Config from "../../common/config";
 import admin, { ServiceAccount } from "firebase-admin";
 
 function initializeFCM(): void {

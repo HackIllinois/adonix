@@ -17,7 +17,6 @@
         "isolatedModules": true,
         // Source Map
         "sourceMap": true,
-        "sourceRoot": "./src",
         // Strict Checks
         "alwaysStrict": true,
         "allowUnreachableCode": false,

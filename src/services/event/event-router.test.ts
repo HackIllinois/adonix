@@ -1,9 +1,9 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers } from "../../database/event-db";
-import { AttendeeFollowing } from "../../database/attendee-db";
-import Models from "../../database/models";
+import { EventFollowers } from "./event-schemas";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff } from "../../testTools";
+import { TESTER, getAsAttendee, getAsStaff } from "../../common/testTools";
+import { UserFollowing } from "../user/user-schemas";
 
 const TESTER_EVENT_FOLLOWERS = {
     eventId: "other-event",
@@ -13,19 +13,19 @@ const TESTER_EVENT_FOLLOWERS = {
 const TESTER_ATTENDEE_FOLLOWING = {
     userId: TESTER.id,
     following: ["event3", "event9"],
-} satisfies AttendeeFollowing;
+} satisfies UserFollowing;
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
-    await Models.AttendeeFollowing.create(TESTER_ATTENDEE_FOLLOWING);
+    await Models.UserFollowing.create(TESTER_ATTENDEE_FOLLOWING);
 });
 
 describe("GET /event/followers/", () => {
     it("gives an forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/event/followers/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
-            .expect(StatusCode.ClientErrorForbidden);
+        const response = await getAsAttendee(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(
+            StatusCode.ClientErrorForbidden,
+        );
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
@@ -35,17 +35,15 @@ describe("GET /event/followers/", () => {
             eventId: TESTER_EVENT_FOLLOWERS.eventId,
         });
 
-        const response = await getAsStaff(`/event/followers/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
-            .expect(StatusCode.ClientErrorNotFound);
+        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(
+            StatusCode.ClientErrorNotFound,
+        );
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "EventNotFound");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("works for a staff user", async () => {
-        const response = await getAsStaff(`/event/followers/`)
-            .send({ eventId: TESTER_EVENT_FOLLOWERS.eventId })
-            .expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/event/followers/${TESTER_EVENT_FOLLOWERS.eventId}/`).expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             eventId: TESTER_EVENT_FOLLOWERS.eventId,

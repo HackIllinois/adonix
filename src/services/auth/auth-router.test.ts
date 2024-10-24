@@ -2,14 +2,23 @@ import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { SpiedFunction } from "jest-mock";
 import { RequestHandler } from "express";
 import { StatusCode } from "status-code-enum";
-import { AUTH_ROLE_TO_ROLES, TESTER, get, getAsAttendee, getAsStaff, getAsUser, putAsAdmin, putAsStaff } from "../../testTools";
-import Config, { Device } from "../../config";
+import {
+    TESTER,
+    delAsAdmin,
+    delAsStaff,
+    get,
+    getAsAttendee,
+    getAsStaff,
+    getAsUser,
+    putAsAdmin,
+    putAsStaff,
+} from "../../common/testTools";
+import Config, { Device } from "../../common/config";
 import * as selectAuthMiddleware from "../../middleware/select-auth";
-import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "./mocks/auth";
-import { JwtPayload, ProfileData, Provider, Role, RoleOperation } from "./auth-models";
-import Models from "../../database/models";
-import { AuthInfo } from "../../database/auth-db";
-import { ModifyRoleRequest } from "./auth-formats";
+import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "../../common/mocks/auth";
+import { JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
+import Models from "../../common/models";
+import { AuthInfo } from "./auth-schemas";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
 
@@ -38,12 +47,6 @@ beforeEach(async () => {
 });
 
 describe("GET /auth/dev/", () => {
-    it("errors when a token is not provided", async () => {
-        const response = await getAsUser("/auth/dev/").expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NoToken");
-    });
-
     it("returns passed query parameter", async () => {
         const response = await getAsUser("/auth/dev/?token=123").expect(StatusCode.SuccessOK);
 
@@ -72,10 +75,10 @@ describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
         });
     });
 
-    it("provides an error when no device is provided", async () => {
+    it("provides an error when an invalid device is provided", async () => {
         const response = await get(`/auth/login/${provider}/?device=abc`).expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "BadDevice");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("logs in with default device when none is provided", async () => {
@@ -91,7 +94,7 @@ describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
     });
 });
 
-describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
+describe("GET /auth/:provider/callback/:device", () => {
     let mockedGenerateJwtToken: ReturnType<typeof mockGenerateJwtTokenWithWrapper>;
 
     beforeEach(() => {
@@ -102,39 +105,22 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     });
 
     it("provides an error when an invalid device is provided", async () => {
-        const response = await get("/auth/github/callback/abc").expect(StatusCode.ServerErrorInternal);
+        const response = await get("/auth/github/callback/abc").expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InternalServerError");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("provides an error when authentication fails", async () => {
         // Mock select auth to return not authenticated
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => false;
+            req.isAuthenticated = ((): boolean => false) as typeof req.isAuthenticated;
 
             next();
         });
 
         const response = await get(`/auth/github/callback/${Device.WEB}`).expect(StatusCode.ClientErrorUnauthorized);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "FailedAuth");
-    });
-
-    it("provides an error when invalid data is provided", async () => {
-        // Mock select auth to successfully authenticate & return invalid user data
-        mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => true;
-
-            req.user = {
-                // no content
-            };
-
-            next();
-        });
-
-        const response = await get(`/auth/github/callback/${Device.WEB}`).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidData");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AuthorizationFailed");
     });
 
     it.each(ALL_DEVICES)("works when authentication passes with device %s", async (device) => {
@@ -146,7 +132,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
 
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
-            req.isAuthenticated = (): boolean => true;
+            req.isAuthenticated = ((): boolean => true) as typeof req.isAuthenticated;
 
             req.user = {
                 provider,
@@ -174,7 +160,7 @@ describe("GET /auth/:PROVIDER/callback/:DEVICE", () => {
     });
 });
 
-describe("GET /auth/roles/list/:ROLE", () => {
+describe("GET /auth/roles/list/:role", () => {
     it("provides an error for an non-staff user", async () => {
         const response = await getAsAttendee(`/auth/roles/list/USER`).expect(StatusCode.ClientErrorForbidden);
 
@@ -216,12 +202,6 @@ describe("GET /auth/roles/list/:ROLE", () => {
 });
 
 describe("GET /auth/roles/", () => {
-    it("provides an error if the user does not have auth info", async () => {
-        const response = await getAsUser(`/auth/roles/`).expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    });
-
     it("gets the roles of a user", async () => {
         await Models.AuthInfo.create({
             userId: TESTER.id,
@@ -257,29 +237,11 @@ describe("GET /auth/roles/", () => {
     });
 });
 
-describe("GET /auth/roles/:USERID", () => {
-    it("provides an error if the user does not have auth info", async () => {
-        const response = await getAsStaff(`/auth/roles/123`).expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "UserNotFound");
-    });
-
-    it("provides an error if non-staff user tries to get roles of another user", async () => {
+describe("GET /auth/roles/:id", () => {
+    it("provides an error if non-staff", async () => {
         const response = await getAsAttendee(`/auth/roles/${USER_ATTENDEE.userId}`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
-
-    it("gets the roles of themselves if non-staff", async () => {
-        const response = await getAsAttendee(`/auth/roles/${TESTER.id}`).expect(StatusCode.SuccessOK);
-        const json = JSON.parse(response.text);
-
-        const roles = AUTH_ROLE_TO_ROLES[Role.ATTENDEE];
-        expect(json).toMatchObject({
-            id: TESTER.id,
-            roles: expect.arrayContaining(roles),
-        });
-        expect(json?.roles).toHaveLength(roles.length);
     });
 
     it("gets the roles of another user if staff", async () => {
@@ -295,55 +257,15 @@ describe("GET /auth/roles/:USERID", () => {
     });
 });
 
-describe("PUT /auth/roles/:OPERATION", () => {
+describe("PUT /auth/roles/:id/:role/", () => {
     it("provides an error if user is not an admin", async () => {
-        const response = await putAsStaff(`/auth/roles/ADD`)
-            .send(
-                JSON.stringify({
-                    id: USER.userId,
-                    role: Role.ATTENDEE,
-                } satisfies ModifyRoleRequest),
-            )
-            .expect(StatusCode.ClientErrorForbidden);
+        const response = await putAsStaff(`/auth/roles/${USER.userId}/${Role.ADMIN}/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
-    it("provides an error if operation is invalid", async () => {
-        const response = await putAsAdmin(`/auth/roles/abc`)
-            .send(
-                JSON.stringify({
-                    id: USER.userId,
-                    role: Role.ATTENDEE,
-                } satisfies ModifyRoleRequest),
-            )
-            .expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidOperation");
-    });
-
-    it("provides an error if role is invalid", async () => {
-        const response = await putAsAdmin(`/auth/roles/${RoleOperation.ADD}`)
-            .send(
-                JSON.stringify({
-                    id: USER.userId,
-                    role: "42",
-                } satisfies ModifyRoleRequest),
-            )
-            .expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "InvalidRole");
-    });
-
     it("adds a role if user is admin", async () => {
-        const response = await putAsAdmin(`/auth/roles/${RoleOperation.ADD}`)
-            .send(
-                JSON.stringify({
-                    id: USER.userId,
-                    role: Role.ATTENDEE,
-                } satisfies ModifyRoleRequest),
-            )
-            .expect(StatusCode.SuccessOK);
+        const response = await putAsAdmin(`/auth/roles/${USER.userId}/${Role.ATTENDEE}/`).expect(StatusCode.SuccessOK);
         const json = JSON.parse(response.text);
 
         const newRoles = [...USER.roles, Role.ATTENDEE];
@@ -358,16 +280,17 @@ describe("PUT /auth/roles/:OPERATION", () => {
         expect(stored).toHaveProperty("roles", expect.arrayContaining(newRoles));
         expect(stored?.roles).toHaveLength(newRoles.length);
     });
+});
+
+describe("DELETE /auth/roles/:id/:role/", () => {
+    it("provides an error if user is not an admin", async () => {
+        const response = await delAsStaff(`/auth/roles/${USER.userId}/${Role.ATTENDEE}/`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
 
     it("removes a role if user is admin", async () => {
-        const response = await putAsAdmin(`/auth/roles/${RoleOperation.REMOVE}`)
-            .send(
-                JSON.stringify({
-                    id: USER.userId,
-                    role: Role.USER,
-                } satisfies ModifyRoleRequest),
-            )
-            .expect(StatusCode.SuccessOK);
+        const response = await delAsAdmin(`/auth/roles/${USER.userId}/${Role.USER}/`).expect(StatusCode.SuccessOK);
         const json = JSON.parse(response.text);
 
         const newRoles: Role[] = [];
@@ -379,6 +302,7 @@ describe("PUT /auth/roles/:OPERATION", () => {
         expect(json?.roles).toHaveLength(newRoles.length);
 
         const stored = await Models.AuthInfo.findOne({ userId: USER.userId });
+        expect(stored).toHaveProperty("roles", expect.arrayContaining(newRoles));
         expect(stored?.roles).toHaveLength(newRoles.length);
     });
 });

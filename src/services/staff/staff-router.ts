@@ -1,262 +1,187 @@
-import { Router, Request, Response } from "express";
-
-import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { JwtPayload } from "../auth/auth-models";
-import { decodeJwtToken } from "../auth/auth-lib";
-import { hasAdminPerms, hasStaffPerms } from "../auth/auth-lib";
-
-import { AttendanceFormat, isValidStaffShiftFormat } from "./staff-formats";
-import Config from "../../config";
-
-import Models from "../../database/models";
+import { Router } from "express";
+import { JwtPayload, Role } from "../auth/auth-schemas";
+import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
+import {
+    AttendanceFormat,
+    CodeExpiredError,
+    CodeExpiredErrorSchema,
+    ScanAttendeeRequestSchema,
+    ScanAttendeeSchema,
+    ShiftsAddRequestSchema,
+    ShiftsSchema,
+} from "./staff-schemas";
+import Config from "../../common/config";
+import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { NextFunction } from "express-serve-static-core";
-import { RouterError } from "../../middleware/error-handler";
-import { StaffShift } from "../../database/staff-db";
-
-import { Event } from "../../database/event-db";
-import { performCheckIn } from "./staff-lib";
+import { Event } from "../event/event-schemas";
+import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
+import specification, { Tag } from "../../middleware/specification";
+import { SuccessResponseSchema } from "../../common/schemas";
+import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 
 const staffRouter = Router();
 
-/**
- * @api {post} /staff/attendance/ POST /staff/attendance/
- * @apiGroup Staff
- * @apiDescription Record staff attendance for an event.
- *
- * @apiHeader {String} Authorization JWT Token with staff permissions.
- *
- * @apiBody {String} eventId The unique identifier of the event.
- *
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {}
- *
- * @apiUse strongVerifyErrors
- * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
- * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
- * @apiError (400: Bad Request) {String} EventExpired This particular event has expired.
- * @apiError (404: Not Found) {String} EventNotFound This event was not found
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 403 Forbidden
- *     {"error": "Forbidden"}
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "InvalidParams"}
- * @apiError (500: Internal Error) {String} InternalError Database operation failed.
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 500 Internal Server Error
- *     {"error": "InternalError"}
- */
-staffRouter.post("/attendance/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-
-    const eventId = (req.body as AttendanceFormat).eventId;
-    const userId = payload.id;
-    // Only staff can mark themselves as attending these events
-    if (!hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    if (!eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
-    }
-
-    const event = await Models.Event.findOne({ eventId: eventId });
-
-    if (!event) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-    }
-
-    const timestamp: number = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
-
-    if (event.exp && event.exp <= timestamp) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "CodeExpired"));
-    }
-
-    await Models.UserAttendance.findOneAndUpdate({ userId: userId }, { $addToSet: { attendance: eventId } }, { upsert: true });
-    await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
-    return res.status(StatusCode.SuccessOK).send({ status: "Success" });
-});
-
-/**
- * @api {put} /staff/scan-attendee/ PUT /staff/scan-attendee/
- * @apiGroup Staff
- * @apiDescription Record user attendance for an event.
- *
- * @apiHeader {String} Authorization JWT Token with staff permissions.
- *
- * @apiBody {String} attendeeJWT The JWT of the attendee to check in.
- * @apiBody {String} eventId The unique identifier of the event.
- *
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {success: true}
- *
- * @apiUse strongVerifyErrors
- * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
- * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
- * @apiError (400: Bad Request) {String} AlreadyCheckedIn Attendee has already been checked in for this event.
- * @apiError (404: Not Found) {String} EventNotFound This event was not found
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 403 Forbidden
- *     {"error": "Forbidden"}
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "InvalidParams"}
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 400 Bad Request
- *     {"error": "AlreadyCheckedIn"}
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 404 Not Found
- *     {"error": "EventNotFound"}
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 424 Failed Dependency
- *     {"error": "NoRegistrationData"}
- */
-staffRouter.put("/scan-attendee/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-    const attendeeJWT = req.body.attendeeJWT as string | undefined;
-    const eventId = req.body.eventId as string | undefined;
-
-    if (!hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    if (!attendeeJWT || !eventId) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
-    }
-
-    const attendeePayload: JwtPayload | undefined = decodeJwtToken(attendeeJWT) as JwtPayload;
-    const userId = attendeePayload.id;
-
-    const result = await performCheckIn(eventId, userId);
-
-    if (!result.success) {
-        return next(result.error);
-    }
-
-    const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
-
-    if (!registrationData) {
-        return next(new RouterError(StatusCode.ClientErrorNotFound, "EventNotFound"));
-    }
-    const dietaryRestrictions = registrationData["dietaryRestrictions"];
-
-    return res.status(StatusCode.SuccessOK).json({ success: true, ...result.profile, dietaryRestrictions: dietaryRestrictions });
-});
-
-/**
- * @api {get} /staff/shift/ GET /staff/shift/
- * @apiGroup Staff
- * @apiDescription Get all shifts for a staff
- *
- * @apiHeader {String} Authorization JWT Token with staff permissions.
- *
- *
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {
-    "shifts": [
-        {
-            "isPro": false,
-            "_id": "65b1a1d8f01ffc67a27d6f09",
-            "eventId": "651df5d3b9dfdaceb46a3120",
-            "isStaff": true,
-            "name": "Test Staff Event 1",
-            "description": "Staff",
-            "startTime": 1698038079,
-            "endTime": 1698038079,
-            "eventType": "OTHER",
-            "exp": 10000,
-            "locations": [],
-            "isAsync": false,
-            "mapImageUrl": "test",
-            "points": 0,
-            "isPrivate": true,
-            "displayOnStaffCheckIn": false
-        }
-    ]
- * }
- * @apiUse strongVerifyErrors
- * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
- * @apiErrorExample Example Error Response:
- *     HTTP/1.1 403 Forbidden
- *     {"error": "Forbidden"}
- */
-
-staffRouter.get("/shift/", strongJwtVerification, async (_: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-
-    if (!hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    const data = await Models.StaffShift.findOne({ userId: payload.id });
-
-    if (!data) {
-        return res.status(StatusCode.SuccessOK).json({ shifts: [] });
-    }
-
-    const shiftIds = data.shifts;
-
-    const events: Event[] = await Models.Event.find({
-        isStaff: true,
-        eventId: { $in: shiftIds },
-    });
-
-    return res.status(StatusCode.SuccessOK).json({ shifts: events });
-});
-
-/**
- * @api {post} /staff/event/ POST /staff/event/
- * @apiGroup Staff
- * @apiDescription Add shifts for a given staff member
- *
- * @apiHeader {String} Authorization JWT Token with staff/admin permissions.
- *
- * @apiBody {String} userId (optional - admin only) The userId of the staff to add shifts for
- * @apiBody {String[]} shifts String[] of shift IDs
- *
- * @apiSuccessExample Example Success Response:
- * HTTP/1.1 200 OK
- * {success: true}
- *
- * @apiUse strongVerifyErrors
- * @apiError (403: Forbidden) {String} InvalidPermission Access denied for invalid permission.
- * @apiError (400: Bad Request) {String} InvalidParams Invalid or missing parameters.
- */
-
-staffRouter.post("/shift/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
-
-    if (!hasStaffPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    const shift = req.body as StaffShift;
-
-    if (!hasAdminPerms(payload) || !shift.userId) {
-        shift.userId = payload.id;
-    }
-
-    if (!isValidStaffShiftFormat(shift)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "InvalidParams"));
-    }
-
-    await Models.StaffShift.updateOne(
-        { userId: shift.userId },
-        {
-            $push: {
-                shifts: {
-                    $each: shift.shifts,
-                },
+staffRouter.post(
+    "/attendance/",
+    specification({
+        method: "post",
+        path: "/staff/attendance/",
+        tag: Tag.STAFF,
+        role: Role.STAFF,
+        summary: "Checks the currently authenticated staff into the specified staff event",
+        body: ScanAttendeeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The scanned user's information",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The event is no longer open for check in",
+                schema: CodeExpiredErrorSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "The specified event was not found",
+                schema: EventNotFoundErrorSchema,
             },
         },
-        { upsert: true, new: true },
-    );
+    }),
+    async (req, res) => {
+        const payload = res.locals.payload as JwtPayload;
 
-    return res.status(StatusCode.SuccessOK).json({ success: true });
-});
+        const eventId = (req.body as AttendanceFormat).eventId;
+        const userId = payload.id;
+
+        const event = await Models.Event.findOne({ eventId: eventId });
+
+        if (!event) {
+            return res.status(StatusCode.ClientErrorNotFound).json(EventNotFoundError);
+        }
+
+        const timestamp = Math.round(Date.now() / Config.MILLISECONDS_PER_SECOND);
+        if (event.exp && event.exp <= timestamp) {
+            return res.status(StatusCode.ClientErrorBadRequest).json(CodeExpiredError);
+        }
+
+        await Models.UserAttendance.findOneAndUpdate(
+            { userId: userId },
+            { $addToSet: { attendance: eventId } },
+            { upsert: true },
+        );
+        await Models.EventAttendance.findOneAndUpdate(
+            { eventId: eventId },
+            { $addToSet: { attendees: userId } },
+            { upsert: true },
+        );
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+staffRouter.put(
+    "/scan-attendee/",
+    specification({
+        method: "put",
+        path: "/staff/scan-attendee/",
+        tag: Tag.STAFF,
+        role: Role.STAFF,
+        summary: "Checks in a user using their QR code JWT for a specified event",
+        body: ScanAttendeeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The scanned user's information",
+                schema: ScanAttendeeSchema,
+            },
+            ...PerformCheckInErrors,
+        },
+    }),
+    async (req, res) => {
+        const { attendeeJWT, eventId } = req.body;
+        const { id: userId } = decodeJwtToken(attendeeJWT);
+
+        const result = await performCheckIn(eventId, userId);
+        if (!result.success) {
+            return res.status(result.status).json(result.error);
+        }
+
+        const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
+        if (!registrationData) {
+            throw Error("No registration data");
+        }
+
+        const { dietaryRestrictions } = registrationData;
+        return res.status(StatusCode.SuccessOK).json({ success: true, userId, dietaryRestrictions });
+    },
+);
+
+staffRouter.get(
+    "/shift/",
+    specification({
+        method: "get",
+        path: "/staff/shift/",
+        tag: Tag.STAFF,
+        role: Role.STAFF,
+        summary: "Gets staff shifts for the currently authenticated user",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The shifts",
+                schema: ShiftsSchema,
+            },
+            ...PerformCheckInErrors,
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        const staffShift = await Models.StaffShift.findOne({ userId });
+
+        if (!staffShift) {
+            return res.status(StatusCode.SuccessOK).json({ shifts: [] });
+        }
+
+        const shiftIds = staffShift.shifts;
+
+        const events: Event[] = await Models.Event.find({
+            isStaff: true,
+            eventId: { $in: shiftIds },
+        });
+
+        return res.status(StatusCode.SuccessOK).json({ shifts: events });
+    },
+);
+
+staffRouter.post(
+    "/shift/",
+    specification({
+        method: "post",
+        path: "/staff/shift/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Adds shifts for a specified user",
+        body: ShiftsAddRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The shifts",
+                schema: SuccessResponseSchema,
+            },
+            ...PerformCheckInErrors,
+        },
+    }),
+    async (req, res) => {
+        const { userId, shifts } = req.body;
+
+        await Models.StaffShift.updateOne(
+            { userId },
+            {
+                $push: {
+                    shifts: {
+                        $each: shifts,
+                    },
+                },
+            },
+            { upsert: true, new: true },
+        );
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
 
 export default staffRouter;

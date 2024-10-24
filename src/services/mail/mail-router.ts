@@ -1,31 +1,39 @@
 // POST /registration/
 // ➡️ send confirmation email to the email provided in application
 
-import { NextFunction, Request, Response, Router } from "express";
-import { strongJwtVerification } from "../../middleware/verify-jwt";
-import { RouterError } from "../../middleware/error-handler";
+import { Router } from "express";
 import { StatusCode } from "status-code-enum";
-import { hasElevatedPerms } from "../auth/auth-lib";
-import { JwtPayload } from "../auth/auth-models";
-import { MailInfoFormat, isValidMailInfo } from "./mail-formats";
-import { sendMailWrapper } from "./mail-lib";
+import { Role } from "../auth/auth-schemas";
+import { sendMail } from "./mail-lib";
+import specification, { Tag } from "../../middleware/specification";
+import { MailInfoSchema, MailSendResultsSchema } from "./mail-schemas";
 
 const mailRouter = Router();
 
-mailRouter.post("/send/", strongJwtVerification, async (req: Request, res: Response, next: NextFunction) => {
-    const payload = res.locals.payload as JwtPayload;
+mailRouter.post(
+    "/send/",
+    specification({
+        method: "post",
+        path: "/mail/send/",
+        tag: Tag.MAIL,
+        role: Role.ADMIN,
+        summary: "Sends an email",
+        description:
+            "**WARNING**: This endpoint is not very well documented, so make sure you know what you're doing before you use it directly.",
+        body: MailInfoSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The upload url",
+                schema: MailSendResultsSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const mailInfo = req.body;
 
-    if (!hasElevatedPerms(payload)) {
-        return next(new RouterError(StatusCode.ClientErrorForbidden, "Forbidden"));
-    }
-
-    const mailInfo = req.body as MailInfoFormat;
-
-    if (!isValidMailInfo(mailInfo)) {
-        return next(new RouterError(StatusCode.ClientErrorBadRequest, "BadRequest"));
-    }
-
-    return sendMailWrapper(res, next, mailInfo);
-});
+        const result = await sendMail(mailInfo);
+        return res.status(StatusCode.SuccessOK).json(result.data);
+    },
+);
 
 export default mailRouter;

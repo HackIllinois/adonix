@@ -1,4 +1,4 @@
-import { AttendeeProfile } from "../../database/attendee-db";
+import { AttendeeProfile } from "./profile-schemas";
 
 export function isValidProfileFormat(profile: AttendeeProfile): boolean {
     if (!profile) {
