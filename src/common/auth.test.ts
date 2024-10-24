@@ -15,14 +15,14 @@ const STAFF_PAYLOAD = {
     id: "staff",
     email: "staff@hackillinois.org",
     provider: Provider.GOOGLE,
-    roles: [Role.USER, Role.STAFF],
+    roles: [Role.USER, Role.ATTENDEE, Role.STAFF],
 } satisfies JwtPayload;
 
 const ADMIN_PAYLOAD = {
     id: "admin",
     email: "admin@hackillinois.org",
     provider: Provider.GOOGLE,
-    roles: [Role.USER, Role.STAFF, Role.ADMIN],
+    roles: [Role.USER, Role.ATTENDEE, Role.STAFF, Role.ADMIN],
 } satisfies JwtPayload;
 
 // NOTE: This test suite will only test functions not well covered elsewhere.
