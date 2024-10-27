@@ -5,6 +5,12 @@ import { describe, expect, test, it } from "@jest/globals";
 import { get } from "./common/testTools";
 import { StatusCode } from "status-code-enum";
 
+const EXPECTED_STATUS = {
+    ok: true,
+    info: "Welcome to HackIllinois' backend API!",
+    docs: expect.stringMatching(/\/docs\/$/),
+};
+
 describe("sanity tests for app", () => {
     test("life is not a lie", () => {
         expect(7 * 6).toBe(42);
@@ -13,11 +19,13 @@ describe("sanity tests for app", () => {
     it("should run", async () => {
         const response = await get("/").expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            ok: true,
-            info: "Welcome to HackIllinois' backend API!",
-            docs: expect.stringMatching(/\/docs\/$/),
-        });
+        expect(JSON.parse(response.text)).toMatchObject(EXPECTED_STATUS);
+    });
+
+    it("should have a good status", async () => {
+        const response = await get("/status/").expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject(EXPECTED_STATUS);
     });
 
     it("should generate valid API specification", async () => {

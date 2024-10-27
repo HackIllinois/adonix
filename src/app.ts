@@ -68,15 +68,17 @@ app.use("/user/", database, userRouter);
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
 app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
 
-// Ensure that API is running
+// Basic status endpoints
 const docsUrl = `${Config.ROOT_URL}/docs/`;
-app.get("/", (_: Request, res: Response) => {
+function statusHandler(_: Request, res: Response): void {
     res.json({
         ok: true,
         info: "Welcome to HackIllinois' backend API!",
         docs: docsUrl,
     });
-});
+}
+app.get("/", statusHandler);
+app.get("/status/", statusHandler);
 
 // Throw an error if call is made to the wrong API endpoint
 app.use("/", (_: Request, res: Response) => {
@@ -87,8 +89,10 @@ app.use("/", (_: Request, res: Response) => {
     });
 });
 
+// Handle any errors from the above
 app.use(ErrorHandler);
 
+// Finally, a function to start the server
 function promiseListen(port: number): Promise<Express.Application> {
     return new Promise((resolve) => {
         const server = app.listen(port, () => {
