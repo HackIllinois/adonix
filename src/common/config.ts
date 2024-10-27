@@ -5,6 +5,7 @@
  * can error if they are not defined.
  */
 
+import { readFileSync } from "fs";
 import env from "./env";
 
 export enum Device {
@@ -48,6 +49,11 @@ function requireEnv(name: string): string {
     return value;
 }
 
+function getVersion(): string {
+    const content = JSON.parse(readFileSync("package.json").toString());
+    return content.version;
+}
+
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
 export const PROD_ROOT_URL = "https://adonix.hackillinois.org";
@@ -62,6 +68,7 @@ const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
     PROD,
+    VERSION: getVersion(),
 
     /* URLs */
     PORT,

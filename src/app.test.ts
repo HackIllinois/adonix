@@ -4,9 +4,11 @@ import { describe, expect, test, it } from "@jest/globals";
 
 import { get } from "./common/testTools";
 import { StatusCode } from "status-code-enum";
+import Config from "./common/config";
 
 const EXPECTED_STATUS = {
     ok: true,
+    version: Config.VERSION,
     info: "Welcome to HackIllinois' backend API!",
     docs: expect.stringMatching(/\/docs\/$/),
 };

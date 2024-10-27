@@ -73,6 +73,7 @@ const docsUrl = `${Config.ROOT_URL}/docs/`;
 function statusHandler(_: Request, res: Response): void {
     res.json({
         ok: true,
+        version: Config.VERSION,
         info: "Welcome to HackIllinois' backend API!",
         docs: docsUrl,
     });
