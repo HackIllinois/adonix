@@ -52,6 +52,9 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@62f4f872db3836360b72999f4b87f1ff13310f3a
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
@@ -61,7 +64,11 @@ jobs:
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          # Caching through args is from: https://aws.amazon.com/blogs/containers/announcing-remote-cache-support-in-amazon-ecr-for-buildkit-clients/
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . \
+          --cache-to mode=max,image-manifest=true,oci-mediatypes=true,type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY \
+          --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:cache
+
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
