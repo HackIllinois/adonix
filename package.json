@@ -5,7 +5,7 @@
     "main": "api/index.js",
     "type": "commonjs",
     "scripts": {
-        "gen-jwt": "node scripts/generate-jwt-token",
+        "bump-version": "node scripts/bump-version.mjs",
         "format:check": "yarn run prettier --check '**/*.{ts,js,cjs,json}'",
         "format": "yarn run prettier --write '**/*.{ts,js,cjs,json}'",
         "lint:check": "tsc --noEmit && yarn run eslint src --ext .js,.jsx,.ts,.tsx",
