@@ -1,6 +1,6 @@
 {
     "name": "adonix",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "Official repository for API redesign.",
     "main": "api/index.js",
     "type": "commonjs",
@@ -17,7 +17,8 @@
         "verify": "yarn lint:check && yarn format:check",
         "send-notif": "node scripts/send-notif.js",
         "start": "node --enable-source-maps out/index.js",
-        "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\""
+        "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\"",
+        "bump-version": "standard-version"
     },
     "keywords": [],
     "author": "Aydan Pirani <aydanpirani@gmail.com>",
@@ -79,6 +80,7 @@
         "mongodb-memory-server": "^9.0.1",
         "open": "^9.1.0",
         "prettier": "3.0.3",
+        "standard-version": "^9.5.0",
         "supertest": "^6.3.3",
         "swc_mut_cjs_exports": "^0.99.0",
         "ts-jest": "^29.1.1",
