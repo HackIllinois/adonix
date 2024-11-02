@@ -89,7 +89,7 @@ export const ProjectMappingSchema = z
         userId: UserIdSchema,
     })
     .openapi("ProjectMappingSchema", {
-        description: "Mapping team owner's ID to their teammates' userIDs"
+        description: "A user's team/teamOwnerId"
     })
 
 export const ProjectsSchema = z
