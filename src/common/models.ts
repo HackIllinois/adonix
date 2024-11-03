@@ -13,7 +13,7 @@ import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-s
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
-import { Project } from "../services/project/project-schema";
+import { Project, ProjectMapping } from "../services/project/project-schema";
 import { PuzzleItem } from "../services/puzzle/puzzle-schemas";
 
 // Groups for collections
@@ -88,7 +88,8 @@ enum UserCollection {
 }
 
 enum ProjectCollection {
-    INFO = "projects"
+    INFO = "projects",
+    MAPPINGS = "mappings"
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -148,6 +149,7 @@ export default class Models {
 
     // Projects
     static ProjectInfo: Model<Project> = getModel(Project, Group.PROJECT, ProjectCollection.INFO);
+    static ProjectMapping: Model<ProjectMapping> = getModel(ProjectMapping, Group.PROJECT, ProjectCollection.MAPPINGS);
 
     // Puzzle
     static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);

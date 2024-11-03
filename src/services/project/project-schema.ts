@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prop } from "@typegoose/typegoose"; 
 import { UserIdSchema } from "../../common/schemas";
+import { CreateErrorAndSchema } from "../../common/schemas";
 
 // path enum
 export enum PathType {
@@ -99,3 +100,13 @@ export const ProjectsSchema = z
     .openapi("ProjectsSchema", {
         description: "all projects"
     })
+
+export const [UserAlreadyHasTeamError, UserAlreadyHasTeamErrorSchema] = CreateErrorAndSchema({
+    error: "AlreadyHasTeam",
+    message: "This user already has a team!",
+});
+
+export const [NoTeamFoundError, NoTeamFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NoTeamFound",
+    message: "No team was found for this user",
+});
