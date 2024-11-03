@@ -103,9 +103,11 @@ puzzleRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
         }
 
-        if (qid < 0 || qid >= Config.PUZZLE.length) {
+        const puzzleAnswer = await Models.PuzzleAnswer.findOne({ qid: qid });
+        if (!puzzleAnswer) {
             return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
         }
+        const correctAnswer = puzzleAnswer.answer;
 
         const puzzle = await Models.PuzzleItem.findOne({ userId });
 
@@ -120,7 +122,7 @@ puzzleRouter.post(
         }
 
         // Incorrect
-        if (answer !== Config.PUZZLE[qid]) {
+        if (answer !== correctAnswer) {
             return res.status(StatusCode.ClientErrorBadRequest).send(PuzzleIncorrectAnswerError);
         }
 
