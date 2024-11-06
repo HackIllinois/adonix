@@ -103,7 +103,7 @@ puzzleRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
         }
 
-        const puzzleAnswer = await Models.PuzzleAnswer.findOne({ qid: qid });
+        const puzzleAnswer = await Models.PuzzleAnswer.findOne({ qid });
         if (!puzzleAnswer) {
             return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
         }
