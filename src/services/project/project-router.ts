@@ -7,14 +7,14 @@ import {
     NoTeamFoundError,
     NoTeamFoundErrorSchema,
     Project,
-    ProjectSchema,
+    ProjectProjectsSchema,
     ProjectsSchema,
     UserAlreadyHasTeamError,
     UserAlreadyHasTeamErrorSchema,
     //ProjectMappingSchema,
     //PathTypeSchema,
     //TrackTypeSchema
-} from './project-schema'
+} from "./project-schema";
 
 //import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
 import { z } from "zod";
@@ -36,22 +36,22 @@ projectRouter.get(
         role: Role.STAFF,
         summary: "Retrieve details of a team using ownerId",
         parameters: z.object({
-            ownerId: UserIdSchema
+            ownerId: UserIdSchema,
         }),
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The team for this specific ownerId",
-                schema: ProjectSchema,
+                schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorConflict]: {
                 description: "No team found for this ownerId",
                 schema: NoTeamFoundErrorSchema,
             },
-        }
+        },
     }),
     async (req, res) => {
         const ownerId = req.params.ownerId;
-        const projectDetails = await Models.ProjectInfo.findOne({ ownerId })
+        const projectDetails = await Models.ProjectInfo.findOne({ ownerId });
 
         // Return no project found if no details were found
         if (!projectDetails) {
@@ -59,8 +59,8 @@ projectRouter.get(
         }
 
         return res.status(StatusCode.SuccessOK).send(projectDetails);
-    }
-)
+    },
+);
 
 // GET details of user's team
 projectRouter.get(
@@ -74,16 +74,16 @@ projectRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The user's team",
-                schema: ProjectSchema,
+                schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorConflict]: {
                 description: "No team found for the user",
                 schema: NoTeamFoundErrorSchema,
             },
-        }
+        },
     }),
     async (req, res) => {
-        const { id: userId } = getAuthenticatedUser(req); 
+        const { id: userId } = getAuthenticatedUser(req);
         const userMapping = await Models.ProjectMapping.findOne({ userId });
         if (!userMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
@@ -91,11 +91,11 @@ projectRouter.get(
         const ownerId = userMapping?.teamOwnerId;
 
         // find project associated with the ownerId
-        const projectDetails = await Models.ProjectInfo.findOne({ ownerId: ownerId}) as Project;
+        const projectDetails = (await Models.ProjectInfo.findOne({ ownerId: ownerId })) as Project;
 
         return res.status(StatusCode.SuccessOK).send(projectDetails);
-    }   
-)
+    },
+);
 
 // POST create project/team
 projectRouter.post(
@@ -109,31 +109,31 @@ projectRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new team",
-                schema: ProjectSchema,
+                schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorConflict]: {
                 description: "The user already has a team",
                 schema: UserAlreadyHasTeamErrorSchema,
             },
-        }
+        },
     }),
     async (req, res) => {
         const details = req.body as Project; // typescript required "as Project"
-        
+
         const project: Project = {
             ...details,
-        }
+        };
 
         // ensure teamOwner hasn't already made a team
-        const ownerExists = (await Models.ProjectInfo.findOne({ ownerId: details.ownerId })) ?? false
+        const ownerExists = (await Models.ProjectInfo.findOne({ ownerId: details.ownerId })) ?? false;
         if (ownerExists) {
             return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
         }
 
         const newProject = await Models.ProjectInfo.create(project);
-    
+
         return res.status(StatusCode.SuccessCreated).send(newProject);
-    }
+    },
 );
 
 // POST join
@@ -154,7 +154,7 @@ projectRouter.get(
             },
         },
     }),
-    async(_req, res) => {
+    async (_req, res) => {
         const projects = await Models.ProjectInfo.find();
         return res.status(StatusCode.SuccessOK).send({ projects: projects });
     },

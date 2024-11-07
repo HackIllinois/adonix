@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prop } from "@typegoose/typegoose"; 
+import { prop } from "@typegoose/typegoose";
 import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
@@ -7,7 +7,7 @@ import { CreateErrorAndSchema } from "../../common/schemas";
 export enum PathType {
     BEGINNER = "BEGINNER",
     GENERAL = "GENERAL",
-    PRO = "PRO"
+    PRO = "PRO",
 }
 export const PathTypeSchema = z.nativeEnum(PathType);
 
@@ -15,60 +15,59 @@ export const PathTypeSchema = z.nativeEnum(PathType);
 export enum TrackType {
     SPONSOR_1 = "SPONSOR1",
     SPONSOR_2 = "SPONSOR2",
-    SPONSOR_3 = "SPONSOR3"
+    SPONSOR_3 = "SPONSOR3",
 }
 export const TrackTypeSchema = z.nativeEnum(TrackType);
 
 // general interface for a project
 export class Project {
-    @prop({ required: true})
+    @prop({ required: true })
     public projectName: string;
 
-    @prop({required: true})
-    public ownerId: string
+    @prop({ required: true })
+    public ownerId: string;
 
     @prop({
         required: true,
-        type: () => String
+        type: () => String,
     })
-    public teamMembers: string[]
+    public teamMembers: string[];
 
     @prop({
         required: true,
-        enum: PathType
+        enum: PathType,
     })
-    public path: PathType
+    public path: PathType;
 
     @prop({
         required: true,
-        enum: TrackType
+        enum: TrackType,
     })
-    public track: TrackType
+    public track: TrackType;
 
-    @prop({required: true})
-    public githubLink: string
+    @prop({ required: true })
+    public githubLink: string;
 
-    @prop({required: true})
-    public videoLink: string
+    @prop({ required: true })
+    public videoLink: string;
 
-    @prop({required: true})
-    public accessCode: string
+    @prop({ required: true })
+    public accessCode: string;
 
-    @prop({required: false})
-    public description: string
-
+    @prop({ required: false })
+    public description: string;
 }
 
 // interface for ownerId to userId mapping
-export class ProjectMapping {
-    @prop({required: true})
-    public teamOwnerId: string
+export class ProjectMappings {
+    @prop({ required: true })
+    public teamOwnerId: string;
 
-    @prop({required: true})
-    public userId: string
+    @prop({ required: true })
+    public userId: string;
 }
 
-export const ProjectSchema = z
+export const ProjectProjectsSchema = z
     .object({
         projectName: z.string(),
         ownerId: UserIdSchema,
@@ -78,28 +77,28 @@ export const ProjectSchema = z
         githubLink: z.string(),
         videoLink: z.string(),
         accessCode: z.string(),
-        description: z.string().optional()
+        description: z.string().optional(),
     })
     .openapi("ProjectSchema", {
-        description: "Information about a project"
-    })
+        description: "Information about a project",
+    });
 
-export const ProjectMappingSchema = z
+export const ProjectMappingsSchema = z
     .object({
         teamOwnerId: UserIdSchema,
         userId: UserIdSchema,
     })
     .openapi("ProjectMappingSchema", {
-        description: "A user's team/teamOwnerId"
-    })
+        description: "A user's team/teamOwnerId",
+    });
 
 export const ProjectsSchema = z
     .object({
-        projects: z.array(ProjectSchema)
+        projects: z.array(ProjectProjectsSchema),
     })
     .openapi("ProjectsSchema", {
-        description: "all projects"
-    })
+        description: "all projects",
+    });
 
 export const [UserAlreadyHasTeamError, UserAlreadyHasTeamErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyHasTeam",
