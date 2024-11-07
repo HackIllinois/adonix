@@ -14,8 +14,8 @@ export default class Metadata {
             return this.metadata[key];
         }
 
-        const response = await axios.get(Config.METADATA_URL);
-        const loaded = response.data as MetadataFormat;
+        const response = await axios.get<MetadataFormat>(Config.METADATA_URL);
+        const loaded = response.data;
 
         if (!loaded) {
             return Promise.reject("InvalidConfigFormat");
