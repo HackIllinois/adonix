@@ -9,6 +9,7 @@ import {
     Project,
     ProjectProjectsSchema,
     ProjectsSchema,
+    CreateProjectRequestSchema,
     UserAlreadyHasTeamError,
     UserAlreadyHasTeamErrorSchema,
     //ProjectMappingSchema,
@@ -38,6 +39,7 @@ projectRouter.get(
         parameters: z.object({
             ownerId: UserIdSchema,
         }),
+        body: ProjectProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The team for this specific ownerId",
@@ -71,6 +73,7 @@ projectRouter.get(
         tag: Tag.PROJECT,
         role: null,
         summary: "get details of user's team",
+        body: ProjectProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The user's team",
@@ -91,9 +94,9 @@ projectRouter.get(
         const ownerId = userMapping?.teamOwnerId;
 
         // find project associated with the ownerId
-        const projectDetails = (await Models.ProjectInfo.findOne({ ownerId: ownerId })) as Project;
+        const projectDetails = await Models.ProjectInfo.findOne({ ownerId: ownerId });
 
-        return res.status(StatusCode.SuccessOK).send(projectDetails);
+        return res.status(StatusCode.SuccessOK).send(projectDetails?.toObject());
     },
 );
 
@@ -106,6 +109,7 @@ projectRouter.post(
         tag: Tag.PROJECT,
         role: null,
         summary: "create a new project/team",
+        body: CreateProjectRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new team",
@@ -118,14 +122,16 @@ projectRouter.post(
         },
     }),
     async (req, res) => {
-        const details = req.body as Project; // typescript required "as Project"
+        const { id: userId } = getAuthenticatedUser(req);
+        const details = req.body;
 
         const project: Project = {
+            ownerId: userId,
             ...details,
         };
 
         // ensure teamOwner hasn't already made a team
-        const ownerExists = (await Models.ProjectInfo.findOne({ ownerId: details.ownerId })) ?? false;
+        const ownerExists = (await Models.ProjectInfo.findOne({ ownerId: userId })) ?? false;
         if (ownerExists) {
             return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
         }
@@ -147,6 +153,7 @@ projectRouter.get(
         tag: Tag.PROJECT,
         role: Role.STAFF, //staff only endpoint
         summary: "get list of all teams",
+        body: ProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The projects",

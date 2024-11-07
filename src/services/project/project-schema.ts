@@ -77,11 +77,13 @@ export const ProjectProjectsSchema = z
         githubLink: z.string(),
         videoLink: z.string(),
         accessCode: z.string(),
-        description: z.string().optional(),
+        description: z.string(),
     })
     .openapi("ProjectSchema", {
         description: "Information about a project",
     });
+
+export const CreateProjectRequestSchema = ProjectProjectsSchema.omit({ ownerId: true }).openapi("CreateProjectRequest"); // add example after
 
 export const ProjectMappingsSchema = z
     .object({
