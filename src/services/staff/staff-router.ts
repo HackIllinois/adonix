@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { JwtPayload, Role } from "../auth/auth-schemas";
+import { Role } from "../auth/auth-schemas";
 import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
 import {
     CodeExpiredError,
@@ -46,10 +46,8 @@ staffRouter.post(
         },
     }),
     async (req, res) => {
-        const payload = res.locals.payload as JwtPayload;
-
+        const { id: userId } = getAuthenticatedUser(req);
         const { eventId } = req.body;
-        const userId = payload.id;
 
         const event = await Models.Event.findOne({ eventId: eventId });
 

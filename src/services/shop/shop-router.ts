@@ -19,11 +19,12 @@ import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import Models from "../../common/models";
-import { JwtPayload, Role } from "../auth/auth-schemas";
+import { Role } from "../auth/auth-schemas";
 import { updateCoins } from "../profile/profile-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema } from "../../common/schemas";
+import { getAuthenticatedUser } from "../../common/auth";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -243,9 +244,8 @@ shopRouter.post(
         },
     }),
     async (req, res) => {
-        const itemId = req.body.itemId as string;
-        const payload = res.locals.payload as JwtPayload;
-        const userId = payload.id;
+        const { itemId } = req.body;
+        const { id: userId } = getAuthenticatedUser(req);
 
         const item = await Models.ShopItem.findOne({ itemId: itemId });
 
