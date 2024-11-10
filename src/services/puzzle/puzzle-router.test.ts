@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "@jest/globals"; // , jest
+import { describe, expect, it } from "@jest/globals"; // , jest
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { getAsUser, post, postAsUser } from "../../common/testTools"; //  TESTER, getAsAdmin, postAsUser
@@ -17,7 +17,7 @@ const TESTER_CREATED_PUZZLE_ITEM = {
     problemComplete: [false, false, false, false, false, false, false, false, false, false],
     score: 0,
     teamName: "tester team 1",
-} satisfies PuzzleItem;
+};
 
 const UPDATED_TESTER_PUZZLE_ITEM = {
     userId: "bob-the-tester101010101011",
