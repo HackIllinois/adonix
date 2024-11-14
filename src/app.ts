@@ -1,4 +1,4 @@
-import "./common/types";
+import "./common/init";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
