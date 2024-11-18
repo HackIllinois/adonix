@@ -133,6 +133,10 @@ registrationRouter.post(
                 description: "The new registration information",
                 schema: RegistrationApplicationRequestSchema,
             },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Registration is closed",
+                schema: RegistrationClosedErrorSchema,
+            },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Registration is already submitted, cannot update anymore",
                 schema: RegistrationAlreadySubmittedErrorSchema,
@@ -141,6 +145,10 @@ registrationRouter.post(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
+
+        if (!isRegistrationAlive()) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
+        }
 
         const setRequest = req.body;
 
