@@ -127,6 +127,7 @@ export const EventSchema = z
         description: z.string(),
         startTime: z.number().min(0),
         endTime: z.number().min(0),
+        exp: z.number().optional(),
         eventType: EventTypeSchema,
         locations: z.array(LocationSchema),
         isAsync: z.boolean(),
@@ -136,7 +137,6 @@ export const EventSchema = z
         isPrivate: z.boolean(),
         displayOnStaffCheckIn: z.boolean().optional(),
         isPro: z.boolean(),
-        exp: z.number().optional(),
     })
     .openapi("PublicEvent", {
         example: {
@@ -172,6 +172,7 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
         description: "A really cool event",
         startTime: 1532202702,
         endTime: 1532212702,
+        exp: 1532242900,
         locations: [
             {
                 description: "Siebel Center for CS",
