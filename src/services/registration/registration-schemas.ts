@@ -32,6 +32,7 @@ export enum Degree {
     PHD = "PhD",
     GRADUATED = "Graduated",
     OTHER = "Other",
+    NOT_APPLICABLE = "N/A",
     PLACEHOLDER = "",
 }
 
