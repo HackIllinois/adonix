@@ -21,8 +21,8 @@ export enum Race {
     SOUTH_EAST_ASIAN = "South East Asian",
     SOUTH_ASIAN = "South Asian",
     WHITE = "White",
+    OTHER = "Other",
     NO_ANSWER = "Prefer Not To Answer",
-    PLACEHOLDER = "",
 }
 
 export enum Degree {
