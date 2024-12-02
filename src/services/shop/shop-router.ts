@@ -14,6 +14,11 @@ import {
     ShopItemSchema,
     ShopItemsSchema,
     ShopItemUpdateRequestSchema,
+    ShopItemGenerateOrderSchema,
+    ShopItemFulfillOrderSchema,
+    SuccessSchema,
+    ShopOrder,
+    OrderQRCodesSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -217,6 +222,115 @@ shopRouter.get(
         return res.status(StatusCode.SuccessOK).send({ itemId, qrInfo: uris });
     },
 );
+
+
+shopRouter.post(
+    "/item/generateorder",
+    specification({
+        method: "post",
+        path: "/shop/item/generateorder/",
+        tag: Tag.SHOP,
+        role: null,
+        summary: "Generates order and returns qr code",
+        body: ShopItemGenerateOrderSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The qr codes",
+                schema: OrderQRCodesSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Not enough quantity in shop",
+                schema: ShopInsufficientFundsErrorSchema, //potentially change
+            },
+        },
+    }),
+    async (req, res) => {
+        const body = ShopItemGenerateOrderSchema.parse(req.body)
+        const { items, quantity } = body;
+
+        for(var i = 0; i < items.length; i++) {
+            //items[i] is the _id of the items
+            const item = await Models.ShopItem.findOne({ itemId: items[i] });
+
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            const q = quantity?.[i] as number | undefined;
+            if(q == undefined || item.quantity < q) {
+                // send which item there isn't enough of ?
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopInsufficientFundsError);
+            }
+        }
+
+        //have availability of all item so can generate qr code with order number
+        const order = Math.floor(Math.random() * 10);        ;
+        const qrCodeUrl = `hackillinois://ordernum?orderNum=${order}`;
+
+        const shopOrder: ShopOrder = {
+            orderNum: order,
+            items: items,
+            quantity: quantity,
+        };
+
+        await Models.ShopOrder.create(shopOrder);
+
+        return res.status(StatusCode.SuccessOK).send({ qrInfo: qrCodeUrl });
+    },
+);
+
+shopRouter.post(
+    "/item/fulfillorder",
+    specification({
+        method: "post",
+        path: "/shop/item/fulfillorder/",
+        tag: Tag.SHOP,
+        role: null,
+        summary: "Purchases the order item",
+        body: ShopItemFulfillOrderSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The successfully purchased order",
+                schema: SuccessSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Order doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        // when qr code is scanned, will call this so body needs to have order num and then i use that
+        // to get the order and then for each item in the order, subtract the quantity and then return success
+        const body = req.body;
+        const num = body.orderNum;
+        
+        const order = await Models.ShopOrder.findOne({ orderNum: num });
+
+        if(!order) {
+            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+        }
+
+        for(var i = 0; i < order.items.length; i++) {
+            const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
+
+            if(!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            const q = order.quantity?.[i] as number | 0;
+            item.quantity = item.quantity - q;
+            item.save();
+        }
+
+        return res.status(StatusCode.SuccessOK).json({ message: "success" });
+    },
+);
+
 
 shopRouter.post(
     "/item/buy",
