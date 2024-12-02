@@ -252,7 +252,7 @@ shopRouter.post(
         const body = ShopItemGenerateOrderSchema.parse(req.body)
         const { items, quantity } = body;
 
-        for(var i = 0; i < items.length; i++) {
+        for(let i = 0; i < items.length; i++) {
             //items[i] is the _id of the items
             const item = await Models.ShopItem.findOne({ itemId: items[i] });
 
@@ -268,7 +268,8 @@ shopRouter.post(
         }
 
         //have availability of all item so can generate qr code with order number
-        const order = Math.floor(Math.random() * 10);        ;
+        const RAND_NUM = 10;
+        const order = Math.floor(Math.random() * RAND_NUM);
         const qrCodeUrl = `hackillinois://ordernum?orderNum=${order}`;
 
         const shopOrder: ShopOrder = {
@@ -315,7 +316,7 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
         }
 
-        for(var i = 0; i < order.items.length; i++) {
+        for(let i = 0; i < order.items.length; i++) {
             const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
 
             if(!item) {
@@ -324,7 +325,7 @@ shopRouter.post(
 
             const q = order.quantity?.[i] as number | 0;
             item.quantity = item.quantity - q;
-            item.save();
+            await item.save();
         }
 
         return res.status(StatusCode.SuccessOK).json({ message: "success" });
