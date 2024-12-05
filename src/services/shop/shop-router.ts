@@ -193,7 +193,7 @@ shopRouter.get(
         method: "get",
         path: "/shop/item/qr/{id}/",
         tag: Tag.SHOP,
-        role: Role.STAFF,
+        role: null, //Role.STAFF
         summary: "Gets the QR codes for a shop item",
         parameters: z.object({
             id: ShopItemIdSchema,
@@ -249,8 +249,13 @@ shopRouter.post(
         },
     }),
     async (req, res) => {
-        const body = ShopItemGenerateOrderSchema.parse(req.body)
-        const { items, quantity } = body;
+        const body = req.body;
+        const items = body.items;
+        const quantity = body.quantity
+
+
+        //const body = ShopItemGenerateOrderSchema.parse(req.body)
+        //const { items, quantity } = body;
 
         for(let i = 0; i < items.length; i++) {
             //items[i] is the _id of the items
@@ -324,8 +329,17 @@ shopRouter.post(
             }
 
             const q = order.quantity?.[i] as number | 0;
-            item.quantity = item.quantity - q;
-            await item.save();
+
+            const updatedItem = await Models.ShopItem.findOneAndUpdate({ itemId: order.items[i] }, body, {
+                quantity: item.quantity - q,
+            });
+    
+            if (!updatedItem) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            //item.quantity = item.quantity - q;
+            //await item.save();
         }
 
         return res.status(StatusCode.SuccessOK).json({ message: "success" });

@@ -73,6 +73,7 @@ enum RegistrationCollection {
 
 enum ShopCollection {
     ITEMS = "items",
+    ORDERS = "orders"
 }
 
 enum StaffCollection {
@@ -152,7 +153,7 @@ export default class Models {
 
     // Shop
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
-    static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ITEMS);
+    static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
