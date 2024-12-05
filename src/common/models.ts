@@ -8,7 +8,7 @@ import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import { RegistrationApplication } from "../services/registration/registration-schemas";
-import { ShopItem } from "../services/shop/shop-schemas";
+import { ShopItem, ShopOrder } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
@@ -73,6 +73,7 @@ enum RegistrationCollection {
 
 enum ShopCollection {
     ITEMS = "items",
+    ORDERS = "orders"
 }
 
 enum StaffCollection {
@@ -152,6 +153,7 @@ export default class Models {
 
     // Shop
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
+    static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);

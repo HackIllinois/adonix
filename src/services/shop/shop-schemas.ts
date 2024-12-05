@@ -46,7 +46,33 @@ export class ShopItem {
     }
 }
 
+export class ShopOrder {
+    @prop({ required: true })
+    public orderNum: number
+    @prop({ required: true })
+    public items: Array<string>
+
+    @prop({ required: true })
+    public quantity: Array<number>
+
+    constructor(
+        orderNum: number,
+        items: Array<string>,
+        quantity: Array<number>,
+    ) {
+        this.orderNum = orderNum;
+        this.items = items;
+        this.quantity = quantity;
+    }
+}
+
 export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "item1234" });
+// export const ShopOrderArraySchema = z
+// .tuple([
+//   z.array(z.string()),
+//   z.array(z.number()),
+// ])
+// .openapi("ShopOrderArray", { example: [["item1234", "item5678"], [1, 2]] });
 
 export const ShopItemSchema = z
     .object({
@@ -111,6 +137,30 @@ export const ShopItemBuyRequestSchema = z.object({
     itemId: ShopItemIdSchema,
     instance: z.string().openapi({ example: "1x3" }),
 });
+
+// needs to have list of items and quantity
+export const ShopItemGenerateOrderSchema = z.object({
+    items: z.array(z.string()),
+    quantity: z.array(z.number()),
+});
+
+export const ShopItemFulfillOrderSchema = z.object({
+    orderNum: z.number(),
+});
+
+export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
+    example: "hackillinois://ordernum?orderNum=10",
+});
+
+export const OrderQRCodesSchema = z
+    .object({
+        qrInfo: z.string(OrderQRCodeSchema),
+    })
+    .openapi("OrderQRCodes");
+
+export const SuccessSchema = z.object({
+    message: z.string(),
+}).openapi("Success");
 
 export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",
