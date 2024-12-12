@@ -21,13 +21,13 @@ type CustomOptions = AuthenticateOptions & {
  * @param device String representing the device that auth is being performed on
  * @returns RequestHandler middleware, that's pre-configured for the provider
  */
-export function SelectAuthProvider(provider: string, device: string): RequestHandler {
+export function SelectAuthProvider(provider: string, redirect: string): RequestHandler {
     if (provider == "google") {
         const options: CustomOptions = {
             ...googleOptions,
             callbackURL: Config.CALLBACK_URLS.GOOGLE,
+            state: redirect,
         };
-        options.callbackURL += device;
         return authenticateFunction("google", options);
     }
 
@@ -35,8 +35,8 @@ export function SelectAuthProvider(provider: string, device: string): RequestHan
         const options: CustomOptions = {
             ...githubOptions,
             callbackURL: Config.CALLBACK_URLS.GITHUB,
+            state: redirect,
         };
-        options.callbackURL += device;
 
         return authenticateFunction("github", options);
     }

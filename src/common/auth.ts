@@ -71,6 +71,20 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
     // Data manipulation to store types of parsable inputs
     callback(null, user);
 
+export function isValidRedirectUrl(url: string): boolean {
+    for (const redirect_url of Config.ALLOWED_REDIRECT_URLS.values()) {
+        if (typeof redirect_url == "string") {
+            if (url == redirect_url) {
+                return true;
+            }
+        } else if (redirect_url.test(url)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /**
  * Use the ProfileData to generate a payload object for JWT token (cast, extract relevant data, and return).
  * @param provider String of the provider, being used

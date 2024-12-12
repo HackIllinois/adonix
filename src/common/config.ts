@@ -64,6 +64,16 @@ const ROOT_URL = ((): string => {
     return PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
 })();
 
+const DEVICE_TO_REDIRECT_URL = new Map([
+    [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
+    [Device.DEV, `${ROOT_URL}/auth/dev/`],
+    [Device.WEB, "https://www.hackillinois.org/auth/"],
+    [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
+    [Device.IOS, "hackillinois://login/"],
+    [Device.ANDROID, "hackillinois://login/"],
+    [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
+]);
+
 const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
@@ -76,15 +86,8 @@ const Config = {
 
     DEFAULT_DEVICE: Device.WEB,
 
-    REDIRECT_URLS: new Map([
-        [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-        [Device.DEV, `${ROOT_URL}/auth/dev/`],
-        [Device.WEB, "https://www.hackillinois.org/auth/"],
-        [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
-        [Device.IOS, "hackillinois://login/"],
-        [Device.ANDROID, "hackillinois://login/"],
-        [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
-    ]),
+    DEVICE_TO_REDIRECT_URL,
+    ALLOWED_REDIRECT_URLS: [...DEVICE_TO_REDIRECT_URL.values(), new RegExp(/^http:\/\/localhost:\d+\/auth\/$/)],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
