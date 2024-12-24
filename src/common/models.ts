@@ -7,7 +7,7 @@ import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
-import { RegistrationApplication } from "../services/registration/registration-schemas";
+import { RegistrationApplication, RegistrationChallenge } from "../services/registration/registration-schemas";
 import { ShopItem } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
@@ -69,6 +69,7 @@ enum PuzzleCollection {
 
 enum RegistrationCollection {
     APPLICATIONS = "applications",
+    CHALLENGES = "challenges",
 }
 
 enum ShopCollection {
@@ -148,6 +149,11 @@ export default class Models {
         RegistrationApplication,
         Group.REGISTRATION,
         RegistrationCollection.APPLICATIONS,
+    );
+    static RegistrationChallenge: Model<RegistrationChallenge> = getModel(
+        RegistrationChallenge,
+        Group.REGISTRATION,
+        RegistrationCollection.CHALLENGES,
     );
 
     // Shop

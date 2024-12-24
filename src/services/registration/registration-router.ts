@@ -10,11 +10,18 @@ import {
     RegistrationApplication,
     RegistrationApplicationRequestSchema,
     RegistrationApplicationSchema,
+    RegistrationChallenge,
+    RegistrationChallengeStatusSchema,
+    RegistrationChallengeSolveFailedError,
+    RegistrationChallengeSolveFailedErrorSchema,
+    RegistrationChallengeSolveSchema,
     RegistrationClosedError,
     RegistrationClosedErrorSchema,
     RegistrationNotFoundError,
     RegistrationNotFoundErrorSchema,
     RegistrationStatusSchema,
+    RegistrationChallengeAlreadySolvedError,
+    RegistrationChallengeAlreadySolvedErrorSchema,
 } from "./registration-schemas";
 import { DecisionStatus } from "../admission/admission-schemas";
 
@@ -27,6 +34,7 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
+import { generateChallenge } from "./challenge-lib";
 
 const registrationRouter = Router();
 
@@ -256,6 +264,122 @@ registrationRouter.post(
         await sendMail(mailInfo);
 
         return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
+    },
+);
+
+registrationRouter.get(
+    "/challenge/",
+    specification({
+        method: "get",
+        path: "/registration/challenge/",
+        tag: Tag.REGISTRATION,
+        role: Role.USER,
+        summary: "Gets the challenge input for the currently authenticated user",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The challenge status",
+                schema: RegistrationChallengeStatusSchema,
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Registration is closed",
+                schema: RegistrationClosedErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        if (!isRegistrationAlive()) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
+        }
+
+        let challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
+        if (!challenge) {
+            challenge = { userId, ...generateChallenge(), attempts: 0, complete: false };
+            await Models.RegistrationChallenge.create(challenge);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({
+            alliances: challenge.alliances,
+            people: Object.fromEntries(challenge.people.entries()),
+            attempts: challenge.attempts,
+            complete: challenge.complete,
+        });
+    },
+);
+
+registrationRouter.post(
+    "/challenge/",
+    specification({
+        method: "post",
+        path: "/registration/challenge/",
+        tag: Tag.REGISTRATION,
+        role: Role.USER,
+        body: RegistrationChallengeSolveSchema,
+        summary: "Attempts to solve the challenge",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully solved, the new challenge status is returned",
+                schema: RegistrationChallengeStatusSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: RegistrationChallengeSolveFailedError.error,
+                    description: "Incorrect answer, try again",
+                    schema: RegistrationChallengeSolveFailedErrorSchema,
+                },
+                {
+                    id: RegistrationChallengeAlreadySolvedError.error,
+                    description: "Already solved correctly",
+                    schema: RegistrationChallengeAlreadySolvedErrorSchema,
+                },
+            ],
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Registration is closed",
+                schema: RegistrationClosedErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { solution } = req.body;
+        const { id: userId } = getAuthenticatedUser(req);
+
+        if (!isRegistrationAlive()) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
+        }
+
+        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
+        if (challenge?.complete) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationChallengeAlreadySolvedError);
+        }
+        if (solution != challenge?.solution) {
+            if (challenge) {
+                await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: challenge.attempts + 1 });
+            }
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeSolveFailedError);
+        }
+
+        const result = await Models.RegistrationChallenge.findOneAndUpdate(
+            { userId },
+            {
+                attempts: challenge.attempts + 1,
+                complete: true,
+            },
+            {
+                new: true,
+            },
+        );
+
+        if (!result) {
+            throw Error("Failed to update challenge");
+        }
+
+        return res.status(StatusCode.SuccessOK).send({
+            alliances: result.alliances,
+            people: Object.fromEntries(result.people.entries()),
+            attempts: result.attempts,
+            complete: result.complete,
+        });
     },
 );
 
