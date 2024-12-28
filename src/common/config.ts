@@ -87,7 +87,11 @@ const Config = {
     DEFAULT_DEVICE: Device.WEB,
 
     DEVICE_TO_REDIRECT_URL,
-    ALLOWED_REDIRECT_URLS: [...DEVICE_TO_REDIRECT_URL.values(), new RegExp(/^http:\/\/localhost:\d+\/auth\/$/)],
+    ALLOWED_REDIRECT_URLS: [
+        ...DEVICE_TO_REDIRECT_URL.values(),
+        new RegExp(/^http:\/\/localhost:\d+\/auth\/$/),
+        new RegExp(/^https:\/\/deploy-preview-\d+--hackillinois\.netlify\.app\/auth\/$/),
+    ],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
