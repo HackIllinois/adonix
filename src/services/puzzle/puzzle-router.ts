@@ -95,18 +95,6 @@ puzzleRouter.post(
         const qidString = req.params.qid;
         const { answer } = req.body;
 
-        // Invalid question
-        let qid;
-        try {
-            qid = parseInt(qidString, 10);
-        } catch {
-            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
-        }
-
-        if (qid < 0 || qid >= Config.PUZZLE.length) {
-            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
-        }
-
         const puzzle = await Models.PuzzleItem.findOne({ userId });
 
         // Not yet created
@@ -114,13 +102,24 @@ puzzleRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(PuzzleNotCreatedError);
         }
 
+        // Invalid question
+        const qid = parseInt(qidString, 10);
+        if (isNaN(qid)) {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
+        }
+        const puzzleAnswer = await Models.PuzzleAnswer.findOne({ qid });
+        if (!puzzleAnswer) {
+            return res.status(StatusCode.ClientErrorNotFound).send(PuzzleQuestionNotFoundError);
+        }
+        const correctAnswer = puzzleAnswer.answer;
+
         // Already completed, good to go
         if (puzzle.problemComplete[qid]) {
             return res.status(StatusCode.SuccessOK).send(puzzle);
         }
 
         // Incorrect
-        if (answer !== Config.PUZZLE[qid]) {
+        if (answer !== correctAnswer) {
             return res.status(StatusCode.ClientErrorBadRequest).send(PuzzleIncorrectAnswerError);
         }
 
