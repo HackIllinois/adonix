@@ -67,7 +67,7 @@ const ROOT_URL = ((): string => {
 const DEVICE_TO_REDIRECT_URL = new Map([
     [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
     [Device.DEV, `${ROOT_URL}/auth/dev/`],
-    [Device.WEB, "https://www.hackillinois.org/auth/"],
+    [Device.WEB, "https://hackillinois.org/auth/"],
     [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
     [Device.IOS, "hackillinois://login/"],
     [Device.ANDROID, "hackillinois://login/"],
