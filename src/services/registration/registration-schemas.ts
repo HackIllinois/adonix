@@ -190,7 +190,7 @@ export const RegistrationApplicationRequestSchema = z
         isProApplicant: z.boolean(),
         preferredName: z.string(),
         legalName: z.string(),
-        emailAddress: z.string(),
+        emailAddress: z.string().email({ message: "Invalid email syntax." }),
         gender: GenderSchema,
         race: z.array(RaceSchema),
         resumeFileName: z.string().optional(),
