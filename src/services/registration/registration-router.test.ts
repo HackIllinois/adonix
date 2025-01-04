@@ -37,6 +37,8 @@ const APPLICATION = {
     hackOutreach: [HackOutreach.INSTAGRAM],
 } satisfies RegistrationApplicationRequest;
 
+const APPLICATION_INVALID_EMAIL = { ...APPLICATION, emailAddress: "invalidemail" };
+
 const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
 const UNSUBMITTED_OTHER_REGISTRATION = {
     ...UNSUBMITTED_REGISTRATION,
@@ -115,6 +117,13 @@ describe("POST /registration/", () => {
 
     it("should provide bad request error when registration is invalid", async () => {
         const response = await postAsUser("/registration/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
+    it("should provide bad request error when email is invalid", async () => {
+        const response = await postAsUser("/registration/")
+            .send(APPLICATION_INVALID_EMAIL)
+            .expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
