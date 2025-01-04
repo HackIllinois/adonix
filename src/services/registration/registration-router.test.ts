@@ -37,9 +37,7 @@ const APPLICATION = {
     hackOutreach: [HackOutreach.INSTAGRAM],
 } satisfies RegistrationApplicationRequest;
 
-const APPLICATION_INVALID_EMAIL = Object.assign({}, APPLICATION, {
-    emailAddress: "invalidemail",
-});
+const APPLICATION_INVALID_EMAIL = { ...APPLICATION, emailAddress: "invalidemail" };
 
 const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
 const UNSUBMITTED_OTHER_REGISTRATION = {
