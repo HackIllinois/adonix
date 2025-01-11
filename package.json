@@ -1,6 +1,6 @@
 {
     "name": "adonix",
-    "version": "5.2.7",
+    "version": "5.2.8",
     "description": "Official repository for API redesign.",
     "main": "api/index.js",
     "type": "commonjs",
