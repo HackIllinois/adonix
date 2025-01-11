@@ -90,7 +90,7 @@ const Config = {
     ALLOWED_REDIRECT_URLS: [
         ...DEVICE_TO_REDIRECT_URL.values(),
         new RegExp(/^http:\/\/localhost:\d+\/auth\/$/),
-        new RegExp(/^https:\/\/deploy-preview-\d+--hackillinois\.netlify\.app\/auth\/$/),
+        new RegExp(/^https:\/\/[a-z0-9\-]+--hackillinois\.netlify\.app\/auth\/$/),
     ],
 
     CALLBACK_URLS: {
