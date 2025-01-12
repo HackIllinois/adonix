@@ -55,7 +55,6 @@ const PROFILE = {
 const REGISTRATION = {
     userId: TESTER.id,
     hasSubmitted: true,
-    isProApplicant: false,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,

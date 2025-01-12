@@ -28,7 +28,6 @@ const OTHER_DECISION = {
 } satisfies AdmissionDecision;
 
 const TESTER_APPLICATION = {
-    isProApplicant: false,
     userId: TESTER.id,
     preferredName: TESTER.name,
     legalName: TESTER.name,

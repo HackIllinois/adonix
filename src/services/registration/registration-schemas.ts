@@ -76,9 +76,6 @@ export class RegistrationApplication {
     public hasSubmitted: boolean;
 
     @prop({ required: true })
-    public isProApplicant: boolean;
-
-    @prop({ required: true })
     public preferredName: string;
 
     @prop({ required: true })
@@ -187,7 +184,6 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationRequestSchema = z
     .object({
-        isProApplicant: z.boolean(),
         preferredName: z.string(),
         legalName: z.string(),
         // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
@@ -226,7 +222,6 @@ export const RegistrationApplicationRequestSchema = z
             degree: Degree.ASSOCIATES,
             major: "Computer Science",
             gradYear: 0,
-            isProApplicant: true,
             proEssay: "I wanna be a Knight",
             considerForGeneral: true,
             requestedTravelReimbursement: false,

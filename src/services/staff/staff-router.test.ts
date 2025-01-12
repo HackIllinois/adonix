@@ -31,7 +31,6 @@ const TESTER_REGISTRATION = {
     hackOutreach: [HackOutreach.INSTAGRAM],
     dietaryRestrictions: ["Vegan", "No Pork"],
     resumeFileName: "GitHub cheatsheet.pdf",
-    isProApplicant: false,
     legalName: "Ronakin Kanandani",
     considerForGeneral: false,
     requestedTravelReimbursement: true,

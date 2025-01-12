@@ -17,7 +17,6 @@ import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
-    isProApplicant: false,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
