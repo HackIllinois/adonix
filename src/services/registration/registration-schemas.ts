@@ -190,7 +190,8 @@ export const RegistrationApplicationRequestSchema = z
         isProApplicant: z.boolean(),
         preferredName: z.string(),
         legalName: z.string(),
-        emailAddress: z.string().email({ message: "Invalid email syntax." }),
+        // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
         gender: GenderSchema,
         race: z.array(RaceSchema),
         resumeFileName: z.string().optional(),
