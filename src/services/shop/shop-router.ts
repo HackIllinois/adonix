@@ -331,6 +331,10 @@ shopRouter.post(
                 description: "Order doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Not enough quantity in shop",
+                schema: ShopInsufficientFundsErrorSchema,
+            },
         },
     }),
     async (req, res) => {
@@ -350,6 +354,21 @@ shopRouter.post(
             throw Error("Could not find attendee profile");
         }
         */
+
+        for(let i = 0; i < order.items.length; i++) {
+
+            const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
+
+            if(!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            const q = order.quantity?.[i] as number | 0;
+
+            if(q == undefined || item.quantity < q) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopInsufficientFundsError);
+            }
+        }
 
         for(let i = 0; i < order.items.length; i++) {
             const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
