@@ -45,7 +45,6 @@ const TESTER_PROFILE = {
     avatarUrl: "TestURL",
     discordTag: "TestTag",
     points: 0,
-    coins: 0,
     foodWave: 0,
 } satisfies AttendeeProfile;
 

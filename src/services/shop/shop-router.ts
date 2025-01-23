@@ -1,16 +1,14 @@
 import crypto from "crypto";
 import {
-    ShopInsufficientFundsError,
-    ShopInsufficientFundsErrorSchema,
+    // ShopInsufficientFundsError,
+    // ShopInsufficientFundsErrorSchema,
     ShopItem,
     ShopItemAlreadyExistsError,
     ShopItemAlreadyExistsErrorSchema,
-    ShopItemBuyRequestSchema,
     ShopItemCreateRequestSchema,
     ShopItemIdSchema,
     ShopItemNotFoundError,
     ShopItemNotFoundErrorSchema,
-    ShopItemQRCodesSchema,
     ShopItemSchema,
     ShopItemsSchema,
     ShopItemUpdateRequestSchema,
@@ -20,11 +18,11 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import Models from "../../common/models";
 import { Role } from "../auth/auth-schemas";
-import { updateCoins } from "../profile/profile-lib";
+// import { updatePoints } from "../profile/profile-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema } from "../../common/schemas";
-import { getAuthenticatedUser } from "../../common/auth";
+// import { getAuthenticatedUser } from "../../common/auth";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -180,120 +178,6 @@ shopRouter.delete(
         }
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
-    },
-);
-
-shopRouter.get(
-    "/item/qr/:id/",
-    specification({
-        method: "get",
-        path: "/shop/item/qr/{id}/",
-        tag: Tag.SHOP,
-        role: Role.STAFF,
-        summary: "Gets the QR codes for a shop item",
-        parameters: z.object({
-            id: ShopItemIdSchema,
-        }),
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The qr codes",
-                schema: ShopItemQRCodesSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Item doesn't exist",
-                schema: ShopItemNotFoundErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { id: itemId } = req.params;
-
-        const item = await Models.ShopItem.findOne({ itemId });
-
-        if (!item) {
-            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-        }
-
-        const uris = item.instances.map((instance: string) => `hackillinois://item?itemId=${itemId}&instance=${instance}`);
-        return res.status(StatusCode.SuccessOK).send({ itemId, qrInfo: uris });
-    },
-);
-
-shopRouter.post(
-    "/item/buy",
-    specification({
-        method: "post",
-        path: "/shop/item/buy/",
-        tag: Tag.SHOP,
-        role: Role.ATTENDEE,
-        summary: "Purchases a shop item",
-        body: ShopItemBuyRequestSchema,
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The successfully purchased item",
-                schema: ShopItemSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Item doesn't exist",
-                schema: ShopItemNotFoundErrorSchema,
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Insufficient funds",
-                schema: ShopInsufficientFundsErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { itemId } = req.body;
-        const { id: userId } = getAuthenticatedUser(req);
-
-        const item = await Models.ShopItem.findOne({ itemId: itemId });
-
-        if (!item) {
-            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-        }
-
-        const profile = await Models.AttendeeProfile.findOne({ userId: userId });
-
-        if (!profile) {
-            throw Error("Could not find attendee profile");
-        }
-
-        if (profile.coins < item.price) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
-        }
-
-        const instances = item.instances;
-
-        for (let i = 0; i < instances.length; ++i) {
-            // If this isn't the instance, move on
-            if (instances[i] != req.body.instance) {
-                continue;
-            }
-
-            // delete shop item
-            const updatedShopQuantity = await Models.ShopItem.updateOne(
-                { itemId: itemId },
-                {
-                    $inc: { quantity: -1 },
-                    $pull: { instances: req.body.instance },
-                },
-            );
-
-            // decrement attendee coins
-            if (updatedShopQuantity) {
-                await updateCoins(userId, -item.price).then(console.error);
-            }
-
-            const withoutInstances = {
-                ...item.toObject(),
-                instances: undefined,
-            };
-
-            return res.status(StatusCode.SuccessOK).send(withoutInstances);
-        }
-
-        return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
     },
 );
 
