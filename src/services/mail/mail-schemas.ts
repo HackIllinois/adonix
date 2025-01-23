@@ -6,6 +6,7 @@ export const MailInfoSchema = z
         recipients: z.array(z.string()),
         scheduleTime: z.optional(z.string()),
         subs: z.optional(z.record(z.unknown())),
+        recipientSubs: z.optional(z.array(z.record(z.unknown()))),
     })
     .openapi("MailInfo");
 
