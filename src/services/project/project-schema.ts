@@ -54,6 +54,9 @@ export class Project {
     @prop({ required: true })
     public accessCode: string;
 
+    @prop({ required: true })
+    public expiryTime: string
+
     @prop({ required: false })
     public description: string;
 }
@@ -77,6 +80,7 @@ export const ProjectProjectsSchema = z
         githubLink: z.string(),
         videoLink: z.string(),
         accessCode: z.string(),
+        expiryTime: z.string(),
         description: z.string(),
     })
     .openapi("ProjectSchema", {
@@ -84,6 +88,14 @@ export const ProjectProjectsSchema = z
     });
 
 export const CreateProjectRequestSchema = ProjectProjectsSchema.omit({ ownerId: true }).openapi("CreateProjectRequest"); // add example after
+
+export const AccessCodeSchema = z
+    .object({
+        accessCode: z.string(),
+    })
+    .openapi("AccessCodeSchema", {
+        description: "Access code for joining a team"
+    });
 
 export const ProjectMappingsSchema = z
     .object({

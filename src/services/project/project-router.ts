@@ -12,16 +12,18 @@ import {
     CreateProjectRequestSchema,
     UserAlreadyHasTeamError,
     UserAlreadyHasTeamErrorSchema,
+    AccessCodeSchema,
     //ProjectMappingSchema,
     //PathTypeSchema,
     //TrackTypeSchema
 } from "./project-schema";
 
 //import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
-import { z } from "zod";
+import { map, string, z } from "zod";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { UserIdSchema } from "../../common/schemas";
+import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
 //import Config from "../../common/config";
 //import crypto from "crypto";
 
@@ -135,6 +137,12 @@ projectRouter.post(
             return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
         }
 
+        // make a new project mapping
+        await Models.ProjectMappings.create({
+            teamOwnerId: userId,
+            userId: userId
+        })
+
         const newProject = await Models.ProjectProjects.create(project);
 
         return res.status(StatusCode.SuccessCreated).send(newProject);
@@ -142,6 +150,120 @@ projectRouter.post(
 );
 
 // POST join
+projectRouter.post(
+    "/join",
+    specification({
+        method: "post",
+        path: "/project/join/",
+        tag: Tag.PROJECT,
+        role: null,
+        summary: "join a team",
+        body: AccessCodeSchema, // should be access code
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Team joined",
+                schema: ProjectProjectsSchema
+            }, 
+            [StatusCode.ClientErrorConflict]: {
+                description: "Already part of team",
+                schema: UserAlreadyHasTeamErrorSchema
+            },
+            // more status codes
+        }
+    }),
+    async (_req, res) => {
+        const { id: userId } = getAuthenticatedUser(_req);
+        const { accessCode } = _req.body;
+        
+        // check if access code valid
+        const project = await Models.ProjectProjects.findOne({ accessCode });
+        if (!project) {
+            return res.status(StatusCode.ClientErrorBadRequest); // fix this
+        }
+        
+        if (new Date() > new Date(project.expiryTime)) {
+            return res.status(StatusCode.ClientErrorBadRequest); // fix this too
+        }
+
+        // user not already part of team
+        const existingMapping = await Models.ProjectMappings.findOne({ userId });
+        if (existingMapping) {
+            return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
+        }
+
+        // check if team not full (array of members <= 4)
+        if (project.teamMembers.length >= 4) {
+            return res.status(StatusCode.ClientErrorBadRequest); // fix this
+        }
+
+        // does not have track/path conflicts with team - come back to this
+
+        // updates the teams ProjectProjects AND creates user's projectMappings entry
+        project.teamMembers.push(userId);
+        await project.save();
+
+        await Models.ProjectMappings.create({
+            teamOwnerId: project.ownerId,
+            userId: userId
+        });
+
+        return res.status(StatusCode.SuccessOK).send(project);
+    },
+);
+
+// POST leave
+projectRouter.post(
+    "/leave/",
+    specification({
+        method: "post",
+        path: "/project/leave/",
+        tag: Tag.PROJECT,
+        role: Role.STAFF,
+        summary: "allow user to leave team",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Left project",
+                schema: UserIdSchema // probably have to change
+            },
+            [StatusCode.ClientErrorConflict]: {
+                description: "Can't find user",
+                schema: UserNotFoundErrorSchema
+            }
+        },
+    }),
+    async (_req, res) => {
+        const { id: userId } = getAuthenticatedUser(_req);
+
+        // check if user on team
+        const mapping = await Models.ProjectMappings.findOne({ userId });
+        if (!mapping) {
+            return res.status(StatusCode.ClientErrorConflict).send(UserNotFoundError);
+        }
+
+        const project = await Models.ProjectProjects.findOne({ ownerId: mapping.teamOwnerId });
+        if (!project) {
+            return res.status(StatusCode.ClientErrorConflict);
+        }
+
+        // if user is the owner of the project
+        if (project.ownerId == userId) {
+            if (project.teamMembers.length > 1) {
+                return res.status(StatusCode.ClientErrorForbidden); // fix 
+            }
+
+            await Models.ProjectProjects.deleteOne({ _id: project._id });
+            await Models.ProjectMappings.deleteOne({ teamOwnerId: userId });
+            return res.status(StatusCode.SuccessOK); // fix
+        }
+
+        // if user not owner
+        project.teamMembers = project.teamMembers.filter(member => member != userId);
+        await project.save();
+
+        await Models.ProjectMappings.deleteOne({ userId: userId });
+        return res.status(StatusCode.SuccessOK); // fix
+    },
+)
 
 // GET all projects (STAFF only)
 projectRouter.get(
