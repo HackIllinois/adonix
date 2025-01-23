@@ -1,6 +1,6 @@
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { updatePointsAndCoins } from "../profile/profile-lib";
+import { updatePoints } from "../profile/profile-lib";
 import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { Specification } from "../../middleware/specification";
@@ -46,7 +46,7 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
 
     const points = event.points || 0;
-    const newProfile = await updatePointsAndCoins(userId, points);
+    const newProfile = await updatePoints(userId, points);
 
     if (!newProfile) {
         throw Error("No profile exists, cannot checkin");
