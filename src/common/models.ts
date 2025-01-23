@@ -148,8 +148,8 @@ export default class Models {
     );
 
     // Projects
-    static ProjectInfo: Model<Project> = getModel(Project, Group.PROJECT, ProjectCollection.PROJECTS);
-    static ProjectMapping: Model<ProjectMappings> = getModel(ProjectMappings, Group.PROJECT, ProjectCollection.MAPPINGS);
+    static ProjectProjects: Model<Project> = getModel(Project, Group.PROJECT, ProjectCollection.PROJECTS);
+    static ProjectMappings: Model<ProjectMappings> = getModel(ProjectMappings, Group.PROJECT, ProjectCollection.MAPPINGS);
 
     // Puzzle
     static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);

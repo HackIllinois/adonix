@@ -39,7 +39,6 @@ projectRouter.get(
         parameters: z.object({
             ownerId: UserIdSchema,
         }),
-        body: ProjectProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The team for this specific ownerId",
@@ -53,11 +52,11 @@ projectRouter.get(
     }),
     async (req, res) => {
         const ownerId = req.params.ownerId;
-        const projectDetails = await Models.ProjectInfo.findOne({ ownerId });
+        const projectDetails = await Models.ProjectProjects.findOne({ ownerId });
 
         // Return no project found if no details were found
         if (!projectDetails) {
-            return res.status(StatusCode.ClientErrorConflict).send(NoTeamFoundError);
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
 
         return res.status(StatusCode.SuccessOK).send(projectDetails);
@@ -66,20 +65,19 @@ projectRouter.get(
 
 // GET details of user's team
 projectRouter.get(
-    "/details",
+    "/details/",
     specification({
         method: "get",
         path: "/project/details/",
         tag: Tag.PROJECT,
         role: null,
         summary: "get details of user's team",
-        body: ProjectProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The user's team",
                 schema: ProjectProjectsSchema,
             },
-            [StatusCode.ClientErrorConflict]: {
+            [StatusCode.ClientErrorNotFound]: {
                 description: "No team found for the user",
                 schema: NoTeamFoundErrorSchema,
             },
@@ -87,14 +85,15 @@ projectRouter.get(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const userMapping = await Models.ProjectMapping.findOne({ userId });
+        const userMapping = await Models.ProjectMappings.findOne({ userId });
         if (!userMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
         const ownerId = userMapping?.teamOwnerId;
 
         // find project associated with the ownerId
-        const projectDetails = await Models.ProjectInfo.findOne({ ownerId: ownerId });
+        const projectDetails = await Models.ProjectProjects.findOne({ ownerId: ownerId });
+        // return no team found error - fixes question mark issue
 
         return res.status(StatusCode.SuccessOK).send(projectDetails?.toObject());
     },
@@ -129,14 +128,14 @@ projectRouter.post(
             ownerId: userId,
             ...details,
         };
-
+        // check if user isn't already mapped to a team
         // ensure teamOwner hasn't already made a team
-        const ownerExists = (await Models.ProjectInfo.findOne({ ownerId: userId })) ?? false;
+        const ownerExists = (await Models.ProjectProjects.findOne({ ownerId: userId })) ?? false;
         if (ownerExists) {
             return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
         }
 
-        const newProject = await Models.ProjectInfo.create(project);
+        const newProject = await Models.ProjectProjects.create(project);
 
         return res.status(StatusCode.SuccessCreated).send(newProject);
     },
@@ -153,7 +152,6 @@ projectRouter.get(
         tag: Tag.PROJECT,
         role: Role.STAFF, //staff only endpoint
         summary: "get list of all teams",
-        body: ProjectsSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The projects",
@@ -162,7 +160,7 @@ projectRouter.get(
         },
     }),
     async (_req, res) => {
-        const projects = await Models.ProjectInfo.find();
+        const projects = await Models.ProjectProjects.find();
         return res.status(StatusCode.SuccessOK).send({ projects: projects });
     },
 );
