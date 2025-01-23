@@ -97,4 +97,30 @@ newsletterRouter.post(
     },
 );
 
+newsletterRouter.delete(
+    "/subscribe/",
+    specification({
+        method: "delete",
+        path: "/newsletter/subscribe/",
+        tag: Tag.NEWSLETTER,
+        role: null,
+        summary: "Unsubscribes the requested email to the requested newsletter",
+        body: SubscribeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description:
+                    "If the email was subscribed, it no longer is. For privacy reasons, whether this email was subscribed or not is hidden.",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { listName, emailAddress } = req.body;
+
+        const updateQuery: UpdateQuery<NewsletterSubscription> = { $pull: { subscribers: emailAddress } };
+        await Models.NewsletterSubscription.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
 export default newsletterRouter;
