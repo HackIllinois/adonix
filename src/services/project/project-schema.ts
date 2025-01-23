@@ -55,7 +55,7 @@ export class Project {
     public accessCode: string;
 
     @prop({ required: true })
-    public expiryTime: string
+    public expiryTime: string;
 
     @prop({ required: false })
     public description: string;
@@ -94,7 +94,7 @@ export const AccessCodeSchema = z
         accessCode: z.string(),
     })
     .openapi("AccessCodeSchema", {
-        description: "Access code for joining a team"
+        description: "Access code for joining a team",
     });
 
 export const ProjectMappingsSchema = z

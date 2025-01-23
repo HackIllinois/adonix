@@ -19,11 +19,12 @@ import {
 } from "./project-schema";
 
 //import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
-import { map, string, z } from "zod";
+import { z } from "zod";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { UserIdSchema } from "../../common/schemas";
 import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
+import Config from "../../common/config";
 //import Config from "../../common/config";
 //import crypto from "crypto";
 
@@ -130,7 +131,13 @@ projectRouter.post(
             ownerId: userId,
             ...details,
         };
+
         // check if user isn't already mapped to a team
+        const existingMapping = (await Models.ProjectMappings.findOne({ userId: userId })) ?? false;
+        if (existingMapping) {
+            return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
+        }
+
         // ensure teamOwner hasn't already made a team
         const ownerExists = (await Models.ProjectProjects.findOne({ ownerId: userId })) ?? false;
         if (ownerExists) {
@@ -140,8 +147,8 @@ projectRouter.post(
         // make a new project mapping
         await Models.ProjectMappings.create({
             teamOwnerId: userId,
-            userId: userId
-        })
+            userId: userId,
+        });
 
         const newProject = await Models.ProjectProjects.create(project);
 
@@ -162,25 +169,25 @@ projectRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Team joined",
-                schema: ProjectProjectsSchema
-            }, 
+                schema: ProjectProjectsSchema,
+            },
             [StatusCode.ClientErrorConflict]: {
                 description: "Already part of team",
-                schema: UserAlreadyHasTeamErrorSchema
+                schema: UserAlreadyHasTeamErrorSchema,
             },
             // more status codes
-        }
+        },
     }),
     async (_req, res) => {
         const { id: userId } = getAuthenticatedUser(_req);
         const { accessCode } = _req.body;
-        
+
         // check if access code valid
         const project = await Models.ProjectProjects.findOne({ accessCode });
         if (!project) {
             return res.status(StatusCode.ClientErrorBadRequest); // fix this
         }
-        
+
         if (new Date() > new Date(project.expiryTime)) {
             return res.status(StatusCode.ClientErrorBadRequest); // fix this too
         }
@@ -192,7 +199,7 @@ projectRouter.post(
         }
 
         // check if team not full (array of members <= 4)
-        if (project.teamMembers.length >= 4) {
+        if (project.teamMembers.length >= Config.TEAM_SIZE) {
             return res.status(StatusCode.ClientErrorBadRequest); // fix this
         }
 
@@ -204,7 +211,7 @@ projectRouter.post(
 
         await Models.ProjectMappings.create({
             teamOwnerId: project.ownerId,
-            userId: userId
+            userId: userId,
         });
 
         return res.status(StatusCode.SuccessOK).send(project);
@@ -223,12 +230,12 @@ projectRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Left project",
-                schema: UserIdSchema // probably have to change
+                schema: UserIdSchema, // probably have to change
             },
             [StatusCode.ClientErrorConflict]: {
                 description: "Can't find user",
-                schema: UserNotFoundErrorSchema
-            }
+                schema: UserNotFoundErrorSchema,
+            },
         },
     }),
     async (_req, res) => {
@@ -248,7 +255,7 @@ projectRouter.post(
         // if user is the owner of the project
         if (project.ownerId == userId) {
             if (project.teamMembers.length > 1) {
-                return res.status(StatusCode.ClientErrorForbidden); // fix 
+                return res.status(StatusCode.ClientErrorForbidden); // fix
             }
 
             await Models.ProjectProjects.deleteOne({ _id: project._id });
@@ -257,13 +264,13 @@ projectRouter.post(
         }
 
         // if user not owner
-        project.teamMembers = project.teamMembers.filter(member => member != userId);
+        project.teamMembers = project.teamMembers.filter((member) => member != userId);
         await project.save();
 
         await Models.ProjectMappings.deleteOne({ userId: userId });
         return res.status(StatusCode.SuccessOK); // fix
     },
-)
+);
 
 // GET all projects (STAFF only)
 projectRouter.get(

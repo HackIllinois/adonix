@@ -151,6 +151,7 @@ const Config = {
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,
     MAX_SHOP_STOCK_PER_ITEM: 128,
+    TEAM_SIZE: 4,
 
     RANKING_OFFSET: 1,
 };
