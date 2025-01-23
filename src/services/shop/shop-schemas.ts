@@ -48,21 +48,26 @@ export class ShopItem {
 
 export class ShopOrder {
     @prop({ required: true })
-    public orderNum: number
+    public orderNum: string
     @prop({ required: true })
     public items: Array<string>
 
     @prop({ required: true })
     public quantity: Array<number>
 
+    @prop({ required: true })
+    public userId: string
+
     constructor(
-        orderNum: number,
+        orderNum: string,
         items: Array<string>,
         quantity: Array<number>,
+        userId: string,
     ) {
         this.orderNum = orderNum;
         this.items = items;
         this.quantity = quantity;
+        this.userId = userId;
     }
 }
 
@@ -145,7 +150,7 @@ export const ShopItemGenerateOrderSchema = z.object({
 });
 
 export const ShopItemFulfillOrderSchema = z.object({
-    orderNum: z.number(),
+    orderNum: z.string(),
 });
 
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
