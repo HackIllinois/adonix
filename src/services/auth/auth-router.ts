@@ -1,5 +1,5 @@
 import passport from "passport";
-import express, { Router } from "express";
+import express, { Router, Request, Response } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
@@ -16,8 +16,8 @@ import {
     JWTSchema,
     ProviderSchema,
     DeviceSchema,
-    AuthorizationFailedError,
-    AuthorizationFailedErrorSchema,
+    AuthenticationFailedError,
+    AuthenticationFailedErrorSchema,
     RoleSchema,
     ListUsersByRoleSchema,
     UserRolesSchema,
@@ -41,6 +41,7 @@ import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
 import { UserIdSchema } from "../../common/schemas";
+import { NextFunction } from "express-serve-static-core";
 
 passport.use(
     Provider.GITHUB,
@@ -168,7 +169,7 @@ authRouter.get(
             },
             [StatusCode.ClientErrorUnauthorized]: {
                 description: "Authorization failed",
-                schema: AuthorizationFailedErrorSchema,
+                schema: AuthenticationFailedErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "The redirect url requested is invalid",
@@ -188,7 +189,7 @@ authRouter.get(
     },
     async (req, res) => {
         if (!req.isAuthenticated()) {
-            return res.status(StatusCode.ClientErrorUnauthorized).json(AuthorizationFailedError);
+            return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
         }
 
         const redirect: string = req.query.state;
@@ -213,6 +214,14 @@ authRouter.get(
         return res.redirect(url);
     },
 );
+// Handle authentication errors
+authRouter.use("/:provider/callback", (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("AUTH ERROR", err);
+    return res.status(StatusCode.ClientErrorUnauthorized).json({
+        ...AuthenticationFailedError,
+        details: err,
+    });
+});
 
 authRouter.get(
     "/roles/list/:role/",

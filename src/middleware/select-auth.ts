@@ -22,11 +22,15 @@ type CustomOptions = AuthenticateOptions & {
  * @returns RequestHandler middleware, that's pre-configured for the provider
  */
 export function SelectAuthProvider(provider: string, redirect: string): RequestHandler {
+    const sharedOptions: AuthenticateOptions = {
+        state: redirect,
+        failWithError: true,
+    };
     if (provider == "google") {
         const options: CustomOptions = {
             ...googleOptions,
+            ...sharedOptions,
             callbackURL: Config.CALLBACK_URLS.GOOGLE,
-            state: redirect,
         };
         return authenticateFunction("google", options);
     }
@@ -34,8 +38,8 @@ export function SelectAuthProvider(provider: string, redirect: string): RequestH
     if (provider == "github") {
         const options: CustomOptions = {
             ...githubOptions,
+            ...sharedOptions,
             callbackURL: Config.CALLBACK_URLS.GITHUB,
-            state: redirect,
         };
 
         return authenticateFunction("github", options);
