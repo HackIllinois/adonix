@@ -13,6 +13,8 @@ import {
     UserAlreadyHasTeamError,
     UserAlreadyHasTeamErrorSchema,
     AccessCodeSchema,
+    ProjectUpdateSchema,
+    ProjectAccessCodeSchema,
     //ProjectMappingSchema,
     //PathTypeSchema,
     //TrackTypeSchema
@@ -29,6 +31,11 @@ import Config from "../../common/config";
 //import crypto from "crypto";
 
 const projectRouter = Router();
+const RADIX = 36;
+const EXPIRY = 300000;
+const SUBSTRING_START = 2;
+const SUBSTRING_END = 2;
+type AllowedUpdates = Partial<Pick<Project, "description" | "projectName" | "path" | "track" | "githubLink" | "videoLink">>;
 
 // GET details of specific team using ownerId (staff only)
 projectRouter.get(
@@ -127,8 +134,16 @@ projectRouter.post(
         const { id: userId } = getAuthenticatedUser(req);
         const details = req.body;
 
+        // generate access code
+        const accessCode = Math.random().toString(RADIX).substring(SUBSTRING_START, SUBSTRING_END).toUpperCase();
+
+        // set expiry time
+        const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
+
         const project: Project = {
             ownerId: userId,
+            accessCode,
+            expiryTime,
             ...details,
         };
 
@@ -153,6 +168,55 @@ projectRouter.post(
         const newProject = await Models.ProjectProjects.create(project);
 
         return res.status(StatusCode.SuccessCreated).send(newProject);
+    },
+);
+
+// PATCH update (only owner)
+projectRouter.patch(
+    "/update",
+    specification({
+        method: "patch",
+        path: "/project/update/",
+        tag: Tag.PROJECT,
+        role: null,
+        summary: "update a team - owner only",
+        body: ProjectUpdateSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Project updated",
+                schema: ProjectProjectsSchema, // fix?
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Only owner can update project",
+                schema: ProjectProjectsSchema, // fix?
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Could not update project",
+                schema: ProjectProjectsSchema, // fix?
+            },
+        },
+    }),
+    async (_req, res) => {
+        const { id: userId } = getAuthenticatedUser(_req);
+        const updateData: AllowedUpdates = _req.body;
+
+        const restrictedFields = ["accessCode", "teamMembers", "ownerId"];
+        const invalidFields = Object.keys(updateData).filter((field) => restrictedFields.includes(field));
+        if (invalidFields.length > 0) {
+            return res.status(StatusCode.ClientErrorBadRequest); // send better error
+        }
+
+        // find project
+        const updatedProject = await Models.ProjectProjects.findOneAndUpdate(
+            { ownerId: userId }, // Filter
+            { $set: updateData }, // Update
+            { new: true },
+        );
+        if (!updatedProject) {
+            return res.status(StatusCode.ClientErrorForbidden);
+        }
+
+        return res.status(StatusCode.SuccessOK).send(updatedProject);
     },
 );
 
@@ -291,6 +355,97 @@ projectRouter.get(
     async (_req, res) => {
         const projects = await Models.ProjectProjects.find();
         return res.status(StatusCode.SuccessOK).send({ projects: projects });
+    },
+);
+
+projectRouter.delete(
+    "/member/:userId",
+    specification({
+        method: "delete",
+        path: "/project/member/:userId",
+        tag: Tag.PROJECT,
+        role: null,
+        summary: "Remove a user from the team",
+        parameters: z.object({
+            userId: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "User removed from team successfully",
+                schema: UserIdSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "User is not part of any team",
+                schema: NoTeamFoundErrorSchema,
+            },
+        },
+    }),
+    async (_req, res) => {
+        const { userId } = _req.params;
+        const mapping = await Models.ProjectMappings.findOne({ userId: userId });
+        if (!mapping) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
+        }
+
+        const project = await Models.ProjectProjects.findOne({ ownerId: mapping.teamOwnerId });
+        if (!project) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError); // send better error?
+        }
+
+        // remove user from project
+        project.teamMembers = project.teamMembers.filter((member) => member != userId);
+        await project.save();
+
+        // remove user's mapping entry also
+        await Models.ProjectMappings.deleteOne({ userId: userId });
+
+        return res.status(StatusCode.SuccessOK).send(userId); // fix?
+    },
+);
+
+projectRouter.get(
+    "/generate-access-token",
+    specification({
+        method: "get",
+        path: "/project/generate-access-code/",
+        tag: Tag.PROJECT,
+        role: null,
+        summary: "Generate the team's access code",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Access code generated successfully",
+                schema: ProjectAccessCodeSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "No project found",
+                schema: NoTeamFoundErrorSchema,
+            },
+            // add more error codes
+        },
+    }),
+    async (_req, res) => {
+        const { id: userId } = getAuthenticatedUser(_req);
+        const project = await Models.ProjectProjects.findOne({ ownerId: userId });
+        if (!project) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
+        }
+
+        // generate access code
+        const accessCode = Math.random().toString(RADIX).substring(SUBSTRING_START, SUBSTRING_END).toUpperCase();
+
+        // set expiry time
+        const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
+
+        // update project
+        project.accessCode = accessCode;
+        project.expiryTime = expiryTime;
+        await project.save();
+
+        return res.status(StatusCode.SuccessOK).send({
+            ownerId: userId,
+            accessCode,
+            expiryTime,
+        });
     },
 );
 

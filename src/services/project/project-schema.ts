@@ -19,7 +19,7 @@ export enum TrackType {
 }
 export const TrackTypeSchema = z.nativeEnum(TrackType);
 
-// general interface for a project
+// general interface for a project - change some to be false?
 export class Project {
     @prop({ required: true })
     public projectName: string;
@@ -87,7 +87,11 @@ export const ProjectProjectsSchema = z
         description: "Information about a project",
     });
 
-export const CreateProjectRequestSchema = ProjectProjectsSchema.omit({ ownerId: true }).openapi("CreateProjectRequest"); // add example after
+export const CreateProjectRequestSchema = ProjectProjectsSchema.omit({
+    ownerId: true,
+    accessCode: true,
+    expiryTime: true,
+}).openapi("CreateProjectRequest"); // add example after
 
 export const AccessCodeSchema = z
     .object({
@@ -112,6 +116,32 @@ export const ProjectsSchema = z
     })
     .openapi("ProjectsSchema", {
         description: "all projects",
+    });
+
+export const ProjectUpdateSchema = ProjectProjectsSchema.omit({
+    ownerId: true,
+    accessCode: true,
+    teamMembers: true,
+    expiryTime: true,
+})
+    .partial()
+    .merge(ProjectProjectsSchema.pick({ ownerId: true }))
+    .openapi("ProjectUpdateSchema", {
+        description: "Update project - owner only",
+        example: {
+            ownerId: "owner123",
+            projectName: "Updated Project Name",
+        },
+    });
+
+export const ProjectAccessCodeSchema = z
+    .object({
+        ownerId: z.string(),
+        accessCode: z.string(),
+        expiryTime: z.string(), // ISO string format
+    })
+    .openapi("ProjectAccessCodeSchema", {
+        description: "Generate access code schema",
     });
 
 export const [UserAlreadyHasTeamError, UserAlreadyHasTeamErrorSchema] = CreateErrorAndSchema({
