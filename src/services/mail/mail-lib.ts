@@ -32,5 +32,14 @@ export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResu
         data: data,
     };
 
-    return axios.post<MailSendResults>(Config.SPARKPOST_URL, data, config);
+    return axios.post<MailSendResults>(Config.SPARKPOST_URL, data, config).catch((error) => {
+        if (error.response) {
+            console.error(error.response.status, error.response.data);
+        } else if (error.request) {
+            console.error(error.request);
+        } else {
+            console.error(error.message);
+        }
+        throw new Error("Failed to send mail");
+    });
 }
