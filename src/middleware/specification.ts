@@ -16,6 +16,7 @@ export enum Tag {
     NEWSLETTER = "Newsletter",
     NOTIFICATION = "Notification",
     PROFILE = "Profile",
+    PROJECT = "Project",
     PUZZLE = "Puzzle",
     REGISTRATION = "Registration",
     S3 = "S3",
