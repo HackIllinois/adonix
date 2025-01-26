@@ -1,7 +1,10 @@
 {
     "name": "adonix",
     "version": "6.3.3",
-    "description": "Official repository for API redesign.",
+    "description": "HackIllinois' backend API",
+    "keywords": [],
+    "author": "Aydan Pirani <aydanpirani@gmail.com>",
+    "license": "MIT",
     "main": "api/index.js",
     "type": "commonjs",
     "scripts": {
@@ -19,9 +22,6 @@
         "start": "node --enable-source-maps out/index.js",
         "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\""
     },
-    "keywords": [],
-    "author": "Aydan Pirani <aydanpirani@gmail.com>",
-    "license": "ISC",
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^7.1.1",
         "@aws-sdk/client-s3": "^3.496.0",
