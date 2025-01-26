@@ -4,7 +4,6 @@ import { AUTH_ROLE_TO_ROLES, TESTER, delAsAttendee, get, getAsAttendee, getAsSta
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { EventFollowers, EventAttendance, Event, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
-import Config from "../../common/config";
 import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
