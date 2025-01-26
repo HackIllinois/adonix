@@ -69,7 +69,6 @@ const TEST_EVENT = {
     locations: [
         {
             description: "Siebel ",
-            tags: [],
             latitude: 40.113812,
             longitude: -88.224937,
         },
