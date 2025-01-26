@@ -127,17 +127,6 @@ const Config = {
     S3_BUCKET_NAME: requireEnv("S3_BUCKET_NAME"),
 
     // Runes and Riddles
-    PUZZLE: [
-        requireEnv("QID0"),
-        requireEnv("QID1"),
-        requireEnv("QID2"),
-        requireEnv("QID3"),
-        requireEnv("QID4"),
-        requireEnv("QID5"),
-        requireEnv("QID6"),
-        requireEnv("QID7"),
-        requireEnv("QID8"),
-    ],
     PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
     FALSE_VALUE: 0,
