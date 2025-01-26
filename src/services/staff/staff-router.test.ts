@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { AUTH_ROLE_TO_ROLES, putAsAttendee, putAsStaff } from "../../common/testTools";
-import { generateJwtToken } from "../../common/auth";
+import { putAsAttendee, putAsStaff } from "../../common/testTools";
 
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
+import { encryptQR } from "../user/user-lib";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -82,54 +82,95 @@ beforeEach(async () => {
 });
 
 describe("PUT /staff/scan-attendee/", () => {
-    const attendeeJWT = generateJwtToken({
-        id: TESTER_REGISTRATION.userId,
-        email: "irrelevant@gmail.com",
-        provider: "github",
-        roles: AUTH_ROLE_TO_ROLES["ATTENDEE"],
+    let validQrId: string;
+    let expiredQrId: string;
+    let testUserId: string;
+
+    beforeEach(async () => {
+        // Clear attendance records
+        await Models.EventAttendance.deleteMany({});
+        await Models.UserAttendance.deleteMany({});
+
+        // Setup test user and generate QR codes
+        testUserId = TESTER_REGISTRATION.userId;
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        // Generate valid QR code
+        validQrId = encryptQR(testUserId, currentTime + 300);
+
+        // Generate expired QR code
+        expiredQrId = encryptQR(testUserId, currentTime - 300);
     });
 
-    it("works for a staff", async () => {
+    it("successfully checks in user with valid QR code", async () => {
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT })
+            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
             success: true,
-            userId: TESTER_REGISTRATION.userId,
+            userId: testUserId,
             dietaryRestrictions: TESTER_REGISTRATION.dietaryRestrictions,
         });
 
-        const eventAttendance = await Models.EventAttendance.findOne({ eventId: "some-event" });
-        const userAttendance = await Models.UserAttendance.findOne({ userId: "some-user" });
+        // Verify attendance records
+        const eventAttendance = await Models.EventAttendance.findOne({
+            eventId: TEST_EVENT.eventId,
+        });
+        const userAttendance = await Models.UserAttendance.findOne({
+            userId: testUserId,
+        });
 
-        expect(eventAttendance?.attendees).toContain("some-user");
+        expect(eventAttendance?.attendees).toContain(testUserId);
         expect(userAttendance?.attendance).toContain(TEST_EVENT.eventId);
     });
 
-    it("returns Forbidden for non-staff", async () => {
-        const response = await putAsAttendee("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT })
+    it("rejects non-staff users", async () => {
+        await putAsAttendee("/staff/scan-attendee/")
+            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
             .expect(StatusCode.ClientErrorForbidden);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
-    it("returns NotFound for non-existent event", async () => {
-        const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "not-some-event", attendeeJWT })
+    it("rejects invalid QR codes", async () => {
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: TEST_EVENT.eventId, qrId: "invalidQR" })
+            .expect(StatusCode.ServerErrorInternal);
+    });
+
+    it("rejects expired QR codes", async () => {
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: TEST_EVENT.eventId, qrId: expiredQrId })
+            .expect(StatusCode.ClientErrorUnauthorized);
+    });
+
+    it("handles non-existent events", async () => {
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: "non-existent-event", qrId: validQrId })
             .expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
-    it("returns AlreadyCheckedIn for duplicate calls", async () => {
-        await putAsStaff("/staff/scan-attendee/").send({ eventId: TEST_EVENT.eventId, attendeeJWT }).expect(StatusCode.SuccessOK);
+    it("prevents duplicate check-ins", async () => {
+        // First check-in should succeed
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .expect(StatusCode.SuccessOK);
 
+        // Second check-in should fail
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT })
+            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
             .expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "AlreadyCheckedIn",
+        });
+    });
+
+    it("handles missing registration data", async () => {
+        // Remove registration data
+        await Models.RegistrationApplication.deleteOne({ userId: testUserId });
+
+        await putAsStaff("/staff/scan-attendee/")
+            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .expect(StatusCode.ServerErrorInternal);
     });
 });

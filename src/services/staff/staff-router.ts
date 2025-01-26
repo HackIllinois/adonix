@@ -1,9 +1,13 @@
 import { Router } from "express";
 import { Role } from "../auth/auth-schemas";
-import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
+import { getAuthenticatedUser } from "../../common/auth";
 import {
     CodeExpiredError,
     CodeExpiredErrorSchema,
+    QRExpiredError,
+    QRExpiredErrorSchema,
+    // QRInvalidError,
+    QRInvalidErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
@@ -18,6 +22,7 @@ import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
+import { decryptQR } from "../user/user-lib";
 
 const staffRouter = Router();
 
@@ -74,6 +79,7 @@ staffRouter.post(
     },
 );
 
+// TODO
 staffRouter.put(
     "/scan-attendee/",
     specification({
@@ -81,32 +87,60 @@ staffRouter.put(
         path: "/staff/scan-attendee/",
         tag: Tag.STAFF,
         role: Role.STAFF,
-        summary: "Checks in a user using their QR code JWT for a specified event",
+        summary: "Checks in a user using their encrypted QR code token for a specified event",
         body: ScanAttendeeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The scanned user's information",
                 schema: ScanAttendeeSchema,
             },
+            [StatusCode.ServerErrorInternal]: {
+                description: "qrId invalid",
+                schema: QRInvalidErrorSchema,
+            },
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "qrId has expired",
+                schema: QRExpiredErrorSchema,
+            },
             ...PerformCheckInErrors,
         },
     }),
     async (req, res) => {
-        const { attendeeJWT, eventId } = req.body;
-        const { id: userId } = decodeJwtToken(attendeeJWT);
+        const { qrId, eventId } = req.body;
+        const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
+        // try {
+        // Decrypt and validate token
+        const decodedPayload = decryptQR(qrId);
+        // } catch (error) {
+        //     return res.status(StatusCode.ServerErrorInternal).send(QRInvalidError);
+        // }
+
+        // Validate expiration time
+        if (decodedPayload.exp < currentTime) {
+            return res.status(StatusCode.ClientErrorUnauthorized).send(QRExpiredError);
+        }
+
+        const userId = decodedPayload.userId;
+
+        // Perform check-in logic
         const result = await performCheckIn(eventId, userId);
         if (!result.success) {
             return res.status(result.status).json(result.error);
         }
 
-        const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
+        // Get registration data
+        const registrationData = await Models.RegistrationApplication.findOne({ userId }).select("dietaryRestrictions");
         if (!registrationData) {
             throw Error("No registration data");
         }
 
         const { dietaryRestrictions } = registrationData;
-        return res.status(StatusCode.SuccessOK).json({ success: true, userId, dietaryRestrictions });
+        return res.status(StatusCode.SuccessOK).json({
+            success: true,
+            userId,
+            dietaryRestrictions,
+        });
     },
 );
 

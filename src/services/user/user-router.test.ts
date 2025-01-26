@@ -9,7 +9,7 @@ import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
-import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
+import { decryptQR } from "./user-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -97,54 +97,65 @@ beforeEach(async () => {
 });
 
 describe("GET /user/qr/", () => {
-    it("works for a attendee", async () => {
-        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
-
+    it("generates QR code for authenticated user", async () => {
+        const creationTime = Math.floor(Date.now() / 1000);
         const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
+        const responseBody = JSON.parse(response.text);
 
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
-
-        expect(JSON.parse(response.text)).toMatchObject({
+        // Verify response format
+        expect(responseBody).toMatchObject({
             userId: TESTER_USER.userId,
-            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
+            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?qrId=[A-Za-z0-9+/=]+/),
         });
 
-        expect(mockedGenerateJwtToken).toBeCalledWith(
-            expect.objectContaining({
-                id: TESTER_USER.userId,
-            }),
-            false,
-            Config.QR_EXPIRY_TIME,
-        );
+        // Decrypt the QR code
+        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        const decryptedData = decryptQR(encryptedToken);
+
+        // Verify decrypted data
+        expect(decryptedData.userId).toBe(TESTER_USER.userId);
+        expect(decryptedData.exp > creationTime).toBe(true);
     });
 });
 
 describe("GET /user/qr/:id/", () => {
-    it("gives a forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    it("rejects non-staff users", async () => {
+        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "Forbidden",
+        });
     });
 
-    it("works for a staff user", async () => {
-        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+    it("generates QR code for specified user (staff)", async () => {
+        const response = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
+        const responseBody = JSON.parse(response.text);
 
-        const response = await getAsStaff(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.SuccessOK);
-
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
-
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: OTHER_USER.userId,
-            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
+        // Verify response
+        expect(responseBody).toMatchObject({
+            userId: TESTER_USER.userId,
+            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?qrId=[A-Za-z0-9+/=]+/),
         });
 
-        expect(mockedGenerateJwtToken).toBeCalledWith(
-            expect.objectContaining({
-                id: OTHER_USER.userId,
-            }),
-            false,
-            Config.QR_EXPIRY_TIME,
-        );
+        // Decrypt the QR code
+        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        const decryptedData = decryptQR(encryptedToken);
+
+        // Verify decrypted data
+        expect(decryptedData.userId).toBe(TESTER_USER.userId);
+        expect(decryptedData.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    });
+
+    it("generates new QR code on subsequent requests", async () => {
+        // First request
+        const firstResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
+        const firstEncryptedToken: string = JSON.parse(firstResponse.text).qrInfo.split("=")[1];
+
+        // Second request
+        const secondResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
+        const secondEncryptedToken: string = JSON.parse(secondResponse.text).qrInfo.split("=")[1];
+
+        // Tokens should be different
+        expect(firstEncryptedToken).not.toBe(secondEncryptedToken);
     });
 });
 

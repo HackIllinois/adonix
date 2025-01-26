@@ -21,7 +21,7 @@ export const StaffAttendanceRequestSchema = z.object({
 export const ScanAttendeeRequestSchema = z
     .object({
         eventId: EventIdSchema,
-        attendeeJWT: z.string().openapi({ description: "The scanned QR code token", example: "a35FG==" }),
+        qrId: z.string().openapi({ description: "The scanned QR code token", example: "ns6Shwu2" }),
     })
     .openapi("ScanAttendeeRequest");
 
@@ -45,4 +45,14 @@ export const ShiftsAddRequestSchema = z.object({
 export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({
     error: "CodeExpired",
     message: "The code for this event has expired",
+});
+
+export const [QRInvalidError, QRInvalidErrorSchema] = CreateErrorAndSchema({
+    error: "QRInvalid",
+    message: "qrId is invalid",
+});
+
+export const [QRExpiredError, QRExpiredErrorSchema] = CreateErrorAndSchema({
+    error: "QRExpired",
+    message: "Your QR code has expired",
 });

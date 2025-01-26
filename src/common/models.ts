@@ -9,7 +9,7 @@ import { Event, EventAttendance, EventFollowers } from "../services/event/event-
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import { RegistrationApplication, RegistrationChallenge } from "../services/registration/registration-schemas";
 import { ShopItem } from "../services/shop/shop-schemas";
-import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
+import { UserAttendance, UserFollowing, UserInfo, UserQR } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
@@ -85,6 +85,7 @@ enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
     FOLLOWING = "following",
+    QR = "qr",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -168,4 +169,5 @@ export default class Models {
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
     static UserFollowing: Model<UserFollowing> = getModel(UserFollowing, Group.USER, UserCollection.FOLLOWING);
+    static UserQR: Model<UserQR> = getModel(UserQR, Group.USER, UserCollection.QR);
 }

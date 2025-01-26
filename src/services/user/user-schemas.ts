@@ -35,6 +35,17 @@ export class UserFollowing {
     public following: string[];
 }
 
+export class UserQR {
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ required: true })
+    public qrId: string;
+
+    @prop({ required: true })
+    public exp: number;
+}
+
 export const UserInfoSchema = z
     .object({
         userId: UserIdSchema,
@@ -45,6 +56,7 @@ export const UserInfoSchema = z
         description: "A user's info",
     });
 
+// TODO
 export const QRInfoSchema = z
     .object({
         userId: UserIdSchema,
