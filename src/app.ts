@@ -2,6 +2,7 @@ import "./common/init";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
+import { Server as SocketIOServer } from "socket.io";
 
 import admissionRouter from "./services/admission/admission-router";
 import authRouter from "./services/auth/auth-router";
@@ -18,6 +19,7 @@ import shopRouter from "./services/shop/shop-router";
 import staffRouter from "./services/staff/staff-router";
 import versionRouter from "./services/version/version-router";
 import userRouter from "./services/user/user-router";
+import duelsRouter from "./services/duels/duels-router";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -27,6 +29,10 @@ import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
 import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
 import { tryGetAuthenticatedUser } from "./common/auth";
+import { createServer, Server as HTTPServer } from "http";
+// import rateLimiter from "./services/duels/ratelimiter";
+// import { initSocket } from "./services/duels/socketio-helper";
+
 
 const app = express();
 
@@ -44,6 +50,31 @@ if (!Config.TEST) {
 
 // Automatically convert requests from json
 app.use(express.json());
+
+const server: HTTPServer = createServer(app);
+
+const io = new SocketIOServer(server, {
+    cors: {
+        origin: "*", // Allow all origins for simplicity
+        methods: ["GET", "POST"],
+    },
+});
+
+const duelsNamespace = io.of("/duels");
+// duelsNamespace.use((socket, next) => {
+//     // Apply database middleware to socket.io namespace
+//     database(socket.request as unknown as Request, {} as Response, next);
+// });
+duelsNamespace.use((socket, next) => {
+    database(
+        socket.request as unknown as Request,
+        {} as Response,
+        (err?: unknown) => next(err as Error | undefined)
+    );
+});
+
+duelsRouter(duelsNamespace);
+
 // eslint-disable-next-line no-magic-numbers
 app.set("json spaces", 4);
 
@@ -64,6 +95,7 @@ app.use("/shop/", database, shopRouter);
 app.use("/staff/", database, staffRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", database, userRouter);
+// app.use("/duels/", duelsRouter(io));
 
 // Docs
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
@@ -95,13 +127,22 @@ app.use("/", (_: Request, res: Response) => {
 app.use(ErrorHandler);
 
 // Finally, a function to start the server
-function promiseListen(port: number): Promise<Express.Application> {
+// function promiseListen(port: number): Promise<Express.Application> {
+//     return new Promise((resolve) => {
+//         const server = app.listen(port, () => {
+//             resolve(server);
+//         });
+//     });
+// }
+
+function promiseListen(port: number): Promise<HTTPServer> {
     return new Promise((resolve) => {
-        const server = app.listen(port, () => {
+        server.listen(port, () => {
             resolve(server);
         });
     });
 }
+
 
 export async function startServer(): Promise<Express.Application> {
     const port = Config.PORT;
