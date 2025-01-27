@@ -14,6 +14,7 @@ import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/typ
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { PuzzleItem } from "../services/puzzle/puzzle-schemas";
+import { Duel } from "../services/duels/duels-schemas";
 
 // Groups for collections
 export enum Group {
@@ -29,6 +30,7 @@ export enum Group {
     SHOP = "shop",
     STAFF = "staff",
     USER = "user",
+    DUELS = "duels",
 }
 
 // Collections for each database, where models will be stored
@@ -84,6 +86,10 @@ enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
     FOLLOWING = "following",
+}
+
+enum DuelsCollection {
+    DUELS = "duels",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -166,4 +172,7 @@ export default class Models {
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
     static UserFollowing: Model<UserFollowing> = getModel(UserFollowing, Group.USER, UserCollection.FOLLOWING);
+
+    // Duels
+    static Duel: Model<Duel> = getModel(Duel, Group.DUELS, DuelsCollection.DUELS);
 }
