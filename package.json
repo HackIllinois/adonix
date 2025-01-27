@@ -46,6 +46,8 @@
         "passport-github": "^1.1.0",
         "passport-google-oauth20": "^2.0.0",
         "passport-strategy": "^1.0.0",
+        "rate-limiter-flexible": "^5.0.5",
+        "socket.io": "^4.8.1",
         "status-code-enum": "^1.0.0",
         "swagger-ui-express": "^5.0.1",
         "tsc-watch": "^6.2.0",
