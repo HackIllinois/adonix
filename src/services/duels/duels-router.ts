@@ -3,6 +3,7 @@ import { decodeJwtToken } from "../../common/auth";
 import { JwtPayload } from "../auth/auth-schemas";
 import Models from "../../common/models";
 import { randomUUID } from "crypto";
+import { updatePointsAndCoins } from "../profile/profile-lib";
 
 export default function duelsRouter(duelsNamespace: Namespace) {
     duelsNamespace.on("connection", (socket) => {
@@ -120,8 +121,8 @@ function startRound(duelsNamespace: Namespace, roomId: string) {
             player1Lives--;
         
         await duel.updateOne({
-            player1Lives,
-            player2Lives,
+            player1LivesRemaining: player1Lives,
+            player2LivesRemaining: player2Lives,
             moves: {} // Reset moves for next round
         });
 
@@ -135,6 +136,13 @@ function startRound(duelsNamespace: Namespace, roomId: string) {
 
         if (player1Lives <= 0 || player2Lives <= 0) {
             const winner = player1Lives > 0 ? 'player1' : 'player2';
+            if (winner === "player1") {
+                updatePointsAndCoins(duel.player1Id, 5);
+                updatePointsAndCoins(duel.player2Id, 1);
+            } else {
+                updatePointsAndCoins(duel.player1Id, 1);
+                updatePointsAndCoins(duel.player2Id, 5);
+            }
             duelsNamespace.to(roomId).emit("game_over", { winner: winner });
             duelsNamespace.in(roomId).socketsLeave(roomId);
         } else {
