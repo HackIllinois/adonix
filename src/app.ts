@@ -33,7 +33,6 @@ import { createServer, Server as HTTPServer } from "http";
 // import rateLimiter from "./services/duels/ratelimiter";
 // import { initSocket } from "./services/duels/socketio-helper";
 
-
 const app = express();
 
 // Utility packages (detailed in the readme)
@@ -62,11 +61,8 @@ const io = new SocketIOServer(server, {
 
 const duelsNamespace = io.of("/duels");
 duelsNamespace.use((socket, next) => {
-    database(
-        socket.request as unknown as Request,
-        {} as Response,
-        (err?: unknown) => next(err as Error | undefined)
-    );
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    database(socket.request as unknown as Request, {} as Response, (err?: unknown) => next(err as Error | undefined));
 });
 
 duelsRouter(duelsNamespace);
@@ -129,7 +125,6 @@ function promiseListen(port: number): Promise<HTTPServer> {
         });
     });
 }
-
 
 export async function startServer(): Promise<Express.Application> {
     const port = Config.PORT;

@@ -144,6 +144,7 @@ const Config = {
 
     /* Timings */
     MILLISECONDS_PER_SECOND: 1000,
+    TEN_SECONDS_IN_MILLISECONDS: 10000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
     QR_EXPIRY_TIME: "20s",
     RESUME_URL_EXPIRY_SECONDS: 60,
@@ -158,6 +159,8 @@ const Config = {
 
     /* Rewards */
     MENTOR_OFFICE_HOURS_POINT_REWARD: 50,
+    DUELS_WINNER_REWARD: 5,
+    DUELS_LOSER_REWARD: 1,
 
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
