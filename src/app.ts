@@ -61,10 +61,6 @@ const io = new SocketIOServer(server, {
 });
 
 const duelsNamespace = io.of("/duels");
-// duelsNamespace.use((socket, next) => {
-//     // Apply database middleware to socket.io namespace
-//     database(socket.request as unknown as Request, {} as Response, next);
-// });
 duelsNamespace.use((socket, next) => {
     database(
         socket.request as unknown as Request,
@@ -125,15 +121,6 @@ app.use("/", (_: Request, res: Response) => {
 
 // Handle any errors from the above
 app.use(ErrorHandler);
-
-// Finally, a function to start the server
-// function promiseListen(port: number): Promise<Express.Application> {
-//     return new Promise((resolve) => {
-//         const server = app.listen(port, () => {
-//             resolve(server);
-//         });
-//     });
-// }
 
 function promiseListen(port: number): Promise<HTTPServer> {
     return new Promise((resolve) => {
