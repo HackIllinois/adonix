@@ -104,26 +104,15 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
         },
     });
 
-export const ShopItemQRCodeSchema = z.string().openapi("ShopItemQRCode", {
-    example: "hackillinois://item?itemId=item1234&instance=1x3",
-});
-
-export const ShopItemQRCodesSchema = z
-    .object({
-        itemId: ShopItemIdSchema,
-        qrInfo: z.array(ShopItemQRCodeSchema),
-    })
-    .openapi("ShopItemQRCodes");
-
 export const ShopItemBuyRequestSchema = z.object({
     itemId: ShopItemIdSchema,
     instance: z.string().openapi({ example: "1x3" }),
 });
 
-// needs to have list of items and quantity
-export const ShopItemGenerateOrderSchema = z.object({
+export const ShopOrderInfoSchema = z.object({
     items: z.array(z.string()),
     quantity: z.array(z.number()),
+    userId: z.string(),
 });
 
 export const ShopItemFulfillOrderSchema = z.object({
@@ -131,7 +120,7 @@ export const ShopItemFulfillOrderSchema = z.object({
 });
 
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
-    example: "hackillinois://ordernum?orderNum=10",
+    example: "hackillinois://shop?userId=github1203919029",
 });
 
 export const OrderQRCodesSchema = z
@@ -162,11 +151,11 @@ export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = Cr
 });
 
 export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
-    error: "InsufficientFunds",
-    message: "You don't have enough to purchase that item!",
+    error: "InsufficientQuantity",
+    message: "Not enough of that item in the shop/your cart",
 });
 
-export const [ShopOrderNotFoundError, ShopOrderNotFoundErrorSchema] = CreateErrorAndSchema({
-    error: "NotFound",
-    message: "Failed to user's order",
+export const [ShopInternalError, ShopInternalErrorSchema] = CreateErrorAndSchema({
+    error: "InternalError",
+    message: "This should never happen. i.e. user without attendeeProfile, user without shopOrder, etc.",
 });

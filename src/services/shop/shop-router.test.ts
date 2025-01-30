@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { getAsAttendee, postAsAttendee, postAsStaff, TESTER } from "../../common/testTools";
+import { delAsAttendee, getAsAttendee, postAsAttendee, postAsStaff, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { ShopItem, ShopOrder } from "./shop-schemas";
@@ -48,9 +48,7 @@ describe("POST /shop/cart/redeem", () => {
             .send({ userId: TESTER_PROFILE.userId })
             .expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            message: "Success",
-        });
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_SHOP_ORDER);
 
         // Verify inventory was updated
         const updatedItem = await Models.ShopItem.findOne({ itemId: TESTER_SHOP_ITEM.itemId });
@@ -66,14 +64,14 @@ describe("POST /shop/cart/redeem", () => {
     });
 
     it("returns NotFound for non-existent order", async () => {
-        await postAsStaff("/shop/cart/redeem").send({ userId: "non-existent-user" }).expect(StatusCode.ClientErrorNotFound);
+        await postAsStaff("/shop/cart/redeem").send({ userId: "non-existent-user" }).expect(StatusCode.ServerErrorInternal);
     });
 
     it("returns NotFound for non-existent user profile", async () => {
         // Create order but delete profile
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_PROFILE.userId });
 
-        await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ClientErrorNotFound);
+        await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ServerErrorInternal);
     });
 
     it("returns NotFound for non-existent shop item", async () => {
@@ -90,7 +88,7 @@ describe("POST /shop/cart/redeem", () => {
             { quantity: [11] }, // TESTER_SHOP_ITEM presumably has 10 quantity
         );
 
-        await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ClientErrorNotFound);
+        await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ClientErrorBadRequest);
     });
 
     it("returns PaymentRequired for insufficient points", async () => {
@@ -151,7 +149,8 @@ describe("POST /shop/cart/:itemId", () => {
         const response = await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            message: "success",
+            ...TESTER_SHOP_ORDER,
+            quantity: [3],
         });
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
@@ -167,7 +166,8 @@ describe("POST /shop/cart/:itemId", () => {
         const response = await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            message: "success",
+            ...TESTER_SHOP_ORDER,
+            quantity: [4],
         });
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
@@ -210,6 +210,78 @@ describe("POST /shop/cart/:itemId", () => {
         expect(newOrder).toBeTruthy();
         expect(newOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
         expect(newOrder?.quantity[0]).toBe(1);
+    });
+});
+
+describe("DELETE /shop/cart/:itemId", () => {
+    it("allows user to remove an item from the cart", async () => {
+        // Add item to the cart first
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        // Remove the item
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId);
+    });
+
+    it("decreases the quantity of an item in the cart", async () => {
+        // Add the item to the cart twice
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        // Remove the item once
+        const response = await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            ...TESTER_SHOP_ORDER,
+            quantity: [1],
+        });
+
+        const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
+        expect(updatedOrder?.quantity[0]).toBe(1); // Item quantity should now be 1
+    });
+
+    it("removes the item completely if the quantity reaches 0", async () => {
+        // Add the item to the cart twice
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        // Remove the item twice
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId); // The item should be completely removed
+    });
+
+    it("returns NotFound for non-existent item in cart", async () => {
+        await delAsAttendee("/shop/cart/non-existent-item").expect(StatusCode.ClientErrorNotFound);
+    });
+
+    it("returns InternalServerError when no cart exists for the user", async () => {
+        // Delete the user's cart if exists
+        await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
+
+        // Try removing an item from a non-existent cart
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.ServerErrorInternal);
+    });
+
+    it("removes the item completely when quantity reaches 0 in a fresh cart", async () => {
+        // Start fresh with no cart
+        await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
+
+        // Add item to the cart
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        // Now delete the item
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+
+        const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId); // Cart should be empty
     });
 });
 
@@ -259,13 +331,13 @@ describe("GET /shop/cart/qr", () => {
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            qrInfo: `hackillinois://userId?userId=${TESTER_PROFILE.userId}`,
+            qrInfo: `hackillinois://shop?userId=${TESTER_PROFILE.userId}`,
         });
     });
 
-    it("returns NotFound for non-existent cart", async () => {
+    it("returns InternalServerError for non-existent cart", async () => {
         await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
-        await getAsAttendee("/shop/cart/qr").expect(StatusCode.ClientErrorNotFound);
+        await getAsAttendee("/shop/cart/qr").expect(StatusCode.ServerErrorInternal);
     });
 
     it("returns NotFound when cart item no longer exists in shop", async () => {
@@ -353,7 +425,7 @@ describe("GET /shop/cart/qr", () => {
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            qrInfo: `hackillinois://userId?userId=${TESTER_PROFILE.userId}`,
+            qrInfo: `hackillinois://shop?userId=${TESTER_PROFILE.userId}`,
         });
     });
 });
