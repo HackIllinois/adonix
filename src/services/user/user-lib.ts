@@ -34,36 +34,7 @@ export function encryptQR(userId: string, exp: number): string {
     return encrypted;
 }
 
-export function decryptQR(token: string): { userId: string; exp: number } {
-    // Decrypt the token
-    const decrypted = decryptData(token, derivedAESKey);
-
-    // Check if the decrypted data is valid
-    if (!decrypted || !decrypted.includes(":")) {
-        throw new Error("Invalid or corrupted token");
-    }
-
-    // Split the decrypted payload into userId and exp
-    const [userId, exp] = decrypted.split(":");
-
-    // Validate that userId and exp are present
-    if (!userId || !exp) {
-        throw new Error("Invalid or corrupted token");
-    }
-
-    // Convert exp to a number
-    const expNumber = parseInt(exp, 10);
-    if (isNaN(expNumber)) {
-        throw new Error("Invalid expiration time");
-    }
-
-    return {
-        userId: userId,
-        exp: expNumber,
-    };
-}
-
-export function generateQRCodeURI(userId: string): string {
+export function generateQRCode(userId: string): string {
     const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
     const exp: number = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
 
@@ -72,7 +43,7 @@ export function generateQRCodeURI(userId: string): string {
     const encryptedToken = encryptData(payload, derivedAESKey);
 
     // Construct the URI with the encrypted token
-    const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
+    const uri = `hackillinois://user?qr=${encryptedToken}`;
 
     return uri;
 }

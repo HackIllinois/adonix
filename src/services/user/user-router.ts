@@ -20,7 +20,7 @@ import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-sch
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { generateQRCodeURI } from "./user-lib";
+import { generateQRCode } from "./user-lib";
 
 const userRouter = Router();
 
@@ -42,7 +42,7 @@ userRouter.get(
     }),
     async (req, res) => {
         const payload = getAuthenticatedUser(req);
-        const uri = generateQRCodeURI(payload.id);
+        const uri = generateQRCode(payload.id);
         return res.status(StatusCode.SuccessOK).send({
             userId: payload.id,
             qrInfo: uri,
@@ -83,7 +83,7 @@ userRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
         }
 
-        const uri = generateQRCodeURI(userId);
+        const uri = generateQRCode(userId);
         return res.status(StatusCode.SuccessOK).send({
             userId: userId,
             qrInfo: uri,

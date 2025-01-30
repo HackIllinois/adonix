@@ -8,7 +8,7 @@ import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
-import { decryptQR } from "./user-lib";
+import { decryptQRCode } from "./user-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -97,17 +97,15 @@ beforeEach(async () => {
 
 describe("GET /user/qr/", () => {
     it("generates QR code for authenticated user", async () => {
-        const creationTime = Math.floor(Date.now() / 1000);
         const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
         const responseBody = JSON.parse(response.text);
 
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
-        const decryptedData = decryptQR(encryptedToken);
+        const userId = decryptQRCode(encryptedToken);
 
         // Verify decrypted data
-        expect(decryptedData.userId).toBe(TESTER_USER.userId);
-        expect(decryptedData.exp > creationTime).toBe(true);
+        expect(userId).toBe(TESTER_USER.userId);
     });
 });
 
@@ -125,11 +123,10 @@ describe("GET /user/qr/:id/", () => {
 
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
-        const decryptedData = decryptQR(encryptedToken);
+        const userId = decryptQRCode(encryptedToken);
 
         // Verify decrypted data
-        expect(decryptedData.userId).toBe(TESTER_USER.userId);
-        expect(decryptedData.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
+        expect(userId).toBe(TESTER_USER.userId);
     });
 
     it("generates new QR code on subsequent requests", async () => {
