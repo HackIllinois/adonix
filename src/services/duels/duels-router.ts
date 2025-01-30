@@ -148,11 +148,19 @@ function startRound(duelsNamespace: Namespace, roomId: string): void {
         let player2Charges = duel.player2.charges;
 
         // if they do an invalid shoot, change their move to charge
-        if (player1Move === "shoot" && player1Charges <= 0) {player1Move = "charge";}
-        if (player2Move === "shoot" && player2Charges <= 0) {player2Move = "charge";}
+        if (player1Move === "shoot" && player1Charges <= 0) {
+            player1Move = "charge";
+        }
+        if (player2Move === "shoot" && player2Charges <= 0) {
+            player2Move = "charge";
+        }
 
-        if (player1Move === "charge") {player1Charges++;}
-        if (player2Move === "charge") {player2Charges++;}
+        if (player1Move === "charge") {
+            player1Charges++;
+        }
+        if (player2Move === "charge") {
+            player2Charges++;
+        }
 
         const winner = determineWinner(player1Move, player2Move);
 
