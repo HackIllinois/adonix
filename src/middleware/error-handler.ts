@@ -19,7 +19,7 @@ export function ErrorHandler(error: unknown, req: Request, res: Response, _next:
     }
     // Handle JSON parsing syntax error
     if (error instanceof SyntaxError) {
-        res.status(StatusCode.ClientErrorBadRequest).send({
+        return res.status(StatusCode.ClientErrorBadRequest).send({
             error: "BadRequest",
             message: "Bad request made - unable to parse the request. Are you sending valid JSON?",
         });

@@ -28,7 +28,7 @@ These error types are **not listed** under endpoints specifically, since each en
 
 Authentication:
 - `NoToken` - you haven't specified a token on an endpoint that requires one
-- `InvalidToken` - the token specified is invalid, try re-logging
+- `TokenInvalid` - the token specified is invalid, try re-logging
 - `TokenExpired` - the token has expired, you'll need to get a new one. To prevent this, use `GET /auth/token/refresh/`.
 - `Forbidden` - you don't have the role required to use this endpoint
 

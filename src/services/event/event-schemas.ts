@@ -21,12 +21,6 @@ export class Location {
     @prop({ required: true })
     public description: string;
 
-    @prop({
-        required: true,
-        type: () => String,
-    })
-    public tags: string[];
-
     @prop({ required: true })
     public latitude: number;
 
@@ -113,7 +107,6 @@ export class EventFollowers {
 export const LocationSchema = z
     .object({
         description: z.string(),
-        tags: z.array(z.string()),
         latitude: z.number(),
         longitude: z.number(),
     })
@@ -148,7 +141,6 @@ export const EventSchema = z
             locations: [
                 {
                     description: "Siebel Center for CS",
-                    tags: ["SIEBEL"],
                     latitude: 40.1138,
                     longitude: -88.2249,
                 },
@@ -176,7 +168,6 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
         locations: [
             {
                 description: "Siebel Center for CS",
-                tags: ["SIEBEL"],
                 latitude: 40.1138,
                 longitude: -88.2249,
             },

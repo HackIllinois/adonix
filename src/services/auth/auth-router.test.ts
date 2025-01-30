@@ -137,7 +137,7 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             StatusCode.ClientErrorUnauthorized,
         );
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "AuthorizationFailed");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AuthenticationFailed");
     });
 
     it.each(ALL_DEVICES)("works when authentication passes with device %s", async (device) => {

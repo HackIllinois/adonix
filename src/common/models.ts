@@ -13,7 +13,7 @@ import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-s
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
-import { PuzzleItem } from "../services/puzzle/puzzle-schemas";
+import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 
 // Groups for collections
 export enum Group {
@@ -65,6 +65,7 @@ enum NotificationCollection {
 
 enum PuzzleCollection {
     RUNES_AND_RIDDLES = "runesriddles",
+    ANSWERS = "answers",
 }
 
 enum RegistrationCollection {
@@ -144,6 +145,7 @@ export default class Models {
 
     // Puzzle
     static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);
+    static PuzzleAnswer: Model<PuzzleAnswer> = getModel(PuzzleAnswer, Group.PUZZLE, PuzzleCollection.ANSWERS);
 
     // Registration
     static RegistrationApplication: Model<RegistrationApplication> = getModel(

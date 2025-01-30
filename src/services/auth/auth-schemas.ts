@@ -93,9 +93,9 @@ export const RefreshTokenSchema = z
     })
     .openapi("RefreshToken");
 
-export const [AuthorizationFailedError, AuthorizationFailedErrorSchema] = CreateErrorAndSchema({
-    error: "AuthorizationFailed",
-    message: "Failed to authenticate",
+export const [AuthenticationFailedError, AuthenticationFailedErrorSchema] = CreateErrorAndSchema({
+    error: "AuthenticationFailed",
+    message: "Failed to authenticate (did the login session expire?) - please try again",
 });
 
 const validUrlExamples = [...Config.ALLOWED_REDIRECT_URLS.values()].map((url) => `\`${url}\``).join(", ");
