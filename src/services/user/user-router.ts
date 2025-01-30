@@ -18,10 +18,9 @@ import {
 import { UserIdSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import Models from "../../common/models";
-import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { encryptQR, generateQRCodeURI } from "./user-lib";
+import { generateQRCodeURI } from "./user-lib";
 
 const userRouter = Router();
 

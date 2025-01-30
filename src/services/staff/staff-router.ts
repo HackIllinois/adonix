@@ -6,7 +6,6 @@ import {
     CodeExpiredErrorSchema,
     QRExpiredError,
     QRExpiredErrorSchema,
-    // QRInvalidError,
     QRInvalidErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
@@ -22,7 +21,7 @@ import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
-import { decryptQR } from "../user/user-lib";
+import { decryptQRCode } from "../user/user-lib";
 
 const staffRouter = Router();
 
@@ -106,17 +105,11 @@ staffRouter.put(
     }),
     async (req, res) => {
         const { attendeeQRCode, eventId } = req.body;
-        const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
-        // Decrypt and validate token
-        const decodedPayload = decryptQR(attendeeQRCode);
-
-        // Validate expiration time
-        if (decodedPayload.exp < currentTime) {
+        const userId = decryptQRCode(attendeeQRCode);
+        if (!userId) {
             return res.status(StatusCode.ClientErrorUnauthorized).send(QRExpiredError);
         }
-
-        const userId = decodedPayload.userId;
 
         // Perform check-in logic
         const result = await performCheckIn(eventId, userId);

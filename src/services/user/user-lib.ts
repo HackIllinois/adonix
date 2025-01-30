@@ -76,3 +76,25 @@ export function generateQRCodeURI(userId: string): string {
 
     return uri;
 }
+
+export function decryptQRCode(token: string): string | null {
+    const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
+
+    // Decrypt and validate token
+    const decrypted = decryptData(token, derivedAESKey);
+    const [userId, exp] = decrypted.split(":");
+
+    // Validate that userId and exp are present
+    if (!userId || !exp) {
+        return null;
+    }
+
+    const expNumber = parseInt(exp, 10);
+    // Validate expiration time
+    if (expNumber < currentTime) {
+        return null;
+    }
+
+    // Return the userId if not expired
+    return userId;
+}
