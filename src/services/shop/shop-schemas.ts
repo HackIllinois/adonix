@@ -21,36 +21,21 @@ export class ShopItem {
     @prop({ required: true })
     public quantity: number;
 
-    @prop({
-        required: true,
-        type: () => String,
-    })
-    public instances: string[];
-
-    constructor(
-        itemId: string,
-        name: string,
-        price: number,
-        isRaffle: boolean,
-        imageURL: string,
-        quantity: number,
-        instances: string[],
-    ) {
+    constructor(itemId: string, name: string, price: number, isRaffle: boolean, imageURL: string, quantity: number) {
         this.itemId = itemId;
         this.name = name;
         this.price = price;
         this.isRaffle = isRaffle;
         this.imageURL = imageURL;
         this.quantity = quantity;
-        this.instances = instances;
     }
 }
 
 export class ShopOrder {
-    @prop({ required: true })
+    @prop({ type: [String], required: true })
     public items: Array<string>;
 
-    @prop({ required: true })
+    @prop({ type: [Number], required: true })
     public quantity: Array<number>;
 
     @prop({ required: true })
@@ -179,4 +164,9 @@ export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = Cr
 export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
     message: "You don't have enough to purchase that item!",
+});
+
+export const [ShopOrderNotFoundError, ShopOrderNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NotFound",
+    message: "Failed to user's order",
 });
