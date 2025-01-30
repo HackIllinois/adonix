@@ -20,9 +20,6 @@ export class AttendeeProfile {
     public points: number;
 
     @prop({ required: true })
-    public coins: number;
-
-    @prop({ required: true })
     public foodWave: number;
 }
 
@@ -54,7 +51,6 @@ export const AttendeeProfileSchema = z
         avatarUrl: z.string(),
         discordTag: z.string(),
         points: z.number(),
-        coins: z.number(),
         foodWave: z.number(),
     })
     .openapi("AttendeeProfile", {
@@ -64,7 +60,6 @@ export const AttendeeProfileSchema = z
             discordTag: "hackillinois",
             avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png",
             points: 23,
-            coins: 42,
             foodWave: 1,
         },
     });

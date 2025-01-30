@@ -1,14 +1,14 @@
 import { Router } from "express";
-import { JwtPayload, Role } from "../auth/auth-schemas";
+import { Role } from "../auth/auth-schemas";
 import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
 import {
-    AttendanceFormat,
     CodeExpiredError,
     CodeExpiredErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
     ShiftsSchema,
+    StaffAttendanceRequestSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -29,7 +29,7 @@ staffRouter.post(
         tag: Tag.STAFF,
         role: Role.STAFF,
         summary: "Checks the currently authenticated staff into the specified staff event",
-        body: ScanAttendeeRequestSchema,
+        body: StaffAttendanceRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The scanned user's information",
@@ -46,10 +46,8 @@ staffRouter.post(
         },
     }),
     async (req, res) => {
-        const payload = res.locals.payload as JwtPayload;
-
-        const eventId = (req.body as AttendanceFormat).eventId;
-        const userId = payload.id;
+        const { id: userId } = getAuthenticatedUser(req);
+        const { eventId } = req.body;
 
         const event = await Models.Event.findOne({ eventId: eventId });
 

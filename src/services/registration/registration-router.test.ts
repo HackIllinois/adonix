@@ -17,7 +17,6 @@ import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
-    isProApplicant: false,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
@@ -36,6 +35,8 @@ const APPLICATION = {
     hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
     hackOutreach: [HackOutreach.INSTAGRAM],
 } satisfies RegistrationApplicationRequest;
+
+const APPLICATION_INVALID_EMAIL = { ...APPLICATION, emailAddress: "invalidemail" };
 
 const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
 const UNSUBMITTED_OTHER_REGISTRATION = {
@@ -115,6 +116,13 @@ describe("POST /registration/", () => {
 
     it("should provide bad request error when registration is invalid", async () => {
         const response = await postAsUser("/registration/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
+    it("should provide bad request error when email is invalid", async () => {
+        const response = await postAsUser("/registration/")
+            .send(APPLICATION_INVALID_EMAIL)
+            .expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 

@@ -81,20 +81,35 @@ describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
+    it("provides an error when an invalid redirect is provided", async () => {
+        const response = await get(`/auth/login/${provider}/?redirect=https://google.com/`).expect(
+            StatusCode.ClientErrorBadRequest,
+        );
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRedirectUrl");
+    });
+
     it("logs in with default device when none is provided", async () => {
         await get(`/auth/login/${provider}/`).expect(StatusCode.SuccessOK);
 
-        expect(mockedSelectAuthProvider).toBeCalledWith(provider, Config.DEFAULT_DEVICE);
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, Config.DEVICE_TO_REDIRECT_URL.get(Config.DEFAULT_DEVICE));
     });
 
     it.each(ALL_DEVICES)("logs in with provided device %s", async (device) => {
         await get(`/auth/login/${provider}/?device=${device}`).expect(StatusCode.SuccessOK);
 
-        expect(mockedSelectAuthProvider).toBeCalledWith(provider, device);
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, Config.DEVICE_TO_REDIRECT_URL.get(device));
+    });
+
+    it("logs in with provided redirect url", async () => {
+        const redirect = "http://localhost:3000/auth/";
+        await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
+
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
     });
 });
 
-describe("GET /auth/:provider/callback/:device", () => {
+describe("GET /auth/:provider/callback/?state=redirect", () => {
     let mockedGenerateJwtToken: ReturnType<typeof mockGenerateJwtTokenWithWrapper>;
 
     beforeEach(() => {
@@ -104,10 +119,10 @@ describe("GET /auth/:provider/callback/:device", () => {
         mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
     });
 
-    it("provides an error when an invalid device is provided", async () => {
-        const response = await get("/auth/github/callback/abc").expect(StatusCode.ClientErrorBadRequest);
+    it("provides an error when an invalid redirect is provided", async () => {
+        const response = await get("/auth/github/callback/?state=https://google.com/").expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRedirectUrl");
     });
 
     it("provides an error when authentication fails", async () => {
@@ -118,7 +133,9 @@ describe("GET /auth/:provider/callback/:device", () => {
             next();
         });
 
-        const response = await get(`/auth/github/callback/${Device.WEB}`).expect(StatusCode.ClientErrorUnauthorized);
+        const response = await get(`/auth/github/callback/?state=${Config.DEVICE_TO_REDIRECT_URL.get(Device.WEB)}`).expect(
+            StatusCode.ClientErrorUnauthorized,
+        );
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AuthorizationFailed");
     });
@@ -142,7 +159,9 @@ describe("GET /auth/:provider/callback/:device", () => {
             next();
         });
 
-        const response = await get(`/auth/github/callback/${device}`).expect(StatusCode.RedirectFound);
+        const response = await get(`/auth/github/callback/?state=${Config.DEVICE_TO_REDIRECT_URL.get(device)}`).expect(
+            StatusCode.RedirectFound,
+        );
 
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
@@ -151,12 +170,12 @@ describe("GET /auth/:provider/callback/:device", () => {
                 provider,
                 roles: [Role.USER],
             } satisfies JwtPayload),
-            device == Device.ANDROID || device == Device.IOS,
+            false,
         );
 
         // Expect redirect to be to the right url & contain token
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
-        expect(response.headers["location"]).toBe(`${Config.REDIRECT_URLS.get(device)}?token=${jwtReturned}`);
+        expect(response.headers["location"]).toBe(`${Config.DEVICE_TO_REDIRECT_URL.get(device)}?token=${jwtReturned}`);
     });
 });
 

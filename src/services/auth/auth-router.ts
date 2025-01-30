@@ -3,7 +3,7 @@ import express, { Router } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import Config, { Device } from "../../common/config";
+import Config from "../../common/config";
 import { StatusCode } from "status-code-enum";
 import { SelectAuthProvider } from "../../middleware/select-auth";
 
@@ -22,6 +22,9 @@ import {
     ListUsersByRoleSchema,
     UserRolesSchema,
     RefreshTokenSchema,
+    RedirectUrlSchema,
+    BadRedirectUrlErrorSchema,
+    BadRedirectUrlError,
 } from "./auth-schemas";
 import {
     generateJwtToken,
@@ -31,6 +34,7 @@ import {
     verifyFunction,
     getUsersWithRole,
     getAuthenticatedUser,
+    isValidRedirectUrl,
 } from "../../common/auth";
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
@@ -99,37 +103,59 @@ authRouter.get(
         }),
         query: z.object({
             device: z.optional(DeviceSchema),
+            redirect: z.optional(RedirectUrlSchema),
         }),
         summary: "Initiates a login through an authentication provider",
         description:
             "You should redirect the browser here, and provide the device you are redirecting from. " +
             "Attendees authenticate through GitHub, and staff authenticate through Google. " +
-            "The device is used to determine the url to redirect back to after authentication is successful.",
+            "The device is used to determine the url to redirect back to after authentication is successful. " +
+            "For testing purposes, such as localhost, the redirect url may be provided directly instead. " +
+            "It will not be accepted if it does not match the allowed redirect urls. " +
+            "Note that redirect will override device if both are provided.",
         responses: {
             [StatusCode.RedirectFound]: {
                 description: "Successful redirect to authentication provider",
                 schema: z.object({}),
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The redirect url requested is invalid",
+                schema: BadRedirectUrlErrorSchema,
+            },
         },
     }),
     (req, res, next) => {
         const { provider } = req.params;
-        const device = req.query.device?.toString() ?? Config.DEFAULT_DEVICE;
+        const device = req.query.device ?? Config.DEFAULT_DEVICE;
+        const device_redirect = Config.DEVICE_TO_REDIRECT_URL.get(device);
+        if (!device_redirect) {
+            throw Error(`No redirect url for device ${device_redirect}`);
+        }
 
-        return SelectAuthProvider(provider, device)(req, res, next);
+        // Either use the redirect they ask for, or the one provided by device, or the default redirect
+        const redirect = req.query.redirect ?? device_redirect;
+
+        if (!isValidRedirectUrl(redirect)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
+        }
+
+        return SelectAuthProvider(provider, redirect)(req, res, next);
     },
 );
 
 authRouter.get(
-    "/:provider/callback/:device/",
+    "/:provider/callback/",
     specification({
         method: "get",
-        path: "/auth/{provider}/callback/{device}",
+        path: "/auth/{provider}/callback/",
         tag: Tag.AUTH,
         role: null,
         parameters: z.object({
             provider: ProviderSchema,
-            device: DeviceSchema,
+        }),
+        query: z.object({
+            // Note that the redirect url is stored in state to persist when a provider calls us back with it
+            state: RedirectUrlSchema,
         }),
         summary: "DO NOT CALL. Authentication providers call this after a successful authentication.",
         description:
@@ -144,28 +170,30 @@ authRouter.get(
                 description: "Authorization failed",
                 schema: AuthorizationFailedErrorSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The redirect url requested is invalid",
+                schema: BadRedirectUrlErrorSchema,
+            },
         },
     }),
     (req, res, next) => {
         const provider = req.params.provider ?? "";
-        const device = req.params.device;
+        const redirect = req.query.state;
 
-        if (!device || !Config.REDIRECT_URLS.has(device)) {
-            throw Error(`Bad device ${device}`);
+        if (!isValidRedirectUrl(redirect)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
         }
 
-        res.locals.device = device;
-        return SelectAuthProvider(provider, device)(req, res, next);
+        return SelectAuthProvider(provider, redirect)(req, res, next);
     },
     async (req, res) => {
         if (!req.isAuthenticated()) {
             return res.status(StatusCode.ClientErrorUnauthorized).json(AuthorizationFailedError);
         }
 
-        const device = (res.locals.device as Device | undefined) ?? Config.DEFAULT_DEVICE;
+        const redirect: string = req.query.state;
         const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
         const data = user._json as ProfileData;
-        const redirect: string = Config.REDIRECT_URLS.get(device) ?? Config.REDIRECT_URLS.get(Config.DEFAULT_DEVICE)!;
 
         data.id = data.id ?? user.id;
         data.displayName = data.name ?? data.displayName ?? data.login;
@@ -180,24 +208,7 @@ authRouter.get(
             { upsert: true },
         );
 
-        let token: string;
-        switch (device) {
-            case Device.CHALLENGE:
-                token = generateJwtToken(payload, false, "720h");
-                break;
-            case Device.ANDROID:
-                token = generateJwtToken(payload, true);
-                break;
-            case Device.IOS:
-                token = generateJwtToken(payload, true);
-                break;
-            case Device.PUZZLE:
-                token = generateJwtToken(payload, true);
-                break;
-            default:
-                token = generateJwtToken(payload, false);
-        }
-
+        const token = generateJwtToken(payload, false);
         const url = `${redirect}?token=${token}`;
         return res.redirect(url);
     },

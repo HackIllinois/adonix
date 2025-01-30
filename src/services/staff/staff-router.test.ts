@@ -31,7 +31,6 @@ const TESTER_REGISTRATION = {
     hackOutreach: [HackOutreach.INSTAGRAM],
     dietaryRestrictions: ["Vegan", "No Pork"],
     resumeFileName: "GitHub cheatsheet.pdf",
-    isProApplicant: false,
     legalName: "Ronakin Kanandani",
     considerForGeneral: false,
     requestedTravelReimbursement: true,
@@ -46,7 +45,6 @@ const TESTER_PROFILE = {
     avatarUrl: "TestURL",
     discordTag: "TestTag",
     points: 0,
-    coins: 0,
     foodWave: 0,
 } satisfies AttendeeProfile;
 
@@ -111,7 +109,7 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("returns Forbidden for non-staff", async () => {
         const response = await putAsAttendee("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT: attendeeJWT as string })
+            .send({ eventId: TEST_EVENT.eventId, attendeeJWT })
             .expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
@@ -119,19 +117,17 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("returns NotFound for non-existent event", async () => {
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "not-some-event", attendeeJWT: attendeeJWT as string })
+            .send({ eventId: "not-some-event", attendeeJWT })
             .expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("returns AlreadyCheckedIn for duplicate calls", async () => {
-        await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT: attendeeJWT as string })
-            .expect(StatusCode.SuccessOK);
+        await putAsStaff("/staff/scan-attendee/").send({ eventId: TEST_EVENT.eventId, attendeeJWT }).expect(StatusCode.SuccessOK);
 
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, attendeeJWT: attendeeJWT as string })
+            .send({ eventId: TEST_EVENT.eventId, attendeeJWT })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");

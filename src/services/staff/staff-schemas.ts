@@ -14,16 +14,6 @@ export class StaffShift {
     public shifts: string[];
 }
 
-// Format for default staff attendance input
-export interface AttendanceFormat {
-    eventId: string;
-}
-
-export interface EventError {
-    statuscode: number;
-    name: string;
-}
-
 export const StaffAttendanceRequestSchema = z.object({
     eventId: EventIdSchema,
 });

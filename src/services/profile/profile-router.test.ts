@@ -12,7 +12,6 @@ const TESTER_USER = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
-    coins: 0,
     foodWave: 1,
 } satisfies AttendeeProfile;
 
@@ -22,7 +21,6 @@ const TESTER_USER_2 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
-    coins: 12,
     foodWave: 2,
 } satisfies AttendeeProfile;
 
@@ -32,7 +30,6 @@ const TESTER_USER_3 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
-    coins: 12,
     foodWave: 2,
 } satisfies AttendeeProfile;
 
@@ -48,14 +45,12 @@ const PROFILE = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: CREATE_REQUEST.discordTag,
     points: 0,
-    coins: 0,
     foodWave: 1,
 } satisfies AttendeeProfile;
 
 const REGISTRATION = {
     userId: TESTER.id,
     hasSubmitted: true,
-    isProApplicant: false,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
@@ -177,7 +172,6 @@ describe("GET /profile/leaderboard", () => {
                 avatarUrl: TESTER.avatarUrl,
                 discordTag: TESTER.discordTag,
                 points: i,
-                coins: i,
                 foodWave: 1,
             });
         }

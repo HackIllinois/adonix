@@ -1,11 +1,13 @@
+
 import crypto from "crypto";
+//ShopItemBuyRequestSchema
 import {
     ShopInsufficientFundsError,
     ShopInsufficientFundsErrorSchema,
+    ShopInsufficientQuantityErrorSchema,
     ShopItem,
     ShopItemAlreadyExistsError,
     ShopItemAlreadyExistsErrorSchema,
-    ShopItemBuyRequestSchema,
     ShopItemCreateRequestSchema,
     ShopItemIdSchema,
     ShopItemNotFoundError,
@@ -24,11 +26,12 @@ import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import Models from "../../common/models";
-import { JwtPayload, Role } from "../auth/auth-schemas";
-import { updateCoins } from "../profile/profile-lib";
+import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema } from "../../common/schemas";
+import { updatePoints } from "../profile/profile-lib";
+import { getAuthenticatedUser } from "../../common/auth";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -68,7 +71,7 @@ shopRouter.post(
         method: "post",
         path: "/shop/item/",
         tag: Tag.SHOP,
-        role: null,
+        role: Role.ADMIN,
         summary: "Creates a shop item",
         body: ShopItemCreateRequestSchema,
         responses: {
@@ -187,139 +190,13 @@ shopRouter.delete(
     },
 );
 
-shopRouter.get(
-    "/item/qr/:id/",
-    specification({
-        method: "get",
-        path: "/shop/item/qr/{id}/",
-        tag: Tag.SHOP,
-        role: null,
-        summary: "Gets the QR codes for a shop item",
-        parameters: z.object({
-            id: ShopItemIdSchema,
-        }),
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The qr codes",
-                schema: ShopItemQRCodesSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Item doesn't exist",
-                schema: ShopItemNotFoundErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { id: itemId } = req.params;
-
-        const item = await Models.ShopItem.findOne({ itemId });
-
-        if (!item) {
-            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-        }
-
-        const uris = item.instances.map((instance: string) => `hackillinois://item?itemId=${itemId}&instance=${instance}`);
-        return res.status(StatusCode.SuccessOK).send({ itemId, qrInfo: uris });
-    },
-);
-
-
-//MINE
 shopRouter.post(
-    "/item/generateorder",
+    "/cart/redeem",
     specification({
         method: "post",
-        path: "/shop/item/generateorder/",
+        path: "/shop/cart/redeem/",
         tag: Tag.SHOP,
-        role: null,
-        summary: "Generates an order and returns a qr code",
-        body: ShopItemGenerateOrderSchema,
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The qr codes",
-                schema: OrderQRCodesSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Item doesn't exist",
-                schema: ShopItemNotFoundErrorSchema,
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Not enough quantity in shop",
-                schema: ShopInsufficientFundsErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const body = req.body;
-        const items = body.items;
-        const quantity = body.quantity;
-
-        //const payload = res.locals.payload as JwtPayload;
-        //const userId = payload.id;
-
-        //check if enough quantity in shop
-        for(let i = 0; i < items.length; i++) {
-            //items[i] is the _id of the items
-            const item = await Models.ShopItem.findOne({ itemId: items[i] });
-
-            if (!item) {
-                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-            }
-
-            const q = quantity?.[i] as number | undefined;
-            if(q == undefined || item.quantity < q) {
-                return res.status(StatusCode.ClientErrorNotFound).send(ShopInsufficientFundsError);
-            }
-        }
-
-        //check if user has enough coins
-        /*
-        var currPrice = 0;
-        for(let i = 0; i < items.length; i++) {
-            const item = await Models.ShopItem.findOne({ itemId: items[i] });
-            if (!item) {
-                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-            }
-
-            currPrice += item.price;
-            
-            const profile = await Models.AttendeeProfile.findOne({ userId: userId });
-            if (!profile) {
-                throw Error("Could not find attendee profile");
-            }
-
-            if (profile.coins < currPrice) {
-                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
-            }
-        }
-        */
-
-        //have availability of all item and user has enough coins so can generate qr code with order number
-        const { v4: uuidv4 } = require('uuid');
-        const order = uuidv4();
-        const qrCodeUrl = `hackillinois://ordernum?orderNum=${order}`;
-
-        const shopOrder: ShopOrder = {
-            orderNum: order,
-            items: items,
-            quantity: quantity,
-            userId: "userId",
-        };
-
-        await Models.ShopOrder.create(shopOrder);
-
-        return res.status(StatusCode.SuccessOK).send({ qrInfo: qrCodeUrl });
-    },
-);
-
-//MINE
-shopRouter.post(
-    "/item/fulfillorder",
-    specification({
-        method: "post",
-        path: "/shop/item/fulfillorder/",
-        tag: Tag.SHOP,
-        role: null,
+        role: Role.STAFF,
         summary: "Purchases the order",
         body: ShopItemFulfillOrderSchema,
         responses: {
@@ -341,19 +218,19 @@ shopRouter.post(
         // when qr code is scanned, will call this so body needs to have order num and then i use that
         // to get the order and then for each item in the order, subtract the quantity and then return success
         const body = req.body;
-        const num = body.orderNum;
+        const num = body.userId;
         
-        const order = await Models.ShopOrder.findOne({ orderNum: num });
+        const order = await Models.ShopOrder.findOne({ userId: num });
 
         if(!order) {
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
         }
-        /*
+
         const profile = await Models.AttendeeProfile.findOne({ userId: order.userId });
         if (!profile) {
             throw Error("Could not find attendee profile");
         }
-        */
+
 
         for(let i = 0; i < order.items.length; i++) {
 
@@ -379,101 +256,284 @@ shopRouter.post(
 
             const q = order.quantity?.[i] as number | 0;
 
+            /*
             const updatedItem = await Models.ShopItem.findOneAndUpdate({ itemId: order.items[i] }, body, {
                 quantity: item.quantity - q,
             });
+            */
 
-            if (!updatedItem) {
+            const updatedShopQuantity = await Models.ShopItem.updateOne(
+                { itemId: order.items[i] },
+                {
+                    $inc: { quantity: -q },
+                },
+            );
+
+            if (!updatedShopQuantity) {
                 return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
             }
 
             //update coins in user
-            //await updateCoins(order.userId, -item.price).then(console.error);
+            await updatePoints(order.userId, -(q*item.price)).then(console.error);
+        }
+
+        const result = await Models.ShopOrder.deleteOne({ userId: num });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Order not found" });
         }
 
         return res.status(StatusCode.SuccessOK).json({ message: "success" });
     },
 );
 
-
 shopRouter.post(
-    "/item/buy",
+    "/cart/:itemId",
     specification({
         method: "post",
-        path: "/shop/item/buy/",
+        path: "/shop/cart/{itemId}/",
         tag: Tag.SHOP,
-        role: Role.ATTENDEE,
-        summary: "Purchases a shop item",
-        body: ShopItemBuyRequestSchema,
+        role: Role.USER,
+        summary: "Adds item to users cart",
+        parameters: z.object({
+            itemId: ShopItemIdSchema,
+        }),
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The successfully purchased item",
-                schema: ShopItemSchema,
+                description: "The qr codes",
+                schema: SuccessSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
-                description: "Insufficient funds",
+                description: "Not enough quantity in shop",
                 schema: ShopInsufficientFundsErrorSchema,
             },
         },
     }),
     async (req, res) => {
-        const itemId = req.body.itemId as string;
-        const payload = res.locals.payload as JwtPayload;
-        const userId = payload.id;
 
+        const { itemId } = req.params;
+        const { id: userId } = getAuthenticatedUser(req);
+
+        var userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        //user doesn't have a order yet
+        if(!userOrder) {
+            const shopOrder: ShopOrder = {
+                items: [],
+                quantity: [],
+                userId: userId,
+            };
+
+            await Models.ShopOrder.create(shopOrder);
+            userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        }
+
+        if(!userOrder){
+            throw Error("Creating cart for user failed.")
+        }
+
+        //check if enough quantity in shop
         const item = await Models.ShopItem.findOne({ itemId: itemId });
-
         if (!item) {
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
         }
 
-        const profile = await Models.AttendeeProfile.findOne({ userId: userId });
+        if(item.quantity <= 0) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
+        }
 
+        //check if user has enough coins
+        const profile = await Models.AttendeeProfile.findOne({ userId: userId });
         if (!profile) {
             throw Error("Could not find attendee profile");
         }
 
-        if (profile.coins < item.price) {
+        if (profile.points < item.price) {
             return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
         }
 
-        const instances = item.instances;
+        //add item to order or increase quantity
+        const items = userOrder.items;
+        var found = false;
+        for(let i = 0; i < items.length; i++) {
+            if(items[i] = itemId) {
+                found = true;
 
-        for (let i = 0; i < instances.length; ++i) {
-            // If this isn't the instance, move on
-            if (instances[i] != req.body.instance) {
-                continue;
+                const updatedShopOrder = await Models.ShopOrder.updateOne(
+                    { userId: userId },
+                    { 
+                        $inc: { [`quantity.${i}`]: 1 }
+                    },
+                );
+                if (!updatedShopOrder) {
+                    return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+                }
             }
-
-            // delete shop item
-            const updatedShopQuantity = await Models.ShopItem.updateOne(
-                { itemId: itemId },
+        }
+        if(!found) {
+            const updatedShopOrder = await Models.ShopOrder.updateOne(
+                { userId: userId },
                 {
-                    $inc: { quantity: -1 },
-                    $pull: { instances: req.body.instance },
+                    $push: {
+                        items: itemId,
+                        quantity: 1
+                    }
                 },
             );
-
-            // decrement attendee coins
-            if (updatedShopQuantity) {
-                await updateCoins(userId, -item.price).then(console.error);
+            
+            if (!updatedShopOrder) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
             }
-
-            const withoutInstances = {
-                ...item.toObject(),
-                instances: undefined,
-            };
-
-            return res.status(StatusCode.SuccessOK).send(withoutInstances);
         }
 
-        return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+        return res.status(StatusCode.SuccessOK).send({ message: "success" });
     },
 );
+
+shopRouter.get(
+    "/cart",
+    specification({
+        method: "get",
+        path: "/shop/cart/",
+        tag: Tag.SHOP,
+        role: Role.USER,
+        summary: "Returns content of users cart",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "List of items and quantity",
+                schema: ShopItemGenerateOrderSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Not enough quantity in shop",
+                schema: ShopInsufficientQuantityErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        //get their order from order db
+        var userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        if(!userOrder) {
+            const shopOrder: ShopOrder = {
+                items: [],
+                quantity: [],
+                userId: userId,
+            };
+
+            await Models.ShopOrder.create(shopOrder);
+            userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        }
+
+        if(!userOrder) {
+            throw Error("Unable to view cart.")
+        }
+
+        const items = userOrder.items;
+        const quantity = userOrder.quantity;
+
+        //check if enough quantity in shop
+        //Dont need to check
+        /*
+        for(let i = 0; i < items.length; i++) {
+            const item = await Models.ShopItem.findOne({ itemId: items[i] });
+
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            const q = quantity?.[i] as number | undefined;
+            if(q == undefined || item.quantity < q) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
+            }
+        }
+        */
+
+        return res.status(StatusCode.SuccessOK).send({ items: items, quantity: quantity});
+    },
+);
+
+
+shopRouter.get(
+    "/cart/qr",
+    specification({
+        method: "get",
+        path: "/shop/cart/qr/",
+        tag: Tag.SHOP,
+        role: Role.USER,
+        summary: "Returns qr code of users cart",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The qr codes",
+                schema: OrderQRCodesSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Not enough quantity in shop",
+                schema: ShopInsufficientFundsErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        const userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        if(!userOrder) {
+            throw Error("no order");
+        }
+        const items = userOrder.items;
+        const quantity = userOrder.quantity;
+        //check if enough quantity in shop
+        for(let i = 0; i < items.length; i++) {
+            //items[i] is the _id of the items
+            const item = await Models.ShopItem.findOne({ itemId: items[i] });
+
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            const q = quantity?.[i] as number | undefined;
+            if(q == undefined || item.quantity < q) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
+            }
+        }
+
+        //check if user has enough coins
+        var currPrice = 0;
+        for(let i = 0; i < items.length; i++) {
+            const item = await Models.ShopItem.findOne({ itemId: items[i] });
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            currPrice += item.price;
+            
+            const profile = await Models.AttendeeProfile.findOne({ userId: userId });
+            if (!profile) {
+                throw Error("Could not find attendee profile");
+            }
+
+            if (profile.points < currPrice) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
+            }
+        }
+
+        //have availability of all item and user has enough coins so can generate qr code with order number
+        const qrCodeUrl = `hackillinois://userId?userId=${userId}`;
+
+        return res.status(StatusCode.SuccessOK).send({ qrInfo: qrCodeUrl });
+    },
+);
+
 
 function getRand(index: number): string {
     const hash = crypto.createHash("sha256").update(`${Config.JWT_SECRET}|${index}`).digest("hex");

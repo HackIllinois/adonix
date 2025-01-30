@@ -48,8 +48,6 @@ export class ShopItem {
 
 export class ShopOrder {
     @prop({ required: true })
-    public orderNum: string
-    @prop({ required: true })
     public items: Array<string>
 
     @prop({ required: true })
@@ -59,12 +57,10 @@ export class ShopOrder {
     public userId: string
 
     constructor(
-        orderNum: string,
         items: Array<string>,
         quantity: Array<number>,
         userId: string,
     ) {
-        this.orderNum = orderNum;
         this.items = items;
         this.quantity = quantity;
         this.userId = userId;
@@ -150,7 +146,7 @@ export const ShopItemGenerateOrderSchema = z.object({
 });
 
 export const ShopItemFulfillOrderSchema = z.object({
-    orderNum: z.string(),
+    userId: z.string(),
 });
 
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
@@ -178,6 +174,11 @@ export const [ShopItemNotFoundError, ShopItemNotFoundErrorSchema] = CreateErrorA
 });
 
 export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = CreateErrorAndSchema({
+    error: "InsufficientFunds",
+    message: "You don't have enough to purchase that item!",
+});
+
+export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
     message: "You don't have enough to purchase that item!",
 });

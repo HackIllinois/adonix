@@ -1,4 +1,4 @@
-import "./common/types";
+import "./common/init";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
@@ -35,10 +35,11 @@ app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
+    // Adds user id as "id" so we can log it with requests
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :response-time ms"));
+    app.use(morgan(":status :method :url :id :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json

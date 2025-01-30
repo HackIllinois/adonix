@@ -17,6 +17,13 @@ export function ErrorHandler(error: unknown, req: Request, res: Response, _next:
             context: error.context,
         });
     }
+    // Handle JSON parsing syntax error
+    if (error instanceof SyntaxError) {
+        res.status(StatusCode.ClientErrorBadRequest).send({
+            error: "BadRequest",
+            message: "Bad request made - unable to parse the request. Are you sending valid JSON?",
+        });
+    }
     // Otherwise, undefined error - so we display default internal error
     const userId = tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     const id = randomUUID();

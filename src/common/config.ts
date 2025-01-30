@@ -19,7 +19,7 @@ export enum Device {
 }
 
 export enum RegistrationTemplates {
-    REGISTRATION_SUBMISSION = "2024_registration_confirmation",
+    REGISTRATION_SUBMISSION = "2025_registration_confirmation",
     STATUS_UPDATE = "2024_status_update",
     RSVP_CONFIRMATION = "2024_rsvp_confirmation",
     RSVP_CONFIRMATION_WITH_REIMBURSE = "2024_rsvp_confirmation_reimburse",
@@ -64,6 +64,16 @@ const ROOT_URL = ((): string => {
     return PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
 })();
 
+const DEVICE_TO_REDIRECT_URL = new Map([
+    [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
+    [Device.DEV, `${ROOT_URL}/auth/dev/`],
+    [Device.WEB, "https://hackillinois.org/auth/"],
+    [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
+    [Device.IOS, "hackillinois://login/"],
+    [Device.ANDROID, "hackillinois://login/"],
+    [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
+]);
+
 const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
@@ -76,15 +86,12 @@ const Config = {
 
     DEFAULT_DEVICE: Device.WEB,
 
-    REDIRECT_URLS: new Map([
-        [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-        [Device.DEV, `${ROOT_URL}/auth/dev/`],
-        [Device.WEB, "https://www.hackillinois.org/auth/"],
-        [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
-        [Device.IOS, "hackillinois://login/"],
-        [Device.ANDROID, "hackillinois://login/"],
-        [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
-    ]),
+    DEVICE_TO_REDIRECT_URL,
+    ALLOWED_REDIRECT_URLS: [
+        ...DEVICE_TO_REDIRECT_URL.values(),
+        new RegExp(/^http:\/\/localhost:\d+\/auth\/$/),
+        new RegExp(/^https:\/\/[a-z0-9-]+--hackillinois\.netlify\.app\/auth\/$/),
+    ],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
@@ -140,7 +147,8 @@ const Config = {
     DEFAULT_JWT_EXPIRY_TIME: "24h",
     QR_EXPIRY_TIME: "20s",
     RESUME_URL_EXPIRY_SECONDS: 60,
-    REGISTRATION_CLOSE_TIME_MS: 1708149975000,
+    METADATA_CACHE_EXPIRY_SECONDS: 60,
+    REGISTRATION_CLOSE_TIME: parseInt(requireEnv("REGISTRATION_CLOSE_TIME")),
 
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,

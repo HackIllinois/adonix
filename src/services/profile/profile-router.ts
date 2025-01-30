@@ -16,7 +16,7 @@ import {
     ProfileLeaderboardQueryLimitSchema,
 } from "./profile-schemas";
 import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
-import { updatePointsAndCoins } from "./profile-lib";
+import { updatePoints } from "./profile-lib";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -210,7 +210,6 @@ profileRouter.post(
             displayName,
             avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`,
             points: Config.DEFAULT_POINT_VALUE,
-            coins: Config.DEFAULT_COIN_VALUE,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
         };
 
@@ -247,7 +246,7 @@ profileRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
-        const updatedProfile = await updatePointsAndCoins(userId, points);
+        const updatedProfile = await updatePoints(userId, points);
 
         if (!updatedProfile) {
             throw Error("Failed to update profile points");

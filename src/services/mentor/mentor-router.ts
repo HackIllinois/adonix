@@ -2,7 +2,7 @@ import { Router } from "express";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { Role } from "../auth/auth-schemas";
-import { updatePointsAndCoins } from "../profile/profile-lib";
+import { updatePoints } from "../profile/profile-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
 import specification, { Tag } from "../../middleware/specification";
@@ -145,7 +145,7 @@ mentorRouter.post(
         }
 
         const points = Config.MENTOR_OFFICE_HOURS_POINT_REWARD;
-        await updatePointsAndCoins(userId, points);
+        await updatePoints(userId, points);
 
         await Models.MentorOfficeHours.findOneAndUpdate(
             { mentorId: mentorId },
