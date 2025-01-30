@@ -94,11 +94,11 @@ staffRouter.put(
                 schema: ScanAttendeeSchema,
             },
             [StatusCode.ServerErrorInternal]: {
-                description: "attendeeQRCode invalid",
+                description: "qrId invalid",
                 schema: QRInvalidErrorSchema,
             },
             [StatusCode.ClientErrorUnauthorized]: {
-                description: "attendeeQRCode has expired",
+                description: "qrId has expired",
                 schema: QRExpiredErrorSchema,
             },
             ...PerformCheckInErrors,

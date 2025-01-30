@@ -62,3 +62,17 @@ export function decryptQR(token: string): { userId: string; exp: number } {
         exp: expNumber,
     };
 }
+
+export function generateQRCodeURI(userId: string): string {
+    const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
+    const exp: number = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
+
+    // Encrypt user ID and expiration timestamp
+    const payload = `${userId}:${exp}`;
+    const encryptedToken = encryptData(payload, derivedAESKey);
+
+    // Construct the URI with the encrypted token
+    const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
+
+    return uri;
+}

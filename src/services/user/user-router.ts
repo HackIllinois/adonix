@@ -21,7 +21,7 @@ import Models from "../../common/models";
 import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { encryptQR } from "./user-lib";
+import { encryptQR, generateQRCodeURI } from "./user-lib";
 
 const userRouter = Router();
 
@@ -43,13 +43,7 @@ userRouter.get(
     }),
     async (req, res) => {
         const payload = getAuthenticatedUser(req);
-        const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
-        const exp = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
-
-        // Encrypt user ID and expiration timestamp
-        const encryptedToken = encryptQR(payload.id, exp);
-
-        const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
+        const uri = generateQRCodeURI(payload.id);
         return res.status(StatusCode.SuccessOK).send({
             userId: payload.id,
             qrInfo: uri,
@@ -90,13 +84,7 @@ userRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
         }
 
-        const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
-        const exp = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
-
-        // Encrypt user ID and expiration timestamp
-        const encryptedToken = encryptQR(userId, exp);
-
-        const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
+        const uri = generateQRCodeURI(userId);
         return res.status(StatusCode.SuccessOK).send({
             userId: userId,
             qrInfo: uri,
