@@ -1,21 +1,26 @@
 import { prop } from "@typegoose/typegoose";
 
+export class Player {
+    @prop({ default: "" })
+    public playerId: string;
+
+    @prop({ default: 3 })
+    public livesRemaining: number;
+
+    @prop({ default: "" })
+    public move: string;
+
+    @prop({ default: 0 })
+    public charges: number;
+}
+
 export class Duel {
     @prop({ required: true })
     public roomId: string;
 
-    @prop({ required: true })
-    public player1Id: string;
+    @prop({ type: () => Player, default: null })
+    public player1: Player;
 
-    @prop({ default: "" })
-    public player2Id: string;
-
-    @prop({ default: 3 })
-    public player1LivesRemaining: number;
-
-    @prop({ default: 3 })
-    public player2LivesRemaining: number;
-
-    @prop({ type: () => String, default: () => new Map<string, string>() })
-    public moves: Map<string, string>; // Key: playerId, Value: move
+    @prop({ type: () => Player, default: null })
+    public player2: Player;
 }

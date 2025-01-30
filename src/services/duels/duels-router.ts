@@ -5,6 +5,7 @@ import Models from "../../common/models";
 import { randomUUID } from "crypto";
 import { updatePointsAndCoins } from "../profile/profile-lib";
 import Config from "../../common/config";
+import { Player } from "./duels-schemas";
 
 export default function duelsRouter(duelsNamespace: Namespace): void {
     duelsNamespace.on("connection", (socket) => {
@@ -36,7 +37,21 @@ export default function duelsRouter(duelsNamespace: Namespace): void {
             // if joining a room, assume you are player 2
             if (!roomId) {
                 const id = randomUUID();
-                await Models.Duel.create({ roomId: id, player1Id: payload.id });
+                // await Models.Duel.create({ roomId: id, player1Id: payload.id });
+                const player1: Player = {
+                    playerId: payload.id,
+                    livesRemaining: 3,
+                    move: "",
+                    charges: 0,
+                };
+
+                const player2: Player = {
+                    playerId: "",
+                    livesRemaining: 3,
+                    move: "",
+                    charges: 0,
+                };
+                await Models.Duel.create({ roomId: id, player1: player1, player2: player2 });
                 await socket.join(id);
                 socket.emit("room_created", { roomId: id });
                 console.log("created room with id", id);
@@ -51,11 +66,11 @@ export default function duelsRouter(duelsNamespace: Namespace): void {
                         return;
                     }
 
-                    if (duel.player2Id !== "") {
+                    if (duel.player2.playerId !== "") {
                         socket.emit("error", { message: "Room full" });
                     }
 
-                    duel.player2Id = payload.id;
+                    duel.player2.playerId = payload.id;
                     await duel.save();
 
                     await socket.join(roomId);
@@ -100,12 +115,15 @@ export default function duelsRouter(duelsNamespace: Namespace): void {
                     return;
                 }
 
-                if (payload.id !== duel.player1Id && payload.id !== duel.player2Id) {
+                if (payload.id === duel.player1.playerId) {
+                    duel.player1.move = move;
+                } else if (payload.id === duel.player2.playerId) {
+                    duel.player2.move = move;
+                } else {
                     socket.emit("error", { message: "Not a player in this duel" });
                     return;
                 }
 
-                duel.moves.set(payload.id, move);
                 await duel.save();
             } catch (e) {
                 socket.emit("error", { message: "Failed to process move", error: e });
@@ -123,13 +141,23 @@ function startRound(duelsNamespace: Namespace, roomId: string): void {
         if (!duel) {
             return;
         }
-        const player1Move = duel.moves.get(duel.player1Id) ?? "charge";
-        const player2Move = duel.moves.get(duel.player2Id) ?? "charge";
+        let player1Move = duel.player1.move ?? "charge";
+        let player2Move = duel.player2.move ?? "charge";
+
+        let player1Charges = duel.player1.charges;
+        let player2Charges = duel.player2.charges;
+
+        // if they do an invalid shoot, change their move to charge
+        if (player1Move === "shoot" && player1Charges <= 0) {player1Move = "charge";}
+        if (player2Move === "shoot" && player2Charges <= 0) {player2Move = "charge";}
+
+        if (player1Move === "charge") {player1Charges++;}
+        if (player2Move === "charge") {player2Charges++;}
 
         const winner = determineWinner(player1Move, player2Move);
 
-        let player1Lives = duel.player1LivesRemaining;
-        let player2Lives = duel.player2LivesRemaining;
+        let player1Lives = duel.player1.livesRemaining;
+        let player2Lives = duel.player2.livesRemaining;
 
         if (winner === "player1") {
             player2Lives--;
@@ -139,11 +167,13 @@ function startRound(duelsNamespace: Namespace, roomId: string): void {
             player1Lives--;
         }
 
-        await duel.updateOne({
-            player1LivesRemaining: player1Lives,
-            player2LivesRemaining: player2Lives,
-            moves: {}, // Reset moves for next round
-        });
+        duel.player1.livesRemaining = player1Lives;
+        duel.player2.livesRemaining = player2Lives;
+        duel.player1.charges = player1Charges;
+        duel.player2.charges = player2Charges;
+        duel.player1.move = "";
+        duel.player2.move = "";
+        await duel.save();
 
         duelsNamespace.to(roomId).emit("round_result", {
             player1Move,
@@ -156,11 +186,11 @@ function startRound(duelsNamespace: Namespace, roomId: string): void {
         if (player1Lives <= 0 || player2Lives <= 0) {
             const winner = player1Lives > 0 ? "player1" : "player2";
             if (winner === "player1") {
-                await updatePointsAndCoins(duel.player1Id, Config.DUELS_WINNER_REWARD);
-                await updatePointsAndCoins(duel.player2Id, Config.DUELS_LOSER_REWARD);
+                await updatePointsAndCoins(duel.player1.playerId, Config.DUELS_WINNER_REWARD);
+                await updatePointsAndCoins(duel.player2.playerId, Config.DUELS_LOSER_REWARD);
             } else {
-                await updatePointsAndCoins(duel.player1Id, Config.DUELS_LOSER_REWARD);
-                await updatePointsAndCoins(duel.player2Id, Config.DUELS_WINNER_REWARD);
+                await updatePointsAndCoins(duel.player1.playerId, Config.DUELS_LOSER_REWARD);
+                await updatePointsAndCoins(duel.player2.playerId, Config.DUELS_WINNER_REWARD);
             }
             duelsNamespace.to(roomId).emit("game_over", { winner: winner });
             duelsNamespace.in(roomId).socketsLeave(roomId);
