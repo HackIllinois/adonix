@@ -47,11 +47,6 @@ export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({
     message: "The code for this event has expired",
 });
 
-export const [QRInvalidError, QRInvalidErrorSchema] = CreateErrorAndSchema({
-    error: "QRInvalid",
-    message: "attendeeQRCode is invalid",
-});
-
 export const [QRExpiredError, QRExpiredErrorSchema] = CreateErrorAndSchema({
     error: "QRExpired",
     message: "Your QR code has expired",

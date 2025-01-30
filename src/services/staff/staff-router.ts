@@ -6,7 +6,6 @@ import {
     CodeExpiredErrorSchema,
     QRExpiredError,
     QRExpiredErrorSchema,
-    QRInvalidErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
@@ -92,12 +91,8 @@ staffRouter.put(
                 description: "The scanned user's information",
                 schema: ScanAttendeeSchema,
             },
-            [StatusCode.ServerErrorInternal]: {
-                description: "qrId invalid",
-                schema: QRInvalidErrorSchema,
-            },
             [StatusCode.ClientErrorUnauthorized]: {
-                description: "qrId has expired",
+                description: "attendeeQRCode has expired",
                 schema: QRExpiredErrorSchema,
             },
             ...PerformCheckInErrors,
