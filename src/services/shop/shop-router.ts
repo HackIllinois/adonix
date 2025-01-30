@@ -275,7 +275,7 @@ shopRouter.post(
 
         const result = await Models.ShopOrder.deleteOne({ userId: num });
         if (result.deletedCount === 0) {
-            return res.status(404).json({ message: "Order not found" });
+            return res.status(StatusCode.ClientErrorNotFound).json({ message: "Not able to clear cart" });
         }
 
         return res.status(StatusCode.SuccessOK).json({ message: "success" });
@@ -312,7 +312,7 @@ shopRouter.post(
         const { itemId } = req.params;
         const { id: userId } = getAuthenticatedUser(req);
 
-        var userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        let userOrder = await Models.ShopOrder.findOne({ userId: userId });
         //user doesn't have a order yet
         if (!userOrder) {
             const shopOrder: ShopOrder = {
@@ -351,7 +351,7 @@ shopRouter.post(
 
         //add item to order or increase quantity
         const items = userOrder.items;
-        var found = false;
+        let found = false;
         for (let i = 0; i < items.length; i++) {
             if ((items[i] = itemId)) {
                 found = true;
@@ -414,7 +414,7 @@ shopRouter.get(
         const { id: userId } = getAuthenticatedUser(req);
 
         //get their order from order db
-        var userOrder = await Models.ShopOrder.findOne({ userId: userId });
+        let userOrder = await Models.ShopOrder.findOne({ userId: userId });
         if (!userOrder) {
             const shopOrder: ShopOrder = {
                 items: [],
@@ -502,7 +502,7 @@ shopRouter.get(
         }
 
         //check if user has enough coins
-        var currPrice = 0;
+        let currPrice = 0;
         for (let i = 0; i < items.length; i++) {
             const item = await Models.ShopItem.findOne({ itemId: items[i] });
             if (!item) {
