@@ -82,8 +82,8 @@ beforeEach(async () => {
 });
 
 describe("PUT /staff/scan-attendee/", () => {
-    let validQrId: string;
-    let expiredQrId: string;
+    let validAttendeeQRCode: string;
+    let expiredAttendeeQRCode: string;
     let testUserId: string;
 
     beforeEach(async () => {
@@ -96,15 +96,15 @@ describe("PUT /staff/scan-attendee/", () => {
         const currentTime = Math.floor(Date.now() / 1000);
 
         // Generate valid QR code
-        validQrId = encryptQR(testUserId, currentTime + 300);
+        validAttendeeQRCode = encryptQR(testUserId, currentTime + 300);
 
         // Generate expired QR code
-        expiredQrId = encryptQR(testUserId, currentTime - 300);
+        expiredAttendeeQRCode = encryptQR(testUserId, currentTime - 300);
     });
 
     it("successfully checks in user with valid QR code", async () => {
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -127,37 +127,37 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("rejects non-staff users", async () => {
         await putAsAttendee("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.ClientErrorForbidden);
     });
 
     it("rejects invalid QR codes", async () => {
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: "invalidQR" })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: "invalidQR" })
             .expect(StatusCode.ServerErrorInternal);
     });
 
     it("rejects expired QR codes", async () => {
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: expiredQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: expiredAttendeeQRCode })
             .expect(StatusCode.ClientErrorUnauthorized);
     });
 
     it("handles non-existent events", async () => {
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: "non-existent-event", qrId: validQrId })
+            .send({ eventId: "non-existent-event", attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.ClientErrorNotFound);
     });
 
     it("prevents duplicate check-ins", async () => {
         // First check-in should succeed
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.SuccessOK);
 
         // Second check-in should fail
         const response = await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -170,7 +170,7 @@ describe("PUT /staff/scan-attendee/", () => {
         await Models.RegistrationApplication.deleteOne({ userId: testUserId });
 
         await putAsStaff("/staff/scan-attendee/")
-            .send({ eventId: TEST_EVENT.eventId, qrId: validQrId })
+            .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
             .expect(StatusCode.ServerErrorInternal);
     });
 });

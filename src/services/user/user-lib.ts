@@ -1,5 +1,7 @@
 import { UserInfo } from "./user-schemas";
-import CryptoJS from "crypto-js";
+// import * as crypto from 'crypto';
+// import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import * as CryptoJS from 'crypto-js'
 import Config from "../../common/config";
 
 export function isValidUserFormat(u: UserInfo): boolean {
@@ -15,6 +17,7 @@ export function encryptQR(userId: string, exp: number): string {
     const encrypted = CryptoJS.AES.encrypt(payload, Config.JWT_SECRET).toString();
     return encrypted;
 }
+
 
 export function decryptQR(token: string): { userId: string; exp: number } {
     // Decrypt the token

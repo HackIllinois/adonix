@@ -157,6 +157,7 @@ const Config = {
     EVENT_BYTES_GEN: 16,
     MENTOR_BYTES_GEN: 16,
     QR_BYTES_GEN: 16,
+    QR_BYTES_KEY: 32,
 
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,

@@ -104,7 +104,7 @@ describe("GET /user/qr/", () => {
         // Verify response format
         expect(responseBody).toMatchObject({
             userId: TESTER_USER.userId,
-            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?qrId=[A-Za-z0-9+/=]+/),
+            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?attendeeQRCode=[A-Za-z0-9+/=]+/),
         });
 
         // Decrypt the QR code
@@ -132,7 +132,7 @@ describe("GET /user/qr/:id/", () => {
         // Verify response
         expect(responseBody).toMatchObject({
             userId: TESTER_USER.userId,
-            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?qrId=[A-Za-z0-9+/=]+/),
+            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?attendeeQRCode=[A-Za-z0-9+/=]+/),
         });
 
         // Decrypt the QR code

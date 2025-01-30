@@ -79,7 +79,6 @@ staffRouter.post(
     },
 );
 
-// TODO
 staffRouter.put(
     "/scan-attendee/",
     specification({
@@ -95,26 +94,22 @@ staffRouter.put(
                 schema: ScanAttendeeSchema,
             },
             [StatusCode.ServerErrorInternal]: {
-                description: "qrId invalid",
+                description: "attendeeQRCode invalid",
                 schema: QRInvalidErrorSchema,
             },
             [StatusCode.ClientErrorUnauthorized]: {
-                description: "qrId has expired",
+                description: "attendeeQRCode has expired",
                 schema: QRExpiredErrorSchema,
             },
             ...PerformCheckInErrors,
         },
     }),
     async (req, res) => {
-        const { qrId, eventId } = req.body;
+        const { attendeeQRCode, eventId } = req.body;
         const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
-        // try {
         // Decrypt and validate token
-        const decodedPayload = decryptQR(qrId);
-        // } catch (error) {
-        //     return res.status(StatusCode.ServerErrorInternal).send(QRInvalidError);
-        // }
+        const decodedPayload = decryptQR(attendeeQRCode);
 
         // Validate expiration time
         if (decodedPayload.exp < currentTime) {

@@ -25,7 +25,6 @@ import { encryptQR } from "./user-lib";
 
 const userRouter = Router();
 
-// DONE
 userRouter.get(
     "/qr/",
     specification({
@@ -50,7 +49,7 @@ userRouter.get(
         // Encrypt user ID and expiration timestamp
         const encryptedToken = encryptQR(payload.id, exp);
 
-        const uri = `hackillinois://user?qrId=${encryptedToken}`;
+        const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
         return res.status(StatusCode.SuccessOK).send({
             userId: payload.id,
             qrInfo: uri,
@@ -58,7 +57,6 @@ userRouter.get(
     },
 );
 
-// DONE
 userRouter.get(
     "/qr/:id",
     specification({
@@ -98,7 +96,7 @@ userRouter.get(
         // Encrypt user ID and expiration timestamp
         const encryptedToken = encryptQR(userId, exp);
 
-        const uri = `hackillinois://user?qrId=${encryptedToken}`;
+        const uri = `hackillinois://user?attendeeQRCode=${encryptedToken}`;
         return res.status(StatusCode.SuccessOK).send({
             userId: userId,
             qrInfo: uri,
