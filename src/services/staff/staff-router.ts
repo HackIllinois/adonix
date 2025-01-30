@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { Role } from "../auth/auth-schemas";
-import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
+import { getAuthenticatedUser } from "../../common/auth";
 import {
     CodeExpiredError,
     CodeExpiredErrorSchema,
+    QRExpiredError,
+    QRExpiredErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
@@ -18,6 +20,7 @@ import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
+import { decryptQRCode } from "../user/user-lib";
 
 const staffRouter = Router();
 
@@ -81,32 +84,46 @@ staffRouter.put(
         path: "/staff/scan-attendee/",
         tag: Tag.STAFF,
         role: Role.STAFF,
-        summary: "Checks in a user using their QR code JWT for a specified event",
+        summary: "Checks in a user using their encrypted QR code token for a specified event",
         body: ScanAttendeeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The scanned user's information",
                 schema: ScanAttendeeSchema,
             },
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "attendeeQRCode has expired",
+                schema: QRExpiredErrorSchema,
+            },
             ...PerformCheckInErrors,
         },
     }),
     async (req, res) => {
-        const { attendeeJWT, eventId } = req.body;
-        const { id: userId } = decodeJwtToken(attendeeJWT);
+        const { attendeeQRCode, eventId } = req.body;
 
+        const userId = decryptQRCode(attendeeQRCode);
+        if (!userId) {
+            return res.status(StatusCode.ClientErrorUnauthorized).send(QRExpiredError);
+        }
+
+        // Perform check-in logic
         const result = await performCheckIn(eventId, userId);
         if (!result.success) {
             return res.status(result.status).json(result.error);
         }
 
-        const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
+        // Get registration data
+        const registrationData = await Models.RegistrationApplication.findOne({ userId }).select("dietaryRestrictions");
         if (!registrationData) {
             throw Error("No registration data");
         }
 
         const { dietaryRestrictions } = registrationData;
-        return res.status(StatusCode.SuccessOK).json({ success: true, userId, dietaryRestrictions });
+        return res.status(StatusCode.SuccessOK).json({
+            success: true,
+            userId,
+            dietaryRestrictions,
+        });
     },
 );
 
