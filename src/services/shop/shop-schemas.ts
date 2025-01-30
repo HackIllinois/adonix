@@ -48,19 +48,15 @@ export class ShopItem {
 
 export class ShopOrder {
     @prop({ required: true })
-    public items: Array<string>
+    public items: Array<string>;
 
     @prop({ required: true })
-    public quantity: Array<number>
+    public quantity: Array<number>;
 
     @prop({ required: true })
-    public userId: string
+    public userId: string;
 
-    constructor(
-        items: Array<string>,
-        quantity: Array<number>,
-        userId: string,
-    ) {
+    constructor(items: Array<string>, quantity: Array<number>, userId: string) {
         this.items = items;
         this.quantity = quantity;
         this.userId = userId;
@@ -159,9 +155,11 @@ export const OrderQRCodesSchema = z
     })
     .openapi("OrderQRCodes");
 
-export const SuccessSchema = z.object({
-    message: z.string(),
-}).openapi("Success");
+export const SuccessSchema = z
+    .object({
+        message: z.string(),
+    })
+    .openapi("Success");
 
 export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",

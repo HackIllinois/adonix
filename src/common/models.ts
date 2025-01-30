@@ -74,7 +74,7 @@ enum RegistrationCollection {
 
 enum ShopCollection {
     ITEMS = "items",
-    ORDERS = "orders"
+    ORDERS = "orders",
 }
 
 enum StaffCollection {
