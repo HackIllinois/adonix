@@ -158,6 +158,7 @@ const Config = {
     MENTOR_BYTES_GEN: 16,
     QR_BYTES_GEN: 16,
     QR_BYTES_KEY: 32,
+    QR_IV: "3a7f4b8c1d2e5f6a9b0c8d7e6f5a4b3c",
 
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,

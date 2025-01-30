@@ -1,7 +1,5 @@
 import { UserInfo } from "./user-schemas";
-// import * as crypto from 'crypto';
-// import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import * as CryptoJS from "crypto-js";
+import { createCipheriv, createDecipheriv, createHash } from "crypto";
 import Config from "../../common/config";
 
 export function isValidUserFormat(u: UserInfo): boolean {
@@ -12,15 +10,33 @@ export function isValidUserFormat(u: UserInfo): boolean {
     return true;
 }
 
+// Random IV is not required because the exiry date will add enough randomness
+const HARD_CODED_IV = Buffer.from("000102030405060708090a0b0c0d0e0f", "hex");
+const derivedAESKey = createHash("sha256").update(Config.JWT_SECRET).digest("hex");
+
+function encryptData(message: string, key: string): string {
+    const cipher = createCipheriv("aes-256-cbc", Buffer.from(key, "hex"), HARD_CODED_IV);
+    let encrypted = cipher.update(message, "utf-8", "base64");
+    encrypted += cipher.final("base64");
+    return encrypted;
+}
+
+function decryptData(encryptedMessage: string, key: string): string {
+    const decipher = createDecipheriv("aes-256-cbc", Buffer.from(key, "hex"), HARD_CODED_IV);
+    let decrypted = decipher.update(encryptedMessage, "base64", "utf-8");
+    decrypted += decipher.final("utf-8");
+    return decrypted;
+}
+
 export function encryptQR(userId: string, exp: number): string {
     const payload = `${userId}:${exp}`;
-    const encrypted = CryptoJS.AES.encrypt(payload, Config.JWT_SECRET).toString();
+    const encrypted = encryptData(payload, derivedAESKey);
     return encrypted;
 }
 
 export function decryptQR(token: string): { userId: string; exp: number } {
     // Decrypt the token
-    const decrypted = CryptoJS.AES.decrypt(token, Config.JWT_SECRET).toString(CryptoJS.enc.Utf8);
+    const decrypted = decryptData(token, derivedAESKey);
 
     // Check if the decrypted data is valid
     if (!decrypted || !decrypted.includes(":")) {

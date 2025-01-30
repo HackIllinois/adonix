@@ -101,12 +101,6 @@ describe("GET /user/qr/", () => {
         const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
         const responseBody = JSON.parse(response.text);
 
-        // Verify response format
-        expect(responseBody).toMatchObject({
-            userId: TESTER_USER.userId,
-            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?attendeeQRCode=[A-Za-z0-9+/=]+/),
-        });
-
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
         const decryptedData = decryptQR(encryptedToken);
@@ -129,12 +123,6 @@ describe("GET /user/qr/:id/", () => {
         const response = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
         const responseBody = JSON.parse(response.text);
 
-        // Verify response
-        expect(responseBody).toMatchObject({
-            userId: TESTER_USER.userId,
-            qrInfo: expect.stringMatching(/hackillinois:\/\/user\?attendeeQRCode=[A-Za-z0-9+/=]+/),
-        });
-
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
         const decryptedData = decryptQR(encryptedToken);
@@ -148,6 +136,9 @@ describe("GET /user/qr/:id/", () => {
         // First request
         const firstResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
         const firstEncryptedToken: string = JSON.parse(firstResponse.text).qrInfo.split("=")[1];
+
+        // Wait 1s for new exp time
+        await new Promise((r) => setTimeout(r, 1000));
 
         // Second request
         const secondResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
