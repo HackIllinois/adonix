@@ -280,18 +280,10 @@ registrationRouter.get(
                 description: "The challenge status",
                 schema: RegistrationChallengeStatusSchema,
             },
-            [StatusCode.ClientErrorForbidden]: {
-                description: "Registration is closed",
-                schema: RegistrationClosedErrorSchema,
-            },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-
-        if (!isRegistrationAlive()) {
-            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
-        }
 
         let challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
         if (!challenge) {
