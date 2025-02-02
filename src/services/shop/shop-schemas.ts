@@ -100,19 +100,21 @@ export const ShopOrderInfoSchema = z.object({
     userId: z.string(),
 });
 
-export const ShopItemFulfillOrderSchema = z.object({
-    QRCode: z.string(),
-});
-
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
-    example: "hackillinois://user?qr=github1203919029",
+    example: "hackillinois://user?qr=3e7eea9a-7264-4ddf-877d-9e004a888eda",
 });
 
-export const OrderQRCodesSchema = z
+export const OrderRequestSchema = z
     .object({
-        qrInfo: z.string(OrderQRCodeSchema),
+        QRCode: OrderQRCodeSchema,
     })
-    .openapi("OrderQRCodes");
+    .openapi("OrderRequest");
+
+export const OrderRedeemSchema = z
+    .object({
+        QRCode: OrderQRCodeSchema,
+    })
+    .openapi("OrderRedeem");
 
 export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",

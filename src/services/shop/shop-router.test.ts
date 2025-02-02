@@ -392,7 +392,7 @@ describe("GET /shop/cart/qr", () => {
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            qrInfo: expect.stringMatching(/^hackillinois:\/\/user\?qr=.+$/),
+            QRCode: expect.stringMatching(/^hackillinois:\/\/user\?qr=.+$/),
         });
     });
 
@@ -483,7 +483,7 @@ describe("GET /shop/cart/qr", () => {
 
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject({
-            qrInfo: expect.stringMatching(/^hackillinois:\/\/user\?qr=.+$/),
+            QRCode: expect.stringMatching(/^hackillinois:\/\/user\?qr=.+$/),
         });
     });
 });

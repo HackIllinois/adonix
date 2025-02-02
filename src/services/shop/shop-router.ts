@@ -7,9 +7,8 @@ import {
     ShopItemNotFoundError,
     ShopItemNotFoundErrorSchema,
     ShopItemsSchema,
-    ShopItemFulfillOrderSchema,
+    OrderRequestSchema,
     ShopOrder,
-    OrderQRCodesSchema,
     ShopInsufficientQuantityError,
     ShopOrderInfoSchema,
     ShopItemSchema,
@@ -17,6 +16,7 @@ import {
     ShopItemAlreadyExistsError,
     ShopItemCreateRequestSchema,
     ShopItemAlreadyExistsErrorSchema,
+    OrderRedeemSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -174,7 +174,7 @@ shopRouter.post(
         tag: Tag.SHOP,
         role: Role.STAFF,
         summary: "Purchases the order",
-        body: ShopItemFulfillOrderSchema,
+        body: OrderRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully purchased order",
@@ -496,7 +496,7 @@ shopRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "QR code",
-                schema: OrderQRCodesSchema,
+                schema: OrderRedeemSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -559,7 +559,7 @@ shopRouter.get(
 
         // Generate QR code
         const qrCodeUrl = generateQRCode(userId);
-        return res.status(StatusCode.SuccessOK).send({ qrInfo: qrCodeUrl });
+        return res.status(StatusCode.SuccessOK).send({ QRCode: qrCodeUrl });
     },
 );
 
