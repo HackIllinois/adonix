@@ -11,8 +11,6 @@ import {
     ShopOrder,
     OrderQRCodesSchema,
     ShopInsufficientQuantityError,
-    ShopInternalErrorSchema,
-    ShopInternalError,
     ShopOrderInfoSchema,
 } from "./shop-schemas";
 import { Router } from "express";
@@ -23,6 +21,7 @@ import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { updatePoints } from "../profile/profile-lib";
 import { getAuthenticatedUser } from "../../common/auth";
+import { decryptQRCode, generateQRCode } from "../user/user-lib";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -61,7 +60,7 @@ shopRouter.post(
                 schema: ShopOrderInfoSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item DNE",
+                description: "Shop Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
@@ -72,87 +71,79 @@ shopRouter.post(
                 description: "Not enough points to purchase",
                 schema: ShopInsufficientFundsErrorSchema,
             },
-            [StatusCode.ServerErrorInternal]: {
-                description: "Errors that should never happen",
-                schema: ShopInternalErrorSchema,
-            },
         },
     }),
     async (req, res) => {
-        try {
-            const { userId } = req.body;
+        const { QRCode } = req.body;
+        const userId = decryptQRCode(QRCode);
 
-            // Retrieve the user's order
-            const order = await Models.ShopOrder.findOne({ userId });
-            if (!order) {
-                return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
-            }
-
-            // Retrieve the user's profile
-            const profile = await Models.AttendeeProfile.findOne({ userId: order.userId });
-            if (!profile) {
-                return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
-            }
-
-            // Gather all item IDs from the order
-            const itemIds = Array.from(order.items.keys());
-
-            // Fetch all shop items with one query
-            const items = await Models.ShopItem.find({ itemId: { $in: itemIds } });
-
-            // Create a map of itemId to item document for easy lookup
-            const itemsMap = new Map(items.map((item) => [item.itemId, item]));
-
-            let totalPointsRequired = 0;
-
-            // Loop through each order item to check availability and calculate total points required
-            for (const [itemId, quantity] of order.items.entries()) {
-                const item = itemsMap.get(itemId);
-                if (!item) {
-                    return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-                }
-
-                totalPointsRequired += quantity * item.price;
-
-                // Check if the requested quantity is available
-                if (quantity > item.quantity) {
-                    return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
-                }
-            }
-
-            // Check if the user has enough points for the order
-            if (profile.points < totalPointsRequired) {
-                return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
-            }
-
-            // Update the inventory and deduct points
-            for (const [itemId, quantity] of order.items.entries()) {
-                const item = itemsMap.get(itemId);
-                if (!item) {
-                    return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-                }
-
-                // Deduct the item's quantity from stock
-                await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
-
-                // Deduct points from the user's profile
-                await updatePoints(order.userId, -(quantity * item.price));
-            }
-
-            // Clear the user's order from the cart
-            await Models.ShopOrder.deleteOne({ userId });
-
-            // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
-            const zodOrder = {
-                userId: order.userId,
-                items: Array.from(order.items),
-            };
-
-            return res.status(StatusCode.SuccessOK).json(zodOrder);
-        } catch (error) {
-            console.error("Error processing order:", error);
-            return res.status(StatusCode.ServerErrorInternal).json(ShopInternalError);
+        // Retrieve the user's order
+        const order = await Models.ShopOrder.findOne({ userId });
+        if (!order) {
+            throw new Error("nonexistent order");
         }
+
+        // Retrieve the user's profile
+        const profile = await Models.AttendeeProfile.findOne({ userId: order.userId });
+        if (!profile) {
+            throw new Error("nonexistent profile");
+        }
+
+        // Gather all item IDs from the order
+        const itemIds = Array.from(order.items.keys());
+
+        // Fetch all shop items with one query
+        const items = await Models.ShopItem.find({ itemId: { $in: itemIds } });
+
+        // Create a map of itemId to item document for easy lookup
+        const itemsMap = new Map(items.map((item) => [item.itemId, item]));
+
+        let totalPointsRequired = 0;
+
+        // Loop through each order item to check availability and calculate total points required
+        for (const [itemId, quantity] of order.items.entries()) {
+            const item = itemsMap.get(itemId);
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            totalPointsRequired += quantity * item.price;
+
+            // Check if the requested quantity is available
+            if (quantity > item.quantity) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
+            }
+        }
+
+        // Check if the user has enough points for the order
+        if (profile.points < totalPointsRequired) {
+            return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
+        }
+
+        // Update the inventory and deduct points
+        for (const [itemId, quantity] of order.items.entries()) {
+            const item = itemsMap.get(itemId);
+            if (!item) {
+                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+            }
+
+            // Deduct the item's quantity from stock
+            await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
+
+            // Deduct points from the user's profile
+            await updatePoints(order.userId, -(quantity * item.price));
+        }
+
+        // Clear the user's order from the cart
+        await Models.ShopOrder.deleteOne({ userId });
+
+        // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
+        const zodOrder = {
+            userId: order.userId,
+            items: Array.from(order.items),
+        };
+
+        return res.status(StatusCode.SuccessOK).json(zodOrder);
     },
 );
 
@@ -173,7 +164,7 @@ shopRouter.post(
                 schema: ShopOrderInfoSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item DNE",
+                description: "Shop Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
@@ -183,10 +174,6 @@ shopRouter.post(
             [StatusCode.ClientErrorPaymentRequired]: {
                 description: "Not enough points to purchase",
                 schema: ShopInsufficientFundsErrorSchema,
-            },
-            [StatusCode.ServerErrorInternal]: {
-                description: "Errors that should never happen",
-                schema: ShopInternalErrorSchema,
             },
         },
     }),
@@ -203,7 +190,7 @@ shopRouter.post(
 
         // This should never get hit, just checking here so typescript doesn't get mad
         if (!userOrder) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+            throw new Error("nonexistent order");
         }
 
         // check if enough quantity in shop
@@ -220,7 +207,7 @@ shopRouter.post(
         const profile = await Models.AttendeeProfile.findOne({ userId: userId });
         // This should never get hit.
         if (!profile) {
-            return res.status(StatusCode.ServerErrorInternal).json(ShopInternalError);
+            throw new Error("nonexistent profile");
         }
 
         if (profile.points < item.price) {
@@ -237,7 +224,7 @@ shopRouter.post(
                 },
             );
             if (!updatedOrder) {
-                return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+                throw new Error("internal db query error");
             }
         } else {
             const updatedOrder = await Models.ShopOrder.updateOne(
@@ -247,7 +234,7 @@ shopRouter.post(
                 },
             );
             if (!updatedOrder) {
-                return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+                throw new Error("internal db query error");
             }
         }
 
@@ -260,7 +247,7 @@ shopRouter.post(
             };
             return res.status(StatusCode.SuccessOK).json(zodOrder);
         }
-        return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+        throw new Error("internal db query error");
     },
 );
 
@@ -281,12 +268,8 @@ shopRouter.delete(
                 schema: ShopOrderInfoSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item DNE",
+                description: "Shop Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
-            },
-            [StatusCode.ServerErrorInternal]: {
-                description: "Errors that should never happen",
-                schema: ShopInternalErrorSchema,
             },
         },
     }),
@@ -316,7 +299,7 @@ shopRouter.delete(
 
         // If update fails
         if (!updatedShopOrder) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError); // Internal error
+            throw new Error("internal db query error");
         }
 
         // If the quantity of the item becomes 0, remove the item from the cart
@@ -338,7 +321,7 @@ shopRouter.delete(
             };
             return res.status(StatusCode.SuccessOK).json(zodOrder);
         }
-        return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+        throw new Error("internal db query error");
     },
 );
 
@@ -355,10 +338,6 @@ shopRouter.get(
                 description: "List of items and quantity",
                 schema: ShopOrderInfoSchema,
             },
-            [StatusCode.ServerErrorInternal]: {
-                description: "Errors that should never happen",
-                schema: ShopInternalErrorSchema,
-            },
         },
     }),
     async (req, res) => {
@@ -371,7 +350,7 @@ shopRouter.get(
         }
 
         if (!userOrder) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+            throw new Error("nonexistent order");
         }
 
         // Convert order to array of tuples cuz zod doesn't fw maps
@@ -397,20 +376,16 @@ shopRouter.get(
                 schema: OrderQRCodesSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item DNE",
+                description: "Shop Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Not enough quantity in shop",
-                schema: ShopInsufficientFundsErrorSchema,
+                schema: ShopInsufficientQuantityErrorSchema,
             },
             [StatusCode.ClientErrorPaymentRequired]: {
                 description: "User doesn't have enough points to purchase",
                 schema: ShopInsufficientFundsErrorSchema,
-            },
-            [StatusCode.ServerErrorInternal]: {
-                description: "Errors that should never happen",
-                schema: ShopInternalErrorSchema,
             },
         },
     }),
@@ -420,7 +395,7 @@ shopRouter.get(
         // Fetch user order
         const userOrder = await Models.ShopOrder.findOne({ userId });
         if (!userOrder) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+            throw new Error("nonexistent order");
         }
 
         // Get all item IDs from the order's map
@@ -437,14 +412,14 @@ shopRouter.get(
                 return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
             }
             if (currentQuantity > item.quantity) {
-                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
+                return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
             }
         }
 
         // Fetch user profile once
         const profile = await Models.AttendeeProfile.findOne({ userId });
         if (!profile) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+            throw new Error("nonexistent profile");
         }
 
         // Compute total cost
@@ -460,7 +435,7 @@ shopRouter.get(
         }
 
         // Generate QR code
-        const qrCodeUrl = `hackillinois://shop?userId=${userId}`;
+        const qrCodeUrl = generateQRCode(userId);
         return res.status(StatusCode.SuccessOK).send({ qrInfo: qrCodeUrl });
     },
 );

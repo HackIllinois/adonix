@@ -101,11 +101,11 @@ export const ShopOrderInfoSchema = z.object({
 });
 
 export const ShopItemFulfillOrderSchema = z.object({
-    userId: z.string(),
+    QRCode: z.string(),
 });
 
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
-    example: "hackillinois://shop?userId=github1203919029",
+    example: "hackillinois://user?qr=github1203919029",
 });
 
 export const OrderQRCodesSchema = z
