@@ -45,7 +45,7 @@ export class ShopOrder {
     }
 }
 
-export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "item1234" });
+export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "3e7eea9a-7264-4ddf-877d-9e004a888eda" });
 
 export const ShopItemSchema = z
     .object({
@@ -58,7 +58,7 @@ export const ShopItemSchema = z
     })
     .openapi("ShopItem", {
         example: {
-            itemId: "1234",
+            itemId: "3e7eea9a-7264-4ddf-877d-9e004a888eda",
             name: "HackIllinois Branded Hoodie",
             price: 15,
             isRaffle: true,

@@ -12,6 +12,11 @@ import {
     OrderQRCodesSchema,
     ShopInsufficientQuantityError,
     ShopOrderInfoSchema,
+    ShopItemSchema,
+    ShopItemUpdateRequestSchema,
+    ShopItemAlreadyExistsError,
+    ShopItemCreateRequestSchema,
+    ShopItemAlreadyExistsErrorSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -22,6 +27,8 @@ import { z } from "zod";
 import { updatePoints } from "../profile/profile-lib";
 import { getAuthenticatedUser } from "../../common/auth";
 import { decryptQRCode, generateQRCode } from "../user/user-lib";
+import { SuccessResponseSchema } from "../../common/schemas";
+import { randomUUID } from "crypto";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -42,6 +49,120 @@ shopRouter.get(
     async (_req, res) => {
         const shopItems: ShopItem[] = await Models.ShopItem.find();
         return res.status(StatusCode.SuccessOK).send(shopItems);
+    },
+);
+
+shopRouter.post(
+    "/item",
+    specification({
+        method: "post",
+        path: "/shop/item/",
+        tag: Tag.SHOP,
+        role: Role.ADMIN,
+        summary: "Creates a shop item",
+        body: ShopItemCreateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The new item",
+                schema: ShopItemSchema,
+            },
+            [StatusCode.ClientErrorConflict]: {
+                description: "The item already exists",
+                schema: ShopItemAlreadyExistsErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const details = req.body;
+        const itemId = randomUUID();
+
+        const shopItem: ShopItem = {
+            ...details,
+            itemId: itemId,
+        };
+
+        // Ensure that item doesn't already exist before creating
+        const itemExists = (await Models.ShopItem.findOne({ name: details.name })) ?? false;
+        if (itemExists) {
+            return res.status(StatusCode.ClientErrorConflict).send(ShopItemAlreadyExistsError);
+        }
+
+        const newItem = await Models.ShopItem.create(shopItem);
+
+        return res.status(StatusCode.SuccessOK).send(newItem);
+    },
+);
+
+shopRouter.put(
+    "/item/:id/",
+    specification({
+        method: "put",
+        path: "/shop/item/{id}/",
+        tag: Tag.SHOP,
+        role: Role.ADMIN,
+        summary: "Updates a shop item",
+        parameters: z.object({
+            id: ShopItemIdSchema,
+        }),
+        body: ShopItemUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The new item",
+                schema: ShopItemSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: itemId } = req.params;
+        const updateRequest = req.body;
+
+        const updatedItem = await Models.ShopItem.findOneAndUpdate({ itemId }, updateRequest, {
+            new: true,
+        });
+
+        if (!updatedItem) {
+            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send(updatedItem);
+    },
+);
+
+shopRouter.delete(
+    "/item/:id/",
+    specification({
+        method: "delete",
+        path: "/shop/item/{id}/",
+        tag: Tag.SHOP,
+        role: Role.ADMIN,
+        summary: "Deletes a shop item",
+        parameters: z.object({
+            id: ShopItemIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully deleted",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: itemId } = req.params;
+        const deleted = await Models.ShopItem.deleteOne({ itemId });
+
+        if (deleted.deletedCount == 0) {
+            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
 
