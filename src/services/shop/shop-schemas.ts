@@ -133,8 +133,3 @@ export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema
     error: "InsufficientQuantity",
     message: "Not enough of that item in the shop/your cart",
 });
-
-export const [ShopInternalError, ShopInternalErrorSchema] = CreateErrorAndSchema({
-    error: "InternalError",
-    message: "This should never happen. i.e. user without attendeeProfile, user without shopOrder, etc.",
-});
