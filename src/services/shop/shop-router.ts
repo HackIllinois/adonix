@@ -23,7 +23,6 @@ import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { updatePoints } from "../profile/profile-lib";
 import { getAuthenticatedUser } from "../../common/auth";
-import Config from "../../common/config";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -95,47 +94,61 @@ shopRouter.post(
                 return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
             }
 
+            // Gather all item IDs from the order
+            const itemIds = Array.from(order.items.keys());
+
+            // Fetch all shop items with one query
+            const items = await Models.ShopItem.find({ itemId: { $in: itemIds } });
+
+            // Create a map of itemId to item document for easy lookup
+            const itemsMap = new Map(items.map((item) => [item.itemId, item]));
+
             let totalPointsRequired = 0;
 
-            // Loop through items and check availability and price
-            for (let i = 0; i < order.items.length; i++) {
-                const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
+            // Loop through each order item to check availability and calculate total points required
+            for (const [itemId, quantity] of order.items.entries()) {
+                const item = itemsMap.get(itemId);
                 if (!item) {
                     return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
                 }
 
-                const quantity = order.quantity?.[i] ?? 0; // Default to 0 if undefined
                 totalPointsRequired += quantity * item.price;
 
-                // Check if requested quantity is available
+                // Check if the requested quantity is available
                 if (quantity > item.quantity) {
                     return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
                 }
             }
 
             // Check if the user has enough points for the order
-            if (!profile || profile.points < totalPointsRequired) {
+            if (profile.points < totalPointsRequired) {
                 return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
             }
 
-            // Update the inventory and user points
-            for (let i = 0; i < order.items.length; i++) {
-                const item = await Models.ShopItem.findOne({ itemId: order.items[i] });
-                const quantity = order.quantity?.[i] ?? 0;
+            // Update the inventory and deduct points
+            for (const [itemId, quantity] of order.items.entries()) {
+                const item = itemsMap.get(itemId);
                 if (!item) {
                     return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
                 }
 
-                // Deduct item quantity from stock
-                await Models.ShopItem.updateOne({ itemId: order.items[i] }, { $inc: { quantity: -quantity } });
+                // Deduct the item's quantity from stock
+                await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
 
-                // Deduct points from user profile
+                // Deduct points from the user's profile
                 await updatePoints(order.userId, -(quantity * item.price));
             }
 
             // Clear the user's order from the cart
             await Models.ShopOrder.deleteOne({ userId });
-            return res.status(StatusCode.SuccessOK).json(order);
+
+            // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
+            const zodOrder = {
+                userId: order.userId,
+                items: Array.from(order.items),
+            };
+
+            return res.status(StatusCode.SuccessOK).json(zodOrder);
         } catch (error) {
             console.error("Error processing order:", error);
             return res.status(StatusCode.ServerErrorInternal).json(ShopInternalError);
@@ -182,15 +195,10 @@ shopRouter.post(
         const { id: userId } = getAuthenticatedUser(req);
 
         let userOrder = await Models.ShopOrder.findOne({ userId: userId });
-        //user doesn't have a order yet
+        // user doesn't have an order yet
         if (!userOrder) {
-            const shopOrder: ShopOrder = {
-                items: [],
-                quantity: [],
-                userId: userId,
-            };
-
-            userOrder = await Models.ShopOrder.create(shopOrder);
+            // Create a new order with an empty list of items (which becomes an empty Map)
+            userOrder = await Models.ShopOrder.create(new ShopOrder([], userId));
         }
 
         // This should never get hit, just checking here so typescript doesn't get mad
@@ -198,7 +206,7 @@ shopRouter.post(
             return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
         }
 
-        //check if enough quantity in shop
+        // check if enough quantity in shop
         const item = await Models.ShopItem.findOne({ itemId: itemId });
         if (!item) {
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
@@ -208,7 +216,7 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
         }
 
-        //check if user has enough coins
+        // check if user has enough coins
         const profile = await Models.AttendeeProfile.findOne({ userId: userId });
         // This should never get hit.
         if (!profile) {
@@ -219,35 +227,25 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
         }
 
-        //add item to order or increase quantity
-        const items = userOrder.items;
-        let found = false;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i] === itemId) {
-                found = true;
-
-                const updatedOrder = await Models.ShopOrder.updateOne(
-                    { userId: userId },
-                    {
-                        $inc: { [`quantity.${i}`]: 1 },
-                    },
-                );
-                if (!updatedOrder) {
-                    return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
-                }
-            }
-        }
-        if (!found) {
+        // add item to order or increase quantity
+        // Since userOrder.items is now a Map, check if the item already exists.
+        if (userOrder.items.has(itemId)) {
             const updatedOrder = await Models.ShopOrder.updateOne(
                 { userId: userId },
                 {
-                    $push: {
-                        items: itemId,
-                        quantity: 1,
-                    },
+                    $inc: { [`items.${itemId}`]: 1 },
                 },
             );
-
+            if (!updatedOrder) {
+                return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
+            }
+        } else {
+            const updatedOrder = await Models.ShopOrder.updateOne(
+                { userId: userId },
+                {
+                    $set: { [`items.${itemId}`]: 1 },
+                },
+            );
             if (!updatedOrder) {
                 return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
             }
@@ -255,7 +253,12 @@ shopRouter.post(
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId });
         if (updatedOrder) {
-            return res.status(StatusCode.SuccessOK).json(updatedOrder);
+            // Convert order to array of tuples cuz zod doesn't fw maps
+            const zodOrder = {
+                userId: updatedOrder.userId,
+                items: Array.from(updatedOrder.items),
+            };
+            return res.status(StatusCode.SuccessOK).json(zodOrder);
         }
         return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
     },
@@ -295,20 +298,19 @@ shopRouter.delete(
 
         // Check if user has an order
         if (!userOrder) {
-            return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError); // No order found
+            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError); // No order found
         }
 
-        // Find the index of the item in the user's cart
-        const itemIndex = userOrder.items.indexOf(itemId);
-        if (itemIndex === Config.NOT_FOUND) {
+        // Check if the item exists in the user's cart (map)
+        if (!userOrder.items.has(itemId)) {
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError); // Item not in cart
         }
 
-        // Update the order, decrement the quantity of the item by 1
+        // Decrement the quantity of the item by 1
         const updatedShopOrder = await Models.ShopOrder.updateOne(
             { userId: userId },
             {
-                $inc: { [`quantity.${itemIndex}`]: -1 },
+                $inc: { [`items.${itemId}`]: -1 },
             },
         );
 
@@ -318,21 +320,23 @@ shopRouter.delete(
         }
 
         // If the quantity of the item becomes 0, remove the item from the cart
-        if ((userOrder.quantity?.[itemIndex] ?? 0) - 1 === 0) {
+        if ((userOrder.items.get(itemId) ?? 0) - 1 === 0) {
             await Models.ShopOrder.updateOne(
                 { userId: userId },
                 {
-                    $pull: {
-                        items: itemId,
-                        quantity: 0, // Remove the corresponding quantity as well
-                    },
+                    $unset: { [`items.${itemId}`]: "" },
                 },
             );
         }
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId });
         if (updatedOrder) {
-            return res.status(StatusCode.SuccessOK).json(updatedOrder);
+            // Convert order to array of tuples cuz zod doesn't fw maps
+            const zodOrder = {
+                userId: updatedOrder.userId,
+                items: Array.from(updatedOrder.items),
+            };
+            return res.status(StatusCode.SuccessOK).json(zodOrder);
         }
         return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
     },
@@ -360,23 +364,22 @@ shopRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        //get their order from order db
+        // Get their order from order db
         let userOrder = await Models.ShopOrder.findOne({ userId: userId });
         if (!userOrder) {
-            const shopOrder: ShopOrder = {
-                items: [],
-                quantity: [],
-                userId: userId,
-            };
-
-            userOrder = await Models.ShopOrder.create(shopOrder);
+            userOrder = await Models.ShopOrder.create(new ShopOrder([], userId));
         }
 
         if (!userOrder) {
             return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
         }
 
-        return res.status(StatusCode.SuccessOK).send(userOrder);
+        // Convert order to array of tuples cuz zod doesn't fw maps
+        const zodOrder = {
+            userId: userOrder.userId,
+            items: Array.from(userOrder.items),
+        };
+        return res.status(StatusCode.SuccessOK).send(zodOrder);
     },
 );
 
@@ -420,19 +423,19 @@ shopRouter.get(
             return res.status(StatusCode.ServerErrorInternal).send(ShopInternalError);
         }
 
-        const { items, quantity } = userOrder;
+        // Get all item IDs from the order's map
+        const itemIds = Array.from(userOrder.items.keys());
 
         // Fetch all shop items in one query
-        const shopItems = await Models.ShopItem.find({ itemId: { $in: items } });
+        const shopItems = await Models.ShopItem.find({ itemId: { $in: itemIds } });
         const itemMap = new Map(shopItems.map((item) => [item.itemId, item]));
 
         // Validate item availability
-        for (let i = 0; i < items.length; i++) {
-            const item = itemMap.get(items[i] ?? "");
+        for (const [itemId, currentQuantity] of userOrder.items.entries()) {
+            const item = itemMap.get(itemId);
             if (!item) {
                 return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
             }
-            const currentQuantity = quantity[i] ?? 0;
             if (currentQuantity > item.quantity) {
                 return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientFundsError);
             }
@@ -445,11 +448,11 @@ shopRouter.get(
         }
 
         // Compute total cost
-        const totalPrice = items.reduce((sum, itemId, i) => {
-            const itemPrice = itemMap.get(itemId)?.price ?? 0; // Default to 0 if item price is not found
-            const itemQuantity = quantity[i] ?? 0; // Default to 0 if quantity is undefined
-            return sum + itemPrice * itemQuantity;
-        }, 0);
+        let totalPrice = 0;
+        for (const [itemId, currentQuantity] of userOrder.items.entries()) {
+            const itemPrice = itemMap.get(itemId)?.price ?? 0;
+            totalPrice += itemPrice * currentQuantity;
+        }
 
         // Check if user has enough points
         if (profile.points < totalPrice) {

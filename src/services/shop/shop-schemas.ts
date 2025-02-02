@@ -1,4 +1,4 @@
-import { prop } from "@typegoose/typegoose";
+import { prop, modelOptions, Severity } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
@@ -31,30 +31,21 @@ export class ShopItem {
     }
 }
 
+@modelOptions({ options: { allowMixed: Severity.ALLOW } })
 export class ShopOrder {
-    @prop({ type: [String], required: true })
-    public items: Array<string>;
-
-    @prop({ type: [Number], required: true })
-    public quantity: Array<number>;
-
     @prop({ required: true })
-    public userId: string;
+    public userId!: string;
 
-    constructor(items: Array<string>, quantity: Array<number>, userId: string) {
-        this.items = items;
-        this.quantity = quantity;
+    @prop({ type: Map, required: true })
+    public items!: Map<string, number>;
+
+    constructor(items: [string, number][], userId: string) {
+        this.items = new Map(items);
         this.userId = userId;
     }
 }
 
 export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "item1234" });
-// export const ShopOrderArraySchema = z
-// .tuple([
-//   z.array(z.string()),
-//   z.array(z.number()),
-// ])
-// .openapi("ShopOrderArray", { example: [["item1234", "item5678"], [1, 2]] });
 
 export const ShopItemSchema = z
     .object({
@@ -104,14 +95,8 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
         },
     });
 
-export const ShopItemBuyRequestSchema = z.object({
-    itemId: ShopItemIdSchema,
-    instance: z.string().openapi({ example: "1x3" }),
-});
-
 export const ShopOrderInfoSchema = z.object({
-    items: z.array(z.string()),
-    quantity: z.array(z.number()),
+    items: z.array(z.tuple([z.string(), z.number()])),
     userId: z.string(),
 });
 
@@ -128,12 +113,6 @@ export const OrderQRCodesSchema = z
         qrInfo: z.string(OrderQRCodeSchema),
     })
     .openapi("OrderQRCodes");
-
-export const SuccessSchema = z
-    .object({
-        message: z.string(),
-    })
-    .openapi("Success");
 
 export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",

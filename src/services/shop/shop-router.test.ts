@@ -5,6 +5,7 @@ import Models from "../../common/models";
 import { ShopItem, ShopOrder } from "./shop-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 
+// Define test item
 const TESTER_SHOP_ITEM = {
     itemId: "test-item-1",
     name: "Test Item",
@@ -14,12 +15,9 @@ const TESTER_SHOP_ITEM = {
     quantity: 10,
 } satisfies ShopItem;
 
-const TESTER_SHOP_ORDER = {
-    userId: TESTER.id,
-    items: ["test-item-1"],
-    quantity: [2],
-} satisfies ShopOrder;
+const TESTER_SHOP_ORDER = new ShopOrder([["test-item-1", 2]], TESTER.id) satisfies ShopOrder;
 
+// Define test profile
 const TESTER_PROFILE = {
     userId: TESTER.id,
     displayName: TESTER.name,
@@ -42,19 +40,26 @@ beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_PROFILE);
 });
 
+//
+// POST /shop/cart/redeem
+//
 describe("POST /shop/cart/redeem", () => {
     it("allows staff to successfully redeem an order", async () => {
         const response = await postAsStaff("/shop/cart/redeem")
             .send({ userId: TESTER_PROFILE.userId })
             .expect(StatusCode.SuccessOK);
 
-        expect(JSON.parse(response.text)).toMatchObject(TESTER_SHOP_ORDER);
+        // Expect returned order to use the new tuple format.
+        expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER_PROFILE.userId,
+            items: [["test-item-1", 2]],
+        });
 
-        // Verify inventory was updated
+        // Verify inventory was updated: quantity reduced by 2 (from 10 to 8)
         const updatedItem = await Models.ShopItem.findOne({ itemId: TESTER_SHOP_ITEM.itemId });
         expect(updatedItem?.quantity).toBe(8);
 
-        // Verify points were deducted
+        // Verify points were deducted (2 * 100 = 200, so 1000-200 = 800)
         const updatedProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
         expect(updatedProfile?.points).toBe(800);
 
@@ -75,24 +80,21 @@ describe("POST /shop/cart/redeem", () => {
     });
 
     it("returns NotFound for non-existent shop item", async () => {
-        // Create order with non-existent item
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["non-existent-item"], quantity: [1] });
+        // Update order so that it now references a non-existent item.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["non-existent-item", 1]] });
 
         await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ClientErrorNotFound);
     });
 
     it("returns BadRequest for insufficient item quantity", async () => {
-        // Update order to request more items than available
-        await Models.ShopOrder.updateOne(
-            { userId: TESTER_PROFILE.userId },
-            { quantity: [11] }, // TESTER_SHOP_ITEM presumably has 10 quantity
-        );
+        // Request more than available (11 instead of available 10)
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["test-item-1", 11]] });
 
         await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.ClientErrorBadRequest);
     });
 
     it("returns PaymentRequired for insufficient points", async () => {
-        // Update profile to have insufficient points
+        // Set the user’s points to 0
         await Models.AttendeeProfile.updateOne({ userId: TESTER_PROFILE.userId }, { points: 0 });
 
         await postAsStaff("/shop/cart/redeem")
@@ -101,18 +103,20 @@ describe("POST /shop/cart/redeem", () => {
     });
 
     it("handles undefined quantity correctly", async () => {
-        // Create order with undefined quantity
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { $unset: { quantity: 1 } });
+        // Unset the quantity for "test-item-1" in the items map.
+        // (Assuming the ShopOrder is stored as an object in MongoDB,
+        //  unsetting the field will cause its quantity to be undefined.)
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { $unset: { "items.test-item-1": "" } });
 
         await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.SuccessOK);
 
-        // Should treat undefined quantity as 0
+        // Since undefined should be treated as 0, the shop item’s quantity should remain unchanged.
         const updatedItem = await Models.ShopItem.findOne({ itemId: TESTER_SHOP_ITEM.itemId });
-        expect(updatedItem?.quantity).toBe(TESTER_SHOP_ITEM.quantity); // Quantity shouldn't change
+        expect(updatedItem?.quantity).toBe(TESTER_SHOP_ITEM.quantity);
     });
 
     it("handles multiple items in order correctly", async () => {
-        // Create second test item
+        // Create a second test item.
         const secondItem = {
             ...TESTER_SHOP_ITEM,
             itemId: "test-item-2",
@@ -120,59 +124,65 @@ describe("POST /shop/cart/redeem", () => {
         };
         await Models.ShopItem.create(secondItem);
 
-        // Update order to include multiple items
+        // Update order to include two items:
+        // "test-item-1": 1 unit and "test-item-2": 2 units.
         await Models.ShopOrder.updateOne(
             { userId: TESTER_PROFILE.userId },
             {
-                items: [TESTER_SHOP_ITEM.itemId, secondItem.itemId],
-                quantity: [1, 2],
+                items: [
+                    ["test-item-1", 1],
+                    [secondItem.itemId, 2],
+                ],
             },
         );
 
         await postAsStaff("/shop/cart/redeem").send({ userId: TESTER_PROFILE.userId }).expect(StatusCode.SuccessOK);
 
-        // Verify all items were updated correctly
+        // Verify inventory updates.
         const updatedItem1 = await Models.ShopItem.findOne({ itemId: TESTER_SHOP_ITEM.itemId });
         const updatedItem2 = await Models.ShopItem.findOne({ itemId: secondItem.itemId });
         expect(updatedItem1?.quantity).toBe(TESTER_SHOP_ITEM.quantity - 1);
         expect(updatedItem2?.quantity).toBe(TESTER_SHOP_ITEM.quantity - 2);
 
-        // Verify total points deduction (TESTER_SHOP_ITEM.price * 1 + secondItem.price * 2)
+        // Verify total points deduction: (100 * 1) + (50 * 2)
         const updatedProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
-        const expectedPoints = TESTER_PROFILE.points - (TESTER_SHOP_ITEM.price + secondItem.price * 2);
+        const expectedPoints = TESTER_PROFILE.points - (TESTER_SHOP_ITEM.price * 1 + secondItem.price * 2);
         expect(updatedProfile?.points).toBe(expectedPoints);
     });
 });
 
+//
+// POST /shop/cart/:itemId
+//
 describe("POST /shop/cart/:itemId", () => {
     it("allows user to add new item to cart", async () => {
         const response = await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
+        // Since the initial order had 2 units, adding one more should yield 3.
         expect(JSON.parse(response.text)).toMatchObject({
-            ...TESTER_SHOP_ORDER,
-            quantity: [3],
+            userId: TESTER_PROFILE.userId,
+            items: [["test-item-1", 3]],
         });
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
-        expect(updatedOrder?.quantity[0]).toBe(3);
+        expect(updatedOrder?.items.get("test-item-1")).toBe(3);
     });
 
     it("increases quantity when adding existing item to cart", async () => {
-        // First addition
+        // First addition.
         await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
-        // Second addition
+        // Second addition.
         const response = await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
+        // Starting with 2, two additions should result in 4.
         expect(JSON.parse(response.text)).toMatchObject({
-            ...TESTER_SHOP_ORDER,
-            quantity: [4],
+            userId: TESTER_PROFILE.userId,
+            items: [["test-item-1", 4]],
         });
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
-        expect(updatedOrder?.quantity[0]).toBe(4);
+        expect(updatedOrder?.items.get("test-item-1")).toBe(4);
     });
 
     it("returns NotFound for non-existent item", async () => {
@@ -201,118 +211,123 @@ describe("POST /shop/cart/:itemId", () => {
     });
 
     it("creates new cart if user doesn't have one", async () => {
-        // Delete any existing cart
+        // Delete any existing cart.
         await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
 
         await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         const newOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
         expect(newOrder).toBeTruthy();
-        expect(newOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
-        expect(newOrder?.quantity[0]).toBe(1);
+        // For a new cart, the item should be added with quantity 1.
+        expect(newOrder?.items.get("test-item-1")).toBe(1);
     });
 });
 
+//
+// DELETE /shop/cart/:itemId
+//
 describe("DELETE /shop/cart/:itemId", () => {
     it("allows user to remove an item from the cart", async () => {
-        // Add item to the cart first
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
-        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        // Set the cart so that test-item-1 has quantity 1.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["test-item-1", 1]] });
 
-        // Remove the item
+        // Removing the item when its quantity is 1 should remove it completely.
         await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId);
+        expect(updatedOrder?.items.has("test-item-1")).toBe(false);
     });
 
     it("decreases the quantity of an item in the cart", async () => {
-        // Add the item to the cart twice
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
-        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
-        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
+        // Start with quantity 0 for the item.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["test-item-1", 0]] });
+        // Add the item twice.
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK); // becomes 1
+        await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK); // becomes 2
 
-        // Remove the item once
+        // Remove the item once.
         const response = await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            ...TESTER_SHOP_ORDER,
-            quantity: [1],
+            userId: TESTER_PROFILE.userId,
+            items: [["test-item-1", 1]],
         });
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).toContain(TESTER_SHOP_ITEM.itemId);
-        expect(updatedOrder?.quantity[0]).toBe(1); // Item quantity should now be 1
+        expect(updatedOrder?.items.get("test-item-1")).toBe(1);
     });
 
     it("removes the item completely if the quantity reaches 0", async () => {
-        // Add the item to the cart twice
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["test-item-1"], quantity: [0] });
+        // Start with quantity 0.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["test-item-1", 0]] });
+        // Add the item twice.
         await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
         await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
-        // Remove the item twice
+        // Remove the item twice.
         await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
         await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId); // The item should be completely removed
+        expect(updatedOrder?.items.has("test-item-1")).toBe(false);
     });
 
     it("returns NotFound for non-existent item in cart", async () => {
         await delAsAttendee("/shop/cart/non-existent-item").expect(StatusCode.ClientErrorNotFound);
     });
 
-    it("returns InternalServerError when no cart exists for the user", async () => {
-        // Delete the user's cart if exists
+    it("returns NotFound when no cart exists for the user", async () => {
         await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
-
-        // Try removing an item from a non-existent cart
-        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.ServerErrorInternal);
+        await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.ClientErrorNotFound);
     });
 
     it("removes the item completely when quantity reaches 0 in a fresh cart", async () => {
-        // Start fresh with no cart
+        // Start fresh with no cart.
         await Models.ShopOrder.deleteOne({ userId: TESTER_PROFILE.userId });
 
-        // Add item to the cart
+        // Add an item.
         await postAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
-        // Now delete the item
+        // Now delete the item.
         await delAsAttendee("/shop/cart/test-item-1").expect(StatusCode.SuccessOK);
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedOrder?.items).not.toContain(TESTER_SHOP_ITEM.itemId); // Cart should be empty
+        expect(updatedOrder?.items.has("test-item-1")).toBe(false);
     });
 });
 
+//
+// GET /shop/cart
+//
 describe("GET /shop/cart", () => {
     it("returns user's cart contents", async () => {
         const response = await getAsAttendee("/shop/cart").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
-            items: [TESTER_SHOP_ITEM.itemId],
-            quantity: [2],
+            userId: TESTER_PROFILE.userId,
+            items: [["test-item-1", 2]],
         });
     });
 
     it("creates and returns empty cart for new user", async () => {
-        // Ensure no existing cart
+        // Ensure no existing cart.
         await Models.ShopOrder.findOneAndDelete({ userId: TESTER.id });
 
         const response = await getAsAttendee("/shop/cart").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
+            userId: TESTER.id,
             items: [],
-            quantity: [],
         });
     });
 
-    it("returns cart with matching items and quantity arrays", async () => {
+    it("returns cart with matching items and quantities", async () => {
         await Models.ShopOrder.findOneAndDelete({ userId: TESTER.id });
         const shopOrder = {
             userId: TESTER.id,
-            items: [TESTER_SHOP_ITEM.itemId, "test-item-2"],
-            quantity: [1, 3],
+            items: [
+                [TESTER_SHOP_ITEM.itemId, 1],
+                ["test-item-2", 3],
+            ],
         };
         await Models.ShopOrder.create(shopOrder);
 
@@ -320,12 +335,18 @@ describe("GET /shop/cart", () => {
         const cart = JSON.parse(response.text);
 
         expect(cart).toMatchObject({
-            items: [TESTER_SHOP_ITEM.itemId, "test-item-2"],
-            quantity: [1, 3],
+            userId: TESTER.id,
+            items: [
+                [TESTER_SHOP_ITEM.itemId, 1],
+                ["test-item-2", 3],
+            ],
         });
     });
 });
 
+//
+// GET /shop/cart/qr
+//
 describe("GET /shop/cart/qr", () => {
     it("returns QR code URL for valid cart", async () => {
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
@@ -341,18 +362,17 @@ describe("GET /shop/cart/qr", () => {
     });
 
     it("returns NotFound when cart item no longer exists in shop", async () => {
-        // Create cart with non-existent item
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["non-existent-item"], quantity: [1] });
+        // Create a cart with an item that does not exist.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["non-existent-item", 1]] });
 
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.ClientErrorNotFound);
-
         expect(JSON.parse(response.text)).toMatchObject({
             error: expect.any(String),
         });
     });
 
     it("returns BadRequest when insufficient shop quantity", async () => {
-        // Create item with low quantity
+        // Create an item with a low quantity.
         const lowQuantityItem = {
             ...TESTER_SHOP_ITEM,
             itemId: "low-quantity-item",
@@ -360,18 +380,17 @@ describe("GET /shop/cart/qr", () => {
         };
         await Models.ShopItem.create(lowQuantityItem);
 
-        // Create cart requesting more than available
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["low-quantity-item"], quantity: [2] });
+        // Create a cart requesting more than available.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["low-quantity-item", 2]] });
 
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.ClientErrorBadRequest);
-
         expect(JSON.parse(response.text)).toMatchObject({
             error: expect.any(String),
         });
     });
 
     it("returns PaymentRequired when insufficient points for total cart", async () => {
-        // Create expensive items
+        // Create expensive items.
         const expensiveItem1 = {
             ...TESTER_SHOP_ITEM,
             itemId: "expensive-item-1",
@@ -387,27 +406,28 @@ describe("GET /shop/cart/qr", () => {
         await Models.ShopItem.create(expensiveItem1);
         await Models.ShopItem.create(expensiveItem2);
 
-        // Create cart with multiple expensive items
+        // Create cart with the expensive items.
         await Models.ShopOrder.updateOne(
             { userId: TESTER_PROFILE.userId },
             {
-                items: ["expensive-item-1", "expensive-item-2"],
-                quantity: [1, 1],
+                items: [
+                    ["expensive-item-1", 1],
+                    ["expensive-item-2", 1],
+                ],
             },
         );
 
-        // Set user points to less than total cart value
+        // Set user points to less than the total price.
         await Models.AttendeeProfile.updateOne({ userId: TESTER_PROFILE.userId }, { points: 1000 });
 
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.ClientErrorPaymentRequired);
-
         expect(JSON.parse(response.text)).toMatchObject({
             error: expect.any(String),
         });
     });
 
     it("succeeds when user has exactly enough points", async () => {
-        // Create item with known price
+        // Create an item with a known price.
         const item = {
             ...TESTER_SHOP_ITEM,
             itemId: "exact-price-item",
@@ -416,14 +436,13 @@ describe("GET /shop/cart/qr", () => {
         };
         await Models.ShopItem.create(item);
 
-        // Create cart with the item
-        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: ["exact-price-item"], quantity: [1] });
+        // Create a cart with this item.
+        await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: [["exact-price-item", 1]] });
 
-        // Set user points to exact amount needed
+        // Set the user's points to the exact amount needed.
         await Models.AttendeeProfile.updateOne({ userId: TESTER_PROFILE.userId }, { points: 100 });
 
         const response = await getAsAttendee("/shop/cart/qr").expect(StatusCode.SuccessOK);
-
         expect(JSON.parse(response.text)).toMatchObject({
             qrInfo: `hackillinois://shop?userId=${TESTER_PROFILE.userId}`,
         });
