@@ -160,6 +160,8 @@ const Config = {
     QR_BYTES_KEY: 32,
     QR_IV: "3a7f4b8c1d2e5f6a9b0c8d7e6f5a4b3c",
 
+    NOT_FOUND: -1,
+
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,
     MAX_SHOP_STOCK_PER_ITEM: 128,

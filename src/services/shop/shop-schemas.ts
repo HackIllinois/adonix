@@ -1,4 +1,4 @@
-import { prop } from "@typegoose/typegoose";
+import { prop, modelOptions, Severity } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
@@ -21,32 +21,31 @@ export class ShopItem {
     @prop({ required: true })
     public quantity: number;
 
-    @prop({
-        required: true,
-        type: () => String,
-    })
-    public instances: string[];
-
-    constructor(
-        itemId: string,
-        name: string,
-        price: number,
-        isRaffle: boolean,
-        imageURL: string,
-        quantity: number,
-        instances: string[],
-    ) {
+    constructor(itemId: string, name: string, price: number, isRaffle: boolean, imageURL: string, quantity: number) {
         this.itemId = itemId;
         this.name = name;
         this.price = price;
         this.isRaffle = isRaffle;
         this.imageURL = imageURL;
         this.quantity = quantity;
-        this.instances = instances;
     }
 }
 
-export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "item1234" });
+@modelOptions({ options: { allowMixed: Severity.ALLOW } })
+export class ShopOrder {
+    @prop({ required: true })
+    public userId!: string;
+
+    @prop({ type: Map, required: true })
+    public items!: Map<string, number>;
+
+    constructor(items: [string, number][], userId: string) {
+        this.items = new Map(items);
+        this.userId = userId;
+    }
+}
+
+export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "3e7eea9a-7264-4ddf-877d-9e004a888eda" });
 
 export const ShopItemSchema = z
     .object({
@@ -59,7 +58,7 @@ export const ShopItemSchema = z
     })
     .openapi("ShopItem", {
         example: {
-            itemId: "1234",
+            itemId: "3e7eea9a-7264-4ddf-877d-9e004a888eda",
             name: "HackIllinois Branded Hoodie",
             price: 15,
             isRaffle: true,
@@ -96,21 +95,26 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
         },
     });
 
-export const ShopItemQRCodeSchema = z.string().openapi("ShopItemQRCode", {
-    example: "hackillinois://item?itemId=item1234&instance=1x3",
+export const ShopOrderInfoSchema = z.object({
+    items: z.record(z.number()),
+    userId: z.string(),
 });
 
-export const ShopItemQRCodesSchema = z
+export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
+    example: "hackillinois://user?qr=3e7eea9a-7264-4ddf-877d-9e004a888eda",
+});
+
+export const OrderRequestSchema = z
     .object({
-        itemId: ShopItemIdSchema,
-        qrInfo: z.array(ShopItemQRCodeSchema),
+        QRCode: OrderQRCodeSchema,
     })
-    .openapi("ShopItemQRCodes");
+    .openapi("OrderRequest");
 
-export const ShopItemBuyRequestSchema = z.object({
-    itemId: ShopItemIdSchema,
-    instance: z.string().openapi({ example: "1x3" }),
-});
+export const OrderRedeemSchema = z
+    .object({
+        QRCode: OrderQRCodeSchema,
+    })
+    .openapi("OrderRedeem");
 
 export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",
@@ -125,4 +129,9 @@ export const [ShopItemNotFoundError, ShopItemNotFoundErrorSchema] = CreateErrorA
 export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
     message: "You don't have enough to purchase that item!",
+});
+
+export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
+    error: "InsufficientQuantity",
+    message: "Not enough of that item in the shop/your cart",
 });
