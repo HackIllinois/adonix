@@ -241,6 +241,7 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
         }
 
+        let totalPrice = 0;
         // Update the inventory and deduct points
         for (const [itemId, quantity] of order.items.entries()) {
             const item = itemsMap.get(itemId);
@@ -252,8 +253,9 @@ shopRouter.post(
             await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
 
             // Deduct points from the user's profile
-            await updatePoints(order.userId, -(quantity * item.price));
+            totalPrice = totalPrice + quantity * item.price;
         }
+        await updatePoints(order.userId, -totalPrice);
 
         // Clear the user's order from the cart
         await Models.ShopOrder.deleteOne({ userId });
@@ -261,7 +263,7 @@ shopRouter.post(
         // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
         const zodOrder = {
             userId: order.userId,
-            items: Array.from(order.items),
+            items: Object.fromEntries(order.items.entries()),
         };
 
         return res.status(StatusCode.SuccessOK).json(zodOrder);
@@ -360,15 +362,15 @@ shopRouter.post(
         }
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId });
-        if (updatedOrder) {
-            // Convert order to array of tuples cuz zod doesn't fw maps
-            const zodOrder = {
-                userId: updatedOrder.userId,
-                items: Array.from(updatedOrder.items),
-            };
-            return res.status(StatusCode.SuccessOK).json(zodOrder);
+        if (!updatedOrder) {
+            throw new Error("internal db query error");
         }
-        throw new Error("internal db query error");
+        // Convert order to array of tuples cuz zod doesn't fw maps
+        const zodOrder = {
+            userId: updatedOrder.userId,
+            items: Object.fromEntries(updatedOrder.items.entries()),
+        };
+        return res.status(StatusCode.SuccessOK).json(zodOrder);
     },
 );
 
@@ -434,15 +436,15 @@ shopRouter.delete(
         }
 
         const updatedOrder = await Models.ShopOrder.findOne({ userId });
-        if (updatedOrder) {
-            // Convert order to array of tuples cuz zod doesn't fw maps
-            const zodOrder = {
-                userId: updatedOrder.userId,
-                items: Array.from(updatedOrder.items),
-            };
-            return res.status(StatusCode.SuccessOK).json(zodOrder);
+        if (!updatedOrder) {
+            throw new Error("internal db query error");
         }
-        throw new Error("internal db query error");
+        // Convert order to array of tuples cuz zod doesn't fw maps
+        const zodOrder = {
+            userId: updatedOrder.userId,
+            items: Object.fromEntries(updatedOrder.items.entries()),
+        };
+        return res.status(StatusCode.SuccessOK).json(zodOrder);
     },
 );
 
@@ -477,7 +479,7 @@ shopRouter.get(
         // Convert order to array of tuples cuz zod doesn't fw maps
         const zodOrder = {
             userId: userOrder.userId,
-            items: Array.from(userOrder.items),
+            items: Object.fromEntries(userOrder.items.entries()),
         };
         return res.status(StatusCode.SuccessOK).send(zodOrder);
     },

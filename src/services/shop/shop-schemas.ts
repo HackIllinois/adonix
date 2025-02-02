@@ -96,7 +96,7 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
     });
 
 export const ShopOrderInfoSchema = z.object({
-    items: z.array(z.tuple([z.string(), z.number()])),
+    items: z.record(z.number()),
     userId: z.string(),
 });
 
