@@ -10,39 +10,40 @@ import {
     ProjectProjectsSchema,
     ProjectsSchema,
     CreateProjectRequestSchema,
-    UserAlreadyHasTeamError,
-    UserAlreadyHasTeamErrorSchema,
     AccessCodeSchema,
     ProjectUpdateSchema,
     ProjectAccessCodeSchema,
-    //ProjectMappingSchema,
-    //PathTypeSchema,
-    //TrackTypeSchema
+    UnauthorizedErrorSchema,
+    UnauthorizedError,
+    InvalidAccessCodeError,
+    InvalidAccessCodeErrorSchema,
+    UserHasConflictErrorSchema,
+    UserHasConflictError,
+    PathType,
 } from "./project-schema";
 
-//import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
-import { getAuthenticatedUser } from "../../common/auth";
+import { getAuthenticatedUser, getRoles } from "../../common/auth";
 import { UserIdSchema } from "../../common/schemas";
 import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
 import Config from "../../common/config";
-//import Config from "../../common/config";
-//import crypto from "crypto";
 
 const projectRouter = Router();
+
+// Constants for access code generation and expiry time
 const RADIX = 36;
-const EXPIRY = 300000;
-const SUBSTRING_START = 2;
-const SUBSTRING_END = 2;
+const EXPIRY = 300000; // 5 minutes in milliseconds
+const ACCESS_CODE_LENGTH = 5;
+
 type AllowedUpdates = Partial<Pick<Project, "description" | "projectName" | "path" | "track" | "githubLink" | "videoLink">>;
 
 // GET details of specific team using ownerId (staff only)
 projectRouter.get(
-    "/owner/:ownerId/",
+    "/:ownerId/",
     specification({
         method: "get",
-        path: "/project/owner/{ownerId}/",
+        path: "/project/{ownerId}/",
         tag: Tag.PROJECT,
         role: Role.STAFF,
         summary: "Retrieve details of a team using ownerId",
@@ -64,7 +65,6 @@ projectRouter.get(
         const ownerId = req.params.ownerId;
         const projectDetails = await Models.ProjectProjects.findOne({ ownerId });
 
-        // Return no project found if no details were found
         if (!projectDetails) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
@@ -81,7 +81,7 @@ projectRouter.get(
         path: "/project/details/",
         tag: Tag.PROJECT,
         role: null,
-        summary: "get details of user's team",
+        summary: "Get details of user's team",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The user's team",
@@ -99,13 +99,13 @@ projectRouter.get(
         if (!userMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
-        const ownerId = userMapping?.teamOwnerId;
+        const ownerId = userMapping.teamOwnerId;
 
-        // find project associated with the ownerId
-        const projectDetails = await Models.ProjectProjects.findOne({ ownerId: ownerId });
-        // return no team found error - fixes question mark issue
-
-        return res.status(StatusCode.SuccessOK).send(projectDetails?.toObject());
+        const projectDetails = await Models.ProjectProjects.findOne({ ownerId });
+        if (!projectDetails) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
+        }
+        return res.status(StatusCode.SuccessOK).send(projectDetails.toObject());
     },
 );
 
@@ -117,16 +117,16 @@ projectRouter.post(
         path: "/project/create/",
         tag: Tag.PROJECT,
         role: null,
-        summary: "create a new project/team",
+        summary: "Create a new project/team",
         body: CreateProjectRequestSchema,
         responses: {
-            [StatusCode.SuccessOK]: {
+            [StatusCode.SuccessCreated]: {
                 description: "The new team",
                 schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorConflict]: {
                 description: "The user already has a team",
-                schema: UserAlreadyHasTeamErrorSchema,
+                schema: UserHasConflictErrorSchema,
             },
         },
     }),
@@ -134,11 +134,20 @@ projectRouter.post(
         const { id: userId } = getAuthenticatedUser(req);
         const details = req.body;
 
-        // generate access code
-        const accessCode = Math.random().toString(RADIX).substring(SUBSTRING_START, SUBSTRING_END).toUpperCase();
+        const accessCode = Math.random()
+            .toString(RADIX)
+            .substring(2, 2 + ACCESS_CODE_LENGTH)
+            .toUpperCase();
 
-        // set expiry time
         const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
+
+        const roles = await getRoles(userId);
+        if (!roles) {
+            throw Error("Invalid team member (roleless)");
+        }
+        if (!roles.includes(Role.PRO)) {
+            details.path = PathType.GENERAL;
+        }
 
         const project: Project = {
             ownerId: userId,
@@ -147,19 +156,17 @@ projectRouter.post(
             ...details,
         };
 
-        // check if user isn't already mapped to a team
-        const existingMapping = (await Models.ProjectMappings.findOne({ userId: userId })) ?? false;
+        // Rest of the create logic remains the same...
+        const existingMapping = await Models.ProjectMappings.findOne({ userId });
         if (existingMapping) {
-            return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
+            return res.status(StatusCode.ClientErrorConflict).send(UserHasConflictError);
         }
 
-        // ensure teamOwner hasn't already made a team
-        const ownerExists = (await Models.ProjectProjects.findOne({ ownerId: userId })) ?? false;
+        const ownerExists = await Models.ProjectProjects.findOne({ ownerId: userId });
         if (ownerExists) {
-            return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
+            return res.status(StatusCode.ClientErrorConflict).send(UserHasConflictError);
         }
 
-        // make a new project mapping
         await Models.ProjectMappings.create({
             teamOwnerId: userId,
             userId: userId,
@@ -179,48 +186,71 @@ projectRouter.patch(
         path: "/project/update/",
         tag: Tag.PROJECT,
         role: null,
-        summary: "update a team - owner only",
+        summary: "Update a team - owner only",
         body: ProjectUpdateSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Project updated",
-                schema: ProjectProjectsSchema, // fix?
+                schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Only owner can update project",
-                schema: ProjectProjectsSchema, // fix?
+                schema: UnauthorizedErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Could not update project",
-                schema: ProjectProjectsSchema, // fix?
+                schema: NoTeamFoundErrorSchema,
             },
         },
     }),
-    async (_req, res) => {
-        const { id: userId } = getAuthenticatedUser(_req);
-        const updateData: AllowedUpdates = _req.body;
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const updateData: AllowedUpdates = req.body;
 
-        const restrictedFields = ["accessCode", "teamMembers", "ownerId"];
-        const invalidFields = Object.keys(updateData).filter((field) => restrictedFields.includes(field));
-        if (invalidFields.length > 0) {
-            return res.status(StatusCode.ClientErrorBadRequest); // send better error
+        // Find the current project
+        const currentProject = await Models.ProjectProjects.findOne({ ownerId: userId });
+        if (!currentProject) {
+            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
         }
 
-        // find project
+        // If trying to update path to 'pro', validate all team members
+        if (updateData.path === PathType.PRO) {
+            let allMembersArePro = true;
+            for (const memberId of [userId, ...currentProject.teamMembers]) {
+                const roles = await getRoles(memberId);
+                if (!roles) {
+                    throw Error("Invalid team member (roleless)");
+                }
+                if (!roles.includes(Role.PRO)) {
+                    allMembersArePro = false;
+                }
+            }
+
+            if (!allMembersArePro) {
+                updateData.path = PathType.GENERAL; // Force path to general if validation fails
+            }
+        }
+
+        const restrictedFields = ["accessCode", "teamMembers", "ownerId", "expiryTime"];
+        const filteredUpdateData = Object.entries(updateData)
+            .filter(([key]) => !restrictedFields.includes(key))
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {} as AllowedUpdates);
+
         const updatedProject = await Models.ProjectProjects.findOneAndUpdate(
-            { ownerId: userId }, // Filter
-            { $set: updateData }, // Update
+            { ownerId: userId },
+            { $set: filteredUpdateData },
             { new: true },
         );
+
         if (!updatedProject) {
-            return res.status(StatusCode.ClientErrorForbidden);
+            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
         }
 
         return res.status(StatusCode.SuccessOK).send(updatedProject);
     },
 );
 
-// POST join
+// POST join a team
 projectRouter.post(
     "/join",
     specification({
@@ -228,48 +258,53 @@ projectRouter.post(
         path: "/project/join/",
         tag: Tag.PROJECT,
         role: null,
-        summary: "join a team",
-        body: AccessCodeSchema, // should be access code
+        summary: "Join a team using an access code",
+        body: AccessCodeSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Team joined",
                 schema: ProjectProjectsSchema,
             },
             [StatusCode.ClientErrorConflict]: {
-                description: "Already part of team",
-                schema: UserAlreadyHasTeamErrorSchema,
+                description: "Already part of a team, or team full",
+                schema: UserHasConflictErrorSchema,
             },
-            // more status codes
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Invalid access code, team full",
+                schema: InvalidAccessCodeErrorSchema,
+            },
         },
     }),
-    async (_req, res) => {
-        const { id: userId } = getAuthenticatedUser(_req);
-        const { accessCode } = _req.body;
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { accessCode } = req.body;
 
-        // check if access code valid
         const project = await Models.ProjectProjects.findOne({ accessCode });
-        if (!project) {
-            return res.status(StatusCode.ClientErrorBadRequest); // fix this
+        if (!project || new Date() > new Date(project.expiryTime)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(InvalidAccessCodeError);
         }
 
-        if (new Date() > new Date(project.expiryTime)) {
-            return res.status(StatusCode.ClientErrorBadRequest); // fix this too
-        }
-
-        // user not already part of team
         const existingMapping = await Models.ProjectMappings.findOne({ userId });
         if (existingMapping) {
-            return res.status(StatusCode.ClientErrorConflict).send(UserAlreadyHasTeamError);
+            return res.status(StatusCode.ClientErrorConflict).send(UserHasConflictError);
         }
 
-        // check if team not full (array of members <= 4)
         if (project.teamMembers.length >= Config.TEAM_SIZE) {
-            return res.status(StatusCode.ClientErrorBadRequest); // fix this
+            return res.status(StatusCode.ClientErrorBadRequest).send(UserHasConflictError);
         }
 
-        // does not have track/path conflicts with team - come back to this
+        // Check if project is 'pro' and new member isn't PRO
+        if (project.path == PathType.PRO) {
+            const userRoles = await getRoles(userId);
+            if (!userRoles) {
+                throw Error("Invalid team member (roleless)");
+            }
+            if (!userRoles.includes(Role.PRO)) {
+                // Demote team to general if new member isn't PRO
+                project.path = PathType.GENERAL;
+            }
+        }
 
-        // updates the teams ProjectProjects AND creates user's projectMappings entry
         project.teamMembers.push(userId);
         await project.save();
 
@@ -282,30 +317,30 @@ projectRouter.post(
     },
 );
 
-// POST leave
+// POST leave team
 projectRouter.post(
     "/leave/",
     specification({
         method: "post",
         path: "/project/leave/",
         tag: Tag.PROJECT,
-        role: Role.STAFF,
-        summary: "allow user to leave team",
+        role: null,
+        summary: "Allow user to leave team",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "Left project",
-                schema: UserIdSchema, // probably have to change
+                description: "Left project successfully",
+                schema: UserIdSchema,
             },
             [StatusCode.ClientErrorConflict]: {
-                description: "Can't find user",
+                description: "User not found in any team",
                 schema: UserNotFoundErrorSchema,
             },
         },
     }),
-    async (_req, res) => {
-        const { id: userId } = getAuthenticatedUser(_req);
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
 
-        // check if user on team
+        // Check if user is in a team mapping
         const mapping = await Models.ProjectMappings.findOne({ userId });
         if (!mapping) {
             return res.status(StatusCode.ClientErrorConflict).send(UserNotFoundError);
@@ -313,26 +348,22 @@ projectRouter.post(
 
         const project = await Models.ProjectProjects.findOne({ ownerId: mapping.teamOwnerId });
         if (!project) {
-            return res.status(StatusCode.ClientErrorConflict);
+            throw Error("Unable to find project");
         }
 
-        // if user is the owner of the project
-        if (project.ownerId == userId) {
-            if (project.teamMembers.length > 1) {
-                return res.status(StatusCode.ClientErrorForbidden); // fix
-            }
-
+        // If the user is the owner, disband the team (delete project and all associated mappings)
+        if (project.ownerId === userId) {
             await Models.ProjectProjects.deleteOne({ _id: project._id });
-            await Models.ProjectMappings.deleteOne({ teamOwnerId: userId });
-            return res.status(StatusCode.SuccessOK); // fix
+            await Models.ProjectMappings.deleteMany({ teamOwnerId: userId });
+            return res.status(StatusCode.SuccessOK).send(userId);
         }
 
-        // if user not owner
-        project.teamMembers = project.teamMembers.filter((member) => member != userId);
+        // If the user is not the owner, remove them from the team and delete their mapping
+        project.teamMembers = project.teamMembers.filter((member) => member !== userId);
         await project.save();
 
-        await Models.ProjectMappings.deleteOne({ userId: userId });
-        return res.status(StatusCode.SuccessOK); // fix
+        await Models.ProjectMappings.deleteOne({ userId });
+        return res.status(StatusCode.SuccessOK).send(userId);
     },
 );
 
@@ -343,8 +374,8 @@ projectRouter.get(
         method: "get",
         path: "/project/list/",
         tag: Tag.PROJECT,
-        role: Role.STAFF, //staff only endpoint
-        summary: "get list of all teams",
+        role: Role.STAFF,
+        summary: "Get list of all teams",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The projects",
@@ -352,17 +383,18 @@ projectRouter.get(
             },
         },
     }),
-    async (_req, res) => {
+    async (_, res) => {
         const projects = await Models.ProjectProjects.find();
-        return res.status(StatusCode.SuccessOK).send({ projects: projects });
+        return res.status(StatusCode.SuccessOK).send({ projects });
     },
 );
 
+// DELETE remove a team member
 projectRouter.delete(
     "/member/:userId",
     specification({
         method: "delete",
-        path: "/project/member/:userId",
+        path: "/project/member/{userId}",
         tag: Tag.PROJECT,
         role: null,
         summary: "Remove a user from the team",
@@ -380,37 +412,43 @@ projectRouter.delete(
             },
         },
     }),
-    async (_req, res) => {
-        const { userId } = _req.params;
-        const mapping = await Models.ProjectMappings.findOne({ userId: userId });
+    async (req, res) => {
+        const { userId } = req.params;
+        const mapping = await Models.ProjectMappings.findOne({ userId });
         if (!mapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
 
         const project = await Models.ProjectProjects.findOne({ ownerId: mapping.teamOwnerId });
         if (!project) {
-            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError); // send better error?
+            return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
 
-        // remove user from project
-        project.teamMembers = project.teamMembers.filter((member) => member != userId);
+        // If the user to be removed is the owner, disband the team
+        if (project.ownerId === userId) {
+            await Models.ProjectProjects.deleteOne({ _id: project._id });
+            await Models.ProjectMappings.deleteMany({ teamOwnerId: userId });
+            return res.status(StatusCode.SuccessOK).send(userId);
+        }
+
+        // Otherwise, remove the user from the team and delete their mapping
+        project.teamMembers = project.teamMembers.filter((member) => member !== userId);
         await project.save();
 
-        // remove user's mapping entry also
-        await Models.ProjectMappings.deleteOne({ userId: userId });
-
-        return res.status(StatusCode.SuccessOK).send(userId); // fix?
+        await Models.ProjectMappings.deleteOne({ userId });
+        return res.status(StatusCode.SuccessOK).send(userId);
     },
 );
 
+// GET generate access code (owner only)
 projectRouter.get(
-    "/generate-access-token",
+    "/generate-access-code",
     specification({
         method: "get",
         path: "/project/generate-access-code/",
         tag: Tag.PROJECT,
-        role: null,
-        summary: "Generate the team's access code",
+        role: null, // Ownership is enforced in the handler
+        summary: "Generate the team's access code (owner only)",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Access code generated successfully",
@@ -420,23 +458,30 @@ projectRouter.get(
                 description: "No project found",
                 schema: NoTeamFoundErrorSchema,
             },
-            // add more error codes
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "Unauthorized - only project owner can generate access code",
+                schema: UnauthorizedErrorSchema,
+            },
         },
     }),
-    async (_req, res) => {
-        const { id: userId } = getAuthenticatedUser(_req);
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
         const project = await Models.ProjectProjects.findOne({ ownerId: userId });
         if (!project) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
 
-        // generate access code
-        const accessCode = Math.random().toString(RADIX).substring(SUBSTRING_START, SUBSTRING_END).toUpperCase();
+        // Only the owner is allowed to generate a new access code
+        if (project.ownerId !== userId) {
+            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
+        }
 
-        // set expiry time
+        const accessCode = Math.random()
+            .toString(RADIX)
+            .substring(2, 2 + ACCESS_CODE_LENGTH)
+            .toUpperCase();
         const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
 
-        // update project
         project.accessCode = accessCode;
         project.expiryTime = expiryTime;
         await project.save();

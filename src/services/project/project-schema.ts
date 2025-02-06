@@ -5,7 +5,6 @@ import { CreateErrorAndSchema } from "../../common/schemas";
 
 // path enum
 export enum PathType {
-    BEGINNER = "BEGINNER",
     GENERAL = "GENERAL",
     PRO = "PRO",
 }
@@ -144,12 +143,37 @@ export const ProjectAccessCodeSchema = z
         description: "Generate access code schema",
     });
 
-export const [UserAlreadyHasTeamError, UserAlreadyHasTeamErrorSchema] = CreateErrorAndSchema({
-    error: "AlreadyHasTeam",
-    message: "This user already has a team!",
+export const [UserHasConflictError, UserHasConflictErrorSchema] = CreateErrorAndSchema({
+    error: "UserConflict",
+    message: "This user's path/track doesn't match, or they're already in a team!",
 });
 
 export const [NoTeamFoundError, NoTeamFoundErrorSchema] = CreateErrorAndSchema({
     error: "NoTeamFound",
     message: "No team was found for this user",
+});
+
+export const [UnauthorizedError, UnauthorizedErrorSchema] = CreateErrorAndSchema({
+    error: "Unauthorized",
+    message: "User is not authorized i.e. not owner/team-member/staff",
+});
+
+export const [InvalidAccessCodeError, InvalidAccessCodeErrorSchema] = CreateErrorAndSchema({
+    error: "InvalidAccessCode",
+    message: "The provided access code is invalid or has expired.",
+});
+
+export const [TeamFullError, TeamFullErrorSchema] = CreateErrorAndSchema({
+    error: "TeamFull",
+    message: "The team is already full.",
+});
+
+export const [TrackConflictError, TrackConflictErrorSchema] = CreateErrorAndSchema({
+    error: "TrackConflict",
+    message: "Your track does not match the team's track.",
+});
+
+export const [PathConflictError, PathConflictErrorSchema] = CreateErrorAndSchema({
+    error: "PathConflict",
+    message: "Your path does not match the team's path.",
 });
