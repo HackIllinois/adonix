@@ -1,14 +1,16 @@
 import { Router } from "express";
-import { JwtPayload, Role } from "../auth/auth-schemas";
-import { decodeJwtToken, getAuthenticatedUser } from "../../common/auth";
+import { Role } from "../auth/auth-schemas";
+import { getAuthenticatedUser } from "../../common/auth";
 import {
-    AttendanceFormat,
     CodeExpiredError,
     CodeExpiredErrorSchema,
+    QRExpiredError,
+    QRExpiredErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
     ShiftsSchema,
+    StaffAttendanceRequestSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -18,6 +20,7 @@ import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
+import { decryptQRCode } from "../user/user-lib";
 
 const staffRouter = Router();
 
@@ -29,7 +32,7 @@ staffRouter.post(
         tag: Tag.STAFF,
         role: Role.STAFF,
         summary: "Checks the currently authenticated staff into the specified staff event",
-        body: ScanAttendeeRequestSchema,
+        body: StaffAttendanceRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The scanned user's information",
@@ -46,10 +49,8 @@ staffRouter.post(
         },
     }),
     async (req, res) => {
-        const payload = res.locals.payload as JwtPayload;
-
-        const eventId = (req.body as AttendanceFormat).eventId;
-        const userId = payload.id;
+        const { id: userId } = getAuthenticatedUser(req);
+        const { eventId } = req.body;
 
         const event = await Models.Event.findOne({ eventId: eventId });
 
@@ -83,32 +84,46 @@ staffRouter.put(
         path: "/staff/scan-attendee/",
         tag: Tag.STAFF,
         role: Role.STAFF,
-        summary: "Checks in a user using their QR code JWT for a specified event",
+        summary: "Checks in a user using their encrypted QR code token for a specified event",
         body: ScanAttendeeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The scanned user's information",
                 schema: ScanAttendeeSchema,
             },
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "attendeeQRCode has expired",
+                schema: QRExpiredErrorSchema,
+            },
             ...PerformCheckInErrors,
         },
     }),
     async (req, res) => {
-        const { attendeeJWT, eventId } = req.body;
-        const { id: userId } = decodeJwtToken(attendeeJWT);
+        const { attendeeQRCode, eventId } = req.body;
 
+        const userId = decryptQRCode(attendeeQRCode);
+        if (!userId) {
+            return res.status(StatusCode.ClientErrorUnauthorized).send(QRExpiredError);
+        }
+
+        // Perform check-in logic
         const result = await performCheckIn(eventId, userId);
         if (!result.success) {
             return res.status(result.status).json(result.error);
         }
 
-        const registrationData = await Models.RegistrationApplication.findOne({ userId: userId }).select("dietaryRestrictions");
+        // Get registration data
+        const registrationData = await Models.RegistrationApplication.findOne({ userId }).select("dietaryRestrictions");
         if (!registrationData) {
             throw Error("No registration data");
         }
 
         const { dietaryRestrictions } = registrationData;
-        return res.status(StatusCode.SuccessOK).json({ success: true, userId, dietaryRestrictions });
+        return res.status(StatusCode.SuccessOK).json({
+            success: true,
+            userId,
+            dietaryRestrictions,
+        });
     },
 );
 

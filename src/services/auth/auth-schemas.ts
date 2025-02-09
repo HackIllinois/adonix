@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import { Device } from "../../common/config";
+import Config, { Device } from "../../common/config";
 import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
@@ -71,6 +71,7 @@ export const RoleSchema = z.nativeEnum(Role).openapi("Role", { example: Role.USE
 export const JWTSchema = z.string().openapi("JWT", {
     example: "eyJ.eyJ.3QuKc",
 });
+export const RedirectUrlSchema = z.string().openapi("RedirectUrl", { example: "http://localhost:3000/auth/" });
 
 export const AuthDevSchema = z.object({
     Authorization: JWTSchema,
@@ -92,7 +93,13 @@ export const RefreshTokenSchema = z
     })
     .openapi("RefreshToken");
 
-export const [AuthorizationFailedError, AuthorizationFailedErrorSchema] = CreateErrorAndSchema({
-    error: "AuthorizationFailed",
-    message: "Failed to authenticate",
+export const [AuthenticationFailedError, AuthenticationFailedErrorSchema] = CreateErrorAndSchema({
+    error: "AuthenticationFailed",
+    message: "Failed to authenticate (did the login session expire?) - please try again",
+});
+
+const validUrlExamples = [...Config.ALLOWED_REDIRECT_URLS.values()].map((url) => `\`${url}\``).join(", ");
+export const [BadRedirectUrlError, BadRedirectUrlErrorSchema] = CreateErrorAndSchema({
+    error: "BadRedirectUrl",
+    message: `The redirect url provided is invalid, please provide one of the following: ${validUrlExamples}`,
 });

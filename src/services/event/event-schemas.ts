@@ -21,12 +21,6 @@ export class Location {
     @prop({ required: true })
     public description: string;
 
-    @prop({
-        required: true,
-        type: () => String,
-    })
-    public tags: string[];
-
     @prop({ required: true })
     public latitude: number;
 
@@ -113,13 +107,12 @@ export class EventFollowers {
 export const LocationSchema = z
     .object({
         description: z.string(),
-        tags: z.array(z.string()),
         latitude: z.number(),
         longitude: z.number(),
     })
     .openapi("Location");
 
-export const PublicEventSchema = z
+export const EventSchema = z
     .object({
         eventId: EventIdSchema,
         isStaff: z.boolean(),
@@ -127,6 +120,7 @@ export const PublicEventSchema = z
         description: z.string(),
         startTime: z.number().min(0),
         endTime: z.number().min(0),
+        exp: z.number().optional(),
         eventType: EventTypeSchema,
         locations: z.array(LocationSchema),
         isAsync: z.boolean(),
@@ -147,7 +141,6 @@ export const PublicEventSchema = z
             locations: [
                 {
                     description: "Siebel Center for CS",
-                    tags: ["SIEBEL"],
                     latitude: 40.1138,
                     longitude: -88.2249,
                 },
@@ -161,17 +154,9 @@ export const PublicEventSchema = z
             isPro: false,
             displayOnStaffCheckIn: true,
             mapImageUrl: "example.com/image.png",
+            exp: 12393928829,
         },
     });
-export type PublicEvent = z.infer<typeof PublicEventSchema>;
-
-export const EventMetadataSchema = z
-    .object({
-        exp: z.number().optional(),
-    })
-    .openapi("EventMetadata");
-
-export const EventSchema = PublicEventSchema.merge(EventMetadataSchema).openapi("Event");
 
 export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).openapi("CreateEventRequest", {
     example: {
@@ -179,10 +164,10 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
         description: "A really cool event",
         startTime: 1532202702,
         endTime: 1532212702,
+        exp: 1532242900,
         locations: [
             {
                 description: "Siebel Center for CS",
-                tags: ["SIEBEL"],
                 latitude: 40.1138,
                 longitude: -88.2249,
             },
@@ -199,22 +184,13 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
     },
 });
 
-export const UpdateEventRequestSchema = PublicEventSchema.omit({ eventId: true })
+export const UpdateEventRequestSchema = EventSchema.omit({ eventId: true })
     .partial()
-    .merge(PublicEventSchema.pick({ eventId: true }))
+    .merge(EventSchema.pick({ eventId: true }))
     .openapi("UpdateEventRequest", {
         example: {
             eventId: "event1",
             name: "New Name",
-        },
-    });
-
-export const EventMetadataWithIdSchema = EventMetadataSchema.partial()
-    .merge(EventSchema.pick({ eventId: true }))
-    .openapi("EventMetadataWithId", {
-        example: {
-            eventId: "event1",
-            exp: 123456789,
         },
     });
 
@@ -225,11 +201,11 @@ export const EventFollowersSchema = z
     })
     .openapi("EventFollowers");
 
-export const PublicEventsSchema = z
+export const EventsSchema = z
     .object({
-        events: z.array(PublicEventSchema),
+        events: z.array(EventSchema),
     })
-    .openapi("PublicEvents");
+    .openapi("Events");
 
 export const [EventNotFoundError, EventNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",

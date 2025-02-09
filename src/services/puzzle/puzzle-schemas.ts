@@ -31,6 +31,14 @@ export class PuzzleItem {
     }
 }
 
+export class PuzzleAnswer {
+    @prop({ required: true })
+    public qid: number;
+
+    @prop({ required: true })
+    public answer: string;
+}
+
 export const PuzzleQuestionIdSchema = z.string().openapi({ example: "1" });
 export const PuzzleTeamNameSchema = z.string().openapi({ example: "team team" });
 

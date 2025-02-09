@@ -21,22 +21,26 @@ type CustomOptions = AuthenticateOptions & {
  * @param device String representing the device that auth is being performed on
  * @returns RequestHandler middleware, that's pre-configured for the provider
  */
-export function SelectAuthProvider(provider: string, device: string): RequestHandler {
+export function SelectAuthProvider(provider: string, redirect: string): RequestHandler {
+    const sharedOptions: AuthenticateOptions = {
+        state: redirect,
+        failWithError: true,
+    };
     if (provider == "google") {
         const options: CustomOptions = {
             ...googleOptions,
+            ...sharedOptions,
             callbackURL: Config.CALLBACK_URLS.GOOGLE,
         };
-        options.callbackURL += device;
         return authenticateFunction("google", options);
     }
 
     if (provider == "github") {
         const options: CustomOptions = {
             ...githubOptions,
+            ...sharedOptions,
             callbackURL: Config.CALLBACK_URLS.GITHUB,
         };
-        options.callbackURL += device;
 
         return authenticateFunction("github", options);
     }

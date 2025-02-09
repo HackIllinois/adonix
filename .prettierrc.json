@@ -3,5 +3,13 @@
     "tabWidth": 4,
     "semi": true,
     "singleQuote": false,
-    "printWidth": 130
+    "printWidth": 130,
+    "overrides": [
+        {
+            "files": [".github/workflows/*"],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
 }

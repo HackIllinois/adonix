@@ -14,7 +14,6 @@ function mockConfig(dbUrl: string) {
             ...actual.default,
             TEST: true,
             DB_URL: dbUrl,
-            REGISTRATION_CLOSE_TIME_MS: 99999999999000,
         };
 
         return {

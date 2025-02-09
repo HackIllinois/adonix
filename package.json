@@ -1,11 +1,14 @@
 {
     "name": "adonix",
-    "version": "1.0.0",
-    "description": "Official repository for API redesign.",
+    "version": "6.6.0",
+    "description": "HackIllinois' backend API",
+    "keywords": [],
+    "author": "Aydan Pirani <aydanpirani@gmail.com>",
+    "license": "MIT",
     "main": "api/index.js",
     "type": "commonjs",
     "scripts": {
-        "gen-jwt": "node scripts/generate-jwt-token",
+        "bump-version": "node scripts/bump-version.mjs",
         "format:check": "yarn run prettier --check '**/*.{ts,js,cjs,json}'",
         "format": "yarn run prettier --write '**/*.{ts,js,cjs,json}'",
         "lint:check": "tsc --noEmit && yarn run eslint src --ext .js,.jsx,.ts,.tsx",
@@ -19,9 +22,6 @@
         "start": "node --enable-source-maps out/index.js",
         "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\""
     },
-    "keywords": [],
-    "author": "Aydan Pirani <aydanpirani@gmail.com>",
-    "license": "ISC",
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^7.1.1",
         "@aws-sdk/client-s3": "^3.496.0",
@@ -64,7 +64,7 @@
         "@types/jsonwebtoken": "^9.0.2",
         "@types/morgan": "^1.9.4",
         "@types/ms": "^0.7.31",
-        "@types/node": "^20.4.8",
+        "@types/node": "^22.10.10",
         "@types/passport": "^1.0.12",
         "@types/passport-github": "^1.1.7",
         "@types/passport-google-oauth20": "^2.0.11",

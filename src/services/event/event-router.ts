@@ -8,19 +8,17 @@ import {
     EventFollowersSchema,
     EventNotFoundError,
     EventNotFoundErrorSchema,
-    PublicEventsSchema,
-    PublicEventSchema,
+    EventsSchema,
     EventType,
     EventSchema,
     CreateEventRequestSchema,
     UpdateEventRequestSchema,
-    EventMetadataWithIdSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
-import { filterEvent, restrictEventsByRoles } from "./event-lib";
+import { restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
 
@@ -69,7 +67,7 @@ eventsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The events",
-                schema: PublicEventsSchema,
+                schema: EventsSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Couldn't find the event specified",
@@ -79,8 +77,7 @@ eventsRouter.get(
     }),
     async (_req, res) => {
         const events = await Models.Event.find({ isStaff: true });
-        const filteredEvents = events.map(filterEvent);
-        return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
+        return res.status(StatusCode.SuccessOK).send({ events });
     },
 );
 
@@ -98,7 +95,7 @@ eventsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The event",
-                schema: PublicEventSchema,
+                schema: EventSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description:
@@ -118,8 +115,7 @@ eventsRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
 
-        const filteredEvent = filterEvent(event);
-        return res.status(StatusCode.SuccessOK).send(filteredEvent);
+        return res.status(StatusCode.SuccessOK).send(event);
     },
 );
 
@@ -137,7 +133,7 @@ eventsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The events",
-                schema: PublicEventsSchema,
+                schema: EventsSchema,
             },
         },
     }),
@@ -148,9 +144,7 @@ eventsRouter.get(
             ...restrictEventsByRoles(roles),
         });
 
-        // filter events to only show public data
-        const filteredEvents = events.map(filterEvent);
-        return res.status(StatusCode.SuccessOK).send({ events: filteredEvents });
+        return res.status(StatusCode.SuccessOK).send({ events });
     },
 );
 
@@ -251,73 +245,6 @@ eventsRouter.delete(
         }
 
         return res.status(StatusCode.SuccessNoContent).send({ success: true });
-    },
-);
-
-eventsRouter.get(
-    "/metadata/:id/",
-    specification({
-        method: "get",
-        path: "/event/metadata/{id}/",
-        tag: Tag.EVENT,
-        role: Role.ADMIN,
-        summary: "Get metadata of an event",
-        parameters: z.object({
-            id: EventIdSchema,
-        }),
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "Successfully deleted",
-                schema: EventMetadataWithIdSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find the event to delete",
-                schema: EventNotFoundErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { id: eventId } = req.params;
-        const event = await Models.Event.findOne({ eventId: eventId });
-
-        if (!event) {
-            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
-        }
-
-        return res.status(StatusCode.SuccessOK).send({ eventId, exp: event.exp });
-    },
-);
-
-eventsRouter.put(
-    "/metadata/",
-    specification({
-        method: "put",
-        path: "/event/metadata/",
-        tag: Tag.EVENT,
-        role: Role.ADMIN,
-        summary: "Set metadata of an event",
-        body: EventMetadataWithIdSchema,
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The updated event",
-                schema: EventSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find the event to delete",
-                schema: EventNotFoundErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const metadataUpdateRequest = req.body;
-        const eventId = metadataUpdateRequest.eventId;
-        const event = await Models.Event.findOneAndUpdate({ eventId }, metadataUpdateRequest, { new: true });
-
-        if (!event) {
-            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
-        }
-
-        return res.status(StatusCode.SuccessOK).send(event);
     },
 );
 

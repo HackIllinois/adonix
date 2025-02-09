@@ -21,8 +21,8 @@ export enum Race {
     SOUTH_EAST_ASIAN = "South East Asian",
     SOUTH_ASIAN = "South Asian",
     WHITE = "White",
+    OTHER = "Other",
     NO_ANSWER = "Prefer Not To Answer",
-    PLACEHOLDER = "",
 }
 
 export enum Degree {
@@ -32,6 +32,7 @@ export enum Degree {
     PHD = "PhD",
     GRADUATED = "Graduated",
     OTHER = "Other",
+    NOT_APPLICABLE = "N/A",
     PLACEHOLDER = "",
 }
 
@@ -73,9 +74,6 @@ export class RegistrationApplication {
 
     @prop({ default: false })
     public hasSubmitted: boolean;
-
-    @prop({ required: true })
-    public isProApplicant: boolean;
 
     @prop({ required: true })
     public preferredName: string;
@@ -156,6 +154,26 @@ export class RegistrationApplication {
     considerForGeneral?: boolean;
 }
 
+export class RegistrationChallenge {
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ required: true, type: () => Number })
+    public people: Map<string, number>;
+
+    @prop({ required: true, type: () => [[String]] })
+    public alliances: string[][];
+
+    @prop({ required: true })
+    public solution: number;
+
+    @prop({ required: true })
+    public attempts: number;
+
+    @prop({ required: true })
+    public complete: boolean;
+}
+
 export const RegistrationStatusSchema = z
     .object({
         alive: z.boolean(),
@@ -166,10 +184,10 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationRequestSchema = z
     .object({
-        isProApplicant: z.boolean(),
         preferredName: z.string(),
         legalName: z.string(),
-        emailAddress: z.string(),
+        // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
         gender: GenderSchema,
         race: z.array(RaceSchema),
         resumeFileName: z.string().optional(),
@@ -204,7 +222,6 @@ export const RegistrationApplicationRequestSchema = z
             degree: Degree.ASSOCIATES,
             major: "Computer Science",
             gradYear: 0,
-            isProApplicant: true,
             proEssay: "I wanna be a Knight",
             considerForGeneral: true,
             requestedTravelReimbursement: false,
@@ -228,6 +245,41 @@ export const RegistrationApplicationSchema = RegistrationApplicationRequestSchem
     },
 });
 
+export const RegistrationChallengeStatusSchema = z
+    .object({
+        people: z.record(z.string(), z.number()),
+        alliances: z.array(z.array(z.string())),
+        attempts: z.number(),
+        complete: z.boolean(),
+    })
+    .openapi("RegistrationChallengeInput", {
+        example: {
+            people: {
+                Zeus: 36,
+                Apollo: 32,
+                Athena: 34,
+                Hades: 28,
+                Hermes: 29,
+                Artemis: 30,
+            },
+            alliances: [
+                ["Zeus", "Apollo"],
+                ["Apollo", "Athena"],
+                ["Hades", "Hermes"],
+                ["Hermes", "Artemis"],
+                ["Hades", "Artemis"],
+            ],
+            attempts: 3,
+            complete: false,
+        },
+    });
+
+export const RegistrationChallengeSolveSchema = z
+    .object({
+        solution: z.number().openapi({ example: 123 }),
+    })
+    .openapi("RegistrationChallengeSolve");
+
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Couldn't find your registration",
@@ -241,4 +293,14 @@ export const [RegistrationAlreadySubmittedError, RegistrationAlreadySubmittedErr
 export const [RegistrationClosedError, RegistrationClosedErrorSchema] = CreateErrorAndSchema({
     error: "RegistrationClosed",
     message: "Registration is closed, check back next year!",
+});
+
+export const [RegistrationChallengeSolveFailedError, RegistrationChallengeSolveFailedErrorSchema] = CreateErrorAndSchema({
+    error: "IncorrectSolution",
+    message: "That's not the correct answer, try again!",
+});
+
+export const [RegistrationChallengeAlreadySolvedError, RegistrationChallengeAlreadySolvedErrorSchema] = CreateErrorAndSchema({
+    error: "AlreadySolved",
+    message: "You've already solved the challenge!",
 });

@@ -4,12 +4,11 @@ import { AUTH_ROLE_TO_ROLES, TESTER, delAsAttendee, get, getAsAttendee, getAsSta
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { EventFollowers, EventAttendance, Event, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
-import Config from "../../common/config";
 import { AuthInfo } from "../auth/auth-schemas";
 import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
-import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
+import { decryptQRCode } from "./user-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -40,7 +39,6 @@ const TESTER_PROFILE = {
     avatarUrl: "TestURL",
     discordTag: "TestTag",
     points: 0,
-    coins: 0,
     foodWave: 0,
 } satisfies AttendeeProfile;
 
@@ -70,7 +68,6 @@ const TEST_EVENT = {
     locations: [
         {
             description: "Siebel ",
-            tags: [],
             latitude: 40.113812,
             longitude: -88.224937,
         },
@@ -98,54 +95,53 @@ beforeEach(async () => {
 });
 
 describe("GET /user/qr/", () => {
-    it("works for a attendee", async () => {
-        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
-
+    it("generates QR code for authenticated user", async () => {
         const response = await getAsAttendee("/user/qr/").expect(StatusCode.SuccessOK);
+        const responseBody = JSON.parse(response.text);
 
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
+        // Decrypt the QR code
+        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        const userId = decryptQRCode(encryptedToken);
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: TESTER_USER.userId,
-            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
-        });
-
-        expect(mockedGenerateJwtToken).toBeCalledWith(
-            expect.objectContaining({
-                id: TESTER_USER.userId,
-            }),
-            false,
-            Config.QR_EXPIRY_TIME,
-        );
+        // Verify decrypted data
+        expect(userId).toBe(TESTER_USER.userId);
     });
 });
 
 describe("GET /user/qr/:id/", () => {
-    it("gives a forbidden error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    it("rejects non-staff users", async () => {
+        const response = await getAsAttendee(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "Forbidden",
+        });
     });
 
-    it("works for a staff user", async () => {
-        const mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+    it("generates QR code for specified user (staff)", async () => {
+        const response = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK);
+        const responseBody = JSON.parse(response.text);
 
-        const response = await getAsStaff(`/user/qr/${OTHER_USER.userId}/`).expect(StatusCode.SuccessOK);
+        // Decrypt the QR code
+        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        const userId = decryptQRCode(encryptedToken);
 
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
+        // Verify decrypted data
+        expect(userId).toBe(TESTER_USER.userId);
+    });
 
-        expect(JSON.parse(response.text)).toMatchObject({
-            userId: OTHER_USER.userId,
-            qrInfo: `hackillinois://user?userToken=${jwtReturned}`,
-        });
+    it("generates new QR code on subsequent requests", async () => {
+        // First request
+        const firstResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
+        const firstEncryptedToken: string = JSON.parse(firstResponse.text).qrInfo.split("=")[1];
 
-        expect(mockedGenerateJwtToken).toBeCalledWith(
-            expect.objectContaining({
-                id: OTHER_USER.userId,
-            }),
-            false,
-            Config.QR_EXPIRY_TIME,
-        );
+        // Wait 1s for new exp time
+        await new Promise((r) => setTimeout(r, 1000));
+
+        // Second request
+        const secondResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
+        const secondEncryptedToken: string = JSON.parse(secondResponse.text).qrInfo.split("=")[1];
+
+        // Tokens should be different
+        expect(firstEncryptedToken).not.toBe(secondEncryptedToken);
     });
 });
 

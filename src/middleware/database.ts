@@ -8,7 +8,10 @@ export default async function (_req: Request, _res: Response, next: NextFunction
     if (!initialized || Config.TEST) {
         initialized = true;
         const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
-        await mongoose.connect(uri);
+        await mongoose.connect(uri).catch((e) => {
+            initialized = false;
+            throw e;
+        });
     }
     next();
 }

@@ -1,4 +1,4 @@
-import "./common/types";
+import "./common/init";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
@@ -36,10 +36,11 @@ app.use(corsSelector);
 
 // Enable request output when not a test
 if (!Config.TEST) {
+    // Adds user id as "id" so we can log it with requests
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :response-time ms"));
+    app.use(morgan(":status :method :url :id :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json
@@ -70,15 +71,18 @@ app.use("/project/", database, projectRouter);
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
 app.use("/docs", swaggerUi.serveFiles(undefined, SWAGGER_UI_OPTIONS), swaggerUi.setup(undefined, SWAGGER_UI_OPTIONS));
 
-// Ensure that API is running
+// Basic status endpoints
 const docsUrl = `${Config.ROOT_URL}/docs/`;
-app.get("/", (_: Request, res: Response) => {
+function statusHandler(_: Request, res: Response): void {
     res.json({
         ok: true,
+        version: Config.VERSION,
         info: "Welcome to HackIllinois' backend API!",
         docs: docsUrl,
     });
-});
+}
+app.get("/", statusHandler);
+app.get("/status/", statusHandler);
 
 // Throw an error if call is made to the wrong API endpoint
 app.use("/", (_: Request, res: Response) => {
@@ -89,8 +93,10 @@ app.use("/", (_: Request, res: Response) => {
     });
 });
 
+// Handle any errors from the above
 app.use(ErrorHandler);
 
+// Finally, a function to start the server
 function promiseListen(port: number): Promise<Express.Application> {
     return new Promise((resolve) => {
         const server = app.listen(port, () => {

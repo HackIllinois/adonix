@@ -37,7 +37,7 @@ const openapi = "3.1.0";
 
 const info: InfoObject = {
     title: "adonix",
-    version: "1.0.0",
+    version: Config.VERSION,
 };
 
 const servers: ServerObject[] = [

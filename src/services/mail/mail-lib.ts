@@ -4,7 +4,10 @@ import { MailInfo, MailSendResults } from "./mail-schemas";
 
 export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResults>> {
     const options = mailInfo.scheduleTime ? { start_time: mailInfo.scheduleTime } : {};
-    const recipients = mailInfo.recipients.map((emailAddress: string) => ({ address: `${emailAddress}` }));
+    const recipients = mailInfo.recipients.map((emailAddress: string, i) => ({
+        address: `${emailAddress}`,
+        substitution_data: mailInfo.recipientSubs?.[i],
+    }));
     const substitution_data = mailInfo.subs;
 
     const data = {
@@ -29,5 +32,14 @@ export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResu
         data: data,
     };
 
-    return axios.post<MailSendResults>(Config.SPARKPOST_URL, data, config);
+    return axios.post<MailSendResults>(Config.SPARKPOST_URL, data, config).catch((error) => {
+        if (error.response) {
+            console.error(error.response.status, error.response.data);
+        } else if (error.request) {
+            console.error(error.request);
+        } else {
+            console.error(error.message);
+        }
+        throw new Error("Failed to send mail");
+    });
 }

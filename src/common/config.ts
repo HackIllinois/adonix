@@ -5,6 +5,7 @@
  * can error if they are not defined.
  */
 
+import { readFileSync } from "fs";
 import env from "./env";
 
 export enum Device {
@@ -18,7 +19,7 @@ export enum Device {
 }
 
 export enum RegistrationTemplates {
-    REGISTRATION_SUBMISSION = "2024_registration_confirmation",
+    REGISTRATION_SUBMISSION = "2025_registration_confirmation",
     STATUS_UPDATE = "2024_status_update",
     RSVP_CONFIRMATION = "2024_rsvp_confirmation",
     RSVP_CONFIRMATION_WITH_REIMBURSE = "2024_rsvp_confirmation_reimburse",
@@ -48,15 +49,36 @@ function requireEnv(name: string): string {
     return value;
 }
 
+function getVersion(): string {
+    const content = JSON.parse(readFileSync("package.json").toString());
+    return content.version;
+}
+
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
 export const PROD_ROOT_URL = "https://adonix.hackillinois.org";
-const ROOT_URL = env.PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
+const ROOT_URL = ((): string => {
+    if (env.URL) {
+        return env.URL;
+    }
+    return PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
+})();
+
+const DEVICE_TO_REDIRECT_URL = new Map([
+    [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
+    [Device.DEV, `${ROOT_URL}/auth/dev/`],
+    [Device.WEB, "https://hackillinois.org/auth/"],
+    [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
+    [Device.IOS, "hackillinois://login/"],
+    [Device.ANDROID, "hackillinois://login/"],
+    [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
+]);
 
 const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
     PROD,
+    VERSION: getVersion(),
 
     /* URLs */
     PORT,
@@ -64,15 +86,12 @@ const Config = {
 
     DEFAULT_DEVICE: Device.WEB,
 
-    REDIRECT_URLS: new Map([
-        [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-        [Device.DEV, `${ROOT_URL}/auth/dev/`],
-        [Device.WEB, "https://www.hackillinois.org/auth/"],
-        [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
-        [Device.IOS, "hackillinois://login/"],
-        [Device.ANDROID, "hackillinois://login/"],
-        [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
-    ]),
+    DEVICE_TO_REDIRECT_URL,
+    ALLOWED_REDIRECT_URLS: [
+        ...DEVICE_TO_REDIRECT_URL.values(),
+        new RegExp(/^http:\/\/localhost:\d+\/auth\/$/),
+        new RegExp(/^https:\/\/[a-z0-9-]+--hackillinois\.netlify\.app\/auth\/$/),
+    ],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
@@ -108,17 +127,6 @@ const Config = {
     S3_BUCKET_NAME: requireEnv("S3_BUCKET_NAME"),
 
     // Runes and Riddles
-    PUZZLE: [
-        requireEnv("QID0"),
-        requireEnv("QID1"),
-        requireEnv("QID2"),
-        requireEnv("QID3"),
-        requireEnv("QID4"),
-        requireEnv("QID5"),
-        requireEnv("QID6"),
-        requireEnv("QID7"),
-        requireEnv("QID8"),
-    ],
     PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
     FALSE_VALUE: 0,
@@ -126,9 +134,10 @@ const Config = {
     /* Timings */
     MILLISECONDS_PER_SECOND: 1000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
-    QR_EXPIRY_TIME: "20s",
+    QR_EXPIRY_TIME_SECONDS: 20,
     RESUME_URL_EXPIRY_SECONDS: 60,
-    REGISTRATION_CLOSE_TIME_MS: 1708149975000,
+    METADATA_CACHE_EXPIRY_SECONDS: 60,
+    REGISTRATION_CLOSE_TIME: parseInt(requireEnv("REGISTRATION_CLOSE_TIME")),
 
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
@@ -147,6 +156,11 @@ const Config = {
     SHOP_BYTES_GEN: 2,
     EVENT_BYTES_GEN: 16,
     MENTOR_BYTES_GEN: 16,
+    QR_BYTES_GEN: 16,
+    QR_BYTES_KEY: 32,
+    QR_IV: "3a7f4b8c1d2e5f6a9b0c8d7e6f5a4b3c",
+
+    NOT_FOUND: -1,
 
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,

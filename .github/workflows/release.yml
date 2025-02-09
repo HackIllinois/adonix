@@ -1,0 +1,88 @@
+# This workflow, upon a published release:
+# - validates tag version matches package.json
+# - deploys to ECS
+# ECS publish sourced from:
+# - https://docs.github.com/en/actions/use-cases-and-examples/deploying/deploying-to-amazon-elastic-container-service
+
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: hackillinois/adonix
+  ECS_CLUSTER: adonix-cluster
+  ECS_SERVICE: adonix-service
+  CONTAINER_NAME: adonix
+  TASK_FAMILY_NAME: adonix
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate package.json version matches git tag
+        run: |
+          PACKAGE_VERSION=$(jq -r .version package.json)
+          # Remove 'v' prefix from git tag if present
+          GIT_TAG_VERSION=${GITHUB_REF#refs/tags/}
+          GIT_TAG_VERSION=${GIT_TAG_VERSION#v}
+
+          if [ "$PACKAGE_VERSION" != "$GIT_TAG_VERSION" ]; then
+            echo "Version mismatch! package.json version ($PACKAGE_VERSION) does not match git tag version ($GIT_TAG_VERSION)"
+            exit 1
+          fi
+          echo "Versions match! ($PACKAGE_VERSION)"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login
+        uses: aws-actions/amazon-ecr-login@7038bfba688e1aaf9ebe723b50b7519042f44c8e
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Caching through args is from: https://aws.amazon.com/blogs/containers/announcing-remote-cache-support-in-amazon-ecr-for-buildkit-clients/
+      - name: Build, tag, and push to ECR
+        id: build-image
+        uses: docker/build-push-action@v6
+        env:
+          ECR_URI: ${{ steps.login.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+        with:
+          push: true
+          tags: ${{ env.ECR_URI }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.ECR_URI }}:cache
+          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=${{ env.ECR_URI }}:cache
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition $TASK_FAMILY_NAME --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@469db592f4341616e992bf7f231e19b3ab9b4efa
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@0e82244a9c6dac43d70151a94c67ebc4bab18fc5
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true

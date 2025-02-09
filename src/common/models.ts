@@ -7,14 +7,14 @@ import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
-import { RegistrationApplication } from "../services/registration/registration-schemas";
-import { ShopItem } from "../services/shop/shop-schemas";
+import { RegistrationApplication, RegistrationChallenge } from "../services/registration/registration-schemas";
+import { ShopItem, ShopOrder } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { Project, ProjectMappings } from "../services/project/project-schema";
-import { PuzzleItem } from "../services/puzzle/puzzle-schemas";
+import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 
 // Groups for collections
 export enum Group {
@@ -67,14 +67,17 @@ enum NotificationCollection {
 
 enum PuzzleCollection {
     RUNES_AND_RIDDLES = "runesriddles",
+    ANSWERS = "answers",
 }
 
 enum RegistrationCollection {
     APPLICATIONS = "applications",
+    CHALLENGES = "challenges",
 }
 
 enum ShopCollection {
     ITEMS = "items",
+    ORDERS = "orders",
 }
 
 enum StaffCollection {
@@ -153,6 +156,7 @@ export default class Models {
 
     // Puzzle
     static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);
+    static PuzzleAnswer: Model<PuzzleAnswer> = getModel(PuzzleAnswer, Group.PUZZLE, PuzzleCollection.ANSWERS);
 
     // Registration
     static RegistrationApplication: Model<RegistrationApplication> = getModel(
@@ -160,9 +164,15 @@ export default class Models {
         Group.REGISTRATION,
         RegistrationCollection.APPLICATIONS,
     );
+    static RegistrationChallenge: Model<RegistrationChallenge> = getModel(
+        RegistrationChallenge,
+        Group.REGISTRATION,
+        RegistrationCollection.CHALLENGES,
+    );
 
     // Shop
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
+    static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);

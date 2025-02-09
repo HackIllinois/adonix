@@ -2,7 +2,7 @@ import { Router } from "express";
 import { StatusCode } from "status-code-enum";
 
 import { Role } from "../auth/auth-schemas";
-import { generateJwtToken, getAuthenticatedUser, getJwtPayloadFromDB } from "../../common/auth";
+import { getAuthenticatedUser } from "../../common/auth";
 import { performCheckIn, PerformCheckInErrors } from "../staff/staff-lib";
 
 import {
@@ -18,9 +18,9 @@ import {
 import { UserIdSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import Models from "../../common/models";
-import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
+import { generateQRCode } from "./user-lib";
 
 const userRouter = Router();
 
@@ -40,11 +40,13 @@ userRouter.get(
             },
         },
     }),
-    (req, res) => {
+    async (req, res) => {
         const payload = getAuthenticatedUser(req);
-        const token = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
-        const uri = `hackillinois://user?userToken=${token}`;
-        return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
+        const uri = generateQRCode(payload.id);
+        return res.status(StatusCode.SuccessOK).send({
+            userId: payload.id,
+            qrInfo: uri,
+        });
     },
 );
 
@@ -75,17 +77,17 @@ userRouter.get(
     }),
     async (req, res) => {
         const userId = req.params.id;
-        const payload = await getJwtPayloadFromDB(userId);
+        const userExists = await Models.AttendeeProfile.exists({ userId });
 
-        // Return not found if we haven't created a payload yet
-        if (!payload) {
+        if (!userExists) {
             return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
         }
 
-        // Generate the uri
-        const token: string = generateJwtToken(payload, false, Config.QR_EXPIRY_TIME);
-        const uri = `hackillinois://user?userToken=${token}`;
-        return res.status(StatusCode.SuccessOK).send({ userId: payload.id, qrInfo: uri });
+        const uri = generateQRCode(userId);
+        return res.status(StatusCode.SuccessOK).send({
+            userId: userId,
+            qrInfo: uri,
+        });
     },
 );
 
