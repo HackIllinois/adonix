@@ -75,12 +75,12 @@ projectRouter.get(
 
 // GET details of user's team
 projectRouter.get(
-    "/details/",
+    "/",
     specification({
         method: "get",
-        path: "/project/details/",
+        path: "/project/",
         tag: Tag.PROJECT,
-        role: null,
+        role: Role.ATTENDEE,
         summary: "Get details of user's team",
         responses: {
             [StatusCode.SuccessOK]: {
@@ -111,12 +111,12 @@ projectRouter.get(
 
 // POST create project/team
 projectRouter.post(
-    "/create",
+    "/",
     specification({
         method: "post",
-        path: "/project/create/",
+        path: "/project/",
         tag: Tag.PROJECT,
-        role: null,
+        role: Role.ATTENDEE,
         summary: "Create a new project/team",
         body: CreateProjectRequestSchema,
         responses: {
@@ -180,12 +180,12 @@ projectRouter.post(
 
 // PATCH update (only owner)
 projectRouter.patch(
-    "/update",
+    "/",
     specification({
         method: "patch",
-        path: "/project/update/",
+        path: "/project/",
         tag: Tag.PROJECT,
-        role: null,
+        role: Role.ATTENDEE,
         summary: "Update a team - owner only",
         body: ProjectUpdateSchema,
         responses: {
@@ -206,6 +206,7 @@ projectRouter.patch(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
         const updateData: AllowedUpdates = req.body;
+        console.log(userId)
 
         // Find the current project
         const currentProject = await Models.ProjectProjects.findOne({ ownerId: userId });
@@ -257,7 +258,7 @@ projectRouter.post(
         method: "post",
         path: "/project/join/",
         tag: Tag.PROJECT,
-        role: null,
+        role: Role.ATTENDEE,
         summary: "Join a team using an access code",
         body: AccessCodeSchema,
         responses: {
@@ -324,7 +325,7 @@ projectRouter.post(
         method: "post",
         path: "/project/leave/",
         tag: Tag.PROJECT,
-        role: null,
+        role: Role.ATTENDEE,
         summary: "Allow user to leave team",
         responses: {
             [StatusCode.SuccessOK]: {
@@ -447,7 +448,7 @@ projectRouter.get(
         method: "get",
         path: "/project/generate-access-code/",
         tag: Tag.PROJECT,
-        role: null, // Ownership is enforced in the handler
+        role: Role.ATTENDEE, // Ownership is enforced in the handler
         summary: "Generate the team's access code (owner only)",
         responses: {
             [StatusCode.SuccessOK]: {
@@ -466,6 +467,7 @@ projectRouter.get(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
+        console.log(userId)
         const projectMapping = await Models.ProjectMappings.findOne({ userId });
         if (!projectMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
