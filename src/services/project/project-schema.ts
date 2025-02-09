@@ -153,7 +153,7 @@ export const [NoTeamFoundError, NoTeamFoundErrorSchema] = CreateErrorAndSchema({
     message: "No team was found for this user",
 });
 
-export const [UnauthorizedError, UnauthorizedErrorSchema] = CreateErrorAndSchema({
+export const [ForbiddenError, ForbiddenErrorSchema] = CreateErrorAndSchema({
     error: "Unauthorized",
     message: "User is not authorized i.e. not owner/team-member/staff",
 });

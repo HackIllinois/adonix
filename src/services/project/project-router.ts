@@ -13,13 +13,13 @@ import {
     AccessCodeSchema,
     ProjectUpdateSchema,
     ProjectAccessCodeSchema,
-    UnauthorizedErrorSchema,
-    UnauthorizedError,
     InvalidAccessCodeError,
     InvalidAccessCodeErrorSchema,
     UserHasConflictErrorSchema,
     UserHasConflictError,
     PathType,
+    ForbiddenError,
+    ForbiddenErrorSchema,
 } from "./project-schema";
 
 import { z } from "zod";
@@ -195,7 +195,7 @@ projectRouter.patch(
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Only owner can update project",
-                schema: UnauthorizedErrorSchema,
+                schema: ForbiddenErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Could not update project",
@@ -210,7 +210,7 @@ projectRouter.patch(
         // Find the current project
         const currentProject = await Models.ProjectProjects.findOne({ ownerId: userId });
         if (!currentProject) {
-            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
+            return res.status(StatusCode.ClientErrorForbidden).send(ForbiddenError);
         }
 
         // If trying to update path to 'pro', validate all team members
@@ -243,7 +243,7 @@ projectRouter.patch(
         );
 
         if (!updatedProject) {
-            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
+            return res.status(StatusCode.ClientErrorForbidden).send(ForbiddenError);
         }
 
         return res.status(StatusCode.SuccessOK).send(updatedProject);
@@ -458,22 +458,22 @@ projectRouter.get(
                 description: "No project found",
                 schema: NoTeamFoundErrorSchema,
             },
-            [StatusCode.ClientErrorUnauthorized]: {
-                description: "Unauthorized - only project owner can generate access code",
-                schema: UnauthorizedErrorSchema,
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Forbidden - only project owner can generate access code",
+                schema: ForbiddenErrorSchema,
             },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const project = await Models.ProjectProjects.findOne({ ownerId: userId });
-        if (!project) {
+        const projectMapping = await Models.ProjectMappings.findOne({ userId });
+        if (!projectMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
         }
 
         // Only the owner is allowed to generate a new access code
-        if (project.ownerId !== userId) {
-            return res.status(StatusCode.ClientErrorForbidden).send(UnauthorizedError);
+        if (projectMapping.teamOwnerId !== userId) {
+            return res.status(StatusCode.ClientErrorForbidden).send(ForbiddenError);
         }
 
         const accessCode = Math.random()
@@ -481,6 +481,11 @@ projectRouter.get(
             .substring(2, 2 + ACCESS_CODE_LENGTH)
             .toUpperCase();
         const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
+
+        const project = await Models.ProjectProjects.findOne({ ownerId: projectMapping.teamOwnerId });
+        if(!project) {
+            throw Error("Project not found, despite projectMapping existing");
+        }
 
         project.accessCode = accessCode;
         project.expiryTime = expiryTime;
