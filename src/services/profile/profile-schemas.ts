@@ -36,7 +36,7 @@ export type ProfileLeaderboardEntry = z.infer<typeof ProfileLeaderboardEntrySche
 export const ProfileLeaderboardEntrySchema = z
     .object({
         points: z.number(),
-        displayName: z.string().openapi("Cool Guys"),
+        displayName: z.string().openapi({ example: "Cool Guys" }),
     })
     .openapi("ProfileLeaderboardEntry");
 
