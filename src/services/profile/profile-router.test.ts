@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest } from "./profile-schemas";
 import Models from "../../common/models";
-import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, postAsStaff, postAsUser } from "../../common/testTools";
+import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee } from "../../common/testTools";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 
 const TESTER_USER = {
@@ -12,6 +12,7 @@ const TESTER_USER = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 0,
+    pointsAccumulated: 0,
     foodWave: 1,
 } satisfies AttendeeProfile;
 
@@ -21,6 +22,7 @@ const TESTER_USER_2 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    pointsAccumulated: 12,
     foodWave: 2,
 } satisfies AttendeeProfile;
 
@@ -30,6 +32,7 @@ const TESTER_USER_3 = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 12,
+    pointsAccumulated: 12,
     foodWave: 2,
 } satisfies AttendeeProfile;
 
@@ -45,6 +48,7 @@ const PROFILE = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: CREATE_REQUEST.discordTag,
     points: 0,
+    pointsAccumulated: 0,
     foodWave: 1,
 } satisfies AttendeeProfile;
 
@@ -171,7 +175,8 @@ describe("GET /profile/leaderboard", () => {
                 displayName: TESTER.name + " " + i,
                 avatarUrl: TESTER.avatarUrl,
                 discordTag: TESTER.discordTag,
-                points: i,
+                points: 30 - i,
+                pointsAccumulated: 30 + i,
                 foodWave: 1,
             });
         }
@@ -186,40 +191,5 @@ describe("GET /profile/leaderboard", () => {
         const response = await getAsUser("/profile/leaderboard?limit=0").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
-    });
-});
-
-describe("GET /profile/addpoints", () => {
-    it("works for Staff", async () => {
-        const response = await postAsStaff("/profile/addpoints")
-            .send({
-                userId: TESTER.id,
-                points: 10,
-            })
-            .expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toHaveProperty("points", 10);
-    });
-
-    it("returns Forbidden error for users", async () => {
-        const response = await postAsUser("/profile/addpoints")
-            .send({
-                userId: TESTER.id,
-                points: 10,
-            })
-            .expect(StatusCode.ClientErrorForbidden);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
-
-    it("returns NotFound for nonexistent users", async () => {
-        const response = await postAsStaff("/profile/addpoints")
-            .send({
-                userId: "idontexists",
-                points: 10,
-            })
-            .expect(StatusCode.ClientErrorNotFound);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });

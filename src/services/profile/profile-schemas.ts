@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import Config, { Avatar } from "../../common/config";
+import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export class AttendeeProfile {
@@ -18,6 +18,10 @@ export class AttendeeProfile {
 
     @prop({ required: true })
     public points: number;
+
+    // Points accumulated over all time, does not decrease with purchases
+    @prop({ required: true })
+    public pointsAccumulated: number;
 
     @prop({ required: true })
     public foodWave: number;
@@ -51,6 +55,7 @@ export const AttendeeProfileSchema = z
         avatarUrl: z.string(),
         discordTag: z.string(),
         points: z.number(),
+        pointsAccumulated: z.number(),
         foodWave: z.number(),
     })
     .openapi("AttendeeProfile", {
@@ -60,6 +65,7 @@ export const AttendeeProfileSchema = z
             discordTag: "hackillinois",
             avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png",
             points: 23,
+            pointsAccumulated: 104,
             foodWave: 1,
         },
     });
@@ -74,7 +80,7 @@ export const AttendeeProfileRankingSchema = z
         },
     });
 
-export const AvatarSchema = z.nativeEnum(Avatar).openapi("Avatar");
+export const AvatarSchema = z.string().openapi("Avatar");
 
 export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ discordTag: true, displayName: true })
     .extend({
@@ -84,7 +90,7 @@ export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ d
         example: {
             displayName: "Bob The Great",
             discordTag: "hackillinois",
-            avatarId: Avatar.GOBLIN,
+            avatarId: "goblin",
         },
     });
 export type AttendeeProfileCreateRequest = z.infer<typeof AttendeeProfileCreateRequestSchema>;

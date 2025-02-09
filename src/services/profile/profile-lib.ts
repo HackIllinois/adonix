@@ -6,6 +6,8 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
     const updateQuery: UpdateQuery<AttendeeProfile> = {
         $inc: {
             points: amount,
+            // Only accumulate positive additions, don't decrement on negative
+            pointsAccumulated: Math.max(0, amount),
         },
     };
 
