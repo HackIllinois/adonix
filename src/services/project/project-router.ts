@@ -206,7 +206,7 @@ projectRouter.patch(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
         const updateData: AllowedUpdates = req.body;
-        console.log(userId)
+        console.log(userId);
 
         // Find the current project
         const currentProject = await Models.ProjectProjects.findOne({ ownerId: userId });
@@ -467,7 +467,7 @@ projectRouter.get(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        console.log(userId)
+        console.log(userId);
         const projectMapping = await Models.ProjectMappings.findOne({ userId });
         if (!projectMapping) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoTeamFoundError);
@@ -485,7 +485,7 @@ projectRouter.get(
         const expiryTime = new Date(Date.now() + EXPIRY).toISOString();
 
         const project = await Models.ProjectProjects.findOne({ ownerId: projectMapping.teamOwnerId });
-        if(!project) {
+        if (!project) {
             throw Error("Project not found, despite projectMapping existing");
         }
 
