@@ -1,8 +1,30 @@
 import Config from "../../common/config";
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { MailInfo, MailSendResults } from "./mail-schemas";
 
+const HEADERS = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: Config.SPARKPOST_KEY,
+};
+
 export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResults>> {
+    // Sending mail with no recipients causes an error, so don't send if none
+    if (mailInfo.recipients.length == 0) {
+        return Promise.resolve({
+            data: {
+                results: {
+                    total_accepted_recipients: 0,
+                    total_rejected_recipients: 0,
+                    id: "NO_MAIL_SENT_SINCE_NO_RECIPIENTS",
+                },
+            },
+            status: 200,
+            statusText: "OK",
+            config: {} as InternalAxiosRequestConfig,
+            headers: HEADERS,
+        } satisfies AxiosResponse<MailSendResults>);
+    }
     const options = mailInfo.scheduleTime ? { start_time: mailInfo.scheduleTime } : {};
     const recipients = mailInfo.recipients.map((emailAddress: string, i) => ({
         address: `${emailAddress}`,
@@ -24,11 +46,7 @@ export function sendMail(mailInfo: MailInfo): Promise<AxiosResponse<MailSendResu
     const config = {
         method: "post",
         maxBodyLength: Infinity,
-        headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: Config.SPARKPOST_KEY,
-        },
+        headers: HEADERS,
         data: data,
     };
 
