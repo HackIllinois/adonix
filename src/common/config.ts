@@ -20,12 +20,10 @@ export enum Device {
 
 export enum RegistrationTemplates {
     REGISTRATION_SUBMISSION = "2025_registration_confirmation",
-    STATUS_UPDATE = "2024_status_update",
-    RSVP_CONFIRMATION = "2024_rsvp_confirmation",
-    RSVP_CONFIRMATION_WITH_REIMBURSE = "2024_rsvp_confirmation_reimburse",
-    RSVP_DECLINED = "2024_rsvp_declined",
-    RSVP_REMINDER_1_WEEK = "2024_rsvp-reminder-1week",
-    RSVP_REMINDER_1_DAY = "2024_rsvp-reminder",
+    STATUS_UPDATE = "2025_status_update",
+    RSVP_CONFIRMATION = "2025_rsvp_confirmation",
+    RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
+    RSVP_DECLINED = "2025_rsvp_declined",
 }
 
 export enum Avatar {
