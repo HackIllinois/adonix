@@ -26,17 +26,6 @@ export enum RegistrationTemplates {
     RSVP_DECLINED = "2025_rsvp_declined",
 }
 
-export enum Avatar {
-    BUNNY = "bunny",
-    SQUIRREL = "squirrel",
-    GOBLIN = "goblin",
-    CHESTER = "chester",
-    CAT = "cat",
-    MUSHROOM = "mushroom",
-    FISHERCAT = "fishercat",
-    AXOLOTL = "axolotl",
-}
-
 function requireEnv(name: string): string {
     const value = env[name];
 
