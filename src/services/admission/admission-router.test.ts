@@ -52,21 +52,12 @@ const TESTER_APPLICATION = {
 const updateRequest = [
     {
         userId: TESTER.id,
-        status: DecisionStatus.WAITLISTED,
-        response: DecisionResponse.PENDING,
-        emailSent: false,
-        admittedPro: false,
-        reimbursementValue: 0,
-    },
-    {
-        userId: OTHER_DECISION.userId,
         status: DecisionStatus.ACCEPTED,
         response: DecisionResponse.PENDING,
-        emailSent: false,
-        admittedPro: false,
-        reimbursementValue: 0,
+        admittedPro: true,
+        reimbursementValue: 12,
     },
-] satisfies AdmissionDecision[];
+];
 
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
@@ -105,6 +96,8 @@ describe("PUT /admission/update/", () => {
     });
 
     it("should update application status of applicants", async () => {
+        await Models.AdmissionDecision.findOneAndUpdate({ userId: TESTER_DECISION.userId }, { status: DecisionStatus.TBD });
+
         const response = await putAsStaff("/admission/update/").send(updateRequest).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toEqual({ success: true });
 
@@ -113,7 +106,7 @@ describe("PUT /admission/update/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: RegistrationTemplates.STATUS_UPDATE,
-            recipients: [], // empty because neither test case starts as status = TBD
+            recipients: [TESTER_APPLICATION.emailAddress],
         } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
