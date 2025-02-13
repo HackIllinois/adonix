@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
-import { AttendeeProfile, AttendeeProfileCreateRequest } from "./profile-schemas";
+import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
-import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee } from "../../common/testTools";
+import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 
 const TESTER_USER = {
@@ -42,6 +42,12 @@ const CREATE_REQUEST = {
     discordTag: TESTER.discordTag,
 } satisfies AttendeeProfileCreateRequest;
 
+const UPDATE_REQUEST = {
+    avatarId: "new avatar",
+    displayName: "new name",
+    discordTag: "new tag",
+} satisfies AttendeeProfileUpdateRequest;
+
 const PROFILE = {
     userId: TESTER.id,
     displayName: CREATE_REQUEST.displayName,
@@ -50,6 +56,13 @@ const PROFILE = {
     points: 0,
     pointsAccumulated: 0,
     foodWave: 1,
+} satisfies AttendeeProfile;
+
+const UPDATED_PROFILE = {
+    ...PROFILE,
+    displayName: UPDATE_REQUEST.displayName,
+    discordTag: UPDATE_REQUEST.discordTag,
+    avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${UPDATE_REQUEST.avatarId}.png`,
 } satisfies AttendeeProfile;
 
 const REGISTRATION = {
@@ -119,6 +132,35 @@ describe("POST /profile", () => {
     });
 });
 
+describe("PUT /profile", () => {
+    it("works", async () => {
+        const response = await putAsAttendee("/profile/").send(UPDATE_REQUEST).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject(UPDATED_PROFILE);
+
+        const stored = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
+        expect(stored?.toObject()).toMatchObject(UPDATED_PROFILE);
+    });
+
+    it("works for an partial update", async () => {
+        const response = await putAsAttendee("/profile/")
+            .send({
+                discordTag: UPDATE_REQUEST.discordTag,
+            } satisfies AttendeeProfileUpdateRequest)
+            .expect(StatusCode.SuccessOK);
+
+        const PARTIALLY_UPDATED_PROFILE = {
+            ...PROFILE,
+            discordTag: UPDATE_REQUEST.discordTag,
+        } satisfies AttendeeProfile;
+
+        expect(JSON.parse(response.text)).toMatchObject(PARTIALLY_UPDATED_PROFILE);
+
+        const stored = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
+        expect(stored?.toObject()).toMatchObject(PARTIALLY_UPDATED_PROFILE);
+    });
+});
+
 describe("GET /profile", () => {
     it("fails to get a profile that doesn't exist", async () => {
         await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
@@ -178,7 +220,7 @@ describe("GET /profile/leaderboard", () => {
                 points: 30 - i,
                 pointsAccumulated: 30 + i,
                 foodWave: 1,
-            });
+            } satisfies AttendeeProfile);
         }
 
         const response = await getAsUser("/profile/leaderboard").expect(StatusCode.SuccessOK);

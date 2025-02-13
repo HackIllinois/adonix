@@ -36,7 +36,7 @@ const TESTER_ATTENDEE_FOLLOWING = {
 const TESTER_PROFILE = {
     userId: TESTER_USER.userId,
     displayName: "TestDisplayName",
-    avatarUrl: "TestURL",
+    avatarUrl: TESTER.avatarUrl,
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 0,

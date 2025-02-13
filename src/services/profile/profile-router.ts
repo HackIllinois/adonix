@@ -10,6 +10,7 @@ import {
     AttendeeProfileNotFoundErrorSchema,
     AttendeeProfileRankingSchema,
     AttendeeProfileSchema,
+    AttendeeProfileUpdateRequestSchema,
     ProfileLeaderboardEntriesSchema,
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
@@ -22,6 +23,7 @@ import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
+import { getAvatarUrlForId } from "./profile-lib";
 
 const profileRouter = Router();
 
@@ -173,7 +175,7 @@ profileRouter.post(
         body: AttendeeProfileCreateRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The ranking",
+                description: "The created profile",
                 schema: AttendeeProfileSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
@@ -207,13 +209,64 @@ profileRouter.post(
             userId,
             discordTag,
             displayName,
-            avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`,
+            avatarUrl: getAvatarUrlForId(avatarId),
             points: Config.DEFAULT_POINT_VALUE,
             pointsAccumulated: Config.DEFAULT_POINT_VALUE,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
         };
 
         const newProfile = await Models.AttendeeProfile.create(profile);
+        return res.status(StatusCode.SuccessOK).send(newProfile);
+    },
+);
+
+profileRouter.put(
+    "/",
+    specification({
+        method: "put",
+        path: "/profile/",
+        tag: Tag.PROFILE,
+        role: Role.ATTENDEE,
+        summary: "Updates profile of the currently authenticated user",
+        body: AttendeeProfileUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The ranking",
+                schema: AttendeeProfileSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find ",
+                schema: AttendeeProfileNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { avatarId, discordTag, displayName } = req.body;
+
+        const existingProfile = await Models.AttendeeProfile.findOne({ userId });
+        if (!existingProfile) {
+            return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
+        }
+
+        const newProfile = await Models.AttendeeProfile.findOneAndUpdate(
+            {
+                userId,
+            },
+            {
+                displayName,
+                avatarUrl: avatarId ? getAvatarUrlForId(avatarId) : undefined,
+                discordTag,
+            },
+            {
+                new: true,
+            },
+        );
+
+        if (!newProfile) {
+            throw new Error("Failed to update profile");
+        }
+
         return res.status(StatusCode.SuccessOK).send(newProfile);
     },
 );

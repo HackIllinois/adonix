@@ -80,11 +80,9 @@ export const AttendeeProfileRankingSchema = z
         },
     });
 
-export const AvatarSchema = z.string().openapi("Avatar");
-
 export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ discordTag: true, displayName: true })
     .extend({
-        avatarId: AvatarSchema,
+        avatarId: z.string(),
     })
     .openapi("AttendeeProfileCreateRequest", {
         example: {
@@ -94,6 +92,18 @@ export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ d
         },
     });
 export type AttendeeProfileCreateRequest = z.infer<typeof AttendeeProfileCreateRequestSchema>;
+
+export const AttendeeProfileUpdateRequestSchema = AttendeeProfileCreateRequestSchema.partial().openapi(
+    "AttendeeProfileUpdateRequest",
+    {
+        example: {
+            displayName: "Bob The Great",
+            discordTag: "hackillinois",
+            avatarId: "goblin",
+        },
+    },
+);
+export type AttendeeProfileUpdateRequest = z.infer<typeof AttendeeProfileUpdateRequestSchema>;
 
 export const AttendeeProfileAddPointsRequestSchema = z
     .object({

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { putAsAttendee, putAsStaff } from "../../common/testTools";
+import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
 
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
@@ -42,7 +42,7 @@ const TESTER_REGISTRATION = {
 const TESTER_PROFILE = {
     userId: TESTER_REGISTRATION.userId,
     displayName: "TestDisplayName",
-    avatarUrl: "TestURL",
+    avatarUrl: TESTER.avatarUrl,
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 0,
