@@ -140,7 +140,7 @@ describe("PUT /staff/scan-attendee/", () => {
     it("rejects expired QR codes", async () => {
         await putAsStaff("/staff/scan-attendee/")
             .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: expiredAttendeeQRCode })
-            .expect(StatusCode.ClientErrorUnauthorized);
+            .expect(StatusCode.ClientErrorBadRequest);
     });
 
     it("handles non-existent events", async () => {

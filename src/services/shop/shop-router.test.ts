@@ -30,10 +30,7 @@ const TESTER_PROFILE = {
     avatarUrl: TESTER.avatarUrl,
     discordTag: TESTER.discordTag,
     points: 1000,
-<<<<<<< HEAD
-=======
     pointsAccumulated: 1000,
->>>>>>> 54a5817aa1ac6bd559f82977a9d7669154e5a294
     foodWave: 1,
 } satisfies AttendeeProfile;
 

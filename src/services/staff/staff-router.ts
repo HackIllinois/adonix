@@ -4,8 +4,6 @@ import { getAuthenticatedUser } from "../../common/auth";
 import {
     CodeExpiredError,
     CodeExpiredErrorSchema,
-    QRExpiredError,
-    QRExpiredErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
     ShiftsAddRequestSchema,
@@ -21,6 +19,7 @@ import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import { decryptQRCode } from "../user/user-lib";
+import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema, QRExpiredError, QRExpiredErrorSchema, QRInvalidError, QRInvalidErrorSchema } from "../user/user-schemas";
 
 const staffRouter = Router();
 
@@ -95,16 +94,37 @@ staffRouter.put(
                 description: "attendeeQRCode has expired",
                 schema: QRExpiredErrorSchema,
             },
-            ...PerformCheckInErrors,
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: QRExpiredError.error,
+                    description: "QR Code Expired",
+                    schema: QRExpiredErrorSchema,
+                },
+                {
+                    id: QRInvalidError.error,
+                    description: "QR Code Invalid (not expired)",
+                    schema: QRInvalidErrorSchema,
+                },
+                {
+                    id: AlreadyCheckedInError.error,
+                    description: "User already checked in",
+                    schema: AlreadyCheckedInErrorSchema,
+                },
+            ],
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Could not find the event to check into",
+                schema: EventNotFoundErrorSchema,
+            },
         },
     }),
     async (req, res) => {
         const { attendeeQRCode, eventId } = req.body;
 
-        const userId = decryptQRCode(attendeeQRCode);
-        if (!userId) {
-            return res.status(StatusCode.ClientErrorUnauthorized).send(QRExpiredError);
+        const qrResult = decryptQRCode(attendeeQRCode);
+        if (!qrResult.success) {
+            return res.status(qrResult.status).json(qrResult.error);
         }
+        const userId = qrResult.userId;
 
         // Perform check-in logic
         const result = await performCheckIn(eventId, userId);

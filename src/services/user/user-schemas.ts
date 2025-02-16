@@ -89,4 +89,14 @@ export const [AlreadyCheckedInError, AlreadyCheckedInErrorSchema] = CreateErrorA
     message: "You're already checked in to this event",
 });
 
+export const [QRExpiredError, QRExpiredErrorSchema] = CreateErrorAndSchema({
+    error: "QRExpired",
+    message: "Your QR code has expired",
+});
+
+export const [QRInvalidError, QRInvalidErrorSchema] = CreateErrorAndSchema({
+    error: "QRInvalid",
+    message: "Your QR code is invalid and unable to decrypt",
+});
+
 export type AlreadyCheckedInError = typeof AlreadyCheckedInError;

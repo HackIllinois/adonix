@@ -9,6 +9,7 @@ import Models from "../../common/models";
 import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
 import { decryptQRCode } from "./user-lib";
+import { fail } from "assert";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -36,10 +37,10 @@ const TESTER_ATTENDEE_FOLLOWING = {
 const TESTER_PROFILE = {
     userId: TESTER_USER.userId,
     displayName: "TestDisplayName",
-    avatarUrl: TESTER.avatarUrl,
+    avatarUrl: "TestURL",
     discordTag: "TestTag",
     points: 0,
-    pointsAccumulated: 0,
+    pointsAccumulated: 1000,
     foodWave: 0,
 } satisfies AttendeeProfile;
 
@@ -102,7 +103,11 @@ describe("GET /user/qr/", () => {
 
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
-        const userId = decryptQRCode(encryptedToken);
+        const result = decryptQRCode(encryptedToken);
+        if (!result.success) {
+            fail(`QR code decryption failed with error: ${result.error}`);
+        }
+        const userId = result.userId;
 
         // Verify decrypted data
         expect(userId).toBe(TESTER_USER.userId);
@@ -123,7 +128,11 @@ describe("GET /user/qr/:id/", () => {
 
         // Decrypt the QR code
         const encryptedToken: string = responseBody.qrInfo.split("=")[1];
-        const userId = decryptQRCode(encryptedToken);
+        const result = decryptQRCode(encryptedToken);
+        if (!result.success) {
+            fail(`QR code decryption failed with error: ${result.error}`);
+        }
+        const userId = result.userId;
 
         // Verify decrypted data
         expect(userId).toBe(TESTER_USER.userId);
