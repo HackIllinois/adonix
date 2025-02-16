@@ -42,8 +42,11 @@ if (!Config.TEST) {
     app.use(morgan(":status :method :url :id :response-time ms :res[content-length] bytes"));
 }
 
-// Automatically convert requests from json
-app.use(express.json());
+// Automatically convert requests from json and limit request size
+app.use(express.json({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // JSON payloads
+app.use(express.raw({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // Raw binary data
+app.use(express.text({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // Plain text
+
 // eslint-disable-next-line no-magic-numbers
 app.set("json spaces", 4);
 
