@@ -260,6 +260,12 @@ shopRouter.post(
         // Clear the user's order from the cart
         await Models.ShopOrder.deleteOne({ userId });
 
+        // Add order to history
+        await Models.ShopHistory.create({
+            userId,
+            items: order.items,
+        });
+
         // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
         const zodOrder = {
             userId: order.userId,

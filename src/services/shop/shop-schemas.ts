@@ -45,6 +45,20 @@ export class ShopOrder {
     }
 }
 
+@modelOptions({ options: { allowMixed: Severity.ALLOW } })
+export class ShopHistory {
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ type: Map, required: true })
+    public items!: Map<string, number>;
+
+    constructor(items: [string, number][], userId: string) {
+        this.items = new Map(items);
+        this.userId = userId;
+    }
+}
+
 export const ShopItemIdSchema = z.string().openapi("ShopItemId", { example: "3e7eea9a-7264-4ddf-877d-9e004a888eda" });
 
 export const ShopItemSchema = z
