@@ -19,7 +19,14 @@ import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import { decryptQRCode } from "../user/user-lib";
-import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema, QRExpiredError, QRExpiredErrorSchema, QRInvalidError, QRInvalidErrorSchema } from "../user/user-schemas";
+import {
+    AlreadyCheckedInError,
+    AlreadyCheckedInErrorSchema,
+    QRExpiredError,
+    QRExpiredErrorSchema,
+    QRInvalidError,
+    QRInvalidErrorSchema,
+} from "../user/user-schemas";
 
 const staffRouter = Router();
 
