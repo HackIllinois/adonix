@@ -1,7 +1,6 @@
 import request from "supertest";
 
 import { Provider, Role } from "../services/auth/auth-schemas";
-import { Avatar } from "./config";
 
 // The tester is the user that will be making requests
 // We provide this object so you can do proper testing based on JWT auth
@@ -10,7 +9,7 @@ export const TESTER = {
     id: "bob-the-tester101010101011",
     email: "bob-the-tester@hackillinois.org",
     name: "Bob Tester",
-    avatarId: Avatar.MUSHROOM,
+    avatarId: "mushroom",
     avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/mushroom.png",
     discordTag: "hackillinoistest",
     userName: "bobster_the_mobster",

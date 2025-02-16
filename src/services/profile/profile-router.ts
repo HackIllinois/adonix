@@ -3,7 +3,6 @@ import { Router } from "express";
 import Config from "../../common/config";
 import {
     AttendeeProfile,
-    AttendeeProfileAddPointsRequestSchema,
     AttendeeProfileAlreadyExistsError,
     AttendeeProfileAlreadyExistsErrorSchema,
     AttendeeProfileCreateRequestSchema,
@@ -11,12 +10,12 @@ import {
     AttendeeProfileNotFoundErrorSchema,
     AttendeeProfileRankingSchema,
     AttendeeProfileSchema,
+    AttendeeProfileUpdateRequestSchema,
     ProfileLeaderboardEntriesSchema,
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
 } from "./profile-schemas";
 import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
-import { updatePoints } from "./profile-lib";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -24,6 +23,7 @@ import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
+import { getAvatarUrlForId } from "./profile-lib";
 
 const profileRouter = Router();
 
@@ -51,10 +51,11 @@ profileRouter.get(
     async (req, res) => {
         const { limit = Config.LEADERBOARD_QUERY_LIMIT } = req.query;
 
-        const leaderboardProfiles = await Models.AttendeeProfile.find().sort({ points: -1 }).limit(limit);
+        // We use points that are accumulated over all time (not current points) to get leaderboard
+        const leaderboardProfiles = await Models.AttendeeProfile.find().sort({ pointsAccumulated: -1 }).limit(limit);
         const filteredLeaderboardEntries: ProfileLeaderboardEntry[] = leaderboardProfiles.map((profile) => ({
             displayName: profile.displayName,
-            points: profile.points,
+            points: profile.pointsAccumulated,
         }));
 
         return res.status(StatusCode.SuccessOK).send({
@@ -117,7 +118,7 @@ profileRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const sortedUsers = await Models.AttendeeProfile.find().sort({ points: -1, userId: 1 });
+        const sortedUsers = await Models.AttendeeProfile.find().sort({ pointsAccumulated: -1, userId: 1 });
         const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
 
         if (userIndex < 0) {
@@ -174,7 +175,7 @@ profileRouter.post(
         body: AttendeeProfileCreateRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The ranking",
+                description: "The created profile",
                 schema: AttendeeProfileSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
@@ -208,8 +209,9 @@ profileRouter.post(
             userId,
             discordTag,
             displayName,
-            avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`,
+            avatarUrl: getAvatarUrlForId(avatarId),
             points: Config.DEFAULT_POINT_VALUE,
+            pointsAccumulated: Config.DEFAULT_POINT_VALUE,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
         };
 
@@ -218,41 +220,54 @@ profileRouter.post(
     },
 );
 
-profileRouter.post(
-    "/addpoints/",
+profileRouter.put(
+    "/",
     specification({
-        method: "post",
-        path: "/profile/addpoints/",
+        method: "put",
+        path: "/profile/",
         tag: Tag.PROFILE,
-        role: Role.STAFF,
-        summary: "Add points to a specified profile",
-        body: AttendeeProfileAddPointsRequestSchema,
+        role: Role.ATTENDEE,
+        summary: "Updates profile of the currently authenticated user",
+        body: AttendeeProfileUpdateRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The updated profile",
+                description: "The ranking",
                 schema: AttendeeProfileSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find profile",
+                description: "Couldn't find ",
                 schema: AttendeeProfileNotFoundErrorSchema,
             },
         },
     }),
     async (req, res) => {
-        const { points, userId } = req.body;
+        const { id: userId } = getAuthenticatedUser(req);
+        const { avatarId, discordTag, displayName } = req.body;
 
-        const profile = await Models.AttendeeProfile.findOne({ userId });
-        if (!profile) {
+        const existingProfile = await Models.AttendeeProfile.findOne({ userId });
+        if (!existingProfile) {
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
-        const updatedProfile = await updatePoints(userId, points);
+        const newProfile = await Models.AttendeeProfile.findOneAndUpdate(
+            {
+                userId,
+            },
+            {
+                displayName,
+                avatarUrl: avatarId ? getAvatarUrlForId(avatarId) : undefined,
+                discordTag,
+            },
+            {
+                new: true,
+            },
+        );
 
-        if (!updatedProfile) {
-            throw Error("Failed to update profile points");
+        if (!newProfile) {
+            throw new Error("Failed to update profile");
         }
 
-        return res.status(StatusCode.SuccessOK).send(updatedProfile);
+        return res.status(StatusCode.SuccessOK).send(newProfile);
     },
 );
 

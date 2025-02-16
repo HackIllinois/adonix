@@ -13,6 +13,7 @@ import {
     DecisionNotFoundError,
     DecisionNotFoundErrorSchema,
     AdmissionDecisionSchema,
+    AdmissionDecisionUpdatesSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -162,7 +163,7 @@ admissionRouter.put(
         tag: Tag.ADMISSION,
         role: Role.STAFF,
         summary: "Updates the decision status of specified applicants",
-        body: AdmissionDecisionsSchema,
+        body: AdmissionDecisionUpdatesSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully updated",
@@ -177,41 +178,43 @@ admissionRouter.put(
     async (req, res) => {
         const updateEntries = req.body;
 
-        // collect emails whose status changed from TBD -> NON-TBD
-        const recipients: string[] = [];
-        for (const entry of updateEntries) {
-            const { userId, status } = entry;
-            const existingDecision = await Models.AdmissionDecision.findOne({ userId });
-            if (existingDecision?.status === DecisionStatus.TBD && status !== DecisionStatus.TBD) {
-                const application = await Models.RegistrationApplication.findOne({ userId: existingDecision.userId });
-                if (!application) {
-                    return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
-                }
-                recipients.push(application.emailAddress);
-            }
-        }
+        // Get all existing decisions
+        const userIds = updateEntries.map((entry) => entry.userId);
+        const existingDecisionsList = await Models.AdmissionDecision.find({ userId: { $in: userIds } });
+        const existingDecisions = new Map(existingDecisionsList.map((decision) => [decision.userId, decision]));
 
-        const ops = updateEntries.map((entry) =>
-            Models.AdmissionDecision.findOneAndUpdate(
-                { userId: entry.userId },
-                {
-                    $set: {
-                        status: entry.status,
-                        admittedPro: entry.admittedPro,
-                        emailSent: true,
-                        reimbursementValue: entry.reimbursementValue,
+        // Fetch the ones that have had their status changed
+        const changedEntries = updateEntries.filter((entry) => existingDecisions.get(entry.userId)?.status !== entry.status);
+        const changedUserIds = changedEntries.map((entry) => entry.userId);
+
+        const applicationsList = await Models.RegistrationApplication.find({ userId: { $in: changedUserIds } });
+        const recipients = applicationsList.map((app) => app.emailAddress);
+
+        // Perform all updates
+        await Models.AdmissionDecision.bulkWrite(
+            changedEntries.map((entry) => ({
+                updateOne: {
+                    filter: { userId: entry.userId },
+                    update: {
+                        $set: {
+                            status: entry.status,
+                            reimbursementValue: entry.reimbursementValue,
+                            admittedPro: entry.admittedPro,
+                            emailSent: true,
+                        },
                     },
+                    upsert: true,
                 },
-            ),
+            })),
         );
 
-        await Promise.all(ops);
-
+        // Send mail
         const mailInfo: MailInfo = {
             templateId: RegistrationTemplates.STATUS_UPDATE,
-            recipients: recipients,
+            recipients,
         };
         await sendMail(mailInfo);
+
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );

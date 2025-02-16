@@ -20,23 +20,10 @@ export enum Device {
 
 export enum RegistrationTemplates {
     REGISTRATION_SUBMISSION = "2025_registration_confirmation",
-    STATUS_UPDATE = "2024_status_update",
-    RSVP_CONFIRMATION = "2024_rsvp_confirmation",
-    RSVP_CONFIRMATION_WITH_REIMBURSE = "2024_rsvp_confirmation_reimburse",
-    RSVP_DECLINED = "2024_rsvp_declined",
-    RSVP_REMINDER_1_WEEK = "2024_rsvp-reminder-1week",
-    RSVP_REMINDER_1_DAY = "2024_rsvp-reminder",
-}
-
-export enum Avatar {
-    BUNNY = "bunny",
-    SQUIRREL = "squirrel",
-    GOBLIN = "goblin",
-    CHESTER = "chester",
-    CAT = "cat",
-    MUSHROOM = "mushroom",
-    FISHERCAT = "fishercat",
-    AXOLOTL = "axolotl",
+    STATUS_UPDATE = "2025_status_update",
+    RSVP_CONFIRMATION = "2025_rsvp_confirmation",
+    RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
+    RSVP_DECLINED = "2025_rsvp_declined",
 }
 
 function requireEnv(name: string): string {
@@ -141,9 +128,6 @@ const Config = {
 
     /* Defaults */
     DEFAULT_POINT_VALUE: 0,
-    DEFAULT_FOOD_WAVE: 0,
-    DEFAULT_COIN_VALUE: 0,
-    DEFAULT_AVATAR: Avatar.GOBLIN,
 
     /* Rewards */
     MENTOR_OFFICE_HOURS_POINT_REWARD: 50,
@@ -151,6 +135,7 @@ const Config = {
     /* Limits */
     LEADERBOARD_QUERY_LIMIT: 25,
     MAX_RESUME_SIZE_BYTES: 2 * 1024 * 1024,
+    MAX_REQUEST_SIZE_BYTES: 10 * 1024,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

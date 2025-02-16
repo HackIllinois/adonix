@@ -1,6 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
-import Config, { Avatar } from "../../common/config";
+import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export class AttendeeProfile {
@@ -19,6 +19,10 @@ export class AttendeeProfile {
     @prop({ required: true })
     public points: number;
 
+    // Points accumulated over all time, does not decrease with purchases
+    @prop({ required: true })
+    public pointsAccumulated: number;
+
     @prop({ required: true })
     public foodWave: number;
 }
@@ -36,7 +40,7 @@ export type ProfileLeaderboardEntry = z.infer<typeof ProfileLeaderboardEntrySche
 export const ProfileLeaderboardEntrySchema = z
     .object({
         points: z.number(),
-        displayName: z.string().openapi("Cool Guys"),
+        displayName: z.string().openapi({ example: "Cool Guys" }),
     })
     .openapi("ProfileLeaderboardEntry");
 
@@ -51,6 +55,7 @@ export const AttendeeProfileSchema = z
         avatarUrl: z.string(),
         discordTag: z.string(),
         points: z.number(),
+        pointsAccumulated: z.number(),
         foodWave: z.number(),
     })
     .openapi("AttendeeProfile", {
@@ -60,6 +65,7 @@ export const AttendeeProfileSchema = z
             discordTag: "hackillinois",
             avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png",
             points: 23,
+            pointsAccumulated: 104,
             foodWave: 1,
         },
     });
@@ -74,20 +80,30 @@ export const AttendeeProfileRankingSchema = z
         },
     });
 
-export const AvatarSchema = z.nativeEnum(Avatar).openapi("Avatar");
-
 export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ discordTag: true, displayName: true })
     .extend({
-        avatarId: AvatarSchema,
+        avatarId: z.string(),
     })
     .openapi("AttendeeProfileCreateRequest", {
         example: {
             displayName: "Bob The Great",
             discordTag: "hackillinois",
-            avatarId: Avatar.GOBLIN,
+            avatarId: "goblin",
         },
     });
 export type AttendeeProfileCreateRequest = z.infer<typeof AttendeeProfileCreateRequestSchema>;
+
+export const AttendeeProfileUpdateRequestSchema = AttendeeProfileCreateRequestSchema.partial().openapi(
+    "AttendeeProfileUpdateRequest",
+    {
+        example: {
+            displayName: "Bob The Great",
+            discordTag: "hackillinois",
+            avatarId: "goblin",
+        },
+    },
+);
+export type AttendeeProfileUpdateRequest = z.infer<typeof AttendeeProfileUpdateRequestSchema>;
 
 export const AttendeeProfileAddPointsRequestSchema = z
     .object({

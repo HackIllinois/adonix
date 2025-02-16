@@ -51,6 +51,18 @@ export const AdmissionDecisionSchema = z
 
 export const AdmissionDecisionsSchema = z.array(AdmissionDecisionSchema);
 
+export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
+    userId: true,
+    status: true,
+    admittedPro: true,
+    reimbursementValue: true,
+})
+    .openapi("AdmissionDecisionUpdate")
+    .refine((decision) => decision.status !== DecisionStatus.TBD, {
+        message: "TBD is not a valid update status",
+    });
+export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
+
 export const DecisionRequestSchema = z.enum(["accept", "decline"]);
 
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
