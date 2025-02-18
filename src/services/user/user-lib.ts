@@ -36,11 +36,15 @@ function encryptData(message: string, key: string): string {
     return encrypted;
 }
 
-function decryptData(encryptedMessage: string, key: string): string {
-    const decipher = createDecipheriv("aes-256-cbc", Buffer.from(key, "hex"), HARD_CODED_IV);
-    let decrypted = decipher.update(encryptedMessage, "base64", "utf-8");
-    decrypted += decipher.final("utf-8");
-    return decrypted;
+function decryptData(encryptedMessage: string, key: string): string | null {
+    try {
+        const decipher = createDecipheriv("aes-256-cbc", Buffer.from(key, "hex"), HARD_CODED_IV);
+        let decrypted = decipher.update(encryptedMessage, "base64", "utf-8");
+        decrypted += decipher.final("utf-8");
+        return decrypted;
+    } catch {
+        return null;
+    }
 }
 
 export function encryptQR(userId: string, exp: number): string {
@@ -68,7 +72,7 @@ export function decryptQRCode(token: string): ScanQRCodeResult {
 
     // Decrypt and validate token
     const decrypted = decryptData(token, derivedAESKey);
-    const [userId, exp] = decrypted.split(":");
+    const [userId, exp] = decrypted?.split(":") ?? [];
 
     // Validate that userId and exp are present
     if (!userId || !exp) {
