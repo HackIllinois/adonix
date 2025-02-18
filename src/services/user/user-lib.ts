@@ -1,4 +1,3 @@
-import { UserInfo } from "./user-schemas";
 import { createCipheriv, createDecipheriv, createHash } from "crypto";
 import Config from "../../common/config";
 import { QRExpiredError, QRInvalidError } from "./user-schemas";
@@ -16,14 +15,6 @@ export type ScanQRCodeResult =
           status: StatusCode.ClientErrorBadRequest;
           error: typeof QRInvalidError;
       };
-
-export function isValidUserFormat(u: UserInfo): boolean {
-    if (typeof u.userId !== "string" || typeof u.name !== "string" || typeof u.email !== "string") {
-        return false;
-    }
-
-    return true;
-}
 
 // Random IV is not required because the exiry date will add enough randomness
 const HARD_CODED_IV = Buffer.from("000102030405060708090a0b0c0d0e0f", "hex");
