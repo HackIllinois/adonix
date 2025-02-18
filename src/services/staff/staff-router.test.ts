@@ -6,7 +6,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
-import { encryptQR } from "../user/user-lib";
+import { generateQRCode } from "../user/user-lib";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -96,10 +96,10 @@ describe("PUT /staff/scan-attendee/", () => {
         const currentTime = Math.floor(Date.now() / 1000);
 
         // Generate valid QR code
-        validAttendeeQRCode = encryptQR(testUserId, currentTime + 300);
+        validAttendeeQRCode = generateQRCode(testUserId, currentTime + 300);
 
         // Generate expired QR code
-        expiredAttendeeQRCode = encryptQR(testUserId, currentTime - 300);
+        expiredAttendeeQRCode = generateQRCode(testUserId, currentTime - 300);
     });
 
     it("successfully checks in user with valid QR code", async () => {

@@ -47,15 +47,11 @@ function decryptData(encryptedMessage: string, key: string): string | null {
     }
 }
 
-export function encryptQR(userId: string, exp: number): string {
-    const payload = `${userId}:${exp}`;
-    const encrypted = encryptData(payload, derivedAESKey);
-    return encrypted;
-}
-
-export function generateQRCode(userId: string): string {
-    const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
-    const exp: number = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
+export function generateQRCode(userId: string, exp?: number): string {
+    if (!exp) {
+        const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
+        exp = currentTime + Config.QR_EXPIRY_TIME_SECONDS;
+    }
 
     // Encrypt user ID and expiration timestamp
     const payload = `${userId}:${exp}`;
