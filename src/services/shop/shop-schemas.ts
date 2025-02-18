@@ -128,7 +128,7 @@ export const [ShopItemNotFoundError, ShopItemNotFoundErrorSchema] = CreateErrorA
 
 export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
-    message: "You don't have enough to purchase that item!",
+    message: "You don't have enough points to purchase that item!",
 });
 
 export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
