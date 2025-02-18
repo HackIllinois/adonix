@@ -82,5 +82,5 @@ export function decryptQRCode(token: string): ScanQRCodeResult {
     }
 
     // Return the userId if not expired
-    return { success: true, userId: userId };
+    return { success: true, userId };
 }

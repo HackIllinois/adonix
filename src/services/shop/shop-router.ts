@@ -340,7 +340,10 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
         }
 
-        if (item.quantity <= 0) {
+        const userItemQuantity = userOrder.items.get(itemId) || 0;
+
+        // Check that there is at least one more unit available in the shop than the user has already ordered
+        if (item.quantity - userItemQuantity <= 0) {
             return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
         }
 
@@ -409,7 +412,7 @@ shopRouter.delete(
                 schema: ShopOrderInfoSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item doesn't exist",
+                description: "Shop Item is not in user's cart",
                 schema: ShopItemNotFoundErrorSchema,
             },
         },
