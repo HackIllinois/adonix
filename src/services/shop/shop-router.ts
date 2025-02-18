@@ -1,7 +1,6 @@
 import {
     ShopInsufficientFundsError,
     ShopInsufficientFundsErrorSchema,
-    ShopInsufficientQuantityErrorSchema,
     ShopItem,
     ShopItemIdSchema,
     ShopItemNotFoundError,
@@ -9,7 +8,6 @@ import {
     ShopItemsSchema,
     OrderRequestSchema,
     ShopOrder,
-    ShopInsufficientQuantityError,
     ShopOrderInfoSchema,
     ShopItemSchema,
     ShopItemUpdateRequestSchema,
@@ -17,6 +15,8 @@ import {
     ShopItemCreateRequestSchema,
     ShopItemAlreadyExistsErrorSchema,
     OrderRedeemSchema,
+    ShopInsufficientQuantityErrorSchema,
+    ShopInsufficientQuantityError,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -29,6 +29,7 @@ import { getAuthenticatedUser } from "../../common/auth";
 import { decryptQRCode, generateQRCode } from "../user/user-lib";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { randomUUID } from "crypto";
+import { QRExpiredError, QRExpiredErrorSchema, QRInvalidError, QRInvalidErrorSchema } from "../user/user-schemas";
 
 const shopRouter = Router();
 shopRouter.get(
@@ -184,10 +185,23 @@ shopRouter.post(
                 description: "Shop Item doesn't exist",
                 schema: ShopItemNotFoundErrorSchema,
             },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Not enough quantity in shop",
-                schema: ShopInsufficientQuantityErrorSchema,
-            },
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: ShopInsufficientQuantityError.error,
+                    description: "Not enough quantity in shop",
+                    schema: ShopInsufficientQuantityErrorSchema,
+                },
+                {
+                    id: QRExpiredError.error,
+                    description: "QR Code Expired",
+                    schema: QRExpiredErrorSchema,
+                },
+                {
+                    id: QRInvalidError.error,
+                    description: "QR Code Invalid (not expired)",
+                    schema: QRInvalidErrorSchema,
+                },
+            ],
             [StatusCode.ClientErrorPaymentRequired]: {
                 description: "Not enough points to purchase",
                 schema: ShopInsufficientFundsErrorSchema,
@@ -196,12 +210,16 @@ shopRouter.post(
     }),
     async (req, res) => {
         const { QRCode } = req.body;
-        const userId = decryptQRCode(QRCode);
+        const result = decryptQRCode(QRCode);
+        if (!result.success) {
+            return res.status(result.status).json(result.error);
+        }
+        const userId = result.userId;
 
         // Retrieve the user's order
-        const order = await Models.ShopOrder.findOne({ userId });
+        let order = await Models.ShopOrder.findOne({ userId });
         if (!order) {
-            throw new Error("nonexistent order");
+            order = await Models.ShopOrder.create(new ShopOrder([], userId));
         }
 
         // Retrieve the user's profile
@@ -328,7 +346,10 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
         }
 
-        if (item.quantity <= 0) {
+        const userItemQuantity = userOrder.items.get(itemId) || 0;
+
+        // Check that there is at least one more unit available in the shop than the user has already ordered
+        if (item.quantity - userItemQuantity <= 0) {
             return res.status(StatusCode.ClientErrorBadRequest).send(ShopInsufficientQuantityError);
         }
 
@@ -397,7 +418,7 @@ shopRouter.delete(
                 schema: ShopOrderInfoSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
-                description: "Shop Item doesn't exist",
+                description: "Shop Item is not in user's cart",
                 schema: ShopItemNotFoundErrorSchema,
             },
         },

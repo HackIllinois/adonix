@@ -1,6 +1,21 @@
 import { UserInfo } from "./user-schemas";
 import { createCipheriv, createDecipheriv, createHash } from "crypto";
 import Config from "../../common/config";
+import { QRExpiredError, QRInvalidError } from "./user-schemas";
+import StatusCode from "status-code-enum";
+
+export type ScanQRCodeResult =
+    | { success: true; userId: string }
+    | {
+          success: false;
+          status: StatusCode.ClientErrorBadRequest;
+          error: typeof QRExpiredError;
+      }
+    | {
+          success: false;
+          status: StatusCode.ClientErrorBadRequest;
+          error: typeof QRInvalidError;
+      };
 
 export function isValidUserFormat(u: UserInfo): boolean {
     if (typeof u.userId !== "string" || typeof u.name !== "string" || typeof u.email !== "string") {
@@ -48,7 +63,7 @@ export function generateQRCode(userId: string): string {
     return uri;
 }
 
-export function decryptQRCode(token: string): string | null {
+export function decryptQRCode(token: string): ScanQRCodeResult {
     const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
     // Decrypt and validate token
@@ -57,15 +72,15 @@ export function decryptQRCode(token: string): string | null {
 
     // Validate that userId and exp are present
     if (!userId || !exp) {
-        return null;
+        return { success: false, status: StatusCode.ClientErrorBadRequest, error: QRInvalidError };
     }
 
     const expNumber = parseInt(exp, 10);
     // Validate expiration time
     if (expNumber < currentTime) {
-        return null;
+        return { success: false, status: StatusCode.ClientErrorBadRequest, error: QRExpiredError };
     }
 
     // Return the userId if not expired
-    return userId;
+    return { success: true, userId };
 }

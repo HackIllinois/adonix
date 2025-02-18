@@ -217,13 +217,25 @@ describe("POST /shop/cart/:itemId", () => {
         await postAsAttendee("/shop/cart/non-existent-item").expect(StatusCode.ClientErrorNotFound);
     });
 
-    it("returns BadRequest when insufficient shop quantity", async () => {
+    it("returns BadRequest when 0 shop quantity", async () => {
         await Models.ShopItem.create({
             ...TESTER_SHOP_ITEM,
             itemId: "out-of-stock-item",
             quantity: 0,
         });
 
+        await postAsAttendee("/shop/cart/out-of-stock-item").expect(StatusCode.ClientErrorBadRequest);
+    });
+
+    it("returns BadRequest when shop quantity - user quantity is insufficient", async () => {
+        await Models.ShopItem.create({
+            ...TESTER_SHOP_ITEM,
+            itemId: "out-of-stock-item",
+            quantity: 2,
+        });
+
+        await postAsAttendee("/shop/cart/out-of-stock-item").expect(StatusCode.SuccessOK);
+        await postAsAttendee("/shop/cart/out-of-stock-item").expect(StatusCode.SuccessOK);
         await postAsAttendee("/shop/cart/out-of-stock-item").expect(StatusCode.ClientErrorBadRequest);
     });
 

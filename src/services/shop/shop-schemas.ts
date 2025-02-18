@@ -137,15 +137,15 @@ export const [ShopItemAlreadyExistsError, ShopItemAlreadyExistsErrorSchema] = Cr
 
 export const [ShopItemNotFoundError, ShopItemNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
-    message: "Failed to find item",
+    message: "Shop item not found!",
 });
 
 export const [ShopInsufficientFundsError, ShopInsufficientFundsErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",
-    message: "You don't have enough to purchase that item!",
+    message: "You don't have enough points to purchase that item!",
 });
 
 export const [ShopInsufficientQuantityError, ShopInsufficientQuantityErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientQuantity",
-    message: "Not enough of that item in the shop/your cart",
+    message: "Not enough of that item in the shop!",
 });
