@@ -90,7 +90,9 @@ staffRouter.put(
         path: "/staff/scan-attendee/",
         tag: Tag.STAFF,
         role: Role.STAFF,
-        summary: "Checks in a user using their encrypted QR code token for a specified event",
+        summary:
+            "Checks in a user using their encrypted QR code token for a specified event. " +
+            "Note: This is not the full hackillinois:// uri but just the QR token part.",
         body: ScanAttendeeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {

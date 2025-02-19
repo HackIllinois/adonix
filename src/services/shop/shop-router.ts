@@ -6,17 +6,18 @@ import {
     ShopItemNotFoundError,
     ShopItemNotFoundErrorSchema,
     ShopItemsSchema,
-    OrderRequestSchema,
+    OrderRedeemRequestSchema,
     ShopOrder,
-    ShopOrderInfoSchema,
+    OrderSchema,
     ShopItemSchema,
     ShopItemUpdateRequestSchema,
     ShopItemAlreadyExistsError,
     ShopItemCreateRequestSchema,
     ShopItemAlreadyExistsErrorSchema,
-    OrderRedeemSchema,
+    OrderQRCodeSchema,
     ShopInsufficientQuantityErrorSchema,
     ShopInsufficientQuantityError,
+    OrderRedeemSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -174,12 +175,13 @@ shopRouter.post(
         path: "/shop/cart/redeem/",
         tag: Tag.SHOP,
         role: Role.STAFF,
-        summary: "Purchases the order",
-        body: OrderRequestSchema,
+        summary: "Purchases the order scanned",
+        description: "Note: Do not pass the full uri (`hackillinois://user?qr=abcd`) but just the QR token part (`abcd`).",
+        body: OrderRedeemRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully purchased order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderRedeemSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -284,13 +286,19 @@ shopRouter.post(
             items: order.items,
         });
 
-        // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
-        const zodOrder = {
+        // Package items with their name
+        const redeemedItems = [...order.items.entries()].map(([itemId, quantity]) => ({
+            itemId,
+            name: itemsMap.get(itemId)!.name,
+            quantity,
+        }));
+
+        const ordered = {
             userId: order.userId,
-            items: Object.fromEntries(order.items.entries()),
+            items: redeemedItems,
         };
 
-        return res.status(StatusCode.SuccessOK).json(zodOrder);
+        return res.status(StatusCode.SuccessOK).json(ordered);
     },
 );
 
@@ -308,7 +316,7 @@ shopRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully updated order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -415,7 +423,7 @@ shopRouter.delete(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully updated order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item is not in user's cart",
@@ -486,7 +494,7 @@ shopRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "List of items and quantity",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
         },
     }),
@@ -523,7 +531,7 @@ shopRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "QR code",
-                schema: OrderRedeemSchema,
+                schema: OrderQRCodeSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -543,7 +551,14 @@ shopRouter.get(
         const { id: userId } = getAuthenticatedUser(req);
 
         // Fetch user order
-        const userOrder = await Models.ShopOrder.findOne({ userId });
+        let userOrder = await Models.ShopOrder.findOne({ userId });
+
+        // user doesn't have an order yet
+        if (!userOrder) {
+            // Create a new order with an empty list of items (which becomes an empty Map)
+            userOrder = await Models.ShopOrder.create(new ShopOrder([], userId));
+        }
+
         if (!userOrder) {
             throw new Error("nonexistent order");
         }

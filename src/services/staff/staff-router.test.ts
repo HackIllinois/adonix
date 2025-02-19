@@ -6,7 +6,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
-import { encryptQR } from "../user/user-lib";
+import { generateQRCode } from "../user/user-lib";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -96,10 +96,12 @@ describe("PUT /staff/scan-attendee/", () => {
         const currentTime = Math.floor(Date.now() / 1000);
 
         // Generate valid QR code
-        validAttendeeQRCode = encryptQR(testUserId, currentTime + 300);
+        const validAttendeeQRCodeURL = generateQRCode(testUserId, currentTime + 300);
+        validAttendeeQRCode = new URL(validAttendeeQRCodeURL).searchParams.get("qr")!;
 
         // Generate expired QR code
-        expiredAttendeeQRCode = encryptQR(testUserId, currentTime - 300);
+        const expiredAttendeeQRCodeURL = generateQRCode(testUserId, currentTime - 300);
+        expiredAttendeeQRCode = new URL(expiredAttendeeQRCodeURL).searchParams.get("qr")!;
     });
 
     it("successfully checks in user with valid QR code", async () => {
@@ -134,7 +136,7 @@ describe("PUT /staff/scan-attendee/", () => {
     it("rejects invalid QR codes", async () => {
         await putAsStaff("/staff/scan-attendee/")
             .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: "invalidQR" })
-            .expect(StatusCode.ServerErrorInternal);
+            .expect(StatusCode.ClientErrorBadRequest);
     });
 
     it("rejects expired QR codes", async () => {

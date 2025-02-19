@@ -1,6 +1,6 @@
 import { prop, modelOptions, Severity } from "@typegoose/typegoose";
 import { z } from "zod";
-import { CreateErrorAndSchema } from "../../common/schemas";
+import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export class ShopItem {
     @prop({ required: true })
@@ -109,24 +109,45 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
         },
     });
 
-export const ShopOrderInfoSchema = z.object({
-    items: z.record(z.number()),
-    userId: z.string(),
-});
-
-export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
-    example: "hackillinois://user?qr=3e7eea9a-7264-4ddf-877d-9e004a888eda",
-});
-
-export const OrderRequestSchema = z
+export const OrderSchema = z
     .object({
-        QRCode: OrderQRCodeSchema,
+        userId: UserIdSchema,
+        items: z.record(z.number()).openapi({
+            example: {
+                item1: 32,
+                item3: 5,
+            },
+        }),
     })
-    .openapi("OrderRequest");
+    .openapi("Order");
+
+export const OrderQRCodeSchema = z
+    .object({
+        QRCode: z.string(),
+    })
+    .openapi("OrderQRCode", {
+        example: { QRCode: "hackillinois://user?qr=3e7eea9a-7264-4ddf-877d-9e004a888eda" },
+    });
+
+export const OrderRedeemRequestSchema = z
+    .object({
+        QRCode: z.string(),
+    })
+    .openapi("OrderRedeemRequest", {
+        example: { QRCode: "3e7eea9a-7264-4ddf-877d-9e004a888eda" },
+        description: "The QR code token. Note: This is not the full hackillinois:// uri but just the QR token part.",
+    });
 
 export const OrderRedeemSchema = z
     .object({
-        QRCode: OrderQRCodeSchema,
+        userId: UserIdSchema,
+        items: z.array(
+            z.object({
+                itemId: ShopItemIdSchema,
+                name: z.string().openapi({ example: "Cool Item" }),
+                quantity: z.number().openapi({ example: 5 }),
+            }),
+        ),
     })
     .openapi("OrderRedeem");
 

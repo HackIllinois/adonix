@@ -102,7 +102,8 @@ describe("GET /user/qr/", () => {
         const responseBody = JSON.parse(response.text);
 
         // Decrypt the QR code
-        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        expect(responseBody).toHaveProperty("qrInfo");
+        const encryptedToken = new URL((responseBody as { qrInfo: string }).qrInfo).searchParams.get("qr") || "";
         const result = decryptQRCode(encryptedToken);
         if (!result.success) {
             fail(`QR code decryption failed with error: ${result.error}`);
@@ -127,7 +128,8 @@ describe("GET /user/qr/:id/", () => {
         const responseBody = JSON.parse(response.text);
 
         // Decrypt the QR code
-        const encryptedToken: string = responseBody.qrInfo.split("=")[1];
+        expect(responseBody).toHaveProperty("qrInfo");
+        const encryptedToken = new URL((responseBody as { qrInfo: string }).qrInfo).searchParams.get("qr") || "";
         const result = decryptQRCode(encryptedToken);
         if (!result.success) {
             fail(`QR code decryption failed with error: ${result.error}`);
@@ -141,14 +143,14 @@ describe("GET /user/qr/:id/", () => {
     it("generates new QR code on subsequent requests", async () => {
         // First request
         const firstResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
-        const firstEncryptedToken: string = JSON.parse(firstResponse.text).qrInfo.split("=")[1];
+        const firstEncryptedToken = new URL(JSON.parse(firstResponse.text).qrInfo as string).searchParams.get("qr");
 
         // Wait 1s for new exp time
         await new Promise((r) => setTimeout(r, 1000));
 
         // Second request
         const secondResponse = await getAsStaff(`/user/qr/${TESTER_USER.userId}/`);
-        const secondEncryptedToken: string = JSON.parse(secondResponse.text).qrInfo.split("=")[1];
+        const secondEncryptedToken = new URL(JSON.parse(secondResponse.text).qrInfo as string).searchParams.get("qr");
 
         // Tokens should be different
         expect(firstEncryptedToken).not.toBe(secondEncryptedToken);
