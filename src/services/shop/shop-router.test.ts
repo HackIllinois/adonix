@@ -48,7 +48,7 @@ beforeEach(async () => {
 describe("POST /shop/cart/redeem", () => {
     it("allows staff to successfully redeem an order", async () => {
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         const response = await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.SuccessOK);
 
         // Expect returned order to use the new object format.
@@ -81,7 +81,7 @@ describe("POST /shop/cart/redeem", () => {
         await Models.ShopOrder.updateOne({ userId: TESTER_PROFILE.userId }, { items: { "non-existent-item": 1 } });
 
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.ClientErrorNotFound);
     });
 
@@ -95,7 +95,7 @@ describe("POST /shop/cart/redeem", () => {
         );
 
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.ClientErrorBadRequest);
     });
 
@@ -104,7 +104,7 @@ describe("POST /shop/cart/redeem", () => {
         await Models.AttendeeProfile.updateOne({ userId: TESTER_PROFILE.userId }, { points: 0 });
 
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.ClientErrorPaymentRequired);
     });
 
@@ -116,7 +116,7 @@ describe("POST /shop/cart/redeem", () => {
         );
 
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.SuccessOK);
 
         // Since undefined should be treated as 0, the shop item’s quantity should remain unchanged.
@@ -152,7 +152,7 @@ describe("POST /shop/cart/redeem", () => {
         );
 
         const uri = generateQRCode(TESTER_PROFILE.userId);
-        const qrValue = uri.split("=")[1];
+        const qrValue = new URL(uri).searchParams.get("qr");
         await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.SuccessOK);
 
         // Verify inventory updates.
