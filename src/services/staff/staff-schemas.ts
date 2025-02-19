@@ -21,7 +21,9 @@ export const StaffAttendanceRequestSchema = z.object({
 export const ScanAttendeeRequestSchema = z
     .object({
         eventId: EventIdSchema,
-        attendeeQRCode: z.string().openapi({ description: "The scanned QR code token", example: "ns6Shwu2" }),
+        attendeeQRCode: z
+            .string()
+            .openapi({ description: "The scanned QR code token, not the hackillinois:// uri", example: "ns6Shwu2" }),
     })
     .openapi("ScanAttendeeRequest");
 

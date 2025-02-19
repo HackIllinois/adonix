@@ -115,7 +115,8 @@ export const ShopOrderInfoSchema = z.object({
 });
 
 export const OrderQRCodeSchema = z.string().openapi("OrderQRCode", {
-    example: "hackillinois://user?qr=3e7eea9a-7264-4ddf-877d-9e004a888eda",
+    example: "3e7eea9a-7264-4ddf-877d-9e004a888eda",
+    description: "The QR code token. Note: This is not the full hackillinois:// uri but just the QR token part.",
 });
 
 export const OrderRequestSchema = z

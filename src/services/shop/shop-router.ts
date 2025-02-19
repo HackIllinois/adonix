@@ -174,7 +174,8 @@ shopRouter.post(
         path: "/shop/cart/redeem/",
         tag: Tag.SHOP,
         role: Role.STAFF,
-        summary: "Purchases the order",
+        summary: "Purchases the order scanned",
+        description: "Note: Do not pass the full uri (`hackillinois://user?qr=abcd`) but just the QR token part (`abcd`).",
         body: OrderRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
