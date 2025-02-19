@@ -544,7 +544,14 @@ shopRouter.get(
         const { id: userId } = getAuthenticatedUser(req);
 
         // Fetch user order
-        const userOrder = await Models.ShopOrder.findOne({ userId });
+        let userOrder = await Models.ShopOrder.findOne({ userId });
+
+        // user doesn't have an order yet
+        if (!userOrder) {
+            // Create a new order with an empty list of items (which becomes an empty Map)
+            userOrder = await Models.ShopOrder.create(new ShopOrder([], userId));
+        }
+
         if (!userOrder) {
             throw new Error("nonexistent order");
         }
