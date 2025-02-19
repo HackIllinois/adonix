@@ -12,7 +12,6 @@ describe("QR Code Encryption & Decryption", () => {
         // Extract encrypted token from the QR code URI
         const token = new URL(qrCode).searchParams.get("qr")!;
         expect(token).toBeDefined();
-        console.log(qrCode);
 
         const result = decryptQRCode(token);
         expect(result).toEqual({ success: true, userId });

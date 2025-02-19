@@ -6,9 +6,9 @@ import {
     ShopItemNotFoundError,
     ShopItemNotFoundErrorSchema,
     ShopItemsSchema,
-    OrderRedeemSchema,
+    OrderRedeemRequestSchema,
     ShopOrder,
-    ShopOrderInfoSchema,
+    OrderSchema,
     ShopItemSchema,
     ShopItemUpdateRequestSchema,
     ShopItemAlreadyExistsError,
@@ -17,6 +17,7 @@ import {
     OrderQRCodeSchema,
     ShopInsufficientQuantityErrorSchema,
     ShopInsufficientQuantityError,
+    OrderRedeemSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -176,11 +177,11 @@ shopRouter.post(
         role: Role.STAFF,
         summary: "Purchases the order scanned",
         description: "Note: Do not pass the full uri (`hackillinois://user?qr=abcd`) but just the QR token part (`abcd`).",
-        body: OrderRedeemSchema,
+        body: OrderRedeemRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully purchased order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderRedeemSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -285,13 +286,19 @@ shopRouter.post(
             items: order.items,
         });
 
-        // Convert order.items (a Map) to an array of tuples since Zod doesn't support maps
-        const zodOrder = {
+        // Package items with their name
+        const redeemedItems = [...order.items.entries()].map(([itemId, quantity]) => ({
+            itemId,
+            name: itemsMap.get(itemId)!.name,
+            quantity,
+        }));
+
+        const ordered = {
             userId: order.userId,
-            items: Object.fromEntries(order.items.entries()),
+            items: redeemedItems,
         };
 
-        return res.status(StatusCode.SuccessOK).json(zodOrder);
+        return res.status(StatusCode.SuccessOK).json(ordered);
     },
 );
 
@@ -309,7 +316,7 @@ shopRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully updated order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
@@ -416,7 +423,7 @@ shopRouter.delete(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully updated order",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item is not in user's cart",
@@ -487,7 +494,7 @@ shopRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "List of items and quantity",
-                schema: ShopOrderInfoSchema,
+                schema: OrderSchema,
             },
         },
     }),

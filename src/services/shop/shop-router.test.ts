@@ -54,7 +54,13 @@ describe("POST /shop/cart/redeem", () => {
         // Expect returned order to use the new object format.
         expect(JSON.parse(response.text)).toMatchObject({
             userId: TESTER_PROFILE.userId,
-            items: { [TESTER_SHOP_ITEM.itemId]: INITIAL_ORDER_QUANTITY },
+            items: [
+                {
+                    itemId: TESTER_SHOP_ITEM.itemId,
+                    name: TESTER_SHOP_ITEM.name,
+                    quantity: INITIAL_ORDER_QUANTITY,
+                },
+            ],
         });
 
         // Verify inventory was updated: quantity reduced by the order amount.
