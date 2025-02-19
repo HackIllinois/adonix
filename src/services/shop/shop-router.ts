@@ -6,7 +6,7 @@ import {
     ShopItemNotFoundError,
     ShopItemNotFoundErrorSchema,
     ShopItemsSchema,
-    OrderRequestSchema,
+    OrderRedeemSchema,
     ShopOrder,
     ShopOrderInfoSchema,
     ShopItemSchema,
@@ -14,7 +14,7 @@ import {
     ShopItemAlreadyExistsError,
     ShopItemCreateRequestSchema,
     ShopItemAlreadyExistsErrorSchema,
-    OrderRedeemSchema,
+    OrderQRCodeSchema,
     ShopInsufficientQuantityErrorSchema,
     ShopInsufficientQuantityError,
 } from "./shop-schemas";
@@ -176,7 +176,7 @@ shopRouter.post(
         role: Role.STAFF,
         summary: "Purchases the order scanned",
         description: "Note: Do not pass the full uri (`hackillinois://user?qr=abcd`) but just the QR token part (`abcd`).",
-        body: OrderRequestSchema,
+        body: OrderRedeemSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The successfully purchased order",
@@ -524,7 +524,7 @@ shopRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "QR code",
-                schema: OrderRedeemSchema,
+                schema: OrderQRCodeSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Shop Item doesn't exist",
