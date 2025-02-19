@@ -49,12 +49,14 @@ export function generateQRCode(userId: string, exp?: number): string {
     const encryptedToken = encryptData(payload, derivedAESKey);
 
     // Construct the URI with the encrypted token
-    const uri = `hackillinois://user?qr=${encryptedToken}`;
+    const uri = `hackillinois://user?qr=${encodeURIComponent(encryptedToken)}`;
 
     return uri;
 }
 
 export function decryptQRCode(token: string): ScanQRCodeResult {
+    token = decodeURIComponent(token);
+
     const currentTime = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
 
     // Decrypt and validate token
