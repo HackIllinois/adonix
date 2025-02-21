@@ -24,6 +24,13 @@ export function ErrorHandler(error: unknown, req: Request, res: Response, _next:
             message: "Bad request made - unable to parse the request. Are you sending valid JSON?",
         });
     }
+    // Handle payload too large error
+    if (error && typeof error == "object" && "type" in error && error.type === "entity.too.large") {
+        return res.status(StatusCode.ClientErrorPayloadTooLarge).send({
+            error: "PayloadTooLarge",
+            message: "Your payload is too large. Why are you sending such a large payload?",
+        });
+    }
     // Otherwise, undefined error - so we display default internal error
     const userId = tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     const id = randomUUID();
