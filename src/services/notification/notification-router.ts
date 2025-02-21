@@ -7,7 +7,7 @@ import { getAuthenticatedUser } from "../../common/auth";
 import {
     NotificationSendRequestSchema,
     NotificationSendSchema,
-    NotificationsSchema,
+    NotificationMessagesSchema,
     RegisterDeviceTokenSchema,
 } from "./notification-schemas";
 import { sendNotification } from "./notification-service";
@@ -27,7 +27,7 @@ notificationsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "All the notifications",
-                schema: NotificationsSchema,
+                schema: NotificationMessagesSchema,
             },
         },
     }),

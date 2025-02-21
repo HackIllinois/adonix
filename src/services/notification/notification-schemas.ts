@@ -36,15 +36,25 @@ export const RegisterDeviceTokenSchema = z
     })
     .openapi("RegisterDeviceToken");
 
-export const NotificationMessageSchema = z.object({
-    sender: UserIdSchema,
-    title: z.string(),
-    body: z.string(),
-    sent: z.array(UserIdSchema),
-    failed: z.array(UserIdSchema),
-});
+export const NotificationMessageSchema = z
+    .object({
+        sender: UserIdSchema,
+        title: z.string(),
+        body: z.string(),
+        sent: z.array(UserIdSchema),
+        failed: z.array(UserIdSchema),
+    })
+    .openapi("NotificationMessage", {
+        example: {
+            sender: "google1234",
+            title: "This is a test notification",
+            body: "blame aydan",
+            sent: ["github1234", "github1236", "github1235"],
+            failed: ["github1237"],
+        },
+    });
 
-export const NotificationsSchema = z.array(NotificationMessageSchema).openapi("Notifications");
+export const NotificationMessagesSchema = z.array(NotificationMessageSchema).openapi("NotificationMessages");
 
 export const NotificationSendRequestSchema = z
     .object({
