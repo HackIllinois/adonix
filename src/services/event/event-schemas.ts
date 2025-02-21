@@ -131,7 +131,7 @@ export const EventSchema = z
         displayOnStaffCheckIn: z.boolean().optional(),
         isPro: z.boolean(),
     })
-    .openapi("PublicEvent", {
+    .openapi("Event", {
         example: {
             eventId: "52fdfc072182654f163f5f0f9a621d72",
             name: "Awesome Event",
