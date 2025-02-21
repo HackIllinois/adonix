@@ -30,6 +30,9 @@ import { tryGetAuthenticatedUser } from "./common/auth";
 
 const app = express();
 
+// Trust proxy for ECS
+app.enable("trust proxy");
+
 // Utility packages (detailed in the readme)
 app.use(corsSelector);
 
@@ -39,7 +42,7 @@ if (!Config.TEST) {
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :response-time ms :res[content-length] bytes"));
+    app.use(morgan(":status :method :url :id :remote-addr :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json and limit request size
