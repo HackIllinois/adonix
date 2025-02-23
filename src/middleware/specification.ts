@@ -23,6 +23,7 @@ export enum Tag {
     STAFF = "Staff",
     USER = "User",
     VERSION = "Version",
+    RESUMEBOOK = "Resumebook",
 }
 
 export interface ResponseObject {
