@@ -13,6 +13,7 @@ import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-s
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
+import { Project, ProjectMappings } from "../services/project/project-schema";
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
 
@@ -25,6 +26,7 @@ export enum Group {
     MENTOR = "mentor",
     NEWSLETTER = "newsletter",
     NOTIFICATION = "notification",
+    PROJECT = "project",
     PUZZLE = "puzzle",
     REGISTRATION = "registration",
     SHOP = "shop",
@@ -96,6 +98,11 @@ enum UserCollection {
     FOLLOWING = "following",
 }
 
+enum ProjectCollection {
+    PROJECTS = "projects",
+    MAPPINGS = "mappings",
+}
+
 export function generateConfig(collection: string): IModelOptions {
     return {
         schemaOptions: { collection: collection, versionKey: false },
@@ -151,6 +158,10 @@ export default class Models {
         Group.NOTIFICATION,
         NotificationCollection.MESSAGES,
     );
+
+    // Projects
+    static ProjectProjects: Model<Project> = getModel(Project, Group.PROJECT, ProjectCollection.PROJECTS);
+    static ProjectMappings: Model<ProjectMappings> = getModel(ProjectMappings, Group.PROJECT, ProjectCollection.MAPPINGS);
 
     // Puzzle
     static PuzzleItem: Model<PuzzleItem> = getModel(PuzzleItem, Group.PUZZLE, PuzzleCollection.RUNES_AND_RIDDLES);
