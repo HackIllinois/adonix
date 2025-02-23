@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
-import { RegistrationTemplates } from "../../common/config";
+import { Templates } from "../../common/config";
 import { Gender, Degree, Race, HackInterest, HackOutreach, RegistrationApplication } from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
@@ -105,7 +105,7 @@ describe("PUT /admission/update/", () => {
         const retrievedEntries = await Promise.all(ops);
 
         expect(sendMail).toBeCalledWith({
-            templateId: RegistrationTemplates.STATUS_UPDATE,
+            templateId: Templates.STATUS_UPDATE,
             recipients: [TESTER_APPLICATION.emailAddress],
         } satisfies MailInfo);
 
@@ -210,7 +210,7 @@ describe("PUT /admission/rsvp/accept", () => {
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
-            templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+            templateId: Templates.RSVP_CONFIRMATION,
             recipients: [TESTER_APPLICATION.emailAddress],
             subs: { name: TESTER_APPLICATION.preferredName },
         } satisfies MailInfo);
@@ -263,7 +263,7 @@ describe("PUT /admission/rsvp/decline/", () => {
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
-            templateId: RegistrationTemplates.RSVP_DECLINED,
+            templateId: Templates.RSVP_DECLINED,
             recipients: [TESTER_APPLICATION.emailAddress],
         } satisfies MailInfo);
 

@@ -1,7 +1,7 @@
 import mongoose, { Model } from "mongoose";
 import { getModelForClass } from "@typegoose/typegoose";
 
-import { AuthInfo } from "../services/auth/auth-schemas";
+import { AuthCode, AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeProfile } from "../services/profile/profile-schemas";
 import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
@@ -14,6 +14,7 @@ import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/typ
 import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
+import { Sponsor } from "../services/sponsor/sponsor-schemas";
 
 // Groups for collections
 export enum Group {
@@ -27,6 +28,7 @@ export enum Group {
     PUZZLE = "puzzle",
     REGISTRATION = "registration",
     SHOP = "shop",
+    SPONSOR = "sponsor",
     STAFF = "staff",
     USER = "user",
 }
@@ -38,6 +40,7 @@ enum AttendeeCollection {
 
 enum AuthCollection {
     INFO = "info",
+    CODES = "codes",
 }
 
 enum AdmissionCollection {
@@ -79,6 +82,10 @@ enum ShopCollection {
     ORDERS = "orders",
 }
 
+enum SponsorCollection {
+    SPONSORS = "sponsors",
+}
+
 enum StaffCollection {
     SHIFT = "shift",
 }
@@ -108,6 +115,7 @@ export default class Models {
 
     // Auth
     static AuthInfo: Model<AuthInfo> = getModel(AuthInfo, Group.AUTH, AuthCollection.INFO);
+    static AuthCode: Model<AuthCode> = getModel(AuthCode, Group.AUTH, AuthCollection.CODES);
 
     // Admission
     static AdmissionDecision: Model<AdmissionDecision> = getModel(
@@ -164,6 +172,9 @@ export default class Models {
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
     static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
     static ShopHistory: Model<ShopHistory> = getModel(ShopHistory, Group.SHOP, ShopCollection.HISTORY);
+
+    // Sponsor
+    static Sponsor: Model<Sponsor> = getModel(Sponsor, Group.SPONSOR, SponsorCollection.SPONSORS);
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);

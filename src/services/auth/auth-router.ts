@@ -3,7 +3,7 @@ import express, { Router, Request, Response } from "express";
 import GitHubStrategy, { Profile as GithubProfile } from "passport-github";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 
-import Config from "../../common/config";
+import Config, { Templates } from "../../common/config";
 import { StatusCode } from "status-code-enum";
 import { SelectAuthProvider } from "../../middleware/select-auth";
 
@@ -25,6 +25,11 @@ import {
     RedirectUrlSchema,
     BadRedirectUrlErrorSchema,
     BadRedirectUrlError,
+    SponsorEmailSchema,
+    SponsorLoginRequestSchema,
+    BadCodeErrorSchema,
+    BadCodeError,
+    SponsorLoginSchema,
 } from "./auth-schemas";
 import {
     generateJwtToken,
@@ -35,13 +40,15 @@ import {
     getUsersWithRole,
     getAuthenticatedUser,
     isValidRedirectUrl,
+    generateCode,
 } from "../../common/auth";
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
-import { UserIdSchema } from "../../common/schemas";
+import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { NextFunction } from "express-serve-static-core";
+import { sendMail } from "../mail/mail-lib";
 
 passport.use(
     Provider.GITHUB,
@@ -222,6 +229,107 @@ authRouter.use("/:provider/callback", (err: unknown, _req: Request, res: Respons
         details: err,
     });
 });
+
+authRouter.post(
+    "/sponsor/verify/",
+    specification({
+        method: "post",
+        path: "/auth/sponsor/verify/",
+        tag: Tag.AUTH,
+        role: null,
+        query: z.object({
+            email: SponsorEmailSchema,
+        }),
+        summary: "Sends a code to a sponsor email",
+        description: "For security reasons, there is no confirmation on if an email was actually sent or not",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Sent a code if the email provided was valid",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { email } = req.query;
+        const existing = await Models.Sponsor.findOne({ email });
+
+        if (!existing) {
+            return res.status(StatusCode.SuccessOK).send({ success: true });
+        }
+
+        const GENERATED_CODE = generateCode();
+        const now = Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
+        const expiry = now + Config.SPONSOR_VERIFICATION_CODE_EXPIRY_SECONDS;
+
+        await Models.AuthCode.findOneAndUpdate(
+            { email },
+            {
+                code: GENERATED_CODE,
+                expiry,
+            },
+            { upsert: true },
+        );
+
+        await sendMail({
+            recipients: [email],
+            templateId: Templates.SPONSOR_VERIFICATION_CODE,
+            subs: {
+                code: GENERATED_CODE,
+            },
+        });
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+authRouter.post(
+    "/sponsor/login/",
+    specification({
+        method: "post",
+        path: "/auth/sponsor/login/",
+        tag: Tag.AUTH,
+        role: null,
+        body: SponsorLoginRequestSchema,
+        summary: "Logs in with a code",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully logged in, returns the auth token for future requests",
+                schema: SponsorLoginSchema,
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "The email or code sent was invalid",
+                schema: BadCodeErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { email, code } = req.body;
+        const existing = await Models.Sponsor.findOne({ email });
+        const authCode = await Models.AuthCode.findOne({ email });
+
+        const expired = authCode && authCode.expiry < Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND);
+        const badCode = authCode && code !== authCode.code;
+
+        if (!existing || !authCode || expired || badCode) {
+            return res.status(StatusCode.ClientErrorForbidden).send(BadCodeError);
+        }
+
+        await Models.AuthCode.deleteOne({ email });
+
+        // Load in the payload with the actual values stored in the database
+        const payload = await getJwtPayloadFromProfile(
+            "sponsor",
+            {
+                id: existing.userId,
+                email,
+            },
+            false,
+        );
+
+        const token = generateJwtToken(payload, false);
+        return res.status(StatusCode.SuccessOK).send({ token });
+    },
+);
 
 authRouter.get(
     "/roles/list/:role/",

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import { RegistrationTemplates } from "../../common/config";
+import { Templates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
 import {
     Degree,
@@ -154,7 +154,7 @@ describe("POST /registration/submit/", () => {
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
-            templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+            templateId: Templates.REGISTRATION_SUBMISSION,
             recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
             subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
         } satisfies MailInfo);
