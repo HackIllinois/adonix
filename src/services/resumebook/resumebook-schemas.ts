@@ -6,7 +6,7 @@ export const ResumeBookFilterCriteriaSchema = z.object({
     degrees: z.array(z.string()).default([]),
 });
 
-export const ResumeBookRequestSchema = z.object({
+export const ResumeBookResponseSchema = z.object({
     userId: z.string().default("google12345"),
     legalName: z.string().default("John Doe"),
     emailAddress: z.string().email(),

@@ -1,14 +1,9 @@
 import { StatusCode } from "status-code-enum";
 import { Router } from "express";
-
 import Config from "../../common/config";
-
 import Models from "../../common/models";
-
-import { ResumeBookFilterCriteriaSchema, ResumeBookRequestSchema } from "./resumebook-schemas";
-
+import { ResumeBookFilterCriteriaSchema, ResumeBookResponseSchema } from "./resumebook-schemas";
 import { Role } from "../auth/auth-schemas";
-
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 
@@ -81,20 +76,28 @@ resumebookRouter.post(
         role: Role.STAFF,
         summary: "Returns a page of admitted applicants matching filter criteria.",
         parameters: z.object({
-            page: z.preprocess((val) => Number(val), z.number().min(1)),
+            page: z.preprocess((val) => Number(val), z.number()),
         }),
         body: ResumeBookFilterCriteriaSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The list of admitted applicants for the specified page.",
                 // Here we assume each applicant document conforms to RegistrationApplicationSchema.
-                schema: z.array(ResumeBookRequestSchema),
+                schema: z.array(ResumeBookResponseSchema),
+            },
+            [StatusCode.ClientErrorBadRequest] : {
+                description: "Invalid page number or filter criteria.",
+                schema: z.object({ error: z.string() }),
             },
         },
     }),
     async (req, res) => {
         const { graduations, majors, degrees } = req.body;
         const page = req.params.page;
+
+        if (page < 1) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Invalid page number." });
+        }
 
         // convert graduation values to integers
         const graduationInts = graduations.map((grad) => parseInt(grad, 10));
