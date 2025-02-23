@@ -85,7 +85,7 @@ resumebookRouter.post(
                 // Here we assume each applicant document conforms to RegistrationApplicationSchema.
                 schema: z.array(ResumeBookResponseSchema),
             },
-            [StatusCode.ClientErrorBadRequest] : {
+            [StatusCode.ClientErrorBadRequest]: {
                 description: "Invalid page number or filter criteria.",
                 schema: z.object({ error: z.string() }),
             },
