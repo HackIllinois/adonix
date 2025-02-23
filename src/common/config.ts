@@ -155,5 +155,4 @@ const Config = {
     RANKING_OFFSET: 1,
 };
 
-
 export default Config;

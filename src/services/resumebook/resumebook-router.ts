@@ -4,9 +4,8 @@ import { Router } from "express";
 import Config from "../../common/config";
 
 import Models from "../../common/models";
-import { RegistrationApplicationSchema } from "./../registration/registration-schemas";
 
-import { ResumeBookFilterCriteriaSchema } from "./resumebook-schemas";
+import { ResumeBookFilterCriteriaSchema, ResumeBookRequestSchema } from "./resumebook-schemas";
 
 import { Role } from "../auth/auth-schemas";
 
@@ -89,7 +88,7 @@ resumebookRouter.post(
             [StatusCode.SuccessOK]: {
                 description: "The list of admitted applicants for the specified page.",
                 // Here we assume each applicant document conforms to RegistrationApplicationSchema.
-                schema: z.array(RegistrationApplicationSchema),
+                schema: z.array(ResumeBookRequestSchema),
             },
         },
     }),
@@ -122,7 +121,7 @@ resumebookRouter.post(
 
         // query registration_applications database and return page of document values with filter values from req body
         const filteredApplicants = await Models.RegistrationApplication.find(registrationQuery)
-            .select({ legalName: 1, major: 1, minor: 1, degree: 1, gradYear: 1, emailAddress: 1 })
+            .select({ _id: 0, userId: 1, legalName: 1, major: 1, minor: 1, degree: 1, gradYear: 1, emailAddress: 1 })
             .skip((page - 1) * Config.RESUME_BOOK_ENTRIES_PER_PAGE)
             .limit(Config.RESUME_BOOK_ENTRIES_PER_PAGE);
 
