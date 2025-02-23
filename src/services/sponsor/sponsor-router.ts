@@ -2,26 +2,22 @@ import { StatusCode } from "status-code-enum";
 import { Router } from "express";
 import Config from "../../common/config";
 import Models from "../../common/models";
-import { ResumeBookFilterCriteriaSchema, ResumeBookResponseSchema } from "./resumebook-schemas";
 import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
+import { ResumeBookEntrySchema, ResumeBookFilterSchema } from "./sponsor-schemas";
 
-const resumebookRouter = Router();
+const sponsorRouter = Router();
 
-// POST /registration/filter/pagecount
-// - Expects a filter object in the body containing arrays for graduations, majors, and degrees.
-// - Counts the number of admitted applicants that match the filter and calculates
-//   the total number of pages based on the ENTRIES_PER_PAGE config value.
-resumebookRouter.post(
-    "/filter/pagecount",
+sponsorRouter.post(
+    "/resumebook/filter/pagecount",
     specification({
         method: "post",
-        path: "/resumebook/filter/pagecount",
-        tag: Tag.RESUMEBOOK,
-        role: Role.STAFF,
+        path: "/sponsor/resumebook/filter/pagecount",
+        tag: Tag.SPONSOR,
+        role: Role.SPONSOR,
         summary: "Counts admitted applicants matching filter criteria and returns page count.",
-        body: ResumeBookFilterCriteriaSchema,
+        body: ResumeBookFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Total number of pages based on ENTRIES_PER_PAGE.",
@@ -64,26 +60,22 @@ resumebookRouter.post(
     },
 );
 
-// POST /registration/filter/:page
-// - Expects a filter object in the body containing arrays for graduations, majors, and degrees.
-// - Returns the specific page of admitted applicants (using ENTRIES_PER_PAGE for the number per page).
-resumebookRouter.post(
-    "/filter/:page",
+sponsorRouter.post(
+    "/resumebook/filter/:page",
     specification({
         method: "post",
-        path: "/resumebook/filter/{page}",
-        tag: Tag.RESUMEBOOK,
-        role: Role.STAFF,
+        path: "/sponsor/resumebook/filter/{page}",
+        tag: Tag.SPONSOR,
+        role: Role.SPONSOR,
         summary: "Returns a page of admitted applicants matching filter criteria.",
         parameters: z.object({
             page: z.preprocess((val) => Number(val), z.number()),
         }),
-        body: ResumeBookFilterCriteriaSchema,
+        body: ResumeBookFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The list of admitted applicants for the specified page.",
-                // Here we assume each applicant document conforms to RegistrationApplicationSchema.
-                schema: z.array(ResumeBookResponseSchema),
+                schema: z.array(ResumeBookEntrySchema),
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Invalid page number or filter criteria.",
@@ -132,4 +124,4 @@ resumebookRouter.post(
     },
 );
 
-export default resumebookRouter;
+export default sponsorRouter;
