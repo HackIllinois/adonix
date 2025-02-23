@@ -19,7 +19,7 @@ import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
 import { MailInfo } from "../mail/mail-schemas";
-import { RegistrationTemplates } from "../../common/config";
+import { Templates } from "../../common/config";
 import { sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
@@ -130,20 +130,20 @@ admissionRouter.put(
             }
             if (application.requestedTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
                 mailInfo = {
-                    templateId: RegistrationTemplates.RSVP_CONFIRMATION_WITH_REIMBURSE,
+                    templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
                     recipients: [application.emailAddress],
                     subs: { name: application.preferredName, amount: admissionDecision.reimbursementValue },
                 };
             } else {
                 mailInfo = {
-                    templateId: RegistrationTemplates.RSVP_CONFIRMATION,
+                    templateId: Templates.RSVP_CONFIRMATION,
                     recipients: [application.emailAddress],
                     subs: { name: application.preferredName },
                 };
             }
         } else {
             mailInfo = {
-                templateId: RegistrationTemplates.RSVP_DECLINED,
+                templateId: Templates.RSVP_DECLINED,
                 recipients: [application.emailAddress],
             };
         }
@@ -210,7 +210,7 @@ admissionRouter.put(
 
         // Send mail
         const mailInfo: MailInfo = {
-            templateId: RegistrationTemplates.STATUS_UPDATE,
+            templateId: Templates.STATUS_UPDATE,
             recipients,
         };
         await sendMail(mailInfo);

@@ -18,6 +18,17 @@ export class AuthInfo {
     public roles: string[];
 }
 
+export class AuthCode {
+    @prop({ required: true })
+    public email: string;
+
+    @prop({ required: true })
+    public code: string;
+
+    @prop({ required: true })
+    public expiry: number;
+}
+
 export interface ProfileData {
     id?: string;
     login?: string;
@@ -49,6 +60,7 @@ export enum Role {
 export enum Provider {
     GITHUB = "github",
     GOOGLE = "google",
+    SPONSOR = "sponsor",
 }
 
 export enum RoleOperation {
@@ -72,6 +84,21 @@ export const JWTSchema = z.string().openapi("JWT", {
     example: "eyJ.eyJ.3QuKc",
 });
 export const RedirectUrlSchema = z.string().openapi("RedirectUrl", { example: "http://localhost:3000/auth/" });
+export const SponsorEmailSchema = z
+    .string()
+    .email("Requires valid email")
+    .openapi("SponsorEmail", { example: "example@sponsor.com" });
+export const SponsorLoginRequestSchema = z
+    .object({
+        email: SponsorEmailSchema,
+        code: z.string().openapi({ example: "1A3Z56" }),
+    })
+    .openapi("SponsorLoginRequest");
+export const SponsorLoginSchema = z
+    .object({
+        token: JWTSchema,
+    })
+    .openapi("SponsorLogin");
 
 export const AuthDevSchema = z.object({
     Authorization: JWTSchema,
@@ -102,4 +129,8 @@ const validUrlExamples = [...Config.ALLOWED_REDIRECT_URLS.values()].map((url) =>
 export const [BadRedirectUrlError, BadRedirectUrlErrorSchema] = CreateErrorAndSchema({
     error: "BadRedirectUrl",
     message: `The redirect url provided is invalid, please provide one of the following: ${validUrlExamples}`,
+});
+export const [BadCodeError, BadCodeErrorSchema] = CreateErrorAndSchema({
+    error: "BadCode",
+    message: "The code entered was invalid",
 });

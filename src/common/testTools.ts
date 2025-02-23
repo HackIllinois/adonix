@@ -39,6 +39,7 @@ export const AUTH_ROLE_TO_ROLES: Record<Role, Role[]> = {
  * Set auth header & misc headers
  */
 function setHeaders(request: request.Test, role?: Role): request.Test {
+    request = request.set("Accept", "application/json").set("Content-Type", "application/json");
     if (!role) {
         return request;
     }
@@ -55,10 +56,7 @@ function setHeaders(request: request.Test, role?: Role): request.Test {
         roles: AUTH_ROLE_TO_ROLES[role],
     });
 
-    return request
-        .set("Authorization", jwt as string)
-        .set("Accept", "application/json")
-        .set("Content-Type", "application/json");
+    return request.set("Authorization", jwt as string);
 }
 
 // Dynamically require app so it's always the freshest version

@@ -18,12 +18,13 @@ export enum Device {
     PUZZLE = "puzzle",
 }
 
-export enum RegistrationTemplates {
+export enum Templates {
     REGISTRATION_SUBMISSION = "2025_registration_confirmation",
     STATUS_UPDATE = "2025_status_update",
     RSVP_CONFIRMATION = "2025_rsvp_confirmation",
     RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
     RSVP_DECLINED = "2025_rsvp_declined",
+    SPONSOR_VERIFICATION_CODE = "sponsor_verification_code",
 }
 
 function requireEnv(name: string): string {
@@ -121,6 +122,7 @@ const Config = {
     /* Timings */
     MILLISECONDS_PER_SECOND: 1000,
     DEFAULT_JWT_EXPIRY_TIME: "24h",
+    SPONSOR_VERIFICATION_CODE_EXPIRY_SECONDS: 15 * 60,
     QR_EXPIRY_TIME_SECONDS: 20,
     RESUME_URL_EXPIRY_SECONDS: 60,
     METADATA_CACHE_EXPIRY_SECONDS: 60,
@@ -144,8 +146,7 @@ const Config = {
     QR_BYTES_GEN: 16,
     QR_BYTES_KEY: 32,
     QR_IV: "3a7f4b8c1d2e5f6a9b0c8d7e6f5a4b3c",
-
-    NOT_FOUND: -1,
+    SPONSOR_CODE_LENGTH: 6,
 
     SHOP_ID_LENGTH: 2 * 2,
     EVENT_ID_LENGTH: 2 * 16,

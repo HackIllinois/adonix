@@ -10,15 +10,19 @@ import {
     getAsAttendee,
     getAsStaff,
     getAsUser,
+    post,
     putAsAdmin,
     putAsStaff,
 } from "../../common/testTools";
-import Config, { Device } from "../../common/config";
+import Config, { Device, Templates } from "../../common/config";
 import * as selectAuthMiddleware from "../../middleware/select-auth";
 import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "../../common/mocks/auth";
-import { JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
+import { AuthCode, JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
 import Models from "../../common/models";
 import { AuthInfo } from "./auth-schemas";
+import type * as MailLib from "../mail/mail-lib";
+import { Sponsor } from "../sponsor/sponsor-schemas";
+import { AxiosResponse } from "axios";
 
 const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
 
@@ -40,10 +44,28 @@ const USER_STAFF = {
     roles: [Role.USER, Role.ATTENDEE, Role.STAFF],
 } satisfies AuthInfo;
 
+const SPONSOR = {
+    email: "example@sponsor.com",
+    name: "Bob",
+    userId: "sponsor1234",
+} satisfies Sponsor;
+
+const SPONSOR_CODE = {
+    email: SPONSOR.email,
+    code: "123456",
+    expiry: Math.floor(Date.now() / 1000) + 300,
+} satisfies AuthCode;
+
+const EXPIRED_SPONSOR_CODE = {
+    ...SPONSOR_CODE,
+    expiry: Math.floor(Date.now() / 1000) - 300,
+} satisfies AuthCode;
+
 beforeEach(async () => {
     await Models.AuthInfo.create(USER);
     await Models.AuthInfo.create(USER_ATTENDEE);
     await Models.AuthInfo.create(USER_STAFF);
+    await Models.Sponsor.create(SPONSOR);
 });
 
 describe("GET /auth/dev/", () => {
@@ -176,6 +198,154 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
         // Expect redirect to be to the right url & contain token
         const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
         expect(response.headers["location"]).toBe(`${Config.DEVICE_TO_REDIRECT_URL.get(device)}?token=${jwtReturned}`);
+    });
+});
+
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
+describe("POST /auth/sponsor/verify/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async () => {
+        // Mock successful send by default
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+    });
+
+    it("sends an email with code", async () => {
+        await post(`/auth/sponsor/verify/?email=${encodeURIComponent(SPONSOR.email)}`).expect(StatusCode.SuccessOK);
+
+        const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
+
+        expect(authCode).not.toBeNull();
+        expect(authCode).toMatchObject(
+            expect.objectContaining({
+                email: SPONSOR.email,
+                code: expect.any(String),
+                expiry: expect.any(Number),
+            }),
+        );
+        expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
+
+        expect(sendMail).toBeCalledWith({
+            recipients: [SPONSOR.email],
+            subs: {
+                code: authCode?.code,
+            },
+            templateId: Templates.SPONSOR_VERIFICATION_CODE,
+        });
+    });
+
+    it("sends an email with code and updated existing", async () => {
+        await Models.AuthCode.create(EXPIRED_SPONSOR_CODE);
+        await post(`/auth/sponsor/verify/?email=${encodeURIComponent(SPONSOR.email)}`).expect(StatusCode.SuccessOK);
+
+        const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
+
+        expect(authCode).not.toBeNull();
+        expect(authCode).toMatchObject(
+            expect.objectContaining({
+                email: SPONSOR.email,
+                code: expect.any(String),
+                expiry: expect.any(Number),
+            }),
+        );
+        expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
+
+        expect(sendMail).toBeCalledWith({
+            recipients: [SPONSOR.email],
+            subs: {
+                code: authCode?.code,
+            },
+            templateId: Templates.SPONSOR_VERIFICATION_CODE,
+        });
+    });
+
+    it("ignores an invalid email", async () => {
+        await post(`/auth/sponsor/verify/?email=${encodeURIComponent("bleh@bleh.com")}`).expect(StatusCode.SuccessOK);
+
+        const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
+
+        expect(authCode).toBeNull();
+        expect(sendMail).not.toBeCalled();
+    });
+});
+
+describe("POST /auth/sponsor/login/", () => {
+    let mockedGenerateJwtToken: ReturnType<typeof mockGenerateJwtTokenWithWrapper>;
+
+    beforeEach(() => {
+        mockSelectAuthProvider((_req, _res, _next) => {
+            console.error("Select auth provider called when it shouldn't be!");
+        });
+        mockedGenerateJwtToken = mockGenerateJwtTokenWithWrapper();
+    });
+
+    it("logs in with a valid code", async () => {
+        await Models.AuthCode.create(SPONSOR_CODE);
+        const response = await post(`/auth/sponsor/login`)
+            .send({
+                code: SPONSOR_CODE.code,
+                email: SPONSOR.email,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        expect(mockedGenerateJwtToken).toBeCalledWith(
+            expect.objectContaining({
+                email: SPONSOR.email,
+                id: SPONSOR.userId,
+                provider: Provider.SPONSOR,
+                roles: [Role.USER, Role.SPONSOR],
+            } satisfies JwtPayload),
+            false,
+        );
+
+        expect(JSON.parse(response.text).token).toBe(mockedGenerateJwtToken.mock.results[0]?.value);
+
+        const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
+        expect(authCode).toBeNull();
+    });
+
+    it("fails to log in with a invalid code", async () => {
+        await Models.AuthCode.create(SPONSOR_CODE);
+        const response = await post(`/auth/sponsor/login`)
+            .send({
+                code: "incorrect",
+                email: SPONSOR.email,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadCode");
+
+        expect(mockedGenerateJwtToken).not.toBeCalled();
+    });
+
+    it("fails to log in with a expired code", async () => {
+        await Models.AuthCode.create(EXPIRED_SPONSOR_CODE);
+        const response = await post(`/auth/sponsor/login`)
+            .send({
+                code: SPONSOR_CODE.code,
+                email: SPONSOR.email,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadCode");
+
+        expect(mockedGenerateJwtToken).not.toBeCalled();
+    });
+
+    it("fails to log in with invalid email", async () => {
+        await Models.AuthCode.create(SPONSOR_CODE);
+        const response = await post(`/auth/sponsor/login`)
+            .send({
+                code: SPONSOR_CODE.code,
+                email: "bleh@bleh.com",
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadCode");
+
+        expect(mockedGenerateJwtToken).not.toBeCalled();
     });
 });
 

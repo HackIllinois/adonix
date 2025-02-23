@@ -1,7 +1,7 @@
 import { StatusCode } from "status-code-enum";
 import { Router } from "express";
 
-import { RegistrationTemplates } from "../../common/config";
+import { Templates } from "../../common/config";
 
 import Models from "../../common/models";
 import {
@@ -257,7 +257,7 @@ registrationRouter.post(
 
         // SEND SUCCESSFUL REGISTRATION EMAIL
         const mailInfo: MailInfo = {
-            templateId: RegistrationTemplates.REGISTRATION_SUBMISSION,
+            templateId: Templates.REGISTRATION_SUBMISSION,
             recipients: [registrationInfo.emailAddress],
             subs: { name: registrationInfo.preferredName },
         };

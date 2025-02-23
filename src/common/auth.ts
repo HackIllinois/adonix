@@ -272,6 +272,8 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
         if (Config.SYSTEM_ADMIN_LIST.includes(email.replace("@hackillinois.org", ""))) {
             roles.push(Role.ADMIN);
         }
+    } else if (provider == Provider.SPONSOR) {
+        roles.push(Role.SPONSOR);
     }
 
     return roles;
@@ -298,6 +300,18 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
     }
 }
 
+export function generateCode(): string {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+
+    for (let i = 0; i < Config.SPONSOR_CODE_LENGTH; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        code += characters[randomIndex];
+    }
+
+    return code;
+}
+
 /**
  * Calls the getAuthInfo function to get roles for a user. If the user does not exist, we return an empty array as opposed to an error.
  * @param id UserID of the user to return the info for
@@ -306,10 +320,7 @@ export async function getAuthInfo(id: string): Promise<AuthInfo> {
 export async function getRoles(id: string): Promise<Role[] | undefined> {
     return getAuthInfo(id)
         .then((authInfo) => authInfo.roles as Role[])
-        .catch((error) => {
-            console.log(error);
-            return undefined;
-        });
+        .catch(() => undefined);
 }
 
 /**
