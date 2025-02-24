@@ -6,7 +6,7 @@ import { CreateErrorAndSchema } from "../../common/schemas";
 import { SponsorEmailSchema } from "../sponsor/sponsor-schemas";
 
 export class AuthInfo {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true })

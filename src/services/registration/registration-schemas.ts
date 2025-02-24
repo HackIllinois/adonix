@@ -69,7 +69,7 @@ const HackInterestSchema = z.nativeEnum(HackInterest).openapi("HackInterest");
 const HackOutreachSchema = z.nativeEnum(HackOutreach).openapi("HackOutreach");
 
 export class RegistrationApplication {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ default: false })
@@ -155,7 +155,7 @@ export class RegistrationApplication {
 }
 
 export class RegistrationChallenge {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true, type: () => Number })

@@ -16,16 +16,16 @@ export enum DecisionResponse {
 }
 
 export class AdmissionDecision {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public status: DecisionStatus;
 
     @prop({ default: false })
     public admittedPro: boolean;
 
-    @prop({ default: DecisionResponse.PENDING })
+    @prop({ default: DecisionResponse.PENDING, index: true })
     public response: DecisionResponse;
 
     @prop({ default: false })

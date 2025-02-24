@@ -5,7 +5,7 @@ import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schema
 import { EventSchema } from "../event/event-schemas";
 
 export class StaffShift {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({

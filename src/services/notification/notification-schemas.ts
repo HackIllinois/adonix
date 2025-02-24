@@ -4,7 +4,7 @@ import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { Role, RoleSchema } from "../auth/auth-schemas";
 
 export class NotificationMappings {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true })

@@ -4,7 +4,7 @@ import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export class AttendeeProfile {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true })

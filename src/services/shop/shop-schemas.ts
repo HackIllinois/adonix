@@ -47,7 +47,7 @@ export class ShopOrder {
 
 @modelOptions({ options: { allowMixed: Severity.ALLOW } })
 export class ShopHistory {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ type: Map, required: true })

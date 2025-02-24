@@ -4,7 +4,7 @@ import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
 export class PuzzleItem {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true })

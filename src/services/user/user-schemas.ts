@@ -4,7 +4,7 @@ import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 import { EventIdSchema } from "../../common/schemas";
 
 export class UserInfo {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({ required: true })
@@ -14,7 +14,7 @@ export class UserInfo {
     public email: string;
 }
 export class UserAttendance {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({
@@ -25,7 +25,7 @@ export class UserAttendance {
 }
 
 export class UserFollowing {
-    @prop({ required: true })
+    @prop({ required: true, index: true })
     public userId: string;
 
     @prop({
