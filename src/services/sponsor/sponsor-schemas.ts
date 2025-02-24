@@ -15,18 +15,24 @@ export const SponsorEmailSchema = z
     .email("Requires valid email")
     .openapi("SponsorEmail", { example: "example@sponsor.com" });
 
-export const SponsorSchema = z.object({
-    userId: UserIdSchema,
-    email: SponsorEmailSchema,
-});
+export const SponsorSchema = z
+    .object({
+        userId: UserIdSchema,
+        email: SponsorEmailSchema,
+    })
+    .openapi("Sponsor");
 
-export const CreateSponsorRequestSchema = z.object({
-    email: SponsorEmailSchema,
-});
+export const CreateSponsorRequestSchema = z
+    .object({
+        email: SponsorEmailSchema,
+    })
+    .openapi("CreateSponsorRequest");
 
-export const DeleteSponsorRequestSchema = z.object({
-    userId: UserIdSchema,
-});
+export const DeleteSponsorRequestSchema = z
+    .object({
+        userId: UserIdSchema,
+    })
+    .openapi("DeleteSponsorRequest");
 
 export const ResumeBookFilterSchema = z
     .object({
