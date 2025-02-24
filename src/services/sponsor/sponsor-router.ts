@@ -10,6 +10,7 @@ import {
     DeleteSponsorRequestSchema,
     ResumeBookEntrySchema,
     ResumeBookFilterSchema,
+    ResumeBookPageFilterSchema,
     SponsorNotFoundError,
     SponsorNotFoundErrorSchema,
     SponsorSchema,
@@ -103,27 +104,24 @@ sponsorRouter.delete(
     },
 );
 
-sponsorRouter.post(
-    "/resumebook/filter/pagecount",
+sponsorRouter.get(
+    "/resumebook/pagecount",
     specification({
         method: "post",
-        path: "/sponsor/resumebook/filter/pagecount",
+        path: "/sponsor/resumebook/pagecount",
         tag: Tag.SPONSOR,
         role: Role.SPONSOR,
-        summary: "Counts admitted applicants matching filter criteria and returns page count.",
-        body: ResumeBookFilterSchema,
+        summary: "Counts admitted applicants matching filter criteria and returns page count",
+        query: ResumeBookFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "Total number of pages based on ENTRIES_PER_PAGE.",
+                description: "Total number of pages based on ENTRIES_PER_PAGE",
                 schema: z.object({ pageCount: z.number() }),
             },
         },
     }),
     async (req, res) => {
-        const { graduations, majors, degrees } = req.body;
-
-        // convert graduation values to integers
-        const graduationInts = graduations.map((grad) => parseInt(grad, 10));
+        const { graduations = [], majors = [], degrees = [] } = req.query;
 
         // get all accepted user ids
         const admissionDecisionQuery = { response: "ACCEPTED", status: "ACCEPTED" };
@@ -140,7 +138,7 @@ sponsorRouter.post(
         // Build query object with conditional spreads
         const registrationQuery: RegistrationQuery = {
             userId: { $in: acceptedUserIds },
-            ...(graduations?.length && { gradYear: { $in: graduationInts } }),
+            ...(graduations?.length && { gradYear: { $in: graduations } }),
             ...(majors?.length && { major: { $in: majors } }),
             ...(degrees?.length && { degree: { $in: degrees } }),
         };
@@ -154,44 +152,30 @@ sponsorRouter.post(
     },
 );
 
-sponsorRouter.post(
-    "/resumebook/filter/:page",
+sponsorRouter.get(
+    "/resumebook/",
     specification({
-        method: "post",
-        path: "/sponsor/resumebook/filter/{page}",
+        method: "get",
+        path: "/sponsor/resumebook/",
         tag: Tag.SPONSOR,
         role: Role.SPONSOR,
-        summary: "Returns a page of admitted applicants matching filter criteria.",
-        parameters: z.object({
-            page: z.preprocess((val) => Number(val), z.number()),
-        }),
-        body: ResumeBookFilterSchema,
+        summary: "Returns a page of admitted applicants matching filter criteria",
+        query: ResumeBookPageFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The list of admitted applicants for the specified page.",
+                description: "The list of admitted applicants for the specified page",
                 schema: z.array(ResumeBookEntrySchema),
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Invalid page number or filter criteria.",
-                schema: z.object({ error: z.string() }),
             },
         },
     }),
     async (req, res) => {
-        const { graduations, majors, degrees } = req.body;
-        const page = req.params.page;
-
-        if (page < 1) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({ error: "Invalid page number." });
-        }
-
-        // convert graduation values to integers
-        const graduationInts = graduations.map((grad) => parseInt(grad, 10));
+        const { graduations = [], majors = [], degrees = [], page } = req.query;
 
         // get all accepted user ids
         const admissionDecisionQuery = { response: "ACCEPTED", status: "ACCEPTED" };
-        const acceptedUserDocuments = await Models.AdmissionDecision.find(admissionDecisionQuery);
-        const acceptedUserIds = acceptedUserDocuments.map((doc) => doc.userId);
+        const acceptedUserIds = (await Models.AdmissionDecision.find(admissionDecisionQuery).select({ userId: true })).map(
+            (doc) => doc.userId,
+        );
 
         interface RegistrationQuery {
             userId?: { $in: string[] };
@@ -203,7 +187,7 @@ sponsorRouter.post(
         // Build query object with conditional spreads
         const registrationQuery: RegistrationQuery = {
             userId: { $in: acceptedUserIds },
-            ...(graduations?.length && { gradYear: { $in: graduationInts } }),
+            ...(graduations?.length && { gradYear: { $in: graduations } }),
             ...(majors?.length && { major: { $in: majors } }),
             ...(degrees?.length && { degree: { $in: degrees } }),
         };

@@ -36,11 +36,15 @@ export const DeleteSponsorRequestSchema = z
 
 export const ResumeBookFilterSchema = z
     .object({
-        graduations: z.array(z.string()).default([]),
-        majors: z.array(z.string()).default([]),
-        degrees: z.array(z.string()).default([]),
+        graduations: z.array(z.coerce.number()).optional(),
+        majors: z.array(z.string()).optional(),
+        degrees: z.array(z.string()).optional(),
     })
     .openapi("ResumeBookFilter");
+
+export const ResumeBookPageFilterSchema = ResumeBookFilterSchema.extend({
+    page: z.coerce.number().min(1),
+}).openapi("ResumeBookPageFilter");
 
 export const ResumeBookEntrySchema = z
     .object({
