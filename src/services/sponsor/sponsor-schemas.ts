@@ -1,4 +1,6 @@
 import { prop } from "@typegoose/typegoose";
+import { z } from "zod";
+import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export class Sponsor {
     @prop({ required: true })
@@ -6,12 +8,25 @@ export class Sponsor {
 
     @prop({ required: true })
     public email: string;
-
-    @prop({ required: true })
-    public name: string;
 }
 
-import { z } from "zod";
+export const SponsorEmailSchema = z
+    .string()
+    .email("Requires valid email")
+    .openapi("SponsorEmail", { example: "example@sponsor.com" });
+
+export const SponsorSchema = z.object({
+    userId: UserIdSchema,
+    email: SponsorEmailSchema,
+});
+
+export const CreateSponsorRequestSchema = z.object({
+    email: SponsorEmailSchema,
+});
+
+export const DeleteSponsorRequestSchema = z.object({
+    userId: UserIdSchema,
+});
 
 export const ResumeBookFilterSchema = z
     .object({
@@ -32,3 +47,8 @@ export const ResumeBookEntrySchema = z
         gradYear: z.number().int(),
     })
     .openapi("ResumeBookEntry");
+
+export const [SponsorNotFoundError, SponsorNotFoundErrorSchema] = CreateErrorAndSchema({
+    message: "NotFound",
+    error: "Failed to find the sponsor",
+});

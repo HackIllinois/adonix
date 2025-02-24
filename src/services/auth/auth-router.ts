@@ -25,7 +25,6 @@ import {
     RedirectUrlSchema,
     BadRedirectUrlErrorSchema,
     BadRedirectUrlError,
-    SponsorEmailSchema,
     SponsorLoginRequestSchema,
     BadCodeErrorSchema,
     BadCodeError,
@@ -49,6 +48,7 @@ import { UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { NextFunction } from "express-serve-static-core";
 import { sendMail } from "../mail/mail-lib";
+import { SponsorEmailSchema } from "../sponsor/sponsor-schemas";
 
 passport.use(
     Provider.GITHUB,

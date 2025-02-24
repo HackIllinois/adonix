@@ -5,9 +5,103 @@ import Models from "../../common/models";
 import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { ResumeBookEntrySchema, ResumeBookFilterSchema } from "./sponsor-schemas";
+import {
+    CreateSponsorRequestSchema,
+    DeleteSponsorRequestSchema,
+    ResumeBookEntrySchema,
+    ResumeBookFilterSchema,
+    SponsorNotFoundError,
+    SponsorNotFoundErrorSchema,
+    SponsorSchema,
+} from "./sponsor-schemas";
+import crypto from "crypto";
+import { SuccessResponseSchema } from "../../common/schemas";
 
 const sponsorRouter = Router();
+
+sponsorRouter.get(
+    "/",
+    specification({
+        method: "get",
+        path: "/sponsor/",
+        tag: Tag.SPONSOR,
+        role: Role.ADMIN,
+        summary: "Gets all sponsors",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "All sponsors",
+                schema: z.array(SponsorSchema),
+            },
+        },
+    }),
+    async (_req, res) => {
+        const sponsors = await Models.Sponsor.find();
+
+        return res.status(StatusCode.SuccessOK).send(sponsors);
+    },
+);
+
+sponsorRouter.post(
+    "/",
+    specification({
+        method: "post",
+        path: "/sponsor/",
+        tag: Tag.SPONSOR,
+        role: Role.ADMIN,
+        summary: "Creates a sponsor",
+        body: CreateSponsorRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The newly created sponsor",
+                schema: SponsorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { email } = req.body;
+        const userId = "sponsor" + crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
+        const created = await Models.Sponsor.create({
+            userId,
+            email,
+        });
+
+        return res.status(StatusCode.SuccessOK).send(created);
+    },
+);
+
+sponsorRouter.delete(
+    "/",
+    specification({
+        method: "delete",
+        path: "/sponsor/",
+        tag: Tag.SPONSOR,
+        role: Role.ADMIN,
+        summary: "Deletes a sponsor",
+        body: DeleteSponsorRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully deleted",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Sponsor not found",
+                schema: SponsorNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { userId } = req.body;
+        const result = await Models.Sponsor.findOneAndDelete({
+            userId,
+        });
+
+        if (!result) {
+            return res.status(StatusCode.ClientErrorNotFound).send(SponsorNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
 
 sponsorRouter.post(
     "/resumebook/filter/pagecount",

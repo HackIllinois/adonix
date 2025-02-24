@@ -46,7 +46,6 @@ const USER_STAFF = {
 
 const SPONSOR = {
     email: "example@sponsor.com",
-    name: "Bob",
     userId: "sponsor1234",
 } satisfies Sponsor;
 

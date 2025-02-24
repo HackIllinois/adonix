@@ -3,6 +3,7 @@ import { z } from "zod";
 import Config, { Device } from "../../common/config";
 import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
+import { SponsorEmailSchema } from "../sponsor/sponsor-schemas";
 
 export class AuthInfo {
     @prop({ required: true })
@@ -84,10 +85,6 @@ export const JWTSchema = z.string().openapi("JWT", {
     example: "eyJ.eyJ.3QuKc",
 });
 export const RedirectUrlSchema = z.string().openapi("RedirectUrl", { example: "http://localhost:3000/auth/" });
-export const SponsorEmailSchema = z
-    .string()
-    .email("Requires valid email")
-    .openapi("SponsorEmail", { example: "example@sponsor.com" });
 export const SponsorLoginRequestSchema = z
     .object({
         email: SponsorEmailSchema,
