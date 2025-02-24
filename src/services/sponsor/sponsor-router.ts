@@ -107,7 +107,7 @@ sponsorRouter.delete(
 sponsorRouter.get(
     "/resumebook/pagecount",
     specification({
-        method: "post",
+        method: "get",
         path: "/sponsor/resumebook/pagecount",
         tag: Tag.SPONSOR,
         role: Role.SPONSOR,
