@@ -2,6 +2,7 @@ import { prop } from "@typegoose/typegoose";
 import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
+import { EventSchema } from "../event/event-schemas";
 
 export class StaffShift {
     @prop({ required: true })
@@ -32,10 +33,9 @@ export const ScanAttendeeSchema = SuccessResponseSchema.extend({
     dietaryRestrictions: z.array(z.string()).openapi({ example: ["Vegan", "No Pork"] }),
 }).openapi("ScanAttendee");
 
-export const TempEventSchema = z.any();
 export const ShiftsSchema = z
     .object({
-        shifts: z.array(TempEventSchema),
+        shifts: z.array(EventSchema),
     })
     .openapi("Shifts");
 

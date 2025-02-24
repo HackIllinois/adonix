@@ -199,11 +199,11 @@ staffRouter.post(
         path: "/staff/shift/",
         tag: Tag.STAFF,
         role: Role.ADMIN,
-        summary: "Adds shifts for a specified user",
+        summary: "Sets the shifts for a specified user",
         body: ShiftsAddRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The shifts",
+                description: "Successfully set",
                 schema: SuccessResponseSchema,
             },
             ...PerformCheckInErrors,
@@ -215,11 +215,7 @@ staffRouter.post(
         await Models.StaffShift.updateOne(
             { userId },
             {
-                $push: {
-                    shifts: {
-                        $each: shifts,
-                    },
-                },
+                shifts,
             },
             { upsert: true, new: true },
         );
