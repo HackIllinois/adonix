@@ -112,7 +112,7 @@ const Config = {
     S3_ACCESS_KEY: requireEnv("S3_ACCESS_KEY"),
     S3_SECRET_KEY: requireEnv("S3_SECRET_KEY"),
     S3_REGION: requireEnv("S3_REGION"),
-    S3_BUCKET_NAME: requireEnv("S3_BUCKET_NAME"),
+    S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
 
     // Runes and Riddles
     PUZZLE_EVENT_END_TIME: 1708812000,

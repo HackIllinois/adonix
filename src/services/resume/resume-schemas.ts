@@ -1,12 +1,14 @@
 import { z } from "zod";
 
-export const S3DownloadURLSchema = z.object({
-    url: z.string().openapi({ example: "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/abcd" }),
-});
+export const ResumeDownloadURLSchema = z
+    .object({
+        url: z.string().openapi({ example: "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/abcd" }),
+    })
+    .openapi("ResumeDownloadURL");
 
-export const S3UploadURLSchema = S3DownloadURLSchema.extend({
+export const ResumeUploadURLSchema = ResumeDownloadURLSchema.extend({
     fields: z.any(),
-}).openapi("S3UploadURL", {
+}).openapi("ResumeUploadURL", {
     example: {
         url: "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/",
         fields: {

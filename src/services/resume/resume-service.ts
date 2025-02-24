@@ -19,11 +19,11 @@ function getClient(): S3 {
     return s3;
 }
 
-export function getSignedDownloadUrl(userId: string): Promise<string> {
+export function getSignedResumeDownloadUrl(userId: string): Promise<string> {
     const s3 = getClient();
 
     const command = new GetObjectCommand({
-        Bucket: Config.S3_BUCKET_NAME,
+        Bucket: Config.S3_RESUME_BUCKET_NAME,
         Key: `${userId}.pdf`,
     });
 
@@ -32,11 +32,11 @@ export function getSignedDownloadUrl(userId: string): Promise<string> {
     });
 }
 
-export function createSignedPostUrl(userId: string): Promise<PresignedPost> {
+export function createSignedResumePostUrl(userId: string): Promise<PresignedPost> {
     const s3 = getClient();
 
     return createPresignedPost(s3, {
-        Bucket: Config.S3_BUCKET_NAME,
+        Bucket: Config.S3_RESUME_BUCKET_NAME,
         Key: `${userId}.pdf`,
         Conditions: [
             ["content-length-range", 0, Config.MAX_RESUME_SIZE_BYTES], // 5 MB max

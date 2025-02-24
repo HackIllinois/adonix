@@ -18,7 +18,7 @@ export enum Tag {
     PROFILE = "Profile",
     PUZZLE = "Puzzle",
     REGISTRATION = "Registration",
-    S3 = "S3",
+    RESUME = "Resume",
     SHOP = "Shop",
     STAFF = "Staff",
     USER = "User",
