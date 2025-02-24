@@ -42,9 +42,11 @@ export const ResumeBookFilterSchema = z
     })
     .openapi("ResumeBookFilter");
 
-export const ResumeBookPageFilterSchema = ResumeBookFilterSchema.extend({
-    page: z.coerce.number().min(1),
-}).openapi("ResumeBookPageFilter");
+export const ResumeBookPageQuerySchema = z
+    .object({
+        page: z.coerce.number().min(1),
+    })
+    .openapi("ResumeBookPageQuery");
 
 export const ResumeBookEntrySchema = z
     .object({

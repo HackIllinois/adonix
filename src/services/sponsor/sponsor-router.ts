@@ -10,7 +10,7 @@ import {
     DeleteSponsorRequestSchema,
     ResumeBookEntrySchema,
     ResumeBookFilterSchema,
-    ResumeBookPageFilterSchema,
+    ResumeBookPageQuerySchema,
     SponsorNotFoundError,
     SponsorNotFoundErrorSchema,
     SponsorSchema,
@@ -104,15 +104,15 @@ sponsorRouter.delete(
     },
 );
 
-sponsorRouter.get(
+sponsorRouter.post(
     "/resumebook/pagecount",
     specification({
-        method: "get",
+        method: "post",
         path: "/sponsor/resumebook/pagecount",
         tag: Tag.SPONSOR,
         role: Role.SPONSOR,
         summary: "Counts admitted applicants matching filter criteria and returns page count",
-        query: ResumeBookFilterSchema,
+        body: ResumeBookFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Total number of pages based on ENTRIES_PER_PAGE",
@@ -121,7 +121,7 @@ sponsorRouter.get(
         },
     }),
     async (req, res) => {
-        const { graduations = [], majors = [], degrees = [] } = req.query;
+        const { graduations = [], majors = [], degrees = [] } = req.body;
 
         // get all accepted user ids
         const admissionDecisionQuery = { response: "ACCEPTED", status: "ACCEPTED" };
@@ -152,15 +152,16 @@ sponsorRouter.get(
     },
 );
 
-sponsorRouter.get(
-    "/resumebook/",
+sponsorRouter.post(
+    "/resumebook/:page/",
     specification({
-        method: "get",
-        path: "/sponsor/resumebook/",
+        method: "post",
+        path: "/sponsor/resumebook/{page}/",
         tag: Tag.SPONSOR,
         role: Role.SPONSOR,
         summary: "Returns a page of admitted applicants matching filter criteria",
-        query: ResumeBookPageFilterSchema,
+        parameters: ResumeBookPageQuerySchema,
+        body: ResumeBookFilterSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The list of admitted applicants for the specified page",
@@ -169,7 +170,8 @@ sponsorRouter.get(
         },
     }),
     async (req, res) => {
-        const { graduations = [], majors = [], degrees = [], page } = req.query;
+        const { page } = req.params;
+        const { graduations = [], majors = [], degrees = [] } = req.body;
 
         // get all accepted user ids
         const admissionDecisionQuery = { response: "ACCEPTED", status: "ACCEPTED" };
