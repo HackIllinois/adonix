@@ -110,7 +110,7 @@ sponsorRouter.post(
         method: "post",
         path: "/sponsor/resumebook/pagecount",
         tag: Tag.SPONSOR,
-        role: Role.SPONSOR,
+        role: [Role.SPONSOR, Role.ADMIN],
         summary: "Counts admitted applicants matching filter criteria and returns page count",
         body: ResumeBookFilterSchema,
         responses: {
@@ -158,7 +158,7 @@ sponsorRouter.post(
         method: "post",
         path: "/sponsor/resumebook/{page}/",
         tag: Tag.SPONSOR,
-        role: Role.SPONSOR,
+        role: [Role.SPONSOR, Role.ADMIN],
         summary: "Returns a page of admitted applicants matching filter criteria",
         parameters: ResumeBookPageQuerySchema,
         body: ResumeBookFilterSchema,

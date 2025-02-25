@@ -63,10 +63,10 @@ resumeRouter.get(
         method: "get",
         path: "/resume/download/{id}",
         tag: Tag.RESUME,
-        role: Role.SPONSOR,
+        role: [Role.SPONSOR, Role.ADMIN],
         summary: "Gets a download url for the resume of the specified user",
         description:
-            "This is for a specific user, typically used by sponsors, use `GET /resume/download/` for the currently authenticated user",
+            "This is for a specific user and requires higher permissions, use `GET /resume/download/` for the currently authenticated user",
         parameters: z.object({
             id: UserIdSchema,
         }),
