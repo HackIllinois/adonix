@@ -161,7 +161,7 @@ function getSecurityForRole(role: Specification["role"]): SecurityRequirementObj
     if (role) {
         return [
             {
-                [authentication.name]: [role],
+                [authentication.name]: Array.isArray(role) ? role : [role],
             },
         ];
     }
@@ -174,7 +174,7 @@ function getSecurityForRole(role: Specification["role"]): SecurityRequirementObj
 }
 
 function getCombinedDescriptionWithRole(description: string | undefined, role: Specification["role"]): string | undefined {
-    const header = role && `**Required role: ${role}**`;
+    const header = role && Array.isArray(role) ? `**Requires one role of: ${role.join(", ")}**` : `**Required role: ${role}**`;
 
     if (description && header) {
         return `${header}\n\n${description}`;

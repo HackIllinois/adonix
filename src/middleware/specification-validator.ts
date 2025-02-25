@@ -7,8 +7,12 @@ import { APIError } from "../common/schemas";
 import { Role } from "../services/auth/auth-schemas";
 
 export class MissingRoleError extends APIError<string, string> {
-    constructor(role: Role) {
-        super("Forbidden", `You require the role ${role} to do that`, StatusCode.ClientErrorForbidden);
+    constructor(role: Role[] | Role) {
+        if (Array.isArray(role)) {
+            super("Forbidden", `You require one of the roles: ${role.join(", ")} to do that`, StatusCode.ClientErrorForbidden);
+        } else {
+            super("Forbidden", `You require the role ${role} to do that`, StatusCode.ClientErrorForbidden);
+        }
     }
 }
 
@@ -48,7 +52,9 @@ export function specificationValidator<
     return async (req: Request, _res: Response, next: NextFunction) => {
         if (spec.role) {
             const jwt = getAuthenticatedUser(req);
-            if (!jwt.roles.includes(spec.role)) {
+            const allowedRoles = Array.isArray(spec.role) ? spec.role : [spec.role];
+            const allowed = allowedRoles.some((role) => jwt.roles.includes(role));
+            if (!allowed) {
                 throw new MissingRoleError(spec.role);
             }
         }

@@ -40,7 +40,7 @@ export interface Specification<Params = ZodUnknown, Query = ZodUnknown, Response
     path: string;
     method: Method;
     tag: Tag;
-    role: Role | null;
+    role: Role[] | Role | null;
     summary: string;
     description?: string;
     parameters?: Params;
