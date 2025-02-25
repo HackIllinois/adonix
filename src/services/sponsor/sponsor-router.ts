@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
     CreateSponsorRequestSchema,
     DeleteSponsorRequestSchema,
+    RESUME_BOOK_ENTRY_FIELDS,
     ResumeBookEntrySchema,
     ResumeBookFilterSchema,
     ResumeBookPageQuerySchema,
@@ -196,7 +197,7 @@ sponsorRouter.post(
 
         // query registration_applications database and return page of document values with filter values from req body
         const filteredApplicants = await Models.RegistrationApplication.find(registrationQuery)
-            .select({ _id: 0, userId: 1, legalName: 1, major: 1, minor: 1, degree: 1, gradYear: 1, emailAddress: 1 })
+            .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS })
             .skip((page - 1) * Config.RESUME_BOOK_ENTRIES_PER_PAGE)
             .limit(Config.RESUME_BOOK_ENTRIES_PER_PAGE);
 

@@ -1,6 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
+import { RegistrationApplicationSchema } from "../registration/registration-schemas";
 
 export class Sponsor {
     @prop({ required: true, index: true })
@@ -48,17 +49,18 @@ export const ResumeBookPageQuerySchema = z
     })
     .openapi("ResumeBookPageQuery");
 
-export const ResumeBookEntrySchema = z
-    .object({
-        userId: z.string().default("google12345"),
-        legalName: z.string().default("John Doe"),
-        emailAddress: z.string().email(),
-        degree: z.string(),
-        major: z.string(),
-        minor: z.string().optional(), // Allowing empty string but keeping it optional
-        gradYear: z.number().int(),
-    })
-    .openapi("ResumeBookEntry");
+export const RESUME_BOOK_ENTRY_FIELDS = {
+    userId: true,
+    emailAddress: true,
+    legalName: true,
+    location: true,
+    university: true,
+    degree: true,
+    major: true,
+    minor: true,
+    gradYear: true,
+} as const;
+export const ResumeBookEntrySchema = RegistrationApplicationSchema.pick(RESUME_BOOK_ENTRY_FIELDS).openapi("ResumeBookEntry");
 
 export const [SponsorNotFoundError, SponsorNotFoundErrorSchema] = CreateErrorAndSchema({
     message: "NotFound",
