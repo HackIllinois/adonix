@@ -144,8 +144,14 @@ mentorRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(AlreadyCheckedInError);
         }
 
-        const points = Config.MENTOR_OFFICE_HOURS_POINT_REWARD;
-        await updatePoints(userId, points);
+        const hasAttendedAnyOfficeHours = await Models.MentorOfficeHours.findOne({
+            attendees: userId,
+        });
+        let points = 0;
+        if (!hasAttendedAnyOfficeHours) {
+            points = Config.MENTOR_OFFICE_HOURS_POINT_REWARD;
+            await updatePoints(userId, points);
+        }
 
         await Models.MentorOfficeHours.findOneAndUpdate(
             { mentorId: mentorId },
