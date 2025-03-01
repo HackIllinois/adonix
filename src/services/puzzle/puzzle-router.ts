@@ -140,7 +140,7 @@ puzzleRouter.post(
         );
 
         for (const [key, value] of Config.PUZZLE_THRESHOLDS) {
-            if(key == qid) {
+            if (key == qid) {
                 await updatePoints(userId, value);
             }
         }

@@ -121,7 +121,7 @@ const Config = {
     PUZZLE_THRESHOLDS: new Map<number, number>([
         [4, 25],
         [6, 50],
-        [8, 75]
+        [8, 75],
     ]),
 
     /* Timings */
