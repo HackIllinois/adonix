@@ -119,9 +119,9 @@ const Config = {
     TRUE_VALUE: 1,
     FALSE_VALUE: 0,
     PUZZLE_THRESHOLDS: new Map<number, number>([
-        [4, 25],
-        [6, 50],
-        [8, 75],
+        // [4, 25],
+        // [6, 50],
+        // [8, 75],
     ]),
 
     /* Timings */
