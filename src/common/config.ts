@@ -118,6 +118,11 @@ const Config = {
     PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
     FALSE_VALUE: 0,
+    PUZZLE_THRESHOLDS: new Map<number, number>([
+        [4, 25],
+        [6, 50],
+        [8, 75]
+    ]),
 
     /* Timings */
     MILLISECONDS_PER_SECOND: 1000,
