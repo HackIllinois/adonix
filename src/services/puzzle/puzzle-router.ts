@@ -19,6 +19,7 @@ import Config from "../../common/config";
 import specification, { Tag } from "../../middleware/specification";
 import { getAuthenticatedUser } from "../../common/auth";
 import { z } from "zod";
+import { updatePoints } from "../profile/profile-lib";
 
 const puzzleRouter = Router();
 
@@ -137,6 +138,11 @@ puzzleRouter.post(
             },
             { new: true },
         );
+
+        const points = Config.PUZZLE_THRESHOLDS.get(qid);
+        if (points) {
+            await updatePoints(userId, points);
+        }
 
         if (!updatedPuzzleItem) {
             throw Error("Failed to update existing puzzle");
