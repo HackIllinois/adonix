@@ -56,6 +56,7 @@ profileRouter.get(
         const filteredLeaderboardEntries: ProfileLeaderboardEntry[] = leaderboardProfiles.map((profile) => ({
             displayName: profile.displayName,
             points: profile.pointsAccumulated,
+            avatarUrl: profile.avatarUrl,
         }));
 
         return res.status(StatusCode.SuccessOK).send({

@@ -27,27 +27,6 @@ export class AttendeeProfile {
     public foodWave: number;
 }
 
-export const ProfileLeaderboardQueryLimitSchema = z.coerce
-    .number()
-    .min(1)
-    .max(Config.LEADERBOARD_QUERY_LIMIT)
-    .openapi("ProfileLeaderboardQueryLimit", {
-        example: 5,
-        description: `The number of items to return.\n Must be [1, ${Config.LEADERBOARD_QUERY_LIMIT}], inclusive.`,
-    });
-export type ProfileLeaderboardEntry = z.infer<typeof ProfileLeaderboardEntrySchema>;
-
-export const ProfileLeaderboardEntrySchema = z
-    .object({
-        points: z.number(),
-        displayName: z.string().openapi({ example: "Cool Guys" }),
-    })
-    .openapi("ProfileLeaderboardEntry");
-
-export const ProfileLeaderboardEntriesSchema = z
-    .object({ profiles: z.array(ProfileLeaderboardEntrySchema) })
-    .openapi("ProfileLeaderboardEntries");
-
 export const AttendeeProfileSchema = z
     .object({
         userId: UserIdSchema,
@@ -69,6 +48,26 @@ export const AttendeeProfileSchema = z
             foodWave: 1,
         },
     });
+
+export const ProfileLeaderboardQueryLimitSchema = z.coerce
+    .number()
+    .min(1)
+    .max(Config.LEADERBOARD_QUERY_LIMIT)
+    .openapi("ProfileLeaderboardQueryLimit", {
+        example: 5,
+        description: `The number of items to return.\n Must be [1, ${Config.LEADERBOARD_QUERY_LIMIT}], inclusive.`,
+    });
+export type ProfileLeaderboardEntry = z.infer<typeof ProfileLeaderboardEntrySchema>;
+
+export const ProfileLeaderboardEntrySchema = AttendeeProfileSchema.pick({
+    displayName: true,
+    points: true,
+    avatarUrl: true,
+}).openapi("ProfileLeaderboardEntry");
+
+export const ProfileLeaderboardEntriesSchema = z
+    .object({ profiles: z.array(ProfileLeaderboardEntrySchema) })
+    .openapi("ProfileLeaderboardEntries");
 
 export const AttendeeProfileRankingSchema = z
     .object({
