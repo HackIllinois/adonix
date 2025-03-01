@@ -29,6 +29,7 @@ import corsSelector from "./middleware/cors-selector";
 import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
 import { tryGetAuthenticatedUser } from "./common/auth";
 import { initializeDatabase } from "./common/models";
+import { initializeStatisticLogging } from "./services/statistic/statistic-lib";
 
 const app = express();
 
@@ -119,6 +120,9 @@ export async function startServer(): Promise<Express.Application> {
 
     // Connect database
     await initializeDatabase();
+
+    // Start logging
+    initializeStatisticLogging();
 
     // Connect express server
     const server = await promiseListen(port);

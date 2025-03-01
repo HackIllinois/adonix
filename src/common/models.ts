@@ -15,6 +15,8 @@ import { StaffShift } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
+import { StatisticLog } from "../services/statistic/statistic-schemas";
+import Config from "./config";
 
 // Groups for collections
 export enum Group {
@@ -30,6 +32,7 @@ export enum Group {
     SHOP = "shop",
     SPONSOR = "sponsor",
     STAFF = "staff",
+    STATISTIC = "statistic",
     USER = "user",
 }
 
@@ -88,6 +91,10 @@ enum SponsorCollection {
 
 enum StaffCollection {
     SHIFT = "shift",
+}
+
+enum StatisticCollection {
+    LOGS = "logs",
 }
 
 enum UserCollection {
@@ -178,6 +185,9 @@ export default class Models {
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
+
+    // Statistic
+    static StatisticLog: Model<StatisticLog> = getModel(StatisticLog, Group.STATISTIC, StatisticCollection.LOGS);
 
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
