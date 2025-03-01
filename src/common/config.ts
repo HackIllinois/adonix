@@ -59,7 +59,7 @@ const DEVICE_TO_REDIRECT_URL = new Map([
     [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
     [Device.IOS, "hackillinois://login/"],
     [Device.ANDROID, "hackillinois://login/"],
-    [Device.PUZZLE, "https://runes.hackillinois.org/#/auth/"],
+    [Device.PUZZLE, "https://vault.hackillinois.org/auth/"],
 ]);
 
 const Config = {
