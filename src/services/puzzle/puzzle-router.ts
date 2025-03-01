@@ -139,10 +139,9 @@ puzzleRouter.post(
             { new: true },
         );
 
-        for (const [key, value] of Config.PUZZLE_THRESHOLDS) {
-            if (key == qid) {
-                await updatePoints(userId, value);
-            }
+        const points = Config.PUZZLE_THRESHOLDS.get(qid);
+        if (points) {
+            await updatePoints(userId, points);
         }
 
         if (!updatedPuzzleItem) {
