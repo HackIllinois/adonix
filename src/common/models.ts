@@ -184,3 +184,15 @@ export default class Models {
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
     static UserFollowing: Model<UserFollowing> = getModel(UserFollowing, Group.USER, UserCollection.FOLLOWING);
 }
+
+let initialized = false;
+export async function initializeDatabase(): Promise<void> {
+    if (!initialized || Config.TEST) {
+        initialized = true;
+        const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
+        await mongoose.connect(uri).catch((e) => {
+            initialized = false;
+            throw e;
+        });
+    }
+}

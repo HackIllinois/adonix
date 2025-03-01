@@ -28,6 +28,7 @@ import database from "./middleware/database";
 import corsSelector from "./middleware/cors-selector";
 import { getOpenAPISpec, SWAGGER_UI_OPTIONS } from "./common/openapi";
 import { tryGetAuthenticatedUser } from "./common/auth";
+import { initializeDatabase } from "./common/models";
 
 const app = express();
 
@@ -54,24 +55,26 @@ app.use(express.text({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // Plain text
 // eslint-disable-next-line no-magic-numbers
 app.set("json spaces", 4);
 
+// Setup database on app request
+app.use(database);
+
 // Add routers for each sub-service
-// NOTE: only include database middleware if needed
-app.use("/admission/", database, admissionRouter);
-app.use("/auth/", database, authRouter);
-app.use("/event/", database, eventRouter);
-app.use("/mail/", database, mailRouter);
-app.use("/mentor/", database, mentorRouter);
-app.use("/newsletter/", database, newsletterRouter);
-app.use("/notification/", database, notificationRouter);
-app.use("/profile/", database, profileRouter);
-app.use("/puzzle/", database, puzzleRouter);
-app.use("/registration/", database, registrationRouter);
+app.use("/admission/", admissionRouter);
+app.use("/auth/", authRouter);
+app.use("/event/", eventRouter);
+app.use("/mail/", mailRouter);
+app.use("/mentor/", mentorRouter);
+app.use("/newsletter/", newsletterRouter);
+app.use("/notification/", notificationRouter);
+app.use("/profile/", profileRouter);
+app.use("/puzzle/", puzzleRouter);
+app.use("/registration/", registrationRouter);
 app.use("/resume/", resumeRouter);
-app.use("/shop/", database, shopRouter);
-app.use("/staff/", database, staffRouter);
+app.use("/shop/", shopRouter);
+app.use("/staff/", staffRouter);
 app.use("/version/", versionRouter);
-app.use("/user/", database, userRouter);
-app.use("/sponsor/", database, sponsorRouter);
+app.use("/user/", userRouter);
+app.use("/sponsor/", sponsorRouter);
 
 // Docs
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
@@ -113,6 +116,9 @@ function promiseListen(port: number): Promise<Express.Application> {
 
 export async function startServer(): Promise<Express.Application> {
     const port = Config.PORT;
+
+    // Connect database
+    await initializeDatabase();
 
     // Connect express server
     const server = await promiseListen(port);
