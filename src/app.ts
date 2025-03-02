@@ -19,6 +19,7 @@ import staffRouter from "./services/staff/staff-router";
 import versionRouter from "./services/version/version-router";
 import userRouter from "./services/user/user-router";
 import sponsorRouter from "./services/sponsor/sponsor-router";
+import statisticRouter from "./services/statistic/statistic-router";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -72,10 +73,11 @@ app.use("/puzzle/", puzzleRouter);
 app.use("/registration/", registrationRouter);
 app.use("/resume/", resumeRouter);
 app.use("/shop/", shopRouter);
+app.use("/sponsor/", sponsorRouter);
 app.use("/staff/", staffRouter);
+app.use("/statistic/", statisticRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", userRouter);
-app.use("/sponsor/", sponsorRouter);
 
 // Docs
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
