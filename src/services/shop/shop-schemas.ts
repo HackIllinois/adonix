@@ -109,6 +109,10 @@ export const ShopItemUpdateRequestSchema = ShopItemSchema.omit({ itemId: true })
         },
     });
 
+export const ShopRaffleWinnerSchema = z.object({
+    userId: UserIdSchema,
+});
+
 export const OrderSchema = z
     .object({
         userId: UserIdSchema,

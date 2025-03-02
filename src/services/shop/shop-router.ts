@@ -18,6 +18,7 @@ import {
     ShopInsufficientQuantityErrorSchema,
     ShopInsufficientQuantityError,
     OrderRedeemSchema,
+    ShopRaffleWinnerSchema,
 } from "./shop-schemas";
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
@@ -165,6 +166,54 @@ shopRouter.delete(
         }
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+shopRouter.get(
+    "/raffle/:id/",
+    specification({
+        method: "get",
+        path: "/shop/raffle/{id}/",
+        tag: Tag.SHOP,
+        role: Role.ADMIN,
+        summary: "Raffles a shop item",
+        parameters: z.object({
+            id: ShopItemIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The raffle winner",
+                schema: ShopRaffleWinnerSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Item doesn't exist",
+                schema: ShopItemNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id } = req.params;
+        const orders = await Models.ShopHistory.find();
+        const pool: string[] = [];
+
+        for (const order of orders) {
+            const count = order.items.get(id);
+            if (!count) {
+                continue;
+            }
+            for (let i = 0; i < count; i++) {
+                pool.push(order.userId);
+            }
+        }
+
+        const i = Math.floor(Math.random() * pool.length);
+        const winner = pool[i];
+
+        if (!winner) {
+            return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ userId: winner });
     },
 );
 
