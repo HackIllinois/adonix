@@ -135,8 +135,16 @@ export const StatisticLogFilterLimitSchema = z.coerce
         description: `The number of items to return.\n Must be [1, ${Config.STATISTIC_LOG_FILTER_LIMIT}], inclusive.`,
     });
 
-export const StatisticLogFilterSchema = z.object({
-    before: z.coerce.number().optional(),
-    after: z.coerce.number().optional(),
-    limit: StatisticLogFilterLimitSchema,
-});
+export const StatisticLoggingStatusSchema = z
+    .object({
+        enabled: z.boolean(),
+    })
+    .openapi("StatisticLoggingStatus");
+
+export const StatisticLogFilterSchema = z
+    .object({
+        before: z.coerce.number().optional(),
+        after: z.coerce.number().optional(),
+        limit: StatisticLogFilterLimitSchema,
+    })
+    .openapi("StatisticLogFilter");

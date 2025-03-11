@@ -17,6 +17,7 @@ import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
 import { StatisticLog } from "../services/statistic/statistic-schemas";
 import Config from "./config";
+import { RuntimeConfigModel } from "./runtimeConfig";
 
 // Groups for collections
 export enum Group {
@@ -29,6 +30,7 @@ export enum Group {
     NOTIFICATION = "notification",
     PUZZLE = "puzzle",
     REGISTRATION = "registration",
+    RUNTIME = "runtime",
     SHOP = "shop",
     SPONSOR = "sponsor",
     STAFF = "staff",
@@ -77,6 +79,10 @@ enum PuzzleCollection {
 enum RegistrationCollection {
     APPLICATIONS = "applications",
     CHALLENGES = "challenges",
+}
+
+enum RuntimeCollection {
+    CONFIG = "config",
 }
 
 enum ShopCollection {
@@ -174,6 +180,9 @@ export default class Models {
         Group.REGISTRATION,
         RegistrationCollection.CHALLENGES,
     );
+
+    // Runtime
+    static RuntimeConfig: Model<RuntimeConfigModel> = getModel(RuntimeConfigModel, Group.RUNTIME, RuntimeCollection.CONFIG);
 
     // Shop
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);

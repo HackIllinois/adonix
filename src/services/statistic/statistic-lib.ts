@@ -1,9 +1,14 @@
 import Config from "../../common/config";
 import Models from "../../common/models";
+import RuntimeConfig from "../../common/runtimeConfig";
 import { DecisionResponse, DecisionStatus } from "../admission/admission-schemas";
 import { DecisionStatistic, EventStatistic, RSVPStatistic, ShopItemStatistic } from "./statistic-schemas";
 
 export async function log(timestamp: number): Promise<void> {
+    const enabled = await RuntimeConfig.get("logStatistics");
+    if (!enabled) {
+        return;
+    }
     const [eventAttendances, decisions, items, history] = await Promise.all([
         Models.EventAttendance.find(),
         Models.AdmissionDecision.find(),
