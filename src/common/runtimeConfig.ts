@@ -6,6 +6,10 @@ import Models from "./models";
 export class RuntimeConfigModel {
     @prop({ required: true })
     logStatistics: boolean;
+    @prop({ required: true })
+    androidVersion: string;
+    @prop({ required: true })
+    iosVersion: string;
 }
 
 interface ConfigCache {
@@ -29,6 +33,8 @@ export default class RuntimeConfig {
         if (!config) {
             config = await Models.RuntimeConfig.create({
                 logStatistics: false,
+                androidVersion: "2020.0.0",
+                iosVersion: "2020.0.0",
             } satisfies RuntimeConfigModel);
 
             if (!config) {

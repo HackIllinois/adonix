@@ -86,8 +86,6 @@ const Config = {
         GOOGLE: `${ROOT_URL}/auth/google/callback/`,
     },
 
-    METADATA_URL: "https://hackillinois.github.io/adonix-metadata/config.json",
-
     /* OAuth, Keys, & Permissions */
     CORS_REGEX: requireEnv("CORS_REGEX"),
 
