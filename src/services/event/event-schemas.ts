@@ -201,6 +201,13 @@ export const EventFollowersSchema = z
     })
     .openapi("EventFollowers");
 
+export const EventAttendeesSchema = z
+    .object({
+        eventId: EventIdSchema,
+        attendees: z.array(UserIdSchema),
+    })
+    .openapi("EventAttendees");
+
 export const EventsSchema = z
     .object({
         events: z.array(EventSchema),
