@@ -2,7 +2,6 @@ import { prop } from "@typegoose/typegoose";
 import Config from "./config";
 import Models from "./models";
 
-// All metadata should be migrated into runtime config at some point
 export class RuntimeConfigModel {
     @prop({ required: true })
     logStatistics: boolean;
