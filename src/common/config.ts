@@ -89,7 +89,8 @@ const Config = {
     /* OAuth, Keys, & Permissions */
     CORS_REGEX: requireEnv("CORS_REGEX"),
 
-    DB_URL: `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
+    DB_URL:
+        env.DB_URL || `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
     DB_PARAMS: "?retryWrites=true&w=majority",
 
     FCM_SERVICE_ACCOUNT: requireEnv("FCM_SERVICE_ACCOUNT"),
