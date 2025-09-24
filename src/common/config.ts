@@ -8,16 +8,6 @@
 import { readFileSync } from "fs";
 import env from "./env";
 
-export enum Device {
-    ADMIN = "admin",
-    DEV = "dev",
-    WEB = "web",
-    IOS = "ios",
-    ANDROID = "android",
-    CHALLENGE = "challenge",
-    PUZZLE = "puzzle",
-}
-
 export enum Templates {
     REGISTRATION_SUBMISSION = "2025_registration_confirmation",
     STATUS_UPDATE = "2025_status_update",
@@ -44,7 +34,8 @@ function getVersion(): string {
 
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
-export const PROD_ROOT_URL = "https://adonix.hackillinois.org";
+export const PROD_DOMAIN = ".hackillinois.org";
+export const PROD_ROOT_URL = `https://adonix${PROD_DOMAIN}`;
 const ROOT_URL = ((): string => {
     if (env.URL) {
         return env.URL;
@@ -52,15 +43,15 @@ const ROOT_URL = ((): string => {
     return PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
 })();
 
-const DEVICE_TO_REDIRECT_URL = new Map([
-    [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-    [Device.DEV, `${ROOT_URL}/auth/dev/`],
-    [Device.WEB, "https://hackillinois.org/auth/"],
-    [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
-    [Device.IOS, "hackillinois://login/"],
-    [Device.ANDROID, "hackillinois://login/"],
-    [Device.PUZZLE, "https://vault.hackillinois.org/auth/"],
-]);
+// const DEVICE_TO_REDIRECT_URL = new Map([
+//     [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
+//     [Device.DEV, `${ROOT_URL}/auth/dev/`],
+//     [Device.WEB, "https://hackillinois.org/auth/"],
+//     [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
+//     [Device.IOS, "hackillinois://login/"],
+//     [Device.ANDROID, "hackillinois://login/"],
+//     [Device.PUZZLE, "https://vault.hackillinois.org/auth/"],
+// ]);
 
 const Config = {
     /* Environments */
@@ -72,13 +63,11 @@ const Config = {
     PORT,
     ROOT_URL,
 
-    DEFAULT_DEVICE: Device.WEB,
-
-    DEVICE_TO_REDIRECT_URL,
-    ALLOWED_REDIRECT_URLS: [
-        ...DEVICE_TO_REDIRECT_URL.values(),
-        new RegExp(/^http:\/\/localhost:\d+\/auth\/$/),
-        new RegExp(/^https:\/\/[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app\/auth\/$/),
+    MOBILE_DEEPLINK_PROTOCOL: "hackillinois:",
+    ALLOWED_REDIRECT_HOSTS: [
+        new RegExp(/^([a-z0-9-]+\.)?hackillinois.org$/),
+        new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
+        new RegExp(/^localhost$/),
     ],
 
     CALLBACK_URLS: {

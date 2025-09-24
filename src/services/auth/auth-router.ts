@@ -12,23 +12,18 @@ import {
     Provider,
     Role,
     RoleOperation,
-    AuthDevSchema,
-    JWTSchema,
     ProviderSchema,
-    DeviceSchema,
     AuthenticationFailedError,
     AuthenticationFailedErrorSchema,
     RoleSchema,
     ListUsersByRoleSchema,
     UserRolesSchema,
-    RefreshTokenSchema,
     RedirectUrlSchema,
     BadRedirectUrlErrorSchema,
     BadRedirectUrlError,
     SponsorLoginRequestSchema,
     BadCodeErrorSchema,
     BadCodeError,
-    SponsorLoginSchema,
 } from "./auth-schemas";
 import {
     generateJwtToken,
@@ -40,6 +35,8 @@ import {
     getAuthenticatedUser,
     isValidRedirectUrl,
     generateCode,
+    generateOAuthUrl,
+    getJwtCookieOptions,
 } from "../../common/auth";
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
@@ -76,159 +73,6 @@ passport.use(
 
 const authRouter = Router();
 authRouter.use(express.urlencoded({ extended: false }));
-
-authRouter.get(
-    "/dev/",
-    specification({
-        method: "get",
-        path: "/auth/dev/",
-        tag: Tag.AUTH,
-        role: null,
-        query: z.object({
-            token: JWTSchema,
-        }),
-        summary: "A strictly dev-only callback which displays the authentication JWT",
-        description: "This quite literally only outputs the passed `token` query parameter",
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The authentication JWT",
-                schema: AuthDevSchema,
-            },
-        },
-    }),
-    (req, res) => res.status(StatusCode.SuccessOK).send({ Authorization: `${req.query.token}` }),
-);
-
-authRouter.get(
-    "/login/:provider/",
-    specification({
-        method: "get",
-        path: "/auth/login/{provider}/",
-        tag: Tag.AUTH,
-        role: null,
-        parameters: z.object({
-            provider: ProviderSchema,
-        }),
-        query: z.object({
-            device: z.optional(DeviceSchema),
-            redirect: z.optional(RedirectUrlSchema),
-        }),
-        summary: "Initiates a login through an authentication provider",
-        description:
-            "You should redirect the browser here, and provide the device you are redirecting from. " +
-            "Attendees authenticate through GitHub, and staff authenticate through Google. " +
-            "The device is used to determine the url to redirect back to after authentication is successful. " +
-            "For testing purposes, such as localhost, the redirect url may be provided directly instead. " +
-            "It will not be accepted if it does not match the allowed redirect urls. " +
-            "Note that redirect will override device if both are provided.",
-        responses: {
-            [StatusCode.RedirectFound]: {
-                description: "Successful redirect to authentication provider",
-                schema: z.object({}),
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "The redirect url requested is invalid",
-                schema: BadRedirectUrlErrorSchema,
-            },
-        },
-    }),
-    (req, res, next) => {
-        const { provider } = req.params;
-        const device = req.query.device ?? Config.DEFAULT_DEVICE;
-        const device_redirect = Config.DEVICE_TO_REDIRECT_URL.get(device);
-        if (!device_redirect) {
-            throw Error(`No redirect url for device ${device_redirect}`);
-        }
-
-        // Either use the redirect they ask for, or the one provided by device, or the default redirect
-        const redirect = req.query.redirect ?? device_redirect;
-
-        if (!isValidRedirectUrl(redirect)) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
-        }
-
-        return SelectAuthProvider(provider, redirect)(req, res, next);
-    },
-);
-
-authRouter.get(
-    "/:provider/callback/",
-    specification({
-        method: "get",
-        path: "/auth/{provider}/callback/",
-        tag: Tag.AUTH,
-        role: null,
-        parameters: z.object({
-            provider: ProviderSchema,
-        }),
-        query: z.object({
-            // Note that the redirect url is stored in state to persist when a provider calls us back with it
-            state: RedirectUrlSchema,
-        }),
-        summary: "DO NOT CALL. Authentication providers call this after a successful authentication.",
-        description:
-            "**You should not ever use this directly.** " +
-            "Authentication providers use this endpoint to determine where to send the authentication data.",
-        responses: {
-            [StatusCode.RedirectFound]: {
-                description: "Successful redirect to authentication provider",
-                schema: z.object({}),
-            },
-            [StatusCode.ClientErrorUnauthorized]: {
-                description: "Authorization failed",
-                schema: AuthenticationFailedErrorSchema,
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "The redirect url requested is invalid",
-                schema: BadRedirectUrlErrorSchema,
-            },
-        },
-    }),
-    (req, res, next) => {
-        const provider = req.params.provider ?? "";
-        const redirect = req.query.state;
-
-        if (!isValidRedirectUrl(redirect)) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
-        }
-
-        return SelectAuthProvider(provider, redirect)(req, res, next);
-    },
-    async (req, res) => {
-        if (!req.isAuthenticated()) {
-            return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
-        }
-
-        const redirect: string = req.query.state;
-        const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
-        const data = user._json as ProfileData;
-
-        data.id = data.id ?? user.id;
-        data.displayName = data.name ?? data.displayName ?? data.login;
-
-        // Load in the payload with the actual values stored in the database
-        const payload = await getJwtPayloadFromProfile(user.provider, data, true);
-
-        const userId = payload.id;
-        await Models.UserInfo.findOneAndUpdate(
-            { userId },
-            { email: data.email, name: data.displayName, userId },
-            { upsert: true },
-        );
-
-        const token = generateJwtToken(payload, false);
-        const url = `${redirect}?token=${token}`;
-        return res.redirect(url);
-    },
-);
-// Handle authentication errors
-authRouter.use("/:provider/callback", (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    console.error("AUTH ERROR", err);
-    return res.status(StatusCode.ClientErrorUnauthorized).json({
-        ...AuthenticationFailedError,
-        details: err,
-    });
-});
 
 authRouter.post(
     "/sponsor/verify/",
@@ -294,7 +138,7 @@ authRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully logged in, returns the auth token for future requests",
-                schema: SponsorLoginSchema,
+                schema: SuccessResponseSchema,
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "The email or code sent was invalid",
@@ -327,7 +171,10 @@ authRouter.post(
         );
 
         const token = generateJwtToken(payload, false);
-        return res.status(StatusCode.SuccessOK).send({ token });
+        const isLocalhost = req.hostname === 'localhost';
+        res.cookie("jwt", token, getJwtCookieOptions(isLocalhost));
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
 
@@ -490,35 +337,130 @@ authRouter.delete(
 );
 
 authRouter.get(
-    "/token/refresh",
+    "/:provider/",
     specification({
         method: "get",
-        path: "/auth/token/refresh/",
+        path: "/auth/{provider}/",
         tag: Tag.AUTH,
-        role: Role.USER,
-        summary: "Gets a new authorization token with a reset expiry",
+        role: null,
+        parameters: z.object({
+            provider: ProviderSchema,
+        }),
+        query: z.object({
+            redirect: RedirectUrlSchema,
+        }),
+        summary: "Gets OAuth URL for authentication",
+        description:
+            "Returns the OAuth URL that the client should redirect to for authentication. " +
+            "Attendees authenticate through GitHub, and staff authenticate through Google. " +
+            "The redirect parameter must be a valid origin with an optional relative path. " +
+            "After successful authentication, the user will be redirected to the provided URL with JWT and refresh tokens set as HTTP-only cookies.",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The new refreshed token",
-                schema: RefreshTokenSchema,
+                description: "OAuth URL to redirect to",
+                schema: z.object({
+                    url: z.string(),
+                }),
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The redirect url requested is invalid",
+                schema: BadRedirectUrlErrorSchema,
             },
         },
     }),
-    async (req, res) => {
-        // Get old data from token
-        const oldPayload = getAuthenticatedUser(req);
-        const data = {
-            id: oldPayload.id,
-            email: oldPayload.email,
-        };
+    (req, res) => {
+        const { provider } = req.params;
+        const { redirect } = req.query;
 
-        // Generate a new payload for the token
-        const newPayload = await getJwtPayloadFromProfile(oldPayload.provider, data, false);
+        if (!isValidRedirectUrl(redirect)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
+        }
 
-        // Create and return a new token with the payload
-        const newToken = generateJwtToken(newPayload);
-        return res.status(StatusCode.SuccessOK).send({ token: newToken });
+        const url = generateOAuthUrl(provider, redirect);
+
+        return res.status(StatusCode.SuccessOK).json({ url });
     },
 );
+
+authRouter.get(
+    "/:provider/callback/",
+    specification({
+        method: "get",
+        path: "/auth/{provider}/callback/",
+        tag: Tag.AUTH,
+        role: null,
+        parameters: z.object({
+            provider: ProviderSchema,
+        }),
+        query: z.object({
+            // Note that the redirect url is stored in state to persist when a provider calls us back with it
+            state: RedirectUrlSchema,
+        }),
+        summary: "DO NOT CALL. Authentication providers call this after a successful authentication.",
+        description:
+            "**You should not ever use this directly.** " +
+            "Authentication providers use this endpoint to determine where to send the authentication data. " +
+            "Sets JWT and refresh tokens as HTTP-only cookies and redirects to the client URL.",
+        responses: {
+            [StatusCode.RedirectFound]: {
+                description: "Successful redirect with cookies set",
+                schema: z.object({}),
+            },
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "Authorization failed",
+                schema: AuthenticationFailedErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The redirect url requested is invalid",
+                schema: BadRedirectUrlErrorSchema,
+            },
+        },
+    }),
+    (req, res, next) => {
+        const provider = req.params.provider ?? "";
+        const redirect = req.query.state;
+
+        if (!isValidRedirectUrl(redirect)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
+        }
+
+        return SelectAuthProvider(provider, redirect)(req, res, next);
+    },
+    async (req, res) => {
+        if (!req.isAuthenticated()) {
+            return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
+        }
+
+        const redirect: string = req.query.state;
+        const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
+        const data = user._json as ProfileData;
+
+        data.id = data.id ?? user.id;
+        data.displayName = data.name ?? data.displayName ?? data.login;
+
+        // Load in the payload with the actual values stored in the database
+        const payload = await getJwtPayloadFromProfile(user.provider, data, true);
+
+        const userId = payload.id;
+        await Models.UserInfo.findOneAndUpdate(
+            { userId },
+            { email: data.email, name: data.displayName, userId },
+            { upsert: true },
+        );
+
+        const redirectUrl = new URL(redirect);
+        const localhost = redirectUrl.hostname === "localhost";
+
+        const token = generateJwtToken(payload, false);
+        res.cookie("jwt", token, getJwtCookieOptions(localhost));
+
+        return res.redirect(redirect);
+    },
+);
+// Handle authentication errors
+authRouter.use("/:provider/callback", (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("AUTH ERROR", err);
+    return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
+});
 
 export default authRouter;
