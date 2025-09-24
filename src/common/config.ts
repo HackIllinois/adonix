@@ -43,16 +43,6 @@ const ROOT_URL = ((): string => {
     return PROD ? PROD_ROOT_URL : `http://localhost:${PORT}`;
 })();
 
-// const DEVICE_TO_REDIRECT_URL = new Map([
-//     [Device.ADMIN, "https://admin.hackillinois.org/auth/"],
-//     [Device.DEV, `${ROOT_URL}/auth/dev/`],
-//     [Device.WEB, "https://hackillinois.org/auth/"],
-//     [Device.CHALLENGE, `${ROOT_URL}/auth/dev/`],
-//     [Device.IOS, "hackillinois://login/"],
-//     [Device.ANDROID, "hackillinois://login/"],
-//     [Device.PUZZLE, "https://vault.hackillinois.org/auth/"],
-// ]);
-
 const Config = {
     /* Environments */
     TEST: false, // False by default, will be mocked over
