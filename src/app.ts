@@ -1,6 +1,7 @@
 import "./common/init";
 import morgan from "morgan";
 import express, { Request, Response } from "express";
+import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 
 import admissionRouter from "./services/admission/admission-router";
@@ -53,6 +54,9 @@ if (!Config.TEST) {
 app.use(express.json({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // JSON payloads
 app.use(express.raw({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // Raw binary data
 app.use(express.text({ limit: Config.MAX_REQUEST_SIZE_BYTES })); // Plain text
+
+// Cookie parsing middleware
+app.use(cookieParser());
 
 // eslint-disable-next-line no-magic-numbers
 app.set("json spaces", 4);
