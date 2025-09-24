@@ -55,7 +55,7 @@ const Config = {
 
     MOBILE_DEEPLINK_PROTOCOL: "hackillinois:",
     ALLOWED_REDIRECT_HOSTS: [
-        new RegExp(/^([a-z0-9-]+\.)?hackillinois.org$/),
+        new RegExp(/^([a-z0-9-]+\.)?hackillinois\.org$/),
         new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
         new RegExp(/^localhost$/),
     ],
