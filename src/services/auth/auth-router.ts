@@ -171,7 +171,7 @@ authRouter.post(
         );
 
         const token = generateJwtToken(payload, false);
-        const isLocalhost = req.hostname === 'localhost';
+        const isLocalhost = req.hostname === "localhost";
         res.cookie("jwt", token, getJwtCookieOptions(isLocalhost));
 
         return res.status(StatusCode.SuccessOK).send({ success: true });

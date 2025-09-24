@@ -90,9 +90,7 @@ describe.each(["github", "google"])("GET /auth/%s/", (provider) => {
     });
 
     it("provides an error when an invalid redirect is provided", async () => {
-        const response = await get(`/auth/${provider}/?redirect=https://google.com/`).expect(
-            StatusCode.ClientErrorBadRequest,
-        );
+        const response = await get(`/auth/${provider}/?redirect=https://google.com/`).expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRedirectUrl");
     });
@@ -161,9 +159,7 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             next();
         });
 
-        const response = await get(`/auth/github/callback/?state=${redirect}`).expect(
-            StatusCode.RedirectFound,
-        );
+        const response = await get(`/auth/github/callback/?state=${redirect}`).expect(StatusCode.RedirectFound);
 
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
@@ -476,5 +472,3 @@ describe("DELETE /auth/roles/:id/:role/", () => {
         expect(stored?.roles).toHaveLength(newRoles.length);
     });
 });
-
-
