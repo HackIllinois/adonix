@@ -3,7 +3,7 @@ import jsonwebtoken, { SignOptions, TokenExpiredError } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import Config from "./config";
+import Config, { PROD_DOMAIN } from "./config";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../services/auth/auth-schemas";
 
@@ -13,6 +13,7 @@ import { UpdateQuery } from "mongoose";
 import { IncomingMessage } from "http";
 import StatusCode from "status-code-enum";
 import { APIError } from "./schemas";
+import { CookieOptions } from "express";
 
 type AuthenticateFunction = (strategies: string | string[], options: AuthenticateOptions) => RequestHandler;
 type VerifyCallback = (err: Error | null, user?: Profile | false, info?: object) => void;
@@ -71,13 +72,54 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
     // Data manipulation to store types of parsable inputs
     callback(null, user);
 
+/**
+ * Generate OAuth URL for the specified provider
+ * @param provider The OAuth provider (github or google)
+ * @param redirect The redirect URL to send user to after auth
+ * @returns OAuth URL string
+ */
+export function generateOAuthUrl(provider: Provider, redirect: string): string {
+    const state = encodeURIComponent(redirect);
+
+    if (provider === Provider.GITHUB) {
+        const scope = "user:email";
+        return `https://github.com/login/oauth/authorize?client_id=${
+            Config.GITHUB_OAUTH_ID
+        }&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(Config.CALLBACK_URLS.GITHUB)}`;
+    }
+
+    if (provider === Provider.GOOGLE) {
+        const scope = encodeURIComponent("profile email");
+        return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${
+            Config.GOOGLE_OAUTH_ID
+        }&response_type=code&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(
+            Config.CALLBACK_URLS.GOOGLE,
+        )}&prompt=select_account`;
+    }
+
+    throw new Error(`Unsupported provider: ${provider}`);
+}
+
 export function isValidRedirectUrl(url: string): boolean {
-    for (const redirect_url of Config.ALLOWED_REDIRECT_URLS.values()) {
-        if (typeof redirect_url == "string") {
-            if (url == redirect_url) {
-                return true;
-            }
-        } else if (redirect_url.test(url)) {
+    let parsedUrl;
+    try {
+        parsedUrl = new URL(url);
+    } catch {
+        return false;
+    }
+
+    // Allow mobile deep links
+    if (parsedUrl.protocol === Config.MOBILE_DEEPLINK_PROTOCOL) {
+        return true;
+    }
+
+    // Allow http for localhost
+    if (parsedUrl.protocol !== "https:" && !(parsedUrl.protocol === "http:" && parsedUrl.hostname === "localhost")) {
+        return false;
+    }
+
+    for (const redirectHost of Config.ALLOWED_REDIRECT_HOSTS) {
+        if (redirectHost.test(parsedUrl.hostname)) {
             return true;
         }
     }
@@ -153,6 +195,24 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 }
 
 /**
+ * Gets options for a JWT authentication cookie with appropriate security settings.
+ * For localhost, the domain is not set; for production, it uses the PROD_DOMAIN.
+ *
+ * @param localhost - Whether the cookie is being set for localhost
+ * @returns Options for the JWT cookie
+ */
+export function getJwtCookieOptions(localhost: boolean): CookieOptions {
+    return {
+        httpOnly: true,
+        secure: Config.PROD,
+        sameSite: "lax",
+        path: "/",
+        domain: localhost ? undefined : PROD_DOMAIN,
+        maxAge: ms(Config.DEFAULT_JWT_EXPIRY_TIME),
+    };
+}
+
+/**
  * Create the token, assign an expiry date, and sign it
  * @param payload JWT payload to be included in the token
  * @param expiration Offset-based expiration. If not provided, defaults to 2 days.
@@ -211,13 +271,21 @@ export function decodeJwtToken(token?: string): JwtPayload {
 
 /**
  * Gets the authenticated user from a request, errors if fails
- * @param req The request
+ * @param req The request (should include cookies property for Express requests)
  * @returns User payload
  */
-export function getAuthenticatedUser(req: IncomingMessage & { authorizationPayload?: JwtPayload }): JwtPayload {
+export function getAuthenticatedUser(
+    req: IncomingMessage & { authorizationPayload?: JwtPayload; cookies?: Record<string, string> },
+): JwtPayload {
     // Basic caching if we request the parsed jwt on the same request multiple times
     if (!req.authorizationPayload) {
-        req.authorizationPayload = decodeJwtToken(req.headers.authorization);
+        let token = req.headers.authorization;
+
+        if (!token && req.cookies?.jwt) {
+            token = req.cookies.jwt;
+        }
+
+        req.authorizationPayload = decodeJwtToken(token);
     }
     return req.authorizationPayload;
 }
@@ -227,7 +295,7 @@ export function getAuthenticatedUser(req: IncomingMessage & { authorizationPaylo
  * @param req The request
  * @returns User payload
  */
-export function tryGetAuthenticatedUser(req: IncomingMessage): JwtPayload | null {
+export function tryGetAuthenticatedUser(req: IncomingMessage & { cookies?: Record<string, string> }): JwtPayload | null {
     try {
         return getAuthenticatedUser(req);
     } catch {

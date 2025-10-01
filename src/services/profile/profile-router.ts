@@ -1,4 +1,3 @@
-import cors from "cors";
 import { Router } from "express";
 import Config from "../../common/config";
 import {
@@ -26,8 +25,6 @@ import { UserIdSchema } from "../../common/schemas";
 import { getAvatarUrlForId } from "./profile-lib";
 
 const profileRouter = Router();
-
-profileRouter.use(cors({ origin: "*" }));
 
 profileRouter.get(
     "/leaderboard/",

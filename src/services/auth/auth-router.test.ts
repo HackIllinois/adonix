@@ -14,17 +14,16 @@ import {
     putAsAdmin,
     putAsStaff,
 } from "../../common/testTools";
-import Config, { Device, Templates } from "../../common/config";
+import { Templates } from "../../common/config";
 import * as selectAuthMiddleware from "../../middleware/select-auth";
-import { mockGenerateJwtTokenWithWrapper, mockGetJwtPayloadFromProfile } from "../../common/mocks/auth";
+import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
 import { AuthCode, JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
 import Models from "../../common/models";
 import { AuthInfo } from "./auth-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
 import { AxiosResponse } from "axios";
-
-const ALL_DEVICES = [Device.WEB, Device.ADMIN, Device.ANDROID, Device.IOS, Device.DEV];
+import * as authCommon from "../../common/auth";
 
 const USER = {
     userId: "user",
@@ -67,18 +66,8 @@ beforeEach(async () => {
     await Models.Sponsor.create(SPONSOR);
 });
 
-describe("GET /auth/dev/", () => {
-    it("returns passed query parameter", async () => {
-        const response = await getAsUser("/auth/dev/?token=123").expect(StatusCode.SuccessOK);
-
-        expect(JSON.parse(response.text)).toMatchObject({
-            Authorization: "123",
-        });
-    });
-});
-
 /*
- * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
+ * Mocks SelectAuthProvider with a wrapper so calls and returns can be examined. Does not change behavior.
  */
 function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider> {
     const mockedSelectAuthMiddleware = require("../../middleware/select-auth") as typeof selectAuthMiddleware;
@@ -87,46 +76,33 @@ function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof s
     return mockedSelectAuthProvider;
 }
 
-describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
-    let mockedSelectAuthProvider: SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider>;
+function mockGenerateOAuthUrl(): jest.SpiedFunction<typeof authCommon.generateOAuthUrl> {
+    const mockedAuthCommon = require("../../common/auth") as typeof authCommon;
+    return jest.spyOn(mockedAuthCommon, "generateOAuthUrl");
+}
+
+describe.each(["github", "google"])("GET /auth/%s/", (provider) => {
+    let mockedGenerateOAuthUrl: jest.SpiedFunction<typeof authCommon.generateOAuthUrl>;
 
     beforeEach(() => {
-        mockedSelectAuthProvider = mockSelectAuthProvider((_req, res, _next) => {
-            res.status(StatusCode.SuccessOK).send();
-        });
-    });
-
-    it("provides an error when an invalid device is provided", async () => {
-        const response = await get(`/auth/login/${provider}/?device=abc`).expect(StatusCode.ClientErrorBadRequest);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+        mockedGenerateOAuthUrl = mockGenerateOAuthUrl();
+        mockedGenerateOAuthUrl.mockReturnValue(`https://oauth.${provider}.com/auth`);
     });
 
     it("provides an error when an invalid redirect is provided", async () => {
-        const response = await get(`/auth/login/${provider}/?redirect=https://google.com/`).expect(
-            StatusCode.ClientErrorBadRequest,
-        );
+        const response = await get(`/auth/${provider}/?redirect=https://google.com/`).expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRedirectUrl");
     });
 
-    it("logs in with default device when none is provided", async () => {
-        await get(`/auth/login/${provider}/`).expect(StatusCode.SuccessOK);
-
-        expect(mockedSelectAuthProvider).toBeCalledWith(provider, Config.DEVICE_TO_REDIRECT_URL.get(Config.DEFAULT_DEVICE));
-    });
-
-    it.each(ALL_DEVICES)("logs in with provided device %s", async (device) => {
-        await get(`/auth/login/${provider}/?device=${device}`).expect(StatusCode.SuccessOK);
-
-        expect(mockedSelectAuthProvider).toBeCalledWith(provider, Config.DEVICE_TO_REDIRECT_URL.get(device));
-    });
-
-    it("logs in with provided redirect url", async () => {
+    it("returns OAuth URL with valid redirect", async () => {
         const redirect = "http://localhost:3000/auth/";
-        await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
+        const response = await get(`/auth/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
 
-        expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
+        expect(mockedGenerateOAuthUrl).toBeCalledWith(provider, redirect);
+        expect(JSON.parse(response.text)).toMatchObject({
+            url: `https://oauth.${provider}.com/auth`,
+        });
     });
 });
 
@@ -154,19 +130,21 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             next();
         });
 
-        const response = await get(`/auth/github/callback/?state=${Config.DEVICE_TO_REDIRECT_URL.get(Device.WEB)}`).expect(
+        const response = await get(`/auth/github/callback/?state=http://localhost:3000/auth/`).expect(
             StatusCode.ClientErrorUnauthorized,
         );
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AuthenticationFailed");
     });
 
-    it.each(ALL_DEVICES)("works when authentication passes with device %s", async (device) => {
+    it("works when authentication passes", async () => {
         const profileData = {
             id: "123",
             email: "test@gmail.com",
+            displayName: "Test User",
         } satisfies ProfileData;
         const provider = Provider.GITHUB;
+        const redirect = "http://localhost:3000/auth/";
 
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
@@ -174,15 +152,14 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
 
             req.user = {
                 provider,
+                id: profileData.id,
                 _json: profileData,
             };
 
             next();
         });
 
-        const response = await get(`/auth/github/callback/?state=${Config.DEVICE_TO_REDIRECT_URL.get(device)}`).expect(
-            StatusCode.RedirectFound,
-        );
+        const response = await get(`/auth/github/callback/?state=${redirect}`).expect(StatusCode.RedirectFound);
 
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
@@ -194,9 +171,9 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             false,
         );
 
-        // Expect redirect to be to the right url & contain token
-        const jwtReturned = mockedGenerateJwtToken.mock.results[mockedGenerateJwtToken.mock.results.length - 1]!.value;
-        expect(response.headers["location"]).toBe(`${Config.DEVICE_TO_REDIRECT_URL.get(device)}?token=${jwtReturned}`);
+        // Expect redirect to be to the right url and cookie to be set
+        expect(response.headers["location"]).toBe(redirect);
+        expect(response.headers["set-cookie"]).toBeDefined();
     });
 });
 
@@ -302,7 +279,8 @@ describe("POST /auth/sponsor/login/", () => {
             false,
         );
 
-        expect(JSON.parse(response.text).token).toBe(mockedGenerateJwtToken.mock.results[0]?.value);
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+        expect(response.headers["set-cookie"]).toBeDefined();
 
         const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
         expect(authCode).toBeNull();
@@ -492,40 +470,5 @@ describe("DELETE /auth/roles/:id/:role/", () => {
         const stored = await Models.AuthInfo.findOne({ userId: USER.userId });
         expect(stored).toHaveProperty("roles", expect.arrayContaining(newRoles));
         expect(stored?.roles).toHaveLength(newRoles.length);
-    });
-});
-
-describe("GET /auth/token/refresh", () => {
-    it("refreshes the user's token", async () => {
-        const generateJwtToken = mockGenerateJwtTokenWithWrapper();
-        const getJwtPayloadFromProfile = mockGetJwtPayloadFromProfile();
-
-        const payload = {
-            id: TESTER.id,
-            email: TESTER.email,
-            exp: Math.floor(Date.now() / Config.MILLISECONDS_PER_SECOND),
-            provider: "github",
-            roles: [Role.USER, Role.ADMIN],
-        } satisfies JwtPayload;
-
-        getJwtPayloadFromProfile.mockReturnValue(Promise.resolve(payload));
-
-        const response = await getAsAttendee("/auth/token/refresh").expect(StatusCode.SuccessOK);
-
-        expect(getJwtPayloadFromProfile).toHaveBeenCalledWith(
-            payload.provider,
-            expect.objectContaining({
-                id: payload.id,
-                email: payload.email,
-            } satisfies ProfileData),
-            false,
-        );
-
-        expect(generateJwtToken).toHaveBeenCalledWith(payload);
-
-        const jwtReturned = generateJwtToken.mock.results[generateJwtToken.mock.results.length - 1]!.value as string;
-        expect(JSON.parse(response.text)).toMatchObject({
-            token: jwtReturned,
-        });
     });
 });
