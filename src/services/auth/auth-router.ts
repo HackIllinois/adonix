@@ -336,6 +336,29 @@ authRouter.delete(
     },
 );
 
+authRouter.post(
+    "/logout/",
+    specification({
+        method: "post",
+        path: "/auth/logout/",
+        tag: Tag.AUTH,
+        role: null,
+        summary: "Logs out the currently authenticated user",
+        description: "Clears the JWT authentication cookie, effectively logging out the user.",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully logged out",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (_req, res) => {
+        res.clearCookie("jwt");
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
 authRouter.get(
     "/:provider/",
     specification({

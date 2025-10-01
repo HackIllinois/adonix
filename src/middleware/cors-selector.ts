@@ -9,6 +9,7 @@ const corsOptions: CorsOptions = {
         const allowed = !origin || corsRegex.test(origin);
         callback(null, allowed);
     },
+    credentials: true,
 };
 
 export default cors(corsOptions);

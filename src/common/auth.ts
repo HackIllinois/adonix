@@ -92,7 +92,9 @@ export function generateOAuthUrl(provider: Provider, redirect: string): string {
         const scope = encodeURIComponent("profile email");
         return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${
             Config.GOOGLE_OAUTH_ID
-        }&response_type=code&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(Config.CALLBACK_URLS.GOOGLE)}`;
+        }&response_type=code&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(
+            Config.CALLBACK_URLS.GOOGLE,
+        )}&prompt=select_account`;
     }
 
     throw new Error(`Unsupported provider: ${provider}`);
@@ -202,7 +204,7 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
 export function getJwtCookieOptions(localhost: boolean): CookieOptions {
     return {
         httpOnly: true,
-        secure: true,
+        secure: Config.PROD,
         sameSite: "lax",
         path: "/",
         domain: localhost ? undefined : PROD_DOMAIN,
