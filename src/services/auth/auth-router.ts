@@ -171,7 +171,7 @@ authRouter.post(
         );
 
         const token = generateJwtToken(payload, false);
-        res.cookie("jwt", token, getJwtCookieOptions(req.hostname));
+        res.cookie("jwt", token, getJwtCookieOptions());
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
@@ -351,8 +351,8 @@ authRouter.post(
             },
         },
     }),
-    async (req, res) => {
-        res.clearCookie("jwt", getJwtCookieOptions(req.hostname));
+    async (_req, res) => {
+        res.clearCookie("jwt", getJwtCookieOptions());
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
@@ -470,10 +470,8 @@ authRouter.get(
             { upsert: true },
         );
 
-        const redirectUrl = new URL(redirect);
-
         const token = generateJwtToken(payload, false);
-        res.cookie("jwt", token, getJwtCookieOptions(redirectUrl.hostname));
+        res.cookie("jwt", token, getJwtCookieOptions());
 
         return res.redirect(redirect);
     },
