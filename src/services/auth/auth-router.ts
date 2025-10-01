@@ -171,8 +171,7 @@ authRouter.post(
         );
 
         const token = generateJwtToken(payload, false);
-        const isLocalhost = req.hostname === "localhost";
-        res.cookie("jwt", token, getJwtCookieOptions(isLocalhost));
+        res.cookie("jwt", token, getJwtCookieOptions(req.hostname));
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
@@ -472,10 +471,9 @@ authRouter.get(
         );
 
         const redirectUrl = new URL(redirect);
-        const localhost = redirectUrl.hostname === "localhost";
 
         const token = generateJwtToken(payload, false);
-        res.cookie("jwt", token, getJwtCookieOptions(localhost));
+        res.cookie("jwt", token, getJwtCookieOptions(redirectUrl.hostname));
 
         return res.redirect(redirect);
     },

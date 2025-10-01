@@ -198,16 +198,19 @@ export async function getJwtPayloadFromDB(targetUser: string): Promise<JwtPayloa
  * Gets options for a JWT authentication cookie with appropriate security settings.
  * For localhost, the domain is not set; for production, it uses the PROD_DOMAIN.
  *
- * @param localhost - Whether the cookie is being set for localhost
+ * @param cleintHostname - The hostname of the client
  * @returns Options for the JWT cookie
  */
-export function getJwtCookieOptions(localhost: boolean): CookieOptions {
+export function getJwtCookieOptions(clientHostname: string): CookieOptions {
+    const apiProd = Config.PROD;
+    const clientProd = clientHostname === PROD_DOMAIN;
+
     return {
         httpOnly: true,
-        secure: Config.PROD,
-        sameSite: "lax",
+        secure: apiProd,
+        sameSite: apiProd && !clientProd ? "none" : "lax",
         path: "/",
-        domain: localhost ? undefined : PROD_DOMAIN,
+        domain: apiProd ? PROD_DOMAIN : undefined,
         maxAge: ms(Config.DEFAULT_JWT_EXPIRY_TIME),
     };
 }
