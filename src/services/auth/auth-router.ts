@@ -351,8 +351,8 @@ authRouter.post(
             },
         },
     }),
-    async (_req, res) => {
-        res.clearCookie("jwt");
+    async (req, res) => {
+        res.clearCookie("jwt", getJwtCookieOptions(req.hostname));
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
