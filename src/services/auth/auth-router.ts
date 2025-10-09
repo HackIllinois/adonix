@@ -73,6 +73,39 @@ passport.use(
 const authRouter = Router();
 authRouter.use(express.urlencoded({ extended: false }));
 
+authRouter.get(
+    "/token/",
+    specification({
+        method: "get",
+        path: "/auth/token/",
+        tag: Tag.AUTH,
+        role: Role.USER,
+        summary: "Extract JWT from authentication cookie",
+        description: "Allows mobile apps to extract their JWT from the HTTP-only cookie",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "JWT token",
+                schema: z.object({
+                    jwt: z.string(),
+                }),
+            },
+            [StatusCode.ClientErrorUnauthorized]: {
+                description: "No valid authentication cookie found",
+                schema: AuthenticationFailedErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const jwt = req.cookies?.jwt;
+
+        if (!jwt) {
+            return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ jwt });
+    },
+);
+
 authRouter.post(
     "/sponsor/verify/",
     specification({

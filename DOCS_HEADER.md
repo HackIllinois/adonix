@@ -2,7 +2,7 @@ HackIllinois' backend API
 
 ## Authentication
 
-**Cookie-Based Authentication**: This API uses HTTP-only cookies for authentication. After logging in, your JWT token will be automatically stored as a secure cookie and sent with subsequent requests.
+**Cookie-Based Authentication**: This API uses HTTP-only cookies for authentication. After logging in, your JWT token will be automatically stored as a secure cookie and sent with subsequent requests. Mobile apps will need to extract the JWT using the GET /auth/token route.
 
 [Attendee Authentication](https://adonix.hackillinois.org/auth/login/github?redirect=https://adonix.hackillinois.org/docs)
 [Staff Authentication](https://adonix.hackillinois.org/auth/login/google?redirect=https://adonix.hackillinois.org/docs)

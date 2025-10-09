@@ -23,6 +23,7 @@ import { AuthInfo } from "./auth-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
 import { AxiosResponse } from "axios";
+import { generateJwtToken } from "../../common/auth";
 
 const USER = {
     userId: "user",
@@ -188,6 +189,44 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
         expect(response.headers["set-cookie"]).toEqual(
             expect.arrayContaining([expect.stringContaining("jwt="), expect.stringContaining("HttpOnly")]),
         );
+    });
+});
+
+describe("POST /auth/token/", () => {
+    it("returns JWT token when valid authenticated cookie is present", async () => {
+        await Models.AuthInfo.create({
+            userId: TESTER.id,
+            provider: "github",
+            roles: [Role.USER],
+        });
+
+        const payload = {
+            id: TESTER.id,
+            email: "test@example.com",
+            provider: "github",
+            roles: [Role.USER],
+        };
+
+        const realJwt = generateJwtToken(payload, false);
+
+        const response = await get("/auth/token/").set("Cookie", `jwt=${realJwt}`).expect(StatusCode.SuccessOK);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("jwt", realJwt);
+    });
+
+    it("returns error when no authentication is provided", async () => {
+        const response = await get("/auth/token/").expect(StatusCode.ClientErrorUnauthorized);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("error", "NoToken");
+    });
+
+    it("returns error when empty cookie is provided", async () => {
+        const response = await get("/auth/token/").set("Cookie", "jwt=").expect(StatusCode.ClientErrorUnauthorized);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("error", "NoToken");
     });
 });
 
