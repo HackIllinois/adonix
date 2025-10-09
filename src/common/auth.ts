@@ -101,7 +101,7 @@ export function generateOAuthUrl(provider: Provider, redirect: string): string {
 }
 
 export function isValidRedirectUrl(url: string): boolean {
-    let parsedUrl;
+    let parsedUrl: URL;
     try {
         parsedUrl = new URL(url);
     } catch {
@@ -118,13 +118,7 @@ export function isValidRedirectUrl(url: string): boolean {
         return false;
     }
 
-    for (const redirectHost of Config.ALLOWED_REDIRECT_HOSTS) {
-        if (redirectHost.test(parsedUrl.hostname)) {
-            return true;
-        }
-    }
-
-    return false;
+    return Config.ALLOWED_CLIENT_HOSTS.some((redirectHost) => redirectHost.test(parsedUrl.hostname));
 }
 
 /**

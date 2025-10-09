@@ -1,12 +1,23 @@
 import cors, { CorsOptions } from "cors";
 import Config from "../common/config";
 
-const corsRegex = new RegExp(Config.CORS_REGEX);
-
 // CORS options configuration
 const corsOptions: CorsOptions = {
     origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-        const allowed = !origin || corsRegex.test(origin);
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+
+        let hostname: string;
+        try {
+            hostname = new URL(origin).hostname;
+        } catch {
+            callback(null, false);
+            return;
+        }
+
+        const allowed = Config.ALLOWED_CLIENT_HOSTS.some((regex) => regex.test(hostname));
         callback(null, allowed);
     },
     credentials: true,

@@ -54,7 +54,7 @@ const Config = {
     ROOT_URL,
 
     MOBILE_DEEPLINK_PROTOCOL: "hackillinois:",
-    ALLOWED_REDIRECT_HOSTS: [
+    ALLOWED_CLIENT_HOSTS: [
         new RegExp(/^([a-z0-9-]+\.)?hackillinois\.org$/),
         new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
         new RegExp(/^localhost$/),
@@ -66,8 +66,6 @@ const Config = {
     },
 
     /* OAuth, Keys, & Permissions */
-    CORS_REGEX: requireEnv("CORS_REGEX"),
-
     DB_URL:
         env.DB_URL || `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
     DB_PARAMS: "?retryWrites=true&w=majority",
