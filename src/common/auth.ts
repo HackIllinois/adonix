@@ -72,36 +72,8 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
     // Data manipulation to store types of parsable inputs
     callback(null, user);
 
-/**
- * Generate OAuth URL for the specified provider
- * @param provider The OAuth provider (github or google)
- * @param redirect The redirect URL to send user to after auth
- * @returns OAuth URL string
- */
-export function generateOAuthUrl(provider: Provider, redirect: string): string {
-    const state = encodeURIComponent(redirect);
-
-    if (provider === Provider.GITHUB) {
-        const scope = "user:email";
-        return `https://github.com/login/oauth/authorize?client_id=${
-            Config.GITHUB_OAUTH_ID
-        }&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(Config.CALLBACK_URLS.GITHUB)}`;
-    }
-
-    if (provider === Provider.GOOGLE) {
-        const scope = encodeURIComponent("profile email");
-        return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${
-            Config.GOOGLE_OAUTH_ID
-        }&response_type=code&scope=${scope}&state=${state}&redirect_uri=${encodeURIComponent(
-            Config.CALLBACK_URLS.GOOGLE,
-        )}&prompt=select_account`;
-    }
-
-    throw new Error(`Unsupported provider: ${provider}`);
-}
-
 export function isValidRedirectUrl(url: string): boolean {
-    let parsedUrl;
+    let parsedUrl: URL;
     try {
         parsedUrl = new URL(url);
     } catch {
@@ -118,13 +90,7 @@ export function isValidRedirectUrl(url: string): boolean {
         return false;
     }
 
-    for (const redirectHost of Config.ALLOWED_REDIRECT_HOSTS) {
-        if (redirectHost.test(parsedUrl.hostname)) {
-            return true;
-        }
-    }
-
-    return false;
+    return Config.ALLOWED_CLIENT_HOSTS.some((redirectHost) => redirectHost.test(parsedUrl.hostname));
 }
 
 /**

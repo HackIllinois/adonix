@@ -1,6 +1,6 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry, RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { AnyZodObject, z, ZodType } from "zod";
-import type { ExampleObject, InfoObject, OpenAPIObject, SecurityRequirementObject, ServerObject } from "openapi3-ts/oas31";
+import type { ExampleObject, InfoObject, OpenAPIObject, ServerObject } from "openapi3-ts/oas31";
 import Config, { PROD_ROOT_URL } from "./config";
 import { ResponsesObject, Specification } from "../middleware/specification";
 import { SwaggerUiOptions } from "swagger-ui-express";
@@ -15,6 +15,7 @@ export const SWAGGER_UI_OPTIONS: SwaggerUiOptions = {
     customSiteTitle: "Adonix API Docs",
     swaggerOptions: {
         persistAuthorization: true,
+        withCredentials: true,
     },
     customCss: `
 code {
@@ -46,13 +47,6 @@ const servers: ServerObject[] = [
         description: Config.PROD ? "Production" : "Local",
     },
 ];
-
-// Security component
-const authentication = Registry.registerComponent("securitySchemes", "Authentication", {
-    type: "http",
-    scheme: "bearer",
-    bearerFormat: "jwt",
-});
 
 async function generateOpenAPISpec(): Promise<OpenAPIObject> {
     const generator = new OpenApiGeneratorV31(Registry.definitions);
@@ -157,22 +151,6 @@ function getPathResponsesForSpecification<
     return responses;
 }
 
-function getSecurityForRole(role: Specification["role"]): SecurityRequirementObject[] | undefined {
-    if (role) {
-        return [
-            {
-                [authentication.name]: Array.isArray(role) ? role : [role],
-            },
-        ];
-    }
-    return [
-        {},
-        {
-            [authentication.name]: [],
-        },
-    ];
-}
-
 function getCombinedDescriptionWithRole(description: string | undefined, role: Specification["role"]): string | undefined {
     const header = role && Array.isArray(role) ? `**Requires one role of: ${role.join(", ")}**` : `**Required role: ${role}**`;
 
@@ -191,7 +169,6 @@ export function registerPathSpecification<
 >(specification: Specification<Params, Query, Responses, Body>): void {
     // Convert specification into RouteConfig
     const { method, path, tag, role, summary, description, parameters: params, query } = specification;
-    const security = getSecurityForRole(role);
     const combinedDescription = getCombinedDescriptionWithRole(description, role);
 
     const responses = getPathResponsesForSpecification(specification);
@@ -220,7 +197,6 @@ export function registerPathSpecification<
     Registry.registerPath({
         method,
         path,
-        security,
         responses,
         request,
         summary,

@@ -23,7 +23,6 @@ import { AuthInfo } from "./auth-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
 import { AxiosResponse } from "axios";
-import * as authCommon from "../../common/auth";
 
 const USER = {
     userId: "user",
@@ -67,7 +66,7 @@ beforeEach(async () => {
 });
 
 /*
- * Mocks SelectAuthProvider with a wrapper so calls and returns can be examined. Does not change behavior.
+ * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
  */
 function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider> {
     const mockedSelectAuthMiddleware = require("../../middleware/select-auth") as typeof selectAuthMiddleware;
@@ -76,33 +75,48 @@ function mockSelectAuthProvider(handler: RequestHandler): SpiedFunction<typeof s
     return mockedSelectAuthProvider;
 }
 
-function mockGenerateOAuthUrl(): jest.SpiedFunction<typeof authCommon.generateOAuthUrl> {
-    const mockedAuthCommon = require("../../common/auth") as typeof authCommon;
-    return jest.spyOn(mockedAuthCommon, "generateOAuthUrl");
-}
-
-describe.each(["github", "google"])("GET /auth/%s/", (provider) => {
-    let mockedGenerateOAuthUrl: jest.SpiedFunction<typeof authCommon.generateOAuthUrl>;
+describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
+    let mockedSelectAuthProvider: SpiedFunction<typeof selectAuthMiddleware.SelectAuthProvider>;
 
     beforeEach(() => {
-        mockedGenerateOAuthUrl = mockGenerateOAuthUrl();
-        mockedGenerateOAuthUrl.mockReturnValue(`https://oauth.${provider}.com/auth`);
+        mockedSelectAuthProvider = mockSelectAuthProvider((_req, res, _next) => {
+            res.status(StatusCode.SuccessOK).send();
+        });
+    });
+
+    it("provides an error when an invalid device is provided", async () => {
+        const response = await get(`/auth/login/${provider}/?device=abc`).expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("provides an error when an invalid redirect is provided", async () => {
-        const response = await get(`/auth/${provider}/?redirect=https://google.com/`).expect(StatusCode.ClientErrorBadRequest);
+        const response = await get(`/auth/login/${provider}/?redirect=https://google.com/`).expect(
+            StatusCode.ClientErrorBadRequest,
+        );
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRedirectUrl");
     });
 
-    it("returns OAuth URL with valid redirect", async () => {
-        const redirect = "http://localhost:3000/auth/";
-        const response = await get(`/auth/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
+    it("logs in with localhost redirect url", async () => {
+        const redirect = "http://localhost:3000/register/";
+        await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
 
-        expect(mockedGenerateOAuthUrl).toBeCalledWith(provider, redirect);
-        expect(JSON.parse(response.text)).toMatchObject({
-            url: `https://oauth.${provider}.com/auth`,
-        });
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
+    });
+
+    it("logs in with deploy preview redirect url", async () => {
+        const redirect = "https://deploy-preview-311--hackillinois.netlify.app/profile";
+        await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
+
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
+    });
+
+    it("logs in with production redirect url", async () => {
+        const redirect = "https://admin.hackillinois.org/admissions/";
+        await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
+
+        expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
     });
 });
 
@@ -130,21 +144,20 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             next();
         });
 
-        const response = await get(`/auth/github/callback/?state=http://localhost:3000/auth/`).expect(
+        const response = await get("/auth/github/callback/?state=https://hackillinois.org/").expect(
             StatusCode.ClientErrorUnauthorized,
         );
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AuthenticationFailed");
     });
 
-    it("works when authentication passes", async () => {
+    it("works when authentication passes with redirect url", async () => {
         const profileData = {
             id: "123",
             email: "test@gmail.com",
-            displayName: "Test User",
         } satisfies ProfileData;
         const provider = Provider.GITHUB;
-        const redirect = "http://localhost:3000/auth/";
+        const redirectUrl = "https://hackillinois.org/profile";
 
         // Mock select auth to successfully authenticate & return user data
         mockSelectAuthProvider((req, _res, next) => {
@@ -152,14 +165,13 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
 
             req.user = {
                 provider,
-                id: profileData.id,
                 _json: profileData,
             };
 
             next();
         });
 
-        const response = await get(`/auth/github/callback/?state=${redirect}`).expect(StatusCode.RedirectFound);
+        const response = await get(`/auth/github/callback/?state=${redirectUrl}`).expect(StatusCode.RedirectFound);
 
         expect(mockedGenerateJwtToken).toBeCalledWith(
             expect.objectContaining({
@@ -171,9 +183,11 @@ describe("GET /auth/:provider/callback/?state=redirect", () => {
             false,
         );
 
-        // Expect redirect to be to the right url and cookie to be set
-        expect(response.headers["location"]).toBe(redirect);
-        expect(response.headers["set-cookie"]).toBeDefined();
+        // Expect redirect to be to the correct url (without token) and JWT cookie to be set
+        expect(response.headers["location"]).toBe(redirectUrl);
+        expect(response.headers["set-cookie"]).toEqual(
+            expect.arrayContaining([expect.stringContaining("jwt="), expect.stringContaining("HttpOnly")]),
+        );
     });
 });
 
