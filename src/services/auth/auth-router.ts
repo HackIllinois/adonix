@@ -35,7 +35,6 @@ import {
     getAuthenticatedUser,
     isValidRedirectUrl,
     generateCode,
-    generateOAuthUrl,
     getJwtCookieOptions,
 } from "../../common/auth";
 import Models from "../../common/models";
@@ -359,10 +358,10 @@ authRouter.post(
 );
 
 authRouter.get(
-    "/:provider/",
+    "/login/:provider/",
     specification({
         method: "get",
-        path: "/auth/{provider}/",
+        path: "/auth/login/{provider}/",
         tag: Tag.AUTH,
         role: null,
         parameters: z.object({
@@ -371,18 +370,16 @@ authRouter.get(
         query: z.object({
             redirect: RedirectUrlSchema,
         }),
-        summary: "Gets OAuth URL for authentication",
+        summary: "Initiates a login through an authentication provider",
         description:
-            "Returns the OAuth URL that the client should redirect to for authentication. " +
+            "You should redirect the browser here to initate the login process. " +
             "Attendees authenticate through GitHub, and staff authenticate through Google. " +
-            "The redirect parameter must be a valid origin with an optional relative path. " +
-            "After successful authentication, the user will be redirected to the provided URL with JWT and refresh tokens set as HTTP-only cookies.",
+            "The redirect parameter must be a URL with a valid origin. " +
+            "After successful authentication, the user will be redirected to the provided URL with JWT set as an HTTP-only cookie.",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "OAuth URL to redirect to",
-                schema: z.object({
-                    url: z.string(),
-                }),
+                description: "Successful redirect to authentication provider",
+                schema: z.object({}),
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "The redirect url requested is invalid",
@@ -390,7 +387,7 @@ authRouter.get(
             },
         },
     }),
-    (req, res) => {
+    (req, res, next) => {
         const { provider } = req.params;
         const { redirect } = req.query;
 
@@ -398,9 +395,7 @@ authRouter.get(
             return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
         }
 
-        const url = generateOAuthUrl(provider, redirect);
-
-        return res.status(StatusCode.SuccessOK).json({ url });
+        return SelectAuthProvider(provider, redirect)(req, res, next);
     },
 );
 
