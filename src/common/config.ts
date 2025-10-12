@@ -57,6 +57,7 @@ const Config = {
     ALLOWED_CLIENT_HOSTS: [
         new RegExp(/^([a-z0-9-]+\.)?hackillinois\.org$/),
         new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
+        new RegExp(/^auth\.expo\.dev(\/.*)?$/),
         new RegExp(/^localhost$/),
     ],
 
