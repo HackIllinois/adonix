@@ -91,10 +91,10 @@ eventsRouter.get(
 );
 
 eventsRouter.get(
-    "/attendeesInfo/:id/",
+    "/attendees-info/:id/",
     specification({
         method: "get",
-        path: "/event/attendeesInfo/{id}/",
+        path: "/event/attendees-info/{id}/",
         tag: Tag.EVENT,
         role: Role.STAFF,
         summary: "Gets all the attendee information from an event",

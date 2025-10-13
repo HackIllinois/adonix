@@ -72,9 +72,9 @@ describe("GET /event/followers/", () => {
     });
 });
 
-describe("GET /event/attendeesInfo/", () => {
+describe("GET /event/attendees-info/", () => {
     it("works for a staff user and returns attendee information", async () => {
-        const response = await getAsStaff(`/event/attendeesInfo/${TESTER_EVENT_ATTENDANCE.eventId}/`).expect(
+        const response = await getAsStaff(`/event/attendees-info/${TESTER_EVENT_ATTENDANCE.eventId}/`).expect(
             StatusCode.SuccessOK,
         );
 
