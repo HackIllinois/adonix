@@ -14,6 +14,7 @@ import {
     CreateEventRequestSchema,
     UpdateEventRequestSchema,
     EventAttendeesSchema,
+    EventAttendeesInfoSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
 import { z } from "zod";
@@ -22,6 +23,7 @@ import { tryGetAuthenticatedUser } from "../../common/auth";
 import { restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
+import { userInfo } from "os";
 
 const eventsRouter = Router();
 
@@ -86,6 +88,42 @@ eventsRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
         return res.status(StatusCode.SuccessOK).send({ eventId, attendees: event.attendees });
+    },
+);
+
+eventsRouter.get(
+    "/attendeesInfo/:id/",
+    specification({
+        method: "get",
+        path: "/event/attendeesInfo/{id}/",
+        tag: Tag.EVENT,
+        role: Role.STAFF,
+        summary: "Gets all the attendee information from an event",
+        parameters: z.object({
+            id: EventIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The attendees' info",
+                schema: EventAttendeesInfoSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the event specified",
+                schema: EventNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: eventId } = req.params;
+        const event = await Models.EventAttendance.findOne({ eventId });
+        if (!event) {
+            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
+        }
+        const attendeesInfo = await Models.UserInfo.find({ 
+            userId: { $in: event.attendees } 
+        }).sort({userId: 1});
+
+        return res.status(StatusCode.SuccessOK).send({ eventId, attendeesInfo });
     },
 );
 
