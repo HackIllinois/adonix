@@ -118,9 +118,9 @@ eventsRouter.get(
         if (!event) {
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
-        const attendeesInfo = await Models.UserInfo.find({ 
-            userId: { $in: event.attendees } 
-        }).sort({userId: 1});
+        const attendeesInfo = await Models.UserInfo.find({
+            userId: { $in: event.attendees },
+        }).sort({ userId: 1 });
 
         return res.status(StatusCode.SuccessOK).send({ eventId, attendeesInfo });
     },

@@ -74,13 +74,15 @@ describe("GET /event/followers/", () => {
 
 describe("GET /event/attendeesInfo/", () => {
     it("works for a staff user and returns attendee information", async () => {
-        const response = await getAsStaff(`/event/attendeesInfo/${TESTER_EVENT_ATTENDANCE.eventId}/`).expect(StatusCode.SuccessOK);
+        const response = await getAsStaff(`/event/attendeesInfo/${TESTER_EVENT_ATTENDANCE.eventId}/`).expect(
+            StatusCode.SuccessOK,
+        );
 
         expect(JSON.parse(response.text)).toMatchObject({
             eventId: TESTER_EVENT_ATTENDANCE.eventId,
             attendeesInfo: [
                 { userId: "user1", name: "John Doe1", email: "john@example.com" },
-                { userId: "user2", name: "John Doe2", email: "john@example.com" }
+                { userId: "user2", name: "John Doe2", email: "john@example.com" },
             ],
         });
     });
