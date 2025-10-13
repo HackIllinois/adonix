@@ -23,7 +23,6 @@ import { tryGetAuthenticatedUser } from "../../common/auth";
 import { restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
-import { userInfo } from "os";
 
 const eventsRouter = Router();
 
