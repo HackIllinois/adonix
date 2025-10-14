@@ -23,7 +23,6 @@ const TESTER_EVENT_ATTENDANCE = {
     excusedAttendees: [],
 } satisfies EventAttendance;
 
-
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
@@ -61,8 +60,6 @@ describe("GET /event/followers/", () => {
         });
     });
 });
-
-
 
 describe("POST /event/mark-excused/:id/", () => {
     it("gives a forbidden error for a non-staff user", async () => {
@@ -102,11 +99,11 @@ describe("POST /event/mark-excused/:id/", () => {
         await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
             .send({ userId: "user3" })
             .expect(StatusCode.SuccessOK);
-    
+
         await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
             .send({ userId: "user3" })
             .expect(StatusCode.SuccessOK);
-    
+
         const updatedAttendance = await Models.EventAttendance.findOne({
             eventId: TESTER_EVENT_ATTENDANCE.eventId,
         });

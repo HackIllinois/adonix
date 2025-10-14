@@ -78,13 +78,11 @@ export class Event {
     @prop({ required: false })
     displayOnStaffCheckIn?: boolean;
 
-    @prop({ required: false})
+    @prop({ required: false })
     public isMandatory?: boolean;
 
     @prop({ default: false })
     isPro: boolean;
-
-
 }
 
 export class EventAttendance {
@@ -96,10 +94,11 @@ export class EventAttendance {
         type: () => String,
     })
     public attendees: string[];
-    
-    @prop({ 
-        required: false, 
-        type: () => String })
+
+    @prop({
+        required: false,
+        type: () => String,
+    })
     public excusedAttendees?: string[];
 }
 

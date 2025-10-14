@@ -85,7 +85,9 @@ eventsRouter.get(
         if (!event) {
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
-        return res.status(StatusCode.SuccessOK).send({ eventId, attendees: event.attendees, excusedAttendees: event.excusedAttendees || [] });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ eventId, attendees: event.attendees, excusedAttendees: event.excusedAttendees || [] });
     },
 );
 
@@ -126,7 +128,7 @@ eventsRouter.post(
         if (!event.excusedAttendees) {
             event.excusedAttendees = [];
         }
-        
+
         if (!event.excusedAttendees.includes(userId)) {
             event.excusedAttendees.push(userId);
             await event.save();
@@ -135,7 +137,6 @@ eventsRouter.post(
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
-
 
 eventsRouter.get(
     "/staff/",
