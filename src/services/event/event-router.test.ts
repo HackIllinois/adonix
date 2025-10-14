@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers } from "./event-schemas";
+import { EventFollowers, EventAttendance } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff, postAsAttendee, postAsStaff } from "../../common/testTools";
@@ -102,15 +102,15 @@ describe("POST /event/mark-excused/:id/", () => {
         await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
             .send({ userId: "user3" })
             .expect(StatusCode.SuccessOK);
-
+    
         await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
             .send({ userId: "user3" })
             .expect(StatusCode.SuccessOK);
-
+    
         const updatedAttendance = await Models.EventAttendance.findOne({
             eventId: TESTER_EVENT_ATTENDANCE.eventId,
         });
-        const count = updatedAttendance?.excusedAttendees.filter((id) => id === "user3").length;
+        const count = updatedAttendance?.excusedAttendees?.filter((id) => id === "user3").length;
         expect(count).toBe(1);
     });
 });

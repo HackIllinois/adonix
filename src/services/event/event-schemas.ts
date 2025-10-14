@@ -100,7 +100,7 @@ export class EventAttendance {
     @prop({ 
         required: false, 
         type: () => String })
-    public excusedAttendees: string[];
+    public excusedAttendees?: string[];
 }
 
 export class EventFollowers {
@@ -218,7 +218,7 @@ export const EventAttendeesSchema = z
     .object({
         eventId: EventIdSchema,
         attendees: z.array(UserIdSchema),
-        excusedAttendees: z.array(UserIdSchema),
+        excusedAttendees: z.array(UserIdSchema).optional(),
     })
     .openapi("EventAttendees");
 

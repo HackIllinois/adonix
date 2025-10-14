@@ -123,7 +123,6 @@ eventsRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
 
-        // so nothing breaks if excusedAttendees is undefined for older events
         if (!event.excusedAttendees) {
             event.excusedAttendees = [];
         }
