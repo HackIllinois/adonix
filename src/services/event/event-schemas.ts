@@ -78,8 +78,13 @@ export class Event {
     @prop({ required: false })
     displayOnStaffCheckIn?: boolean;
 
+    @prop({ required: false})
+    public isMandatory?: boolean;
+
     @prop({ default: false })
     isPro: boolean;
+
+
 }
 
 export class EventAttendance {
@@ -91,6 +96,11 @@ export class EventAttendance {
         type: () => String,
     })
     public attendees: string[];
+    
+    @prop({ 
+        required: false, 
+        type: () => String })
+    public excusedAttendees: string[];
 }
 
 export class EventFollowers {
@@ -129,6 +139,7 @@ export const EventSchema = z
         points: z.number().min(0),
         isPrivate: z.boolean(),
         displayOnStaffCheckIn: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         isPro: z.boolean(),
     })
     .openapi("Event", {
@@ -152,6 +163,7 @@ export const EventSchema = z
             isPrivate: false,
             isAsync: false,
             isPro: false,
+            isMandatory: false,
             displayOnStaffCheckIn: true,
             mapImageUrl: "example.com/image.png",
             exp: 12393928829,
@@ -179,6 +191,7 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
         isPrivate: false,
         isAsync: false,
         isPro: false,
+        isMandatory: false,
         displayOnStaffCheckIn: true,
         mapImageUrl: "example.com/image.png",
     },
@@ -205,6 +218,7 @@ export const EventAttendeesSchema = z
     .object({
         eventId: EventIdSchema,
         attendees: z.array(UserIdSchema),
+        excusedAttendees: z.array(UserIdSchema),
     })
     .openapi("EventAttendees");
 
