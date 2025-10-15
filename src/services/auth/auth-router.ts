@@ -17,6 +17,7 @@ import {
     AuthenticationFailedErrorSchema,
     RoleSchema,
     ListUsersByRoleSchema,
+    ListUserInfoByRoleSchema,
     UserRolesSchema,
     RedirectUrlSchema,
     BadRedirectUrlErrorSchema,
@@ -32,6 +33,7 @@ import {
     updateRoles,
     verifyFunction,
     getUsersWithRole,
+    getUserInfoWithRole,
     getAuthenticatedUser,
     isValidRedirectUrl,
     generateCode,
@@ -233,6 +235,33 @@ authRouter.get(
         const userIds = await getUsersWithRole(role);
 
         res.status(StatusCode.SuccessOK).send({ userIds });
+    },
+);
+
+authRouter.get(
+    "/roles/list-info/:role/",
+    specification({
+        method: "get",
+        path: "/auth/roles/list-info/{role}/",
+        tag: Tag.AUTH,
+        role: Role.STAFF,
+        parameters: z.object({
+            role: RoleSchema,
+        }),
+        summary: "Lists user info for all users that have the specified role",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "User info of all users that have the specified role",
+                schema: ListUserInfoByRoleSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const role = req.params.role;
+
+        const userInfo = await getUserInfoWithRole(role);
+
+        res.status(StatusCode.SuccessOK).send({ userInfo });
     },
 );
 
