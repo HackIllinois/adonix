@@ -20,6 +20,7 @@ import { mockGenerateJwtTokenWithWrapper } from "../../common/mocks/auth";
 import { AuthCode, JwtPayload, ProfileData, Provider, Role } from "./auth-schemas";
 import Models from "../../common/models";
 import { AuthInfo } from "./auth-schemas";
+import { UserInfo } from "../user/user-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
 import { AxiosResponse } from "axios";
@@ -48,6 +49,24 @@ const SPONSOR = {
     userId: "sponsor1234",
 } satisfies Sponsor;
 
+const USER_INFO = {
+    userId: "user",
+    name: "User Name",
+    email: "example@user.com",
+} satisfies UserInfo;
+
+const USER_ATTENDEE_INFO = {
+    userId: "attendee",
+    name: "Attendee Name",
+    email: "example@attendee.com",
+} satisfies UserInfo;
+
+const USER_STAFF_INFO = {
+    userId: "staff",
+    name: "Staff Name",
+    email: "example@staff.com",
+} satisfies UserInfo;
+
 const SPONSOR_CODE = {
     email: SPONSOR.email,
     code: "123456",
@@ -64,6 +83,9 @@ beforeEach(async () => {
     await Models.AuthInfo.create(USER_ATTENDEE);
     await Models.AuthInfo.create(USER_STAFF);
     await Models.Sponsor.create(SPONSOR);
+    await Models.UserInfo.create(USER_INFO);
+    await Models.UserInfo.create(USER_ATTENDEE_INFO);
+    await Models.UserInfo.create(USER_STAFF_INFO);
 });
 
 /*
@@ -417,6 +439,47 @@ describe("GET /auth/roles/list/:role", () => {
             userIds: expect.arrayContaining(userIds),
         });
         expect(json?.userIds).toHaveLength(userIds.length);
+    });
+});
+
+describe("GET /auth/roles/list-info/:role", () => {
+    it("provides an error for an non-staff user", async () => {
+        const response = await getAsAttendee(`/auth/roles/list-info/USER`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("gets all user info", async () => {
+        const response = await getAsStaff(`/auth/roles/list-info/USER`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
+
+        const userIds = [USER.userId, USER_ATTENDEE.userId, USER_STAFF.userId];
+
+        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
+        expect(returnedIds).toHaveLength(userIds.length);
+    });
+
+    it("gets all attendee info", async () => {
+        const response = await getAsStaff(`/auth/roles/list-info/ATTENDEE`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
+
+        const userIds = [USER_ATTENDEE.userId, USER_STAFF.userId];
+
+        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
+        expect(returnedIds).toHaveLength(userIds.length);
+    });
+
+    it("gets all staff info", async () => {
+        const response = await getAsStaff(`/auth/roles/list-info/STAFF`).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
+
+        const userIds = [USER_STAFF.userId];
+
+        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
+        expect(returnedIds).toHaveLength(userIds.length);
     });
 });
 
