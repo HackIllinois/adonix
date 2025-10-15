@@ -9,6 +9,7 @@ import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../servi
 
 import Models from "./models";
 import { AuthInfo } from "../services/auth/auth-schemas";
+import { UserInfo } from "../services/user/user-schemas";
 import { UpdateQuery } from "mongoose";
 import { IncomingMessage } from "http";
 import StatusCode from "status-code-enum";
@@ -404,6 +405,25 @@ export async function getUsersWithRole(role: Role): Promise<string[]> {
         //Array of users as MongoDb schema that have role as one of its roles
         const queryResult: AuthInfo[] = await Models.AuthInfo.find({ roles: { $in: [role] } }).select("userId");
         return queryResult.map((user: AuthInfo) => user.userId);
+    } catch (error) {
+        return Promise.reject(error);
+    }
+}
+
+/**
+ * Get user info of all users that have a particular role within the database.
+ * @param role role that we want to filter for
+ * @returns Promise<string[]> - if valid, then contains array of user w/ role. If invalid, then contains "Unknown Error".
+ */
+export async function getUserInfoWithRole(role: Role): Promise<UserInfo[]> {
+    try {
+        //Array of users as MongoDb schema that have role as one of its roles
+        const authResults: AuthInfo[] = await Models.AuthInfo.find({ roles: { $in: [role] } }).select("userId");
+        const userIds = authResults.map((user: AuthInfo) => user.userId);
+
+        //Get user info for all user IDs
+        const userInfo: UserInfo[] = await Models.UserInfo.find({ userId: { $in: userIds } });
+        return userInfo;
     } catch (error) {
         return Promise.reject(error);
     }
