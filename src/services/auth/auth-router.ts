@@ -35,9 +35,10 @@ import {
     getUsersWithRole,
     getUserInfoWithRole,
     getAuthenticatedUser,
-    isValidRedirectUrl,
     generateCode,
     getJwtCookieOptions,
+    redirectUrlType,
+    RedirectType,
 } from "../../common/auth";
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
@@ -437,7 +438,9 @@ authRouter.get(
             "You should redirect the browser here to initate the login process. " +
             "Attendees authenticate through GitHub, and staff authenticate through Google. " +
             "The redirect parameter must be a URL with a valid origin. " +
-            "After successful authentication, the user will be redirected to the provided URL with JWT set as an HTTP-only cookie.",
+            "Mobile URLs will receive JWT as a URL parameter. " +
+            "Web URLs will receive JWT as an HTTP-only cookie. " +
+            "After successful authentication, the user will be redirected to the provided URL.",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successful redirect to authentication provider",
@@ -453,7 +456,7 @@ authRouter.get(
         const { provider } = req.params;
         const { redirect } = req.query;
 
-        if (!isValidRedirectUrl(redirect)) {
+        if (redirectUrlType(redirect) === RedirectType.INVALID) {
             return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
         }
 
@@ -479,10 +482,10 @@ authRouter.get(
         description:
             "**You should not ever use this directly.** " +
             "Authentication providers use this endpoint to determine where to send the authentication data. " +
-            "Sets JWT and refresh tokens as HTTP-only cookies and redirects to the client URL.",
+            "Sets JWT as HTTP-only cookie (web) or URL parameter (mobile).",
         responses: {
             [StatusCode.RedirectFound]: {
-                description: "Successful redirect with cookies set",
+                description: "Successful redirect with cookies set or token in URL",
                 schema: z.object({}),
             },
             [StatusCode.ClientErrorUnauthorized]: {
@@ -499,7 +502,7 @@ authRouter.get(
         const provider = req.params.provider ?? "";
         const redirect = req.query.state;
 
-        if (!isValidRedirectUrl(redirect)) {
+        if (redirectUrlType(redirect) === RedirectType.INVALID) {
             return res.status(StatusCode.ClientErrorBadRequest).send(BadRedirectUrlError);
         }
 
@@ -510,7 +513,8 @@ authRouter.get(
             return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
         }
 
-        const redirect: string = req.query.state;
+        const redirectUrl = req.query.state;
+
         const user: GithubProfile | GoogleProfile = req.user as GithubProfile | GoogleProfile;
         const data = user._json as ProfileData;
 
@@ -528,9 +532,15 @@ authRouter.get(
         );
 
         const token = generateJwtToken(payload, false);
-        res.cookie("jwt", token, getJwtCookieOptions());
 
-        return res.redirect(redirect);
+        const redirectType = redirectUrlType(redirectUrl);
+
+        if (redirectType === RedirectType.MOBILE) {
+            return res.redirect(`${redirectUrl}?token=${token}`);
+        }
+
+        res.cookie("jwt", token, getJwtCookieOptions());
+        return res.redirect(redirectUrl);
     },
 );
 // Handle authentication errors
