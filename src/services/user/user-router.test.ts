@@ -57,6 +57,7 @@ const TEST_EVENT_FOLLOWERS = {
 const TEST_EVENT_ATTENDANCE = {
     eventId: "some-event",
     attendees: [],
+    excusedAttendees: [],
 } satisfies EventAttendance;
 
 const TEST_EVENT = {
