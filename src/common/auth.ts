@@ -20,6 +20,12 @@ type AuthenticateFunction = (strategies: string | string[], options: Authenticat
 type VerifyCallback = (err: Error | null, user?: Profile | false, info?: object) => void;
 type VerifyFunction = (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => void;
 
+export enum RedirectType {
+    WEB,
+    MOBILE,
+    INVALID,
+}
+
 export enum AuthenticationErrorType {
     TOKEN_EXPIRED,
     NO_TOKEN,
@@ -73,25 +79,28 @@ export const verifyFunction: VerifyFunction = (_1: string, _2: string, user: Pro
     // Data manipulation to store types of parsable inputs
     callback(null, user);
 
-export function isValidRedirectUrl(url: string): boolean {
+export function redirectUrlType(url: string): RedirectType {
+    if (Config.ALLOWED_MOBILE_REDIRECTS.some((regex) => regex.test(url))) {
+        return RedirectType.MOBILE;
+    }
+
     let parsedUrl: URL;
     try {
         parsedUrl = new URL(url);
     } catch {
-        return false;
-    }
-
-    // Allow mobile deep links
-    if (parsedUrl.protocol === Config.MOBILE_DEEPLINK_PROTOCOL) {
-        return true;
+        return RedirectType.INVALID;
     }
 
     // Allow http for localhost
     if (parsedUrl.protocol !== "https:" && !(parsedUrl.protocol === "http:" && parsedUrl.hostname === "localhost")) {
-        return false;
+        return RedirectType.INVALID;
     }
 
-    return Config.ALLOWED_CLIENT_HOSTS.some((redirectHost) => redirectHost.test(parsedUrl.hostname));
+    if (Config.ALLOWED_WEB_HOSTS.some((redirectHost) => redirectHost.test(parsedUrl.hostname))) {
+        return RedirectType.WEB;
+    }
+
+    return RedirectType.INVALID;
 }
 
 /**

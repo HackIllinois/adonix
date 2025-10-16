@@ -17,7 +17,7 @@ const corsOptions: CorsOptions = {
             return;
         }
 
-        const allowed = Config.ALLOWED_CLIENT_HOSTS.some((regex) => regex.test(hostname));
+        const allowed = Config.ALLOWED_WEB_HOSTS.some((regex) => regex.test(hostname));
         callback(null, allowed);
     },
     credentials: true,

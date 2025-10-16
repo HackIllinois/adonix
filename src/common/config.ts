@@ -54,12 +54,12 @@ const Config = {
     ROOT_URL,
 
     MOBILE_DEEPLINK_PROTOCOL: "hackillinois:",
-    ALLOWED_CLIENT_HOSTS: [
+    ALLOWED_WEB_HOSTS: [
         new RegExp(/^([a-z0-9-]+\.)?hackillinois\.org$/),
         new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
-        new RegExp(/^auth\.expo\.dev(\/.*)?$/),
         new RegExp(/^localhost$/),
     ],
+    ALLOWED_MOBILE_REDIRECTS: [new RegExp(/^https?:\/\/auth\.expo\.dev(\/.*)?$/)],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
