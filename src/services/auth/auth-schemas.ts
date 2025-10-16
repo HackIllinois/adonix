@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
 import { CreateErrorAndSchema } from "../../common/schemas";
 import { SponsorEmailSchema } from "../sponsor/sponsor-schemas";
+import { UserInfoSchema } from "../user/user-schemas";
 
 export class AuthInfo {
     @prop({ required: true, index: true })
@@ -94,6 +95,11 @@ export const ListUsersByRoleSchema = z
         userIds: z.array(UserIdSchema),
     })
     .openapi("ListRoles");
+export const ListUserInfoByRoleSchema = z
+    .object({
+        userInfo: z.array(UserInfoSchema),
+    })
+    .openapi("ListRolesInfo");
 export const UserRolesSchema = z
     .object({
         id: UserIdSchema,

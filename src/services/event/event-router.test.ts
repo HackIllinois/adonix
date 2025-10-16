@@ -3,7 +3,7 @@ import { EventFollowers, EventAttendance } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff, postAsAttendee, postAsStaff } from "../../common/testTools";
-import { UserFollowing } from "../user/user-schemas";
+import { UserFollowing, UserInfo } from "../user/user-schemas";
 import { EventSchema } from "./event-schemas";
 import { z } from "zod";
 
@@ -23,11 +23,25 @@ const TESTER_EVENT_ATTENDANCE = {
     excusedAttendees: [],
 } satisfies EventAttendance;
 
+const TESTER_USER_INFO_1 = {
+    userId: "user1",
+    name: "John Doe1",
+    email: "john@example.com",
+} satisfies UserInfo;
+
+const TESTER_USER_INFO_2 = {
+    userId: "user2",
+    name: "John Doe2",
+    email: "john@example.com",
+} satisfies UserInfo;
+
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
     await Models.UserFollowing.create(TESTER_ATTENDEE_FOLLOWING);
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
+    await Models.UserInfo.create(TESTER_USER_INFO_1);
+    await Models.UserInfo.create(TESTER_USER_INFO_2);
 });
 
 describe("GET /event/followers/", () => {
@@ -188,5 +202,21 @@ describe("EventSchema", () => {
         };
 
         expect(() => EventSchema.parse(invalidEvent)).toThrow(z.ZodError);
+    });
+});
+
+describe("GET /event/attendees-info/", () => {
+    it("works for a staff user and returns attendee information", async () => {
+        const response = await getAsStaff(`/event/attendees-info/${TESTER_EVENT_ATTENDANCE.eventId}/`).expect(
+            StatusCode.SuccessOK,
+        );
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            eventId: TESTER_EVENT_ATTENDANCE.eventId,
+            attendeesInfo: [
+                { userId: "user1", name: "John Doe1", email: "john@example.com" },
+                { userId: "user2", name: "John Doe2", email: "john@example.com" },
+            ],
+        });
     });
 });
