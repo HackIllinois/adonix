@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "@jest/globals";
 import { EventFollowers, EventAttendance } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff, postAsAttendee, postAsStaff } from "../../common/testTools";
+import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "../../common/testTools";
 import { UserFollowing, UserInfo } from "../user/user-schemas";
 import { EventSchema } from "./event-schemas";
 import { z } from "zod";
@@ -75,10 +75,10 @@ describe("GET /event/followers/", () => {
     });
 });
 
-describe("POST /event/mark-excused/:id/", () => {
+describe("PUT /event/mark-excused/:id/", () => {
     it("gives a forbidden error for a non-staff user", async () => {
-        const response = await postAsAttendee(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
-            .send({ userId: "user3" })
+        const response = await putAsAttendee(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: true })
             .expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
@@ -89,16 +89,16 @@ describe("POST /event/mark-excused/:id/", () => {
             eventId: TESTER_EVENT_ATTENDANCE.eventId,
         });
 
-        const response = await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
-            .send({ userId: "user3" })
+        const response = await putAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: true })
             .expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
-    it("works for a staff user", async () => {
-        const response = await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
-            .send({ userId: "user3" })
+    it("marks staff user as excused", async () => {
+        const response = await putAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: true })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({ success: true });
@@ -109,13 +109,26 @@ describe("POST /event/mark-excused/:id/", () => {
         expect(updatedAttendance?.excusedAttendees).toContain("user3");
     });
 
-    it("does not duplicate users in excusedAttendees", async () => {
-        await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
-            .send({ userId: "user3" })
+    it("unmarks staff user as excused", async () => {
+        const response = await putAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: false })
             .expect(StatusCode.SuccessOK);
 
-        await postAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
-            .send({ userId: "user3" })
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const updatedAttendance = await Models.EventAttendance.findOne({
+            eventId: TESTER_EVENT_ATTENDANCE.eventId,
+        });
+        expect(updatedAttendance?.excusedAttendees).not.toContain("user3");
+    });
+
+    it("does not duplicate users in excusedAttendees", async () => {
+        await putAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: true })
+            .expect(StatusCode.SuccessOK);
+
+        await putAsStaff(`/event/mark-excused/${TESTER_EVENT_ATTENDANCE.eventId}/`)
+            .send({ userId: "user3", excused: true })
             .expect(StatusCode.SuccessOK);
 
         const updatedAttendance = await Models.EventAttendance.findOne({

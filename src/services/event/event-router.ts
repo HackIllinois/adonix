@@ -92,23 +92,24 @@ eventsRouter.get(
     },
 );
 
-eventsRouter.post(
+eventsRouter.put(
     "/mark-excused/:id/",
     specification({
-        method: "post",
+        method: "put",
         path: "/event/mark-excused/{id}/",
         tag: Tag.EVENT,
         role: Role.STAFF,
-        summary: "Mark a user as excused for an event",
+        summary: "Updates a user's excused status for an event",
         parameters: z.object({
             id: EventIdSchema,
         }),
         body: z.object({
             userId: z.string(),
+            excused: z.boolean(),
         }),
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "Successfully marked user as excused",
+                description: "Successfully updated user's excused status",
                 schema: SuccessResponseSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
@@ -119,7 +120,7 @@ eventsRouter.post(
     }),
     async (req, res) => {
         const { id: eventId } = req.params;
-        const { userId } = req.body;
+        const { userId, excused } = req.body;
 
         const event = await Models.EventAttendance.findOne({ eventId });
         if (!event) {
@@ -130,8 +131,13 @@ eventsRouter.post(
             event.excusedAttendees = [];
         }
 
-        if (!event.excusedAttendees.includes(userId)) {
+        if (excused && !event.excusedAttendees.includes(userId)) {
             event.excusedAttendees.push(userId);
+            await event.save();
+        }
+
+        if (!excused && event.excusedAttendees.includes(userId)) {
+            event.excusedAttendees = event.excusedAttendees.filter((id) => id !== userId);
             await event.save();
         }
 
