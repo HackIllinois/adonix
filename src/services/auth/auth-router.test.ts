@@ -452,34 +452,25 @@ describe("GET /auth/roles/list-info/:role", () => {
     it("gets all user info", async () => {
         const response = await getAsStaff(`/auth/roles/list-info/USER`).expect(StatusCode.SuccessOK);
         const json = JSON.parse(response.text);
-        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
 
-        const userIds = [USER.userId, USER_ATTENDEE.userId, USER_STAFF.userId];
-
-        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
-        expect(returnedIds).toHaveLength(userIds.length);
+        const expected = [USER_INFO, USER_ATTENDEE_INFO, USER_STAFF_INFO];
+        expect(json.userInfo).toEqual(expect.arrayContaining(expected.map((user) => expect.objectContaining(user))));
     });
 
     it("gets all attendee info", async () => {
         const response = await getAsStaff(`/auth/roles/list-info/ATTENDEE`).expect(StatusCode.SuccessOK);
         const json = JSON.parse(response.text);
-        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
 
-        const userIds = [USER_ATTENDEE.userId, USER_STAFF.userId];
-
-        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
-        expect(returnedIds).toHaveLength(userIds.length);
+        const expected = [USER_ATTENDEE_INFO];
+        expect(json.userInfo).toEqual(expect.arrayContaining(expected.map((user) => expect.objectContaining(user))));
     });
 
     it("gets all staff info", async () => {
         const response = await getAsStaff(`/auth/roles/list-info/STAFF`).expect(StatusCode.SuccessOK);
         const json = JSON.parse(response.text);
-        const returnedIds = json.userInfo.map((u: UserInfo) => u.userId);
 
-        const userIds = [USER_STAFF.userId];
-
-        expect(returnedIds).toEqual(expect.arrayContaining(userIds));
-        expect(returnedIds).toHaveLength(userIds.length);
+        const expected = [USER_STAFF_INFO];
+        expect(json.userInfo).toEqual(expect.arrayContaining(expected.map((user) => expect.objectContaining(user))));
     });
 });
 
