@@ -235,6 +235,12 @@ export const EventsSchema = z
     })
     .openapi("Events");
 
+export const EventAttendanceSchema = z
+    .object({
+        result: z.array(z.tuple([z.string(), z.string()])),
+    })
+    .openapi("EventAttendance");
+
 export const [EventNotFoundError, EventNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Could not find event",

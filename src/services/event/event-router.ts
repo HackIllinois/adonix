@@ -15,8 +15,9 @@ import {
     UpdateEventRequestSchema,
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
+    EventAttendanceSchema,
 } from "./event-schemas";
-import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
+import { EventIdSchema, SuccessResponseSchema, UserIdSchema} from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
@@ -370,6 +371,53 @@ eventsRouter.delete(
         }
 
         return res.status(StatusCode.SuccessNoContent).send({ success: true });
+    },
+);
+
+eventsRouter.get(
+    "/attendence/:id/",
+    specification({
+        method: "get",
+        path: "/event/attendence/{id}/",
+        tag: Tag.EVENT,
+        role: null,
+        summary: "Gets attendence per user",
+        parameters: z.object({
+            userId: UserIdSchema,
+        }),
+        description:
+            "The events returned are filtered based on what the currently authenticated user can access.\n" +
+            "For example, if the currently authenticated user is not staff, staff events will not be shown.",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The list of meetings and attendence",
+                schema: EventAttendanceSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        //const roles = tryGetAuthenticatedUser(req)?.roles || [];
+        const { userId } = req.params;
+        const events = await Models.EventAttendance.find();
+        const result: [string, string][] = [];
+        for(const e of events) {
+            const currEvent = await Models.Event.findOne({eventId: e.eventId});
+            // if not mandatory event continue
+            //if(!currEvent.isMandatory) continue;
+
+            var attendenceStatus = "absent";
+            if(userId in e.attendees) {
+                attendenceStatus = "present";
+            }
+            /*
+            else if(userId in e.excusedAttendees) {
+                attendenceStatus = "excused";
+            }
+            */
+           result.push([e.eventId, attendenceStatus]);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ result });
     },
 );
 
