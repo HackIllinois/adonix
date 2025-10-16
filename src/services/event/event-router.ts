@@ -86,7 +86,56 @@ eventsRouter.get(
         if (!event) {
             return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
         }
-        return res.status(StatusCode.SuccessOK).send({ eventId, attendees: event.attendees });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ eventId, attendees: event.attendees, excusedAttendees: event.excusedAttendees || [] });
+    },
+);
+
+eventsRouter.post(
+    "/mark-excused/:id/",
+    specification({
+        method: "post",
+        path: "/event/mark-excused/{id}/",
+        tag: Tag.EVENT,
+        role: Role.STAFF,
+        summary: "Mark a user as excused for an event",
+        parameters: z.object({
+            id: EventIdSchema,
+        }),
+        body: z.object({
+            userId: z.string(),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully marked user as excused",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the event specified",
+                schema: EventNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: eventId } = req.params;
+        const { userId } = req.body;
+
+        const event = await Models.EventAttendance.findOne({ eventId });
+        if (!event) {
+            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
+        }
+
+        if (!event.excusedAttendees) {
+            event.excusedAttendees = [];
+        }
+
+        if (!event.excusedAttendees.includes(userId)) {
+            event.excusedAttendees.push(userId);
+            await event.save();
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
 
@@ -243,7 +292,7 @@ eventsRouter.post(
             ...createRequest,
             eventId,
         });
-        await Models.EventAttendance.create({ eventId: eventId, attendees: [] });
+        await Models.EventAttendance.create({ eventId: eventId, attendees: [], excusedAttendees: [] });
         return res.status(StatusCode.SuccessCreated).send(event);
     },
 );

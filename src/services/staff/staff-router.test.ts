@@ -11,6 +11,7 @@ import { generateQRCode } from "../user/user-lib";
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
     attendees: [],
+    excusedAttendees: [],
 } satisfies EventAttendance;
 
 const TESTER_REGISTRATION = {
