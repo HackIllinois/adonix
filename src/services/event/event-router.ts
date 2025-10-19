@@ -403,17 +403,14 @@ eventsRouter.get(
         for(const e of events) {
             const currEvent = await Models.Event.findOne({eventId: e.eventId});
             // if not mandatory event continue
-            //if(!currEvent.isMandatory) continue;
+            if(currEvent && !currEvent.isMandatory) continue;
 
             var attendenceStatus = "absent";
             if(userId in e.attendees) {
                 attendenceStatus = "present";
-            }
-            /*
-            else if(userId in e.excusedAttendees) {
+            }else if(userId in e.excusedAttendees) {
                 attendenceStatus = "excused";
             }
-            */
            result.push([e.eventId, attendenceStatus]);
         }
 
