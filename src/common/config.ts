@@ -59,7 +59,7 @@ const Config = {
         new RegExp(/^[a-z0-9-]+--(hackillinois|hackillinois-admin)\.netlify\.app$/),
         new RegExp(/^localhost$/),
     ],
-    ALLOWED_MOBILE_REDIRECTS: [new RegExp(/^https?:\/\/auth\.expo\.dev(\/.*)?$/)],
+    ALLOWED_MOBILE_REDIRECTS: [new RegExp(/^https?:\/\/auth\.expo\.dev(\/.*)?$/), new RegExp(/^hackillinois:\/\/auth$/)],
 
     CALLBACK_URLS: {
         GITHUB: `${ROOT_URL}/auth/github/callback/`,
