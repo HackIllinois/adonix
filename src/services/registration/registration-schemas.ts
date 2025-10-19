@@ -68,12 +68,9 @@ const DegreeSchema = z.nativeEnum(Degree).openapi("Degree");
 const HackInterestSchema = z.nativeEnum(HackInterest).openapi("HackInterest");
 const HackOutreachSchema = z.nativeEnum(HackOutreach).openapi("HackOutreach");
 
-export class RegistrationApplication {
+export class RegistrationApplicationSubmitted {
     @prop({ required: true, index: true })
     public userId: string;
-
-    @prop({ default: false })
-    public hasSubmitted: boolean;
 
     @prop({ required: true })
     public preferredName: string;
@@ -154,6 +151,89 @@ export class RegistrationApplication {
     considerForGeneral?: boolean;
 }
 
+export class RegistrationApplicationDraft {
+    @prop({ required: true, index: true })
+    public userId: string;
+
+    @prop({ required: false })
+    public preferredName: string;
+
+    @prop({ required: false })
+    public legalName: string;
+
+    @prop({ required: false })
+    public emailAddress: string;
+
+    @prop({ required: false })
+    public gender: Gender;
+
+    @prop({
+        required: false,
+        type: String,
+        enum: Race,
+    })
+    public race: Race[];
+
+    // Not required
+    public resumeFileName?: string;
+
+    @prop({ required: false })
+    public requestedTravelReimbursement: boolean;
+
+    @prop({ required: false })
+    public location: string;
+
+    @prop({ required: false })
+    public degree: Degree;
+
+    @prop({ required: false })
+    public major: string;
+
+    @prop({ required: false })
+    public minor?: string;
+
+    @prop({ required: false })
+    public university: string;
+
+    @prop({ required: false })
+    public gradYear: number;
+
+    @prop({
+        required: false,
+        type: String,
+        enum: HackInterest,
+    })
+    public hackInterest: HackInterest[];
+
+    @prop({
+        required: false,
+        type: String,
+        enum: HackOutreach,
+    })
+    public hackOutreach: HackOutreach[];
+
+    @prop({
+        required: false,
+        type: () => String,
+    })
+    public dietaryRestrictions: string[];
+
+    @prop({ required: false })
+    public hackEssay1: string;
+
+    @prop({ required: false })
+    public hackEssay2: string;
+
+    @prop({ required: false })
+    public optionalEssay?: string;
+
+    @prop({ required: false })
+    proEssay?: string;
+
+    @prop({ required: false })
+    considerForGeneral?: boolean;
+}
+
 export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
@@ -182,32 +262,32 @@ export const RegistrationStatusSchema = z
         description: "If registration is currently open or not",
     });
 
-export const RegistrationApplicationRequestSchema = z
+export const RegistrationApplicationDraftRequestSchema = z
     .object({
-        preferredName: z.string(),
-        legalName: z.string(),
+        preferredName: z.string().optional(),
+        legalName: z.string().optional(),
         // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
-        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
-        gender: GenderSchema,
-        race: z.array(RaceSchema),
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]).optional(),
+        gender: GenderSchema.optional(),
+        race: z.array(RaceSchema).optional(),
         resumeFileName: z.string().optional(),
-        requestedTravelReimbursement: z.boolean(),
-        location: z.string(),
-        degree: DegreeSchema,
-        major: z.string(),
+        requestedTravelReimbursement: z.boolean().optional(),
+        location: z.string().optional(),
+        degree: DegreeSchema.optional(),
+        major: z.string().optional(),
         minor: z.string().optional(),
-        university: z.string(),
-        gradYear: z.number(),
-        hackInterest: z.array(HackInterestSchema),
-        hackOutreach: z.array(HackOutreachSchema),
-        dietaryRestrictions: z.array(z.string()),
-        hackEssay1: z.string(),
-        hackEssay2: z.string(),
+        university: z.string().optional(),
+        gradYear: z.number().optional(),
+        hackInterest: z.array(HackInterestSchema).optional(),
+        hackOutreach: z.array(HackOutreachSchema).optional(),
+        dietaryRestrictions: z.array(z.string()).optional(),
+        hackEssay1: z.string().optional(),
+        hackEssay2: z.string().optional(),
         optionalEssay: z.string().optional(),
         proEssay: z.string().optional(),
         considerForGeneral: z.boolean().optional(),
     })
-    .openapi("RegistrationApplicationRequest", {
+    .openapi("RegistrationApplicationDraftRequest", {
         example: {
             preferredName: "Ronakin",
             legalName: "Ronakin Kanandini",
@@ -232,16 +312,75 @@ export const RegistrationApplicationRequestSchema = z
         },
     });
 
-export type RegistrationApplicationRequest = z.infer<typeof RegistrationApplicationRequestSchema>;
+export type RegistrationApplicationDraftRequest = z.infer<typeof RegistrationApplicationDraftRequestSchema>;
 
-export const RegistrationApplicationSchema = RegistrationApplicationRequestSchema.extend({
+export const RegistrationApplicationSubmittedRequestSchema = z
+    .object({
+        preferredName: z.string(),
+        legalName: z.string(),
+        // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
+        gender: GenderSchema,
+        race: z.array(RaceSchema),
+        resumeFileName: z.string().optional(),
+        requestedTravelReimbursement: z.boolean(),
+        location: z.string(),
+        degree: DegreeSchema,
+        major: z.string(),
+        minor: z.string().optional(),
+        university: z.string(),
+        gradYear: z.number(),
+        hackInterest: z.array(HackInterestSchema),
+        hackOutreach: z.array(HackOutreachSchema),
+        dietaryRestrictions: z.array(z.string()),
+        hackEssay1: z.string(),
+        hackEssay2: z.string(),
+        optionalEssay: z.string().optional(),
+        proEssay: z.string().optional(),
+        considerForGeneral: z.boolean().optional(),
+    })
+    .openapi("RegistrationApplicationSubmittedRequest", {
+        example: {
+            preferredName: "Ronakin",
+            legalName: "Ronakin Kanandini",
+            emailAddress: "rpak@gmail.org",
+            university: "University of Illinois Urbana-Champaign",
+            hackEssay1: "I love hack",
+            hackEssay2: "I love hack",
+            optionalEssay: "",
+            resumeFileName: "https://www.google.com",
+            location: "Urbana",
+            gender: Gender.NO_ANSWER,
+            degree: Degree.ASSOCIATES,
+            major: "Computer Science",
+            gradYear: 0,
+            proEssay: "I wanna be a Knight",
+            considerForGeneral: true,
+            requestedTravelReimbursement: false,
+            dietaryRestrictions: ["Vegetarian"],
+            race: [Race.NO_ANSWER],
+            hackInterest: [HackInterest.MEETING_PEOPLE],
+            hackOutreach: [HackOutreach.INSTAGRAM],
+        },
+    });
+
+export type RegistrationApplicationSubmittedRequest = z.infer<typeof RegistrationApplicationSubmittedRequestSchema>;
+
+export const RegistrationApplicationDraftSchema = RegistrationApplicationDraftRequestSchema.extend({
     userId: UserIdSchema,
-    hasSubmitted: z.boolean(),
-}).openapi("RegistrationApplication", {
+}).openapi("RegistrationApplicationDraft", {
     example: {
-        ...RegistrationApplicationRequestSchema._def.openapi?.metadata?.example,
+        ...RegistrationApplicationDraftRequestSchema._def.openapi?.metadata?.example,
         userId: "github1234",
-        hasSubmitted: false,
+    },
+});
+
+export const RegistrationApplicationSubmittedSchema = RegistrationApplicationSubmittedRequestSchema.extend({
+    userId: UserIdSchema,
+}).openapi("RegistrationApplicationSubmitted", {
+    example: {
+        ...RegistrationApplicationSubmittedRequestSchema._def.openapi?.metadata?.example,
+        userId: "github1234",
     },
 });
 

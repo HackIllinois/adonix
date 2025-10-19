@@ -7,7 +7,7 @@ import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
-import { RegistrationApplication, RegistrationChallenge } from "../services/registration/registration-schemas";
+import { RegistrationApplicationDraft, RegistrationApplicationSubmitted, RegistrationChallenge } from "../services/registration/registration-schemas";
 import { ShopHistory, ShopItem, ShopOrder } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
@@ -77,7 +77,8 @@ enum PuzzleCollection {
 }
 
 enum RegistrationCollection {
-    APPLICATIONS = "applications",
+    DRAFTS = "drafts",
+    SUBMISSIONS = "submissions",
     CHALLENGES = "challenges",
 }
 
@@ -170,10 +171,15 @@ export default class Models {
     static PuzzleAnswer: Model<PuzzleAnswer> = getModel(PuzzleAnswer, Group.PUZZLE, PuzzleCollection.ANSWERS);
 
     // Registration
-    static RegistrationApplication: Model<RegistrationApplication> = getModel(
-        RegistrationApplication,
+    static RegistrationApplicationDraft: Model<RegistrationApplicationDraft> = getModel(
+        RegistrationApplicationDraft,
         Group.REGISTRATION,
-        RegistrationCollection.APPLICATIONS,
+        RegistrationCollection.DRAFTS,
+    );
+    static RegistrationApplicationSubmitted: Model<RegistrationApplicationSubmitted> = getModel(
+        RegistrationApplicationSubmitted,
+        Group.REGISTRATION,
+        RegistrationCollection.SUBMISSIONS,
     );
     static RegistrationChallenge: Model<RegistrationChallenge> = getModel(
         RegistrationChallenge,
