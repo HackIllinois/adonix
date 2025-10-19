@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers, EventAttendance } from "./event-schemas";
+import { EventFollowers, EventAttendance, Event, EventType } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "../../common/testTools";
@@ -20,7 +20,7 @@ const TESTER_ATTENDEE_FOLLOWING = {
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "test-event-123",
     attendees: ["user1", "user2"],
-    excusedAttendees: [],
+    excusedAttendees: ["user3"],
 } satisfies EventAttendance;
 
 const TESTER_USER_INFO_1 = {
@@ -34,6 +34,26 @@ const TESTER_USER_INFO_2 = {
     name: "John Doe2",
     email: "john@example.com",
 } satisfies UserInfo;
+
+const TESTER_USER_INFO_3 = {
+    userId: "user3",
+    name: "John Doe3",
+    email: "john@example.com",
+} satisfies UserInfo;
+
+const TESTER_EVENT = {
+    eventId: "test-event-123",
+    isStaff: true,
+    name: "meeting",
+    description: "first meeting",
+    startTime: 15,
+    endTime: 17,
+    eventType: EventType.MEETING,
+    locations: [],
+    isAsync: false,
+    points: 0,
+    isPrivate: true,
+}
 
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
@@ -230,6 +250,26 @@ describe("GET /event/attendees-info/", () => {
                 { userId: "user1", name: "John Doe1", email: "john@example.com" },
                 { userId: "user2", name: "John Doe2", email: "john@example.com" },
             ],
+        });
+    });
+});
+
+describe("GET /event/attendence/:id/", () => {
+    it("works for a user and returns attendence information", async () => {
+        const response = await getAsStaff(`/event/attendence/${TESTER_USER_INFO_1.userId}/`).expect(
+            StatusCode.SuccessOK,
+        );
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            result: [[TESTER_EVENT.eventId, "present"]],
+        });
+
+        const response2 = await getAsStaff(`/event/attendence/${TESTER_USER_INFO_3.userId}/`).expect(
+            StatusCode.SuccessOK,
+        );
+
+        expect(JSON.parse(response2.text)).toMatchObject({
+            result: [[TESTER_EVENT.eventId, "excused"]],
         });
     });
 });

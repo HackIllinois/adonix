@@ -383,7 +383,7 @@ eventsRouter.get(
         role: null,
         summary: "Gets attendence per user",
         parameters: z.object({
-            userId: UserIdSchema,
+            id: UserIdSchema,
         }),
         description:
             "The events returned are filtered based on what the currently authenticated user can access.\n" +
@@ -397,7 +397,7 @@ eventsRouter.get(
     }),
     async (req, res) => {
         //const roles = tryGetAuthenticatedUser(req)?.roles || [];
-        const { userId } = req.params;
+        const { id } = req.params;
         const events = await Models.EventAttendance.find();
         const result: [string, string][] = [];
         for(const e of events) {
@@ -406,9 +406,9 @@ eventsRouter.get(
             if(currEvent && !currEvent.isMandatory) continue;
 
             var attendenceStatus = "absent";
-            if(userId in e.attendees) {
+            if(e.attendees.includes(id)) {
                 attendenceStatus = "present";
-            }else if(userId in e.excusedAttendees) {
+            } else if(e.excusedAttendees?.includes(id)) {
                 attendenceStatus = "excused";
             }
            result.push([e.eventId, attendenceStatus]);
