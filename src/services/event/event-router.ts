@@ -15,8 +15,9 @@ import {
     UpdateEventRequestSchema,
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
+    EventAttendanceSchema,
 } from "./event-schemas";
-import { EventIdSchema, SuccessResponseSchema } from "../../common/schemas";
+import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
@@ -370,6 +371,53 @@ eventsRouter.delete(
         }
 
         return res.status(StatusCode.SuccessNoContent).send({ success: true });
+    },
+);
+
+eventsRouter.get(
+    "/attendance/:id/",
+    specification({
+        method: "get",
+        path: "/event/attendance/{id}/",
+        tag: Tag.EVENT,
+        role: null,
+        summary: "Gets attendance per user",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        description:
+            "The events returned are filtered based on what the currently authenticated user can access.\n" +
+            "For example, if the currently authenticated user is not staff, staff events will not be shown.",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "List of mandatory events in which the user is absent, present, and excused",
+                schema: EventAttendanceSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id } = req.params;
+        const events = await Models.EventAttendance.find();
+        const absent: [string, number, number][] = [];
+        const present: [string, number, number][] = [];
+        const excused: [string, number, number][] = [];
+        for (const e of events) {
+            const currEvent = await Models.Event.findOne({ eventId: e.eventId });
+            // if not mandatory event continue
+            if (!currEvent || !currEvent.isMandatory) {
+                continue;
+            }
+
+            if (e.attendees.includes(id)) {
+                present.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            } else if (e.excusedAttendees?.includes(id)) {
+                excused.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            } else {
+                absent.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            }
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ present, excused, absent });
     },
 );
 
