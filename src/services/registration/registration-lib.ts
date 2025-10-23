@@ -1,9 +1,15 @@
 import Config from "../../common/config";
 import Models from "../../common/models";
-import { RegistrationApplication } from "./registration-schemas";
+import { RegistrationApplicationDraft, RegistrationApplicationSubmitted } from "./registration-schemas";
 
-export function getApplication(userId: string): Promise<RegistrationApplication | null> {
-    return Models.RegistrationApplication.findOne({ userId: userId });
+export async function getApplication(
+    userId: string,
+): Promise<RegistrationApplicationDraft | RegistrationApplicationSubmitted | null> {
+    let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+    if (!registrationData) {
+        registrationData = await Models.RegistrationApplicationDraft.findOne({ userId });
+    }
+    return registrationData;
 }
 
 export function isRegistrationAlive(): boolean {

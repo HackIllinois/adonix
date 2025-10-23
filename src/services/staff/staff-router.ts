@@ -142,7 +142,7 @@ staffRouter.put(
         }
 
         // Get registration data
-        const registrationData = await Models.RegistrationApplication.findOne({ userId }).select("dietaryRestrictions");
+        const registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("dietaryRestrictions");
         if (!registrationData) {
             throw Error("No registration data");
         }

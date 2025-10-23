@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
 import { Templates } from "../../common/config";
-import { Gender, Degree, Race, HackInterest, HackOutreach, RegistrationApplication } from "../registration/registration-schemas";
+import {
+    Gender,
+    Degree,
+    Race,
+    HackInterest,
+    HackOutreach,
+    RegistrationApplicationSubmitted,
+} from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
@@ -46,8 +53,7 @@ const TESTER_APPLICATION = {
     race: [Race.NO_ANSWER],
     hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
     hackOutreach: [HackOutreach.INSTAGRAM],
-    hasSubmitted: false,
-} satisfies RegistrationApplication;
+} satisfies RegistrationApplicationSubmitted;
 
 const updateRequest = [
     {
@@ -62,7 +68,7 @@ const updateRequest = [
 beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
-    await Models.RegistrationApplication.create(TESTER_APPLICATION);
+    await Models.RegistrationApplicationSubmitted.create(TESTER_APPLICATION);
 });
 
 describe("GET /admission/notsent/", () => {

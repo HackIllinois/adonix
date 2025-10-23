@@ -97,7 +97,7 @@ admissionRouter.put(
         }
 
         // Verify they have an application
-        const application = await Models.RegistrationApplication.findOne({ userId });
+        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId });
         if (!application) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
@@ -187,7 +187,7 @@ admissionRouter.put(
         const changedEntries = updateEntries.filter((entry) => existingDecisions.get(entry.userId)?.status !== entry.status);
         const changedUserIds = changedEntries.map((entry) => entry.userId);
 
-        const applicationsList = await Models.RegistrationApplication.find({ userId: { $in: changedUserIds } });
+        const applicationsList = await Models.RegistrationApplicationSubmitted.find({ userId: { $in: changedUserIds } });
         const recipients = applicationsList.map((app) => app.emailAddress);
 
         // Perform all updates

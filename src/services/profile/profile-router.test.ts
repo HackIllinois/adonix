@@ -4,7 +4,14 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
-import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplicationSubmitted,
+} from "../registration/registration-schemas";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -67,7 +74,6 @@ const UPDATED_PROFILE = {
 
 const REGISTRATION = {
     userId: TESTER.id,
-    hasSubmitted: true,
     preferredName: TESTER.name,
     legalName: TESTER.name,
     emailAddress: TESTER.email,
@@ -85,13 +91,13 @@ const REGISTRATION = {
     race: [Race.NO_ANSWER],
     hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
     hackOutreach: [HackOutreach.INSTAGRAM],
-} satisfies RegistrationApplication;
+} satisfies RegistrationApplicationSubmitted;
 
 beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_USER);
     await Models.AttendeeProfile.create(TESTER_USER_2);
     await Models.AttendeeProfile.create(TESTER_USER_3);
-    await Models.RegistrationApplication.create(REGISTRATION);
+    await Models.RegistrationApplicationSubmitted.create(REGISTRATION);
 });
 
 describe("POST /profile", () => {
