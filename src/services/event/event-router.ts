@@ -405,7 +405,7 @@ eventsRouter.get(
             // if not mandatory event continue
             if(currEvent && !currEvent.isMandatory) { continue; }
 
-            const attendenceStatus = "absent";
+            let attendenceStatus = "absent";
             if(e.attendees.includes(id)) {
                 attendenceStatus = "present";
             } else if(e.excusedAttendees?.includes(id)) {
