@@ -7,9 +7,13 @@ import Models from "../../common/models";
 import {
     RegistrationAlreadySubmittedError,
     RegistrationAlreadySubmittedErrorSchema,
-    RegistrationApplication,
-    RegistrationApplicationRequestSchema,
-    RegistrationApplicationSchema,
+    RegisterationIncompleteSubmissionError,
+    RegisterationIncompleteSubmissionErrorSchema,
+    RegistrationApplicationSubmitted,
+    RegistrationApplicationDraft,
+    RegistrationApplicationDraftRequestSchema,
+    RegistrationApplicationSubmittedRequestSchema,
+    RegistrationApplicationDraftSchema,
     RegistrationChallenge,
     RegistrationChallengeStatusSchema,
     RegistrationChallengeSolveFailedError,
@@ -70,7 +74,7 @@ registrationRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The registration information",
-                schema: RegistrationApplicationSchema,
+                schema: RegistrationApplicationDraftSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Couldn't find registration information (make sure you create it first!)",
@@ -81,7 +85,10 @@ registrationRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const registrationData = await Models.RegistrationApplication.findOne({ userId });
+        let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registrationData) {
+            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId});
+        }
         if (!registrationData) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
@@ -107,7 +114,7 @@ registrationRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The registration information",
-                schema: RegistrationApplicationSchema,
+                schema: RegistrationApplicationDraftSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Couldn't find registration information (make sure you create it first!)",
@@ -118,7 +125,10 @@ registrationRouter.get(
     async (req, res) => {
         const { id: userId } = req.params;
 
-        const registrationData = await Models.RegistrationApplication.findOne({ userId: userId });
+        let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registrationData) {
+            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId});
+        }
         if (!registrationData) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
@@ -135,11 +145,11 @@ registrationRouter.post(
         tag: Tag.REGISTRATION,
         role: Role.USER,
         summary: "Creates or sets the currently authenticated user's registration data",
-        body: RegistrationApplicationRequestSchema,
+        body: RegistrationApplicationDraftRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new registration information",
-                schema: RegistrationApplicationRequestSchema,
+                schema: RegistrationApplicationDraftRequestSchema,
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Registration is closed",
@@ -160,17 +170,17 @@ registrationRouter.post(
 
         const setRequest = req.body;
 
-        const registrationInfo = await Models.RegistrationApplication.findOne({ userId: userId });
-        if (registrationInfo?.hasSubmitted ?? false) {
+        const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
+        
+        if (isSubmitted) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const updateRegistration: RegistrationApplication = {
+        const updateRegistration: RegistrationApplicationDraft = {
             ...setRequest,
             userId,
-            hasSubmitted: false,
-        };
-        const newRegistrationInfo = await Models.RegistrationApplication.findOneAndReplace(
+        } as RegistrationApplicationDraft;
+        const newRegistrationInfo = await Models.RegistrationApplicationDraft.findOneAndReplace(
             { userId: userId },
             updateRegistration,
             {
@@ -197,12 +207,20 @@ registrationRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new registration information",
-                schema: RegistrationApplicationRequestSchema,
+                schema: RegistrationApplicationSubmittedRequestSchema,
             },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Registration is already submitted, cannot update anymore",
-                schema: RegistrationAlreadySubmittedErrorSchema,
-            },
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: RegistrationAlreadySubmittedError.error,
+                    description: "Registration is already submitted, cannot update anymore",
+                    schema: RegistrationAlreadySubmittedErrorSchema,
+                },
+                {
+                    id: RegisterationIncompleteSubmissionError.error,
+                    description: "Your application is incomplete. Please fill out all required fields before submitting.",
+                    schema: RegisterationIncompleteSubmissionErrorSchema,
+                },
+            ],
             [StatusCode.ClientErrorForbidden]: {
                 description: "Registration is closed",
                 schema: RegistrationClosedErrorSchema,
@@ -220,24 +238,33 @@ registrationRouter.post(
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
         }
 
-        const registrationInfo = await Models.RegistrationApplication.findOne({ userId: userId });
+        const draftInfo = await Models.RegistrationApplicationDraft.findOne({ userId: userId });
 
-        if (!registrationInfo) {
+        if (!draftInfo) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
 
-        if (registrationInfo.hasSubmitted) {
+        const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
+        if (isSubmitted) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const newRegistrationInfo = await Models.RegistrationApplication.findOneAndUpdate(
-            { userId: userId },
-            { hasSubmitted: true },
-            { new: true },
-        );
+        const submissionValidation = RegistrationApplicationSubmittedRequestSchema.safeParse(draftInfo);
+        if (!submissionValidation.success) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegisterationIncompleteSubmissionError);
+        }
 
-        if (!newRegistrationInfo) {
-            throw Error("Failed to update registration");
+        const submissionData: RegistrationApplicationSubmitted = {
+            ...submissionValidation.data,
+            userId: userId
+        } as RegistrationApplicationSubmitted;
+        const [newSubmissionInfo] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.create(submissionData),
+            Models.RegistrationApplicationDraft.deleteOne({ userId: userId })
+        ]);
+
+        if (!newSubmissionInfo) {
+            throw Error("Failed to submit registration");
         }
 
         const admissionInfo = await Models.AdmissionDecision.findOneAndUpdate(
@@ -258,12 +285,12 @@ registrationRouter.post(
         // SEND SUCCESSFUL REGISTRATION EMAIL
         const mailInfo: MailInfo = {
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [registrationInfo.emailAddress],
-            subs: { name: registrationInfo.preferredName },
+            recipients: [newSubmissionInfo.emailAddress],
+            subs: { name: newSubmissionInfo.preferredName },
         };
         await sendMail(mailInfo);
 
-        return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
+        return res.status(StatusCode.SuccessOK).send(newSubmissionInfo);
     },
 );
 

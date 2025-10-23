@@ -155,16 +155,16 @@ export class RegistrationApplicationDraft {
     @prop({ required: true, index: true })
     public userId: string;
 
-    @prop({ required: false })
+    @prop({ required: true })
     public preferredName: string;
 
-    @prop({ required: false })
+    @prop({ required: true })
     public legalName: string;
 
-    @prop({ required: false })
+    @prop({ required: true })
     public emailAddress: string;
 
-    @prop({ required: false })
+    @prop({ required: true })
     public gender: Gender;
 
     @prop({
@@ -264,11 +264,11 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationDraftRequestSchema = z
     .object({
-        preferredName: z.string().optional(),
-        legalName: z.string().optional(),
+        preferredName: z.string(),
+        legalName: z.string(),
         // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
-        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]).optional(),
-        gender: GenderSchema.optional(),
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
+        gender: GenderSchema,
         race: z.array(RaceSchema).optional(),
         resumeFileName: z.string().optional(),
         requestedTravelReimbursement: z.boolean().optional(),
@@ -442,4 +442,9 @@ export const [RegistrationChallengeSolveFailedError, RegistrationChallengeSolveF
 export const [RegistrationChallengeAlreadySolvedError, RegistrationChallengeAlreadySolvedErrorSchema] = CreateErrorAndSchema({
     error: "AlreadySolved",
     message: "You've already solved the challenge!",
+});
+
+export const [RegisterationIncompleteSubmissionError, RegisterationIncompleteSubmissionErrorSchema] = CreateErrorAndSchema({
+    error: "IncompleteApplication",
+    message: "Your application is incomplete. Please fill out all required fields before submitting.",
 });
