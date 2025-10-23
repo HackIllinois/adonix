@@ -4,7 +4,14 @@ import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplicationSubmitted } from "../registration/registration-schemas";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplicationSubmitted,
+} from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
 

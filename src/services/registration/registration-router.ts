@@ -87,7 +87,7 @@ registrationRouter.get(
 
         let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
         if (!registrationData) {
-            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId});
+            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId });
         }
         if (!registrationData) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
@@ -127,7 +127,7 @@ registrationRouter.get(
 
         let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
         if (!registrationData) {
-            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId});
+            registrationData = await Models.RegistrationApplicationDraft.findOne({ userId });
         }
         if (!registrationData) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
@@ -171,7 +171,7 @@ registrationRouter.post(
         const setRequest = req.body;
 
         const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
-        
+
         if (isSubmitted) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
@@ -256,11 +256,11 @@ registrationRouter.post(
 
         const submissionData: RegistrationApplicationSubmitted = {
             ...submissionValidation.data,
-            userId: userId
+            userId: userId,
         } as RegistrationApplicationSubmitted;
         const [newSubmissionInfo] = await Promise.all([
             Models.RegistrationApplicationSubmitted.create(submissionData),
-            Models.RegistrationApplicationDraft.deleteOne({ userId: userId })
+            Models.RegistrationApplicationDraft.deleteOne({ userId: userId }),
         ]);
 
         if (!newSubmissionInfo) {

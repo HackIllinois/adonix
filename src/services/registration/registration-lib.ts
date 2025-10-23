@@ -2,7 +2,9 @@ import Config from "../../common/config";
 import Models from "../../common/models";
 import { RegistrationApplicationDraft, RegistrationApplicationSubmitted } from "./registration-schemas";
 
-export async function getApplication(userId: string): Promise<RegistrationApplicationDraft | RegistrationApplicationSubmitted | null> {
+export async function getApplication(
+    userId: string,
+): Promise<RegistrationApplicationDraft | RegistrationApplicationSubmitted | null> {
     let registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
     if (!registrationData) {
         registrationData = await Models.RegistrationApplicationDraft.findOne({ userId });

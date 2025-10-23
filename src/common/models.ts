@@ -7,7 +7,11 @@ import { AdmissionDecision } from "../services/admission/admission-schemas";
 import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
-import { RegistrationApplicationDraft, RegistrationApplicationSubmitted, RegistrationChallenge } from "../services/registration/registration-schemas";
+import {
+    RegistrationApplicationDraft,
+    RegistrationApplicationSubmitted,
+    RegistrationChallenge,
+} from "../services/registration/registration-schemas";
 import { ShopHistory, ShopItem, ShopOrder } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";

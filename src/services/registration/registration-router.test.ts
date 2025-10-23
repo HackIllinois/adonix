@@ -58,7 +58,7 @@ describe("GET /registration/", () => {
 
     it("should retrieve submitted registration when both exist", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
-        
+
         const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
     });
@@ -195,10 +195,10 @@ describe("POST /registration/submit/", () => {
     });
 
     it("should provide incomplete application error when draft is incomplete", async () => {
-        const incompleteDraft = { 
-            ...DRAFT_REGISTRATION, 
+        const incompleteDraft = {
+            ...DRAFT_REGISTRATION,
             hackEssay1: undefined,
-            hackEssay2: undefined
+            hackEssay2: undefined,
         };
         await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
         await Models.RegistrationApplicationDraft.create(incompleteDraft);

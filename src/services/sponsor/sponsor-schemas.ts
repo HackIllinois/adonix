@@ -60,7 +60,8 @@ export const RESUME_BOOK_ENTRY_FIELDS = {
     minor: true,
     gradYear: true,
 } as const;
-export const ResumeBookEntrySchema = RegistrationApplicationSubmittedSchema.pick(RESUME_BOOK_ENTRY_FIELDS).openapi("ResumeBookEntry");
+export const ResumeBookEntrySchema =
+    RegistrationApplicationSubmittedSchema.pick(RESUME_BOOK_ENTRY_FIELDS).openapi("ResumeBookEntry");
 
 export const [SponsorNotFoundError, SponsorNotFoundErrorSchema] = CreateErrorAndSchema({
     message: "NotFound",

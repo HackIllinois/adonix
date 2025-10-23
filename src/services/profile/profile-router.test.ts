@@ -4,7 +4,14 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
-import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplicationSubmitted } from "../registration/registration-schemas";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplicationSubmitted,
+} from "../registration/registration-schemas";
 
 const TESTER_USER = {
     userId: TESTER.id,
