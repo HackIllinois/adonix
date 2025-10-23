@@ -30,6 +30,7 @@ export const ScanAttendeeRequestSchema = z
 
 export const ScanAttendeeSchema = SuccessResponseSchema.extend({
     userId: UserIdSchema,
+    eventName: z.string(),
     dietaryRestrictions: z.array(z.string()).openapi({ example: ["Vegan", "No Pork"] }),
 }).openapi("ScanAttendee");
 

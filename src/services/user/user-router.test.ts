@@ -337,7 +337,15 @@ describe("PUT /user/scan-event/", () => {
 
     it("works for an attendee without existing attendance", async () => {
         await Models.UserAttendance.deleteOne({ userId: TESTER.id });
-        await putAsAttendee("/user/scan-event/").send({ eventId: TEST_EVENT.eventId }).expect(StatusCode.SuccessOK);
+        const response = await putAsAttendee("/user/scan-event/")
+            .send({ eventId: TEST_EVENT.eventId })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            success: true,
+            eventName: TEST_EVENT.name,
+            points: TEST_EVENT.points,
+        });
 
         const eventAttendance = await Models.EventAttendance.findOne({ eventId: TEST_EVENT.eventId });
 
@@ -352,15 +360,23 @@ describe("PUT /user/scan-event/", () => {
             attendance: [TEST_EVENT.eventId],
         });
 
-        const response = await putAsAttendee("/user/scan-event/")
+        const duplicateResponse = await putAsAttendee("/user/scan-event/")
             .send({ eventId: TEST_EVENT.eventId })
             .expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
+        expect(JSON.parse(duplicateResponse.text)).toHaveProperty("error", "AlreadyCheckedIn");
     });
 
     it("works for an attendee and returns already checked in if already checked in", async () => {
-        await putAsAttendee("/user/scan-event/").send({ eventId: TEST_EVENT.eventId }).expect(StatusCode.SuccessOK);
+        const response = await putAsAttendee("/user/scan-event/")
+            .send({ eventId: TEST_EVENT.eventId })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            success: true,
+            eventName: TEST_EVENT.name,
+            points: TEST_EVENT.points,
+        });
 
         const eventAttendance = await Models.EventAttendance.findOne({ eventId: TEST_EVENT.eventId });
 
@@ -375,10 +391,10 @@ describe("PUT /user/scan-event/", () => {
             attendance: [...TESTER_ATTENDANCE.attendance, TEST_EVENT.eventId],
         });
 
-        const response = await putAsAttendee("/user/scan-event/")
+        const duplicateResponse = await putAsAttendee("/user/scan-event/")
             .send({ eventId: TEST_EVENT.eventId })
             .expect(StatusCode.ClientErrorBadRequest);
 
-        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyCheckedIn");
+        expect(JSON.parse(duplicateResponse.text)).toHaveProperty("error", "AlreadyCheckedIn");
     });
 });

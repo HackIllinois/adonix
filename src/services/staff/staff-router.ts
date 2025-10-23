@@ -136,9 +136,9 @@ staffRouter.put(
         const userId = qrResult.userId;
 
         // Perform check-in logic
-        const result = await performCheckIn(eventId, userId);
-        if (!result.success) {
-            return res.status(result.status).json(result.error);
+        const checkInResult = await performCheckIn(eventId, userId);
+        if (!checkInResult.success) {
+            return res.status(checkInResult.status).json(checkInResult.error);
         }
 
         // Get registration data
@@ -148,9 +148,11 @@ staffRouter.put(
         }
 
         const { dietaryRestrictions } = registrationData;
+        const { eventName } = checkInResult;
         return res.status(StatusCode.SuccessOK).json({
             success: true,
             userId,
+            eventName,
             dietaryRestrictions,
         });
     },

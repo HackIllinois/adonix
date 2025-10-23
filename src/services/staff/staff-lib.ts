@@ -7,7 +7,7 @@ import { Specification } from "../../middleware/specification";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 
 export type PerformCheckInResult =
-    | { success: true; profile: AttendeeProfile; points: number }
+    | { success: true; profile: AttendeeProfile; eventName: string; points: number }
     | {
           success: false;
           status: StatusCode.ClientErrorBadRequest;
@@ -52,5 +52,5 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
         throw Error("No profile exists, cannot checkin");
     }
 
-    return { success: true, profile: newProfile, points };
+    return { success: true, profile: newProfile, eventName: event.name, points };
 }

@@ -72,6 +72,7 @@ export const ScanEventRequestSchema = z
 export const ScanEventSchema = z
     .object({
         success: z.literal(true),
+        eventName: z.string(),
         points: z.number().openapi({
             description: "Points added from checking into the event",
             example: 5,

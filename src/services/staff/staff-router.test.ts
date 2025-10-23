@@ -113,6 +113,7 @@ describe("PUT /staff/scan-attendee/", () => {
         expect(JSON.parse(response.text)).toMatchObject({
             success: true,
             userId: testUserId,
+            eventName: TEST_EVENT.name,
             dietaryRestrictions: TESTER_REGISTRATION.dietaryRestrictions,
         });
 

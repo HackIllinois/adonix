@@ -300,7 +300,7 @@ userRouter.put(
             return res.status(result.status).json(result.error);
         }
 
-        return res.status(StatusCode.SuccessOK).json({ success: true, points: result.points });
+        return res.status(StatusCode.SuccessOK).json({ success: true, eventName: result.eventName, points: result.points });
     },
 );
 
