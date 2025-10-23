@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
-import { EventFollowers, EventAttendance, Event, EventType } from "./event-schemas";
+import { EventFollowers, EventAttendance, EventType } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "../../common/testTools";
