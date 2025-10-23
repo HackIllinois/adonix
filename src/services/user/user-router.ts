@@ -279,7 +279,7 @@ userRouter.put(
         method: "put",
         path: "/user/scan-event/",
         tag: Tag.USER,
-        role: Role.USER,
+        role: Role.ATTENDEE,
         summary: "Checks in the currently authenticated user and marks their attendance",
         body: ScanEventRequestSchema,
         responses: {
