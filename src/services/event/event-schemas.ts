@@ -237,7 +237,7 @@ export const EventsSchema = z
 
 export const EventAttendanceSchema = z
     .object({
-        result: z.array(z.tuple([z.string(), z.string()])),
+        result: z.array(z.tuple([z.string(), z.number(), z.number()])),
     })
     .openapi("EventAttendance");
 

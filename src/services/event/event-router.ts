@@ -17,7 +17,7 @@ import {
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
 } from "./event-schemas";
-import { EventIdSchema, SuccessResponseSchema, UserIdSchema} from "../../common/schemas";
+import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
@@ -375,13 +375,13 @@ eventsRouter.delete(
 );
 
 eventsRouter.get(
-    "/attendence/:id/",
+    "/attendance/:id/",
     specification({
         method: "get",
-        path: "/event/attendence/{id}/",
+        path: "/event/attendance/{id}/",
         tag: Tag.EVENT,
         role: null,
-        summary: "Gets attendence per user",
+        summary: "Gets attendance per user",
         parameters: z.object({
             id: UserIdSchema,
         }),
@@ -390,31 +390,34 @@ eventsRouter.get(
             "For example, if the currently authenticated user is not staff, staff events will not be shown.",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The list of meetings and attendence",
+                description: "List of mandatory events in which the user is absent, present, and excused",
                 schema: EventAttendanceSchema,
             },
         },
     }),
     async (req, res) => {
-        //const roles = tryGetAuthenticatedUser(req)?.roles || [];
         const { id } = req.params;
         const events = await Models.EventAttendance.find();
-        const result: [string, string][] = [];
-        for(const e of events) {
-            const currEvent = await Models.Event.findOne({eventId: e.eventId});
+        const absent: [string, number, number][] = [];
+        const present: [string, number, number][] = [];
+        const excused: [string, number, number][] = [];
+        for (const e of events) {
+            const currEvent = await Models.Event.findOne({ eventId: e.eventId });
             // if not mandatory event continue
-            if(currEvent && !currEvent.isMandatory) { continue; }
-
-            let attendenceStatus = "absent";
-            if(e.attendees.includes(id)) {
-                attendenceStatus = "present";
-            } else if(e.excusedAttendees?.includes(id)) {
-                attendenceStatus = "excused";
+            if (!currEvent || !currEvent.isMandatory) {
+                continue;
             }
-           result.push([e.eventId, attendenceStatus]);
+
+            if (e.attendees.includes(id)) {
+                present.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            } else if (e.excusedAttendees?.includes(id)) {
+                excused.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            } else {
+                absent.push([e.eventId, currEvent.startTime, currEvent.endTime]);
+            }
         }
 
-        return res.status(StatusCode.SuccessOK).send({ result });
+        return res.status(StatusCode.SuccessOK).send({ present, excused, absent });
     },
 );
 
