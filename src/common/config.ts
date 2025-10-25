@@ -71,7 +71,7 @@ const Config = {
         env.DB_URL || `mongodb+srv://${requireEnv("DB_USERNAME")}:${requireEnv("DB_PASSWORD")}@${requireEnv("DB_SERVER")}/main`,
     DB_PARAMS: "?retryWrites=true&w=majority",
 
-    FCM_SERVICE_ACCOUNT: requireEnv("FCM_SERVICE_ACCOUNT"),
+    EXPO_ACCESS_TOKEN: requireEnv("EXPO_ACCESS_TOKEN"),
 
     SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
     SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",

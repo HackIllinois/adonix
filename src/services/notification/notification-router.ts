@@ -121,12 +121,6 @@ notificationsRouter.post(
         // Get users which match every filter
         const targetUserIds = usersForEachFilter.reduce((acc, array) => acc.filter((element) => array.includes(element)));
 
-        const messageTemplate = {
-            notification: {
-                title: sendRequest.title,
-                body: sendRequest.body,
-            },
-        };
         const startTime = new Date();
 
         const sent: string[] = [];
@@ -136,9 +130,19 @@ notificationsRouter.post(
         const messages = notificationMappings
             .filter((x) => x?.deviceToken != undefined)
             .map((mapping) =>
-                sendNotification({ token: mapping.deviceToken, ...messageTemplate })
-                    .then(() => {
-                        sent.push(mapping.userId);
+                sendNotification({
+                    token: mapping.deviceToken,
+                    title: sendRequest.title,
+                    body: sendRequest.body,
+                })
+                    .then((ticket) => {
+                        // Check if the ticket indicates success
+                        if (ticket.status === "ok") {
+                            sent.push(mapping.userId);
+                        } else if (ticket.status === "error") {
+                            console.log(`Error sending to ${mapping.userId}:`, ticket.message);
+                            failed.push(mapping.userId);
+                        }
                     })
                     .catch((e) => {
                         console.log(e);
