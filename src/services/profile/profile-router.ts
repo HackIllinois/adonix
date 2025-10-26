@@ -190,7 +190,7 @@ profileRouter.post(
         const { id: userId } = getAuthenticatedUser(req);
         const { avatarId, discordTag, displayName } = req.body;
 
-        const registrationApplication = await Models.RegistrationApplication.findOne({
+        const registrationApplication = await Models.RegistrationApplicationSubmitted.findOne({
             userId,
         });
         if (!registrationApplication) {

@@ -4,7 +4,14 @@ import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import { Degree, Gender, HackInterest, HackOutreach, Race, RegistrationApplication } from "../registration/registration-schemas";
+import {
+    Degree,
+    Gender,
+    HackInterest,
+    HackOutreach,
+    Race,
+    RegistrationApplicationSubmitted,
+} from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
 
@@ -16,7 +23,6 @@ const TESTER_EVENT_ATTENDANCE = {
 
 const TESTER_REGISTRATION = {
     userId: "some-user",
-    hasSubmitted: true,
     preferredName: "W",
     emailAddress: "w@illinois.edu",
     location: "Illinois",
@@ -38,7 +44,7 @@ const TESTER_REGISTRATION = {
     gender: Gender.NO_ANSWER,
     race: [Race.NO_ANSWER],
     optionalEssay: "Optional Essay",
-} satisfies RegistrationApplication;
+} satisfies RegistrationApplicationSubmitted;
 
 const TESTER_PROFILE = {
     userId: TESTER_REGISTRATION.userId,
@@ -77,7 +83,7 @@ const TEST_EVENT = {
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
-    await Models.RegistrationApplication.create(TESTER_REGISTRATION);
+    await Models.RegistrationApplicationSubmitted.create(TESTER_REGISTRATION);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
     await Models.Event.create(TEST_EVENT);
 });
@@ -171,7 +177,7 @@ describe("PUT /staff/scan-attendee/", () => {
 
     it("handles missing registration data", async () => {
         // Remove registration data
-        await Models.RegistrationApplication.deleteOne({ userId: testUserId });
+        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: testUserId });
 
         await putAsStaff("/staff/scan-attendee/")
             .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })
