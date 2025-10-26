@@ -1,22 +1,46 @@
-import { Message } from "firebase-admin/lib/messaging/messaging-api";
+import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
 import Config from "../../common/config";
-import admin, { ServiceAccount } from "firebase-admin";
 
-function initializeFCM(): void {
-    if (!admin.apps.length) {
-        const encodedKey = Config.FCM_SERVICE_ACCOUNT;
-        const serviceAccount = JSON.parse(atob(encodedKey)) as ServiceAccount;
-        const projectName = serviceAccount.projectId;
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: `https://${projectName}.firebaseio.com/`,
+let expo: Expo | null = null;
+
+function getExpoClient(): Expo {
+    if (!expo) {
+        expo = new Expo({
+            accessToken: Config.EXPO_ACCESS_TOKEN,
+            useFcmV1: true,
         });
-        ``;
     }
+    return expo;
 }
 
-export function sendNotification(message: Message): Promise<string> {
-    initializeFCM();
+export interface NotificationMessage {
+    token: string;
+    title: string;
+    body: string;
+}
 
-    return admin.messaging().send(message);
+export async function sendNotification(message: NotificationMessage): Promise<ExpoPushTicket> {
+    const client = getExpoClient();
+
+    // validate push token
+    if (!Expo.isExpoPushToken(message.token)) {
+        throw new Error(`Push token ${message.token} is not a valid Expo push token`);
+    }
+
+    // construct the Expo push message
+    const expoPushMessage: ExpoPushMessage = {
+        to: message.token,
+        sound: "default",
+        title: message.title,
+        body: message.body,
+    };
+
+    // send the notification and return the ticket
+    const tickets = await client.sendPushNotificationsAsync([expoPushMessage]);
+
+    if (!tickets[0]) {
+        throw new Error("Failed to receive ticket from Expo push service");
+    }
+
+    return tickets[0];
 }
