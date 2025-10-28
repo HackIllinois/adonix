@@ -1,7 +1,8 @@
-import { prop } from "@typegoose/typegoose";
+import { prop, Ref } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 import { EventIdSchema } from "../../common/schemas";
+import { StaffInfo } from "../staff/staff-schemas";
 
 export class UserInfo {
     @prop({ required: true, index: true })
@@ -12,7 +13,11 @@ export class UserInfo {
 
     @prop({ required: true })
     public email: string;
+
+    @prop({ ref: () => StaffInfo })
+    public staffInfo?: Ref<StaffInfo>; //check if user is staff with if (user.staffInfo)
 }
+
 export class UserAttendance {
     @prop({ required: true, index: true })
     public userId: string;
@@ -22,6 +27,12 @@ export class UserAttendance {
         type: () => String,
     })
     public attendance: string[];
+
+    @prop({
+        required: false,
+        type: () => String,
+    })
+    public excusedAttendance?: string[];
 }
 
 export class UserFollowing {
@@ -40,6 +51,10 @@ export const UserInfoSchema = z
         userId: UserIdSchema,
         name: z.string().openapi({ example: "John Doe" }),
         email: z.string().openapi({ example: "john@doe.com" }),
+        staffInfo: z.string().optional().openapi({
+            description: "Reference ID to staff info (if user is a staff member)",
+            example: "65321af4f7b4b42b0d5a1e7b",
+        }),
     })
     .openapi("UserInfo", {
         description: "A user's info",

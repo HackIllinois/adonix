@@ -9,6 +9,9 @@ import {
     ShiftsAddRequestSchema,
     ShiftsSchema,
     StaffAttendanceRequestSchema,
+    StaffInfoSchema,
+    StaffNotFoundError,
+    StaffNotFoundErrorSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -16,9 +19,12 @@ import { StatusCode } from "status-code-enum";
 import { Event } from "../event/event-schemas";
 import { performCheckIn, PerformCheckInErrors } from "./staff-lib";
 import specification, { Tag } from "../../middleware/specification";
-import { SuccessResponseSchema } from "../../common/schemas";
+import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
 import { decryptQRCode } from "../user/user-lib";
+import { UserInfo, UserNotFoundError, UserNotFoundErrorSchema } from "../user/user-schemas";
+import { Team } from "../team/team-schemas";
+import { z } from "zod";
 import {
     AlreadyCheckedInError,
     AlreadyCheckedInErrorSchema,
@@ -29,6 +35,202 @@ import {
 } from "../user/user-schemas";
 
 const staffRouter = Router();
+
+staffRouter.get(
+    "/info/",
+    specification({
+        method: "get",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: null,
+        summary: "Gets all active staff members with their information for the team page",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "List of active staff members",
+                schema: z
+                    .object({
+                        staff: z.array(StaffInfoSchema),
+                    })
+                    .openapi("StaffTeam"),
+            },
+        },
+    }),
+    async (_req, res) => {
+        const staffMembers = await Models.StaffInfo.find({ isActive: true }).populate("user").populate("team");
+
+        const staffData = staffMembers.map((staff) => {
+            const userInfo = staff.user as unknown as UserInfo;
+            const team = staff.team as unknown as Team;
+
+            return {
+                userId: userInfo.userId,
+                name: userInfo.name,
+                title: staff.title,
+                team: team?.name,
+                emoji: staff.emoji,
+                profilePictureUrl: staff.profilePictureUrl,
+                quote: staff.quote,
+                isActive: staff.isActive,
+            };
+        });
+
+        return res.status(StatusCode.SuccessOK).json({ staff: staffData });
+    },
+);
+
+staffRouter.post(
+    "/info/",
+    specification({
+        method: "post",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Creates staff information for a specified user",
+        body: StaffInfoSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully created staff info",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "User not found",
+                schema: UserNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { userId, title, team, emoji, profilePictureUrl, quote, isActive } = req.body;
+
+        const userInfo = await Models.UserInfo.findOne({ userId });
+        if (!userInfo) {
+            return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
+        }
+
+        const teamDoc = team ? await Models.Team.findOne({ name: team }) : undefined;
+
+        const staffInfo = await Models.StaffInfo.create({
+            user: userInfo._id,
+            title,
+            team: teamDoc?._id,
+            emoji,
+            profilePictureUrl,
+            quote,
+            isActive: isActive ?? true,
+        });
+
+        await Models.UserInfo.updateOne({ userId }, { staffInfo: staffInfo._id });
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.put(
+    "/info/",
+    specification({
+        method: "put",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Updates staff information for a specified user",
+        body: StaffInfoSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully updated staff info",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: [
+                {
+                    id: UserNotFoundError.error,
+                    description: "User not found",
+                    schema: UserNotFoundErrorSchema,
+                },
+                {
+                    id: StaffNotFoundError.error,
+                    description: "Staff info not found",
+                    schema: StaffNotFoundErrorSchema,
+                },
+            ],
+        },
+    }),
+    async (req, res) => {
+        const { userId, title, team, emoji, profilePictureUrl, quote, isActive } = req.body;
+
+        const userInfo = await Models.UserInfo.findOne({ userId });
+        if (!userInfo) {
+            return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
+        }
+
+        const teamDoc = team ? await Models.Team.findOne({ name: team }) : undefined;
+
+        const staffInfo = await Models.StaffInfo.findOneAndUpdate(
+            { user: userInfo._id },
+            {
+                title,
+                team: teamDoc?._id,
+                emoji,
+                profilePictureUrl,
+                quote,
+                isActive: isActive ?? true,
+            },
+            { new: true },
+        );
+
+        if (!staffInfo) {
+            return res.status(StatusCode.ClientErrorNotFound).json(StaffNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.delete(
+    "/info/",
+    specification({
+        method: "delete",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Deletes staff information for a specified user",
+        body: z.object({
+            userId: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully deleted staff info",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: [
+                {
+                    id: UserNotFoundError.error,
+                    description: "User not found",
+                    schema: UserNotFoundErrorSchema,
+                },
+                {
+                    id: StaffNotFoundError.error,
+                    description: "Staff info not found",
+                    schema: StaffNotFoundErrorSchema,
+                },
+            ],
+        },
+    }),
+    async (req, res) => {
+        const { userId } = req.body;
+
+        const userInfo = await Models.UserInfo.findOne({ userId });
+        if (!userInfo) {
+            return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
+        }
+
+        const staffInfo = await Models.StaffInfo.findOneAndDelete({ user: userInfo._id });
+        if (!staffInfo) {
+            return res.status(StatusCode.ClientErrorNotFound).json(StaffNotFoundError);
+        }
+
+        await Models.UserInfo.updateOne({ userId }, { $unset: { staffInfo: "" } });
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
 
 staffRouter.post(
     "/attendance/",
