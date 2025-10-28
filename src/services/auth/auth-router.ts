@@ -262,7 +262,12 @@ authRouter.get(
 
         const userInfo = await getUserInfoWithRole(role);
 
-        res.status(StatusCode.SuccessOK).send({ userInfo });
+        res.status(StatusCode.SuccessOK).send({
+            userInfo: userInfo.map(user => ({
+                ...user,
+                staffInfo: user.staffInfo?.toString(),
+            })),
+        });
     },
 );
 

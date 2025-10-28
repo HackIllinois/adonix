@@ -178,7 +178,11 @@ eventsRouter.get(
             userId: { $in: event.attendees },
         }).sort({ userId: 1 });
 
-        return res.status(StatusCode.SuccessOK).send({ eventId, attendeesInfo });
+        const transformedAttendeesInfo = attendeesInfo.map((attendee) => ({
+            ...attendee.toObject(),
+            staffInfo: attendee.staffInfo?.toString(),
+        }));
+        return res.status(StatusCode.SuccessOK).send({ eventId, attendeesInfo: transformedAttendeesInfo });
     },
 );
 

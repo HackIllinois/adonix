@@ -93,7 +93,6 @@ export const [QRExpiredError, QRExpiredErrorSchema] = CreateErrorAndSchema({
     message: "Your QR code has expired",
 });
 
-// For later use if we ever need to fetch a specific staff member
 export const [StaffNotFoundError, StaffNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "StaffNotFound",
     message: "The specified staff member was not found",
