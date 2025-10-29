@@ -264,8 +264,9 @@ authRouter.get(
 
         res.status(StatusCode.SuccessOK).send({
             userInfo: userInfo.map((user) => ({
-                ...user,
-                staffInfo: user.staffInfo?.toString(),
+                name: user.name,
+                userId: user.userId,
+                email: user.email,
             })),
         });
     },
