@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
+import { z } from "zod";
 import Models from "../../common/models";
 import { StaffShift } from "../staff/staff-schemas";
 import { Role } from "../auth/auth-schemas";
@@ -162,6 +163,80 @@ notificationsRouter.post(
         const endTime = new Date();
         const timeElapsed = endTime.getTime() - startTime.getTime();
         return res.status(StatusCode.SuccessOK).send({ sent, failed, time_ms: timeElapsed });
+    },
+);
+
+notificationsRouter.post(
+    "/send-test/",
+    specification({
+        method: "post",
+        path: "/notification/send-test/",
+        tag: Tag.NOTIFICATION,
+        role: Role.STAFF,
+        summary: "Sends a test notification to the currently authenticated user",
+        description: "Useful for testing if your device token is registered correctly and notifications are working.",
+        body: z.object({
+            title: z.string(),
+            body: z.string(),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The result of the test notification",
+                schema: z.object({
+                    success: z.boolean(),
+                    userId: z.string(),
+                    message: z.string(),
+                }),
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "No device token registered for this user",
+                schema: z.object({
+                    success: z.boolean(),
+                    message: z.string(),
+                }),
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { title, body } = req.body;
+
+        const mapping = await Models.NotificationMappings.findOne({ userId });
+
+        if (!mapping || !mapping.deviceToken) {
+            return res.status(StatusCode.ClientErrorNotFound).send({
+                success: false,
+                message: "No device token registered for this user. Register a token first using POST /notification/",
+            });
+        }
+
+        try {
+            const ticket = await sendNotification({
+                token: mapping.deviceToken,
+                title,
+                body,
+            });
+
+            if (ticket.status === "ok") {
+                return res.status(StatusCode.SuccessOK).send({
+                    success: true,
+                    userId,
+                    message: "Test notification sent successfully!",
+                });
+            } else {
+                return res.status(StatusCode.SuccessOK).send({
+                    success: false,
+                    userId,
+                    message: `Failed to send: ${ticket.message || "Unknown error"}`,
+                });
+            }
+        } catch (error) {
+            return res.status(StatusCode.SuccessOK).send({
+                success: false,
+                userId,
+                message: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+            });
+        }
     },
 );
 
