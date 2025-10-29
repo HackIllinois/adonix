@@ -145,7 +145,7 @@ sponsorRouter.post(
         };
 
         // query registration_applications database and count documents with filter values from req body
-        const filteredApplicantCount = await Models.RegistrationApplication.countDocuments(registrationQuery);
+        const filteredApplicantCount = await Models.RegistrationApplicationSubmitted.countDocuments(registrationQuery);
 
         // Calculate the number of pages based on the configured entries per page (config value)
         const pageCount = Math.ceil(filteredApplicantCount / Config.RESUME_BOOK_ENTRIES_PER_PAGE);
@@ -196,7 +196,7 @@ sponsorRouter.post(
         };
 
         // query registration_applications database and return page of document values with filter values from req body
-        const filteredApplicants = await Models.RegistrationApplication.find(registrationQuery)
+        const filteredApplicants = await Models.RegistrationApplicationSubmitted.find(registrationQuery)
             .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS })
             .skip((page - 1) * Config.RESUME_BOOK_ENTRIES_PER_PAGE)
             .limit(Config.RESUME_BOOK_ENTRIES_PER_PAGE);

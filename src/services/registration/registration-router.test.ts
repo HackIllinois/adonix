@@ -9,8 +9,9 @@ import {
     HackInterest,
     HackOutreach,
     Race,
-    RegistrationApplication,
-    RegistrationApplicationRequest,
+    RegistrationApplicationDraft,
+    RegistrationApplicationDraftRequest,
+    RegistrationApplicationSubmitted,
 } from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type { AxiosResponse } from "axios";
@@ -34,29 +35,36 @@ const APPLICATION = {
     race: [Race.NO_ANSWER],
     hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
     hackOutreach: [HackOutreach.INSTAGRAM],
-} satisfies RegistrationApplicationRequest;
+} satisfies RegistrationApplicationDraftRequest;
 
 const APPLICATION_INVALID_EMAIL = { ...APPLICATION, emailAddress: "invalidemail" };
 
-const UNSUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: false, ...APPLICATION } satisfies RegistrationApplication;
-const UNSUBMITTED_OTHER_REGISTRATION = {
-    ...UNSUBMITTED_REGISTRATION,
+const DRAFT_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies RegistrationApplicationDraft;
+const DRAFT_OTHER_REGISTRATION = {
+    ...DRAFT_REGISTRATION,
     userId: "otherUser",
-} satisfies RegistrationApplication;
-const SUBMITTED_REGISTRATION = { userId: TESTER.id, hasSubmitted: true, ...APPLICATION } satisfies RegistrationApplication;
+} satisfies RegistrationApplicationDraft;
+const SUBMITTED_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies RegistrationApplicationSubmitted;
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
-        await Models.RegistrationApplication.create(UNSUBMITTED_REGISTRATION);
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
     });
 
-    it("should retrieve registration", async () => {
+    it("should retrieve draft registration", async () => {
         const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(DRAFT_REGISTRATION);
+    });
+
+    it("should retrieve submitted registration when both exist", async () => {
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
+
+        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
     });
 
     it("should provide a not found error when registration does not exist", async () => {
-        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_REGISTRATION);
+        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
 
         const response = await getAsUser("/registration/").expect(StatusCode.ClientErrorNotFound);
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
@@ -64,14 +72,14 @@ describe("GET /registration/", () => {
 });
 
 describe("GET /registration/userid/:USERID", () => {
-    const OTHER_USER_ID = UNSUBMITTED_OTHER_REGISTRATION.userId;
+    const OTHER_USER_ID = DRAFT_OTHER_REGISTRATION.userId;
     beforeEach(async () => {
-        await Models.RegistrationApplication.create(UNSUBMITTED_OTHER_REGISTRATION);
+        await Models.RegistrationApplicationDraft.create(DRAFT_OTHER_REGISTRATION);
     });
 
     it("should retrieve registration", async () => {
         const response = await getAsAdmin(`/registration/userid/${OTHER_USER_ID}`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(UNSUBMITTED_OTHER_REGISTRATION);
+        expect(JSON.parse(response.text)).toMatchObject(DRAFT_OTHER_REGISTRATION);
     });
 
     it("should provide a forbidden error to non-staff user", async () => {
@@ -80,7 +88,7 @@ describe("GET /registration/userid/:USERID", () => {
     });
 
     it("should provide a not found error when registration does not exist", async () => {
-        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_OTHER_REGISTRATION);
+        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_OTHER_REGISTRATION);
 
         const response = await getAsAdmin(`/registration/userid/${OTHER_USER_ID}`).expect(StatusCode.ClientErrorNotFound);
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
@@ -88,30 +96,30 @@ describe("GET /registration/userid/:USERID", () => {
 });
 
 describe("POST /registration/", () => {
-    it("should create registration", async () => {
+    it("should create draft registration", async () => {
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
-        // Stored in DB
-        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
-            userId: UNSUBMITTED_REGISTRATION.userId,
+        // Stored in DB as draft
+        const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
         });
-        expect(stored).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(stored).toMatchObject(DRAFT_REGISTRATION);
     });
 
-    it("should update registration", async () => {
-        await Models.RegistrationApplication.create({
-            ...UNSUBMITTED_REGISTRATION,
+    it("should update draft registration", async () => {
+        await Models.RegistrationApplicationDraft.create({
+            ...DRAFT_REGISTRATION,
             degree: "PhD of Data Corruption",
         });
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
-        // Stored in DB
-        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
-            userId: UNSUBMITTED_REGISTRATION.userId,
+        // Stored in DB as draft
+        const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
         });
-        expect(stored).toMatchObject(UNSUBMITTED_REGISTRATION);
+        expect(stored).toMatchObject(DRAFT_REGISTRATION);
     });
 
     it("should provide bad request error when registration is invalid", async () => {
@@ -127,7 +135,7 @@ describe("POST /registration/", () => {
     });
 
     it("should provide already submitted error when user has already submitted registration", async () => {
-        await Models.RegistrationApplication.create(SUBMITTED_REGISTRATION);
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
         const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
@@ -143,7 +151,7 @@ describe("POST /registration/submit/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async () => {
-        await Models.RegistrationApplication.create(UNSUBMITTED_REGISTRATION);
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
 
         // Mock successful send by default
         sendMail = mockSendMail();
@@ -155,31 +163,49 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [UNSUBMITTED_REGISTRATION.emailAddress],
-            subs: { name: UNSUBMITTED_REGISTRATION.preferredName },
+            recipients: [DRAFT_REGISTRATION.emailAddress],
+            subs: { name: DRAFT_REGISTRATION.preferredName },
         } satisfies MailInfo);
 
-        // Stored in DB
-        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
-            userId: UNSUBMITTED_REGISTRATION.userId,
+        // Should be stored in submissions collection
+        const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
+            userId: DRAFT_REGISTRATION.userId,
         });
-        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
+
+        // Draft should be deleted
+        const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(storedDraft).toBeNull();
     });
 
-    it("should provide not found error when registration does not exist", async () => {
-        await Models.RegistrationApplication.deleteOne(UNSUBMITTED_REGISTRATION);
+    it("should provide not found error when draft does not exist", async () => {
+        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
 
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorNotFound);
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
     it("should provide already submitted error when already submitted", async () => {
-        await Models.RegistrationApplication.updateOne(UNSUBMITTED_REGISTRATION, SUBMITTED_REGISTRATION);
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 
+    it("should provide incomplete application error when draft is incomplete", async () => {
+        const incompleteDraft = {
+            ...DRAFT_REGISTRATION,
+            hackEssay1: undefined,
+            hackEssay2: undefined,
+        };
+        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
+        await Models.RegistrationApplicationDraft.create(incompleteDraft);
+
+        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "IncompleteApplication");
+    });
     it("should provide error when email fails to send and still submit registration", async () => {
         // Mock failure
         sendMail.mockImplementation(async (_) => {
@@ -189,10 +215,16 @@ describe("POST /registration/submit/", () => {
         const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
         expect(JSON.parse(response.text)).toHaveProperty("error", "InternalError");
 
-        // Still stored in DB
-        const stored: RegistrationApplication | null = await Models.RegistrationApplication.findOne({
-            userId: UNSUBMITTED_REGISTRATION.userId,
+        // Should be stored in submissions collection
+        const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
+            userId: DRAFT_REGISTRATION.userId,
         });
-        expect(stored).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
+
+        // Draft should be deleted
+        const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(storedDraft).toBeNull();
     });
 });
