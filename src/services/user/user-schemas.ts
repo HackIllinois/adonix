@@ -14,7 +14,7 @@ export class UserInfo {
     @prop({ required: true })
     public email: string;
 
-    @prop({ ref: () => StaffInfo })
+    @prop({ required: false, ref: () => StaffInfo })
     public staffInfo?: Ref<StaffInfo>; //check if user is staff with if (user.staffInfo)
 }
 

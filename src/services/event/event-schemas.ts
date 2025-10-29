@@ -225,7 +225,13 @@ export const EventAttendeesSchema = z
 export const EventAttendeesInfoSchema = z
     .object({
         eventId: EventIdSchema,
-        attendeesInfo: z.array(UserInfoSchema),
+        attendeesInfo: z.array(
+            z.object({
+                userId: UserIdSchema,
+                name: z.string(),
+                email: z.string(),
+            }),
+        ),
     })
     .openapi("EventAttendeesInfo");
 

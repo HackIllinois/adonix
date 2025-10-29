@@ -42,7 +42,7 @@ staffRouter.get(
         method: "get",
         path: "/staff/info/",
         tag: Tag.STAFF,
-        role: null,
+        role: Role.USER,
         summary: "Gets all active staff members with their information for the team page",
         responses: {
             [StatusCode.SuccessOK]: {
