@@ -51,6 +51,10 @@ export const UserInfoSchema = z
         userId: UserIdSchema,
         name: z.string().openapi({ example: "John Doe" }),
         email: z.string().openapi({ example: "john@doe.com" }),
+        staffInfo: z.string().optional().openapi({
+            description: "Reference ID to staff info (if user is a staff member)",
+            example: "65321af4f7b4b42b0d5a1e7b",
+        }),
     })
     .openapi("UserInfo", {
         description: "A user's info",
