@@ -2,7 +2,6 @@ import { modelOptions, prop } from "@typegoose/typegoose";
 import { CreateErrorAndSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { UserInfoSchema } from "../user/user-schemas";
 
 export enum EventType {
     MEAL = "MEAL",
