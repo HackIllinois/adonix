@@ -398,12 +398,19 @@ eventsRouter.get(
     async (req, res) => {
         const { id } = req.params;
         const events = await Models.EventAttendance.find();
+        const eventIds = [...new Set(events.map((e) => e.eventId))];
+
+        // Fetch events and map eventId to event
+        const allEvents = await Models.Event.find({ eventId: { $in: eventIds } });
+        const eventMap = new Map(allEvents.map((ev) => [ev.eventId, ev]));
+
         const absent: [string, number, number][] = [];
         const present: [string, number, number][] = [];
         const excused: [string, number, number][] = [];
         for (const e of events) {
-            const currEvent = await Models.Event.findOne({ eventId: e.eventId });
-            // if not mandatory event continue
+            const currEvent = eventMap.get(e.eventId);
+
+            // Skip non-mandatory events
             if (!currEvent || !currEvent.isMandatory) {
                 continue;
             }
