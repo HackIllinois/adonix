@@ -2,7 +2,6 @@ import { modelOptions, prop } from "@typegoose/typegoose";
 import { CreateErrorAndSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { UserInfoSchema } from "../user/user-schemas";
 
 export enum EventType {
     MEAL = "MEAL",
@@ -225,7 +224,13 @@ export const EventAttendeesSchema = z
 export const EventAttendeesInfoSchema = z
     .object({
         eventId: EventIdSchema,
-        attendeesInfo: z.array(UserInfoSchema),
+        attendeesInfo: z.array(
+            z.object({
+                userId: UserIdSchema,
+                name: z.string(),
+                email: z.string(),
+            }),
+        ),
     })
     .openapi("EventAttendeesInfo");
 

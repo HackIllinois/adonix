@@ -115,7 +115,10 @@ userRouter.get(
         const user = await Models.UserInfo.findOne({ userId });
 
         if (user) {
-            return res.status(StatusCode.SuccessOK).json(user);
+            return res.status(StatusCode.SuccessOK).json({
+                ...user.toObject(),
+                staffInfo: user.staffInfo?.toString(),
+            });
         }
 
         return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
@@ -266,7 +269,12 @@ userRouter.get(
         const { id: userId } = req.params;
         const userInfo: UserInfo | null = await Models.UserInfo.findOne({ userId });
         if (userInfo) {
-            return res.status(StatusCode.SuccessOK).send(userInfo);
+            return res.status(StatusCode.SuccessOK).send({
+                userId: userInfo.userId,
+                name: userInfo.name,
+                email: userInfo.email,
+                staffInfo: userInfo.staffInfo?.toString(),
+            });
         } else {
             return res.status(StatusCode.ClientErrorNotFound).send(UserNotFoundError);
         }

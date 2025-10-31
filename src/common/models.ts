@@ -15,11 +15,12 @@ import {
 import { ShopHistory, ShopItem, ShopOrder } from "../services/shop/shop-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
-import { StaffShift } from "../services/staff/staff-schemas";
+import { StaffShift, StaffInfo } from "../services/staff/staff-schemas";
 import { NotificationMappings, NotificationMessages } from "../services/notification/notification-schemas";
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
 import { StatisticLog } from "../services/statistic/statistic-schemas";
+import { Team } from "../services/team/team-schemas";
 import Config from "./config";
 import { RuntimeConfigModel } from "./runtimeConfig";
 
@@ -39,6 +40,7 @@ export enum Group {
     SPONSOR = "sponsor",
     STAFF = "staff",
     STATISTIC = "statistic",
+    TEAM = "team",
     USER = "user",
 }
 
@@ -102,6 +104,11 @@ enum SponsorCollection {
 
 enum StaffCollection {
     SHIFT = "shift",
+    INFO = "info",
+}
+
+enum TeamCollection {
+    TEAMS = "teams",
 }
 
 enum StatisticCollection {
@@ -204,9 +211,13 @@ export default class Models {
 
     // Staff
     static StaffShift: Model<StaffShift> = getModel(StaffShift, Group.STAFF, StaffCollection.SHIFT);
+    static StaffInfo: Model<StaffInfo> = getModel(StaffInfo, Group.STAFF, StaffCollection.INFO);
 
     // Statistic
     static StatisticLog: Model<StatisticLog> = getModel(StatisticLog, Group.STATISTIC, StatisticCollection.LOGS);
+
+    // Team
+    static Team: Model<Team> = getModel(Team, Group.TEAM, TeamCollection.TEAMS);
 
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
