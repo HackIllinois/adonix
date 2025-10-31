@@ -169,7 +169,7 @@ notificationsRouter.post(
     "/send/self",
     specification({
         method: "post",
-        path: "/notification/send/test",
+        path: "/notification/send/self",
         tag: Tag.NOTIFICATION,
         role: Role.STAFF,
         summary: "Sends a test notification to the currently authenticated user",
