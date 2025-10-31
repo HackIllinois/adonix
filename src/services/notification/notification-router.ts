@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { StatusCode } from "status-code-enum";
-import { z } from "zod";
 import Models from "../../common/models";
 import { StaffShift } from "../staff/staff-schemas";
 import { Role } from "../auth/auth-schemas";
@@ -167,33 +166,19 @@ notificationsRouter.post(
 );
 
 notificationsRouter.post(
-    "/send-test/",
+    "/send/self",
     specification({
         method: "post",
-        path: "/notification/send-test/",
+        path: "/notification/send/test",
         tag: Tag.NOTIFICATION,
         role: Role.STAFF,
         summary: "Sends a test notification to the currently authenticated user",
         description: "Useful for testing if your device token is registered correctly and notifications are working.",
-        body: z.object({
-            title: z.string(),
-            body: z.string(),
-        }),
+        body: NotificationSendRequestSchema.pick({ title: true, body: true }),
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The result of the test notification",
-                schema: z.object({
-                    success: z.boolean(),
-                    userId: z.string(),
-                    message: z.string(),
-                }),
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "No device token registered for this user",
-                schema: z.object({
-                    success: z.boolean(),
-                    message: z.string(),
-                }),
+                schema: NotificationSendSchema,
             },
         },
     }),
@@ -201,40 +186,40 @@ notificationsRouter.post(
         const { id: userId } = getAuthenticatedUser(req);
         const { title, body } = req.body;
 
+        const startTime = new Date();
+
         const mapping = await Models.NotificationMappings.findOne({ userId });
 
         if (!mapping || !mapping.deviceToken) {
-            return res.status(StatusCode.ClientErrorNotFound).send({
-                success: false,
-                message: "No device token registered for this user. Register a token first using POST /notification/",
+            const endTime = new Date();
+            const timeElapsed = endTime.getTime() - startTime.getTime();
+            return res.status(StatusCode.SuccessOK).send({
+                sent: [],
+                failed: [userId],
+                time_ms: timeElapsed,
             });
         }
 
-        try {
-            const ticket = await sendNotification({
-                token: mapping.deviceToken,
-                title,
-                body,
-            });
+        const ticket = await sendNotification({
+            token: mapping.deviceToken,
+            title,
+            body,
+        });
 
-            if (ticket.status === "ok") {
-                return res.status(StatusCode.SuccessOK).send({
-                    success: true,
-                    userId,
-                    message: "Test notification sent successfully!",
-                });
-            } else {
-                return res.status(StatusCode.SuccessOK).send({
-                    success: false,
-                    userId,
-                    message: `Failed to send: ${ticket.message || "Unknown error"}`,
-                });
-            }
-        } catch (error) {
+        const endTime = new Date();
+        const timeElapsed = endTime.getTime() - startTime.getTime();
+
+        if (ticket.status === "ok") {
             return res.status(StatusCode.SuccessOK).send({
-                success: false,
-                userId,
-                message: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+                sent: [userId],
+                failed: [],
+                time_ms: timeElapsed,
+            });
+        } else {
+            return res.status(StatusCode.SuccessOK).send({
+                sent: [],
+                failed: [userId],
+                time_ms: timeElapsed,
             });
         }
     },
