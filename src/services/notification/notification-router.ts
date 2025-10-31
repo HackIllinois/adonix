@@ -121,12 +121,6 @@ notificationsRouter.post(
         // Get users which match every filter
         const targetUserIds = usersForEachFilter.reduce((acc, array) => acc.filter((element) => array.includes(element)));
 
-        const messageTemplate = {
-            notification: {
-                title: sendRequest.title,
-                body: sendRequest.body,
-            },
-        };
         const startTime = new Date();
 
         const sent: string[] = [];
@@ -136,9 +130,19 @@ notificationsRouter.post(
         const messages = notificationMappings
             .filter((x) => x?.deviceToken != undefined)
             .map((mapping) =>
-                sendNotification({ token: mapping.deviceToken, ...messageTemplate })
-                    .then(() => {
-                        sent.push(mapping.userId);
+                sendNotification({
+                    token: mapping.deviceToken,
+                    title: sendRequest.title,
+                    body: sendRequest.body,
+                })
+                    .then((ticket) => {
+                        // Check if the ticket indicates success
+                        if (ticket.status === "ok") {
+                            sent.push(mapping.userId);
+                        } else if (ticket.status === "error") {
+                            console.log(`Error sending to ${mapping.userId}:`, ticket.message);
+                            failed.push(mapping.userId);
+                        }
                     })
                     .catch((e) => {
                         console.log(e);
@@ -158,6 +162,66 @@ notificationsRouter.post(
         const endTime = new Date();
         const timeElapsed = endTime.getTime() - startTime.getTime();
         return res.status(StatusCode.SuccessOK).send({ sent, failed, time_ms: timeElapsed });
+    },
+);
+
+notificationsRouter.post(
+    "/send/self",
+    specification({
+        method: "post",
+        path: "/notification/send/test",
+        tag: Tag.NOTIFICATION,
+        role: Role.STAFF,
+        summary: "Sends a test notification to the currently authenticated user",
+        description: "Useful for testing if your device token is registered correctly and notifications are working.",
+        body: NotificationSendRequestSchema.pick({ title: true, body: true }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The result of the test notification",
+                schema: NotificationSendSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { title, body } = req.body;
+
+        const startTime = new Date();
+
+        const mapping = await Models.NotificationMappings.findOne({ userId });
+
+        if (!mapping || !mapping.deviceToken) {
+            const endTime = new Date();
+            const timeElapsed = endTime.getTime() - startTime.getTime();
+            return res.status(StatusCode.SuccessOK).send({
+                sent: [],
+                failed: [userId],
+                time_ms: timeElapsed,
+            });
+        }
+
+        const ticket = await sendNotification({
+            token: mapping.deviceToken,
+            title,
+            body,
+        });
+
+        const endTime = new Date();
+        const timeElapsed = endTime.getTime() - startTime.getTime();
+
+        if (ticket.status === "ok") {
+            return res.status(StatusCode.SuccessOK).send({
+                sent: [userId],
+                failed: [],
+                time_ms: timeElapsed,
+            });
+        } else {
+            return res.status(StatusCode.SuccessOK).send({
+                sent: [],
+                failed: [userId],
+                time_ms: timeElapsed,
+            });
+        }
     },
 );
 
