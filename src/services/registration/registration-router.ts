@@ -192,7 +192,7 @@ registrationRouter.post(
                 schema: RegistrationAlreadySubmittedErrorSchema,
             },
             [StatusCode.ClientErrorConflict]: {
-                description: "Registration already exists, try updating registration instead",
+                description: "Registration draft already exists, try updating registration instead",
                 schema: RegistrationDraftAlreadyExistsErrorSchema,
             },
         },
