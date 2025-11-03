@@ -1,8 +1,32 @@
-import { prop } from "@typegoose/typegoose";
+import { prop, Ref } from "@typegoose/typegoose";
 import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 import { EventSchema } from "../event/event-schemas";
+import { Team } from "../team/team-schemas";
+
+export class StaffInfo {
+    @prop({ required: true })
+    public name: string;
+
+    @prop({ required: true })
+    public title!: string;
+
+    @prop({ ref: () => Team, required: false })
+    public team?: Ref<Team>;
+
+    @prop({ required: false })
+    public emoji?: string;
+
+    @prop({ required: false })
+    public profilePictureUrl?: string;
+
+    @prop({ required: false })
+    public quote?: string;
+
+    @prop({ required: true, default: true })
+    public isActive!: boolean;
+}
 
 export class StaffShift {
     @prop({ required: true, index: true })
@@ -43,6 +67,21 @@ export const ShiftsSchema = z
 export const ShiftsAddRequestSchema = z.object({
     userId: UserIdSchema,
     shifts: z.array(EventIdSchema),
+});
+
+export const StaffInfoSchema = z.object({
+    name: z.string(),
+    title: z.string(),
+    team: z.string().optional(),
+    emoji: z.string().optional(),
+    profilePictureUrl: z.string().optional(),
+    quote: z.string().optional(),
+    isActive: z.boolean().default(true),
+});
+
+export const [StaffNotFoundError, StaffNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "StaffNotFound",
+    message: "The specified staff member was not found",
 });
 
 export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({
