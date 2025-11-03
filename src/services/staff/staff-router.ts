@@ -54,10 +54,16 @@ staffRouter.get(
     async (_req, res) => {
         const staffInfo = await Models.StaffInfo.find({ isActive: true }).populate("team").lean();
 
-        const formattedStaffInfo = staffInfo.map((info) => ({
-            ...info,
-            team: info.team ? (typeof info.team === "string" ? info.team : info.team._id.toString()) : undefined,
-        }));
+        const formattedStaffInfo = staffInfo.map((info) => {
+            let team;
+            if (info.team) {
+                team = typeof info.team === "string" ? info.team : info.team._id.toString();
+            }
+            return {
+                ...info,
+                team,
+            };
+        });
 
         return res.status(StatusCode.SuccessOK).json({ staffInfo: formattedStaffInfo });
     },
