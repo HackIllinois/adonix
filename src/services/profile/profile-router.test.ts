@@ -4,7 +4,6 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
-import { RegistrationApplicationSubmitted } from "../registration/registration-schemas";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -70,36 +69,10 @@ const UPDATED_PROFILE = {
     avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${UPDATE_REQUEST.avatarId}.png`,
 } satisfies AttendeeProfile;
 
-const REGISTRATION = {
-    userId: TESTER.id,
-    firstName: TESTER.name,
-    lastName: TESTER.name,
-    age: "21",
-    email: TESTER.email,
-    gender: "Other",
-    race: ["Prefer Not to Answer"],
-    country: "United States",
-    state: "Illinois",
-    school: "University of Illinois Urbana-Champaign",
-    education: "Undergraduate University (3+ year)",
-    graduate: "Spring 2026",
-    major: "Computer Science",
-    underrepresented: "No",
-    hackathonsParticipated: "2-3",
-    application1: "I love hack",
-    application2: "I love hack",
-    applicationOptional: "optional essay",
-    applicationPro: "I wanna be a Pro",
-    attribution: "Word of Mouth",
-    eventInterest: "Meeting New People",
-    requestTravelReimbursement: false,
-} satisfies RegistrationApplicationSubmitted;
-
 beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_USER);
     await Models.AttendeeProfile.create(TESTER_USER_2);
     await Models.AttendeeProfile.create(TESTER_USER_3);
-    await Models.RegistrationApplicationSubmitted.create(REGISTRATION);
 });
 
 describe("POST /profile", () => {

@@ -4,7 +4,6 @@ import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import { RegistrationApplicationSubmitted } from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
 
@@ -14,33 +13,8 @@ const TESTER_EVENT_ATTENDANCE = {
     excusedAttendees: [],
 } satisfies EventAttendance;
 
-const TESTER_REGISTRATION = {
-    userId: "some-user",
-    firstName: "W",
-    lastName: "W",
-    age: "21",
-    email: "w@illinois.edu",
-    gender: "Prefer Not to Answer",
-    race: ["Prefer Not to Answer"],
-    country: "United States",
-    state: "Illinois",
-    school: "University of Illinois (Chicago)",
-    education: "Undergraduate University (3+ year)",
-    graduate: "Spring 2030",
-    major: "Computer Science",
-    underrepresented: "No",
-    hackathonsParticipated: "2-3",
-    application1: "yay",
-    application2: "yay",
-    applicationOptional: "Optional Essay",
-    applicationPro: "",
-    attribution: "Word of Mouth",
-    eventInterest: "Meeting New People",
-    requestTravelReimbursement: true,
-} satisfies RegistrationApplicationSubmitted;
-
 const TESTER_PROFILE = {
-    userId: TESTER_REGISTRATION.userId,
+    userId: "some-user",
     displayName: "TestDisplayName",
     avatarUrl: TESTER.avatarUrl,
     discordTag: "TestTag",
@@ -77,7 +51,6 @@ const TEST_EVENT = {
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
-    await Models.RegistrationApplicationSubmitted.create(TESTER_REGISTRATION);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
     await Models.Event.create(TEST_EVENT);
 });
@@ -93,7 +66,7 @@ describe("PUT /staff/scan-attendee/", () => {
         await Models.UserAttendance.deleteMany({});
 
         // Setup test user and generate QR codes
-        testUserId = TESTER_REGISTRATION.userId;
+        testUserId = TESTER_PROFILE.userId;
         const currentTime = Math.floor(Date.now() / 1000);
 
         // Generate valid QR code
