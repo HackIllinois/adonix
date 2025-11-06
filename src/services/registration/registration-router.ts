@@ -26,10 +26,6 @@ import {
     RegistrationStatusSchema,
     RegistrationChallengeAlreadySolvedError,
     RegistrationChallengeAlreadySolvedErrorSchema,
-    RegistrationDraftAlreadyExistsErrorSchema,
-    RegistrationDraftAlreadyExistsError,
-    RegistrationDraftNotFoundErrorSchema,
-    RegistrationDraftNotFoundError,
 } from "./registration-schemas";
 import { DecisionStatus } from "../admission/admission-schemas";
 
@@ -169,68 +165,6 @@ registrationRouter.get(
     },
 );
 
-registrationRouter.post(
-    "/draft/",
-    specification({
-        method: "post",
-        path: "/registration/draft/",
-        tag: Tag.REGISTRATION,
-        role: Role.USER,
-        summary: "Creates the currently authenticated user's registration data",
-        body: RegistrationApplicationDraftRequestSchema,
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The new registration information",
-                schema: RegistrationApplicationDraftRequestSchema,
-            },
-            [StatusCode.ClientErrorForbidden]: {
-                description: "Registration is closed",
-                schema: RegistrationClosedErrorSchema,
-            },
-            [StatusCode.ClientErrorBadRequest]: {
-                description: "Registration is already submitted, cannot update anymore",
-                schema: RegistrationAlreadySubmittedErrorSchema,
-            },
-            [StatusCode.ClientErrorConflict]: {
-                description: "Registration draft already exists, try updating registration instead",
-                schema: RegistrationDraftAlreadyExistsErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { id: userId } = getAuthenticatedUser(req);
-
-        if (!isRegistrationAlive()) {
-            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
-        }
-
-        const setRequest = req.body;
-
-        const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
-
-        if (isSubmitted) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
-        }
-
-        const existingDraft = await Models.RegistrationApplicationDraft.findOne({ userId });
-        if (existingDraft) {
-            return res.status(StatusCode.ClientErrorConflict).send(RegistrationDraftAlreadyExistsError);
-        }
-
-        const createRegistration: RegistrationApplicationDraft = {
-            ...setRequest,
-            userId,
-        } as RegistrationApplicationDraft;
-
-        const newRegistrationInfo = await Models.RegistrationApplicationDraft.create(createRegistration);
-        if (!newRegistrationInfo) {
-            throw Error("Failed to create new registration info");
-        }
-
-        return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
-    },
-);
-
 registrationRouter.put(
     "/draft/",
     specification({
@@ -238,20 +172,16 @@ registrationRouter.put(
         path: "/registration/draft/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Updates the currently authenticated user's draft registration data",
+        summary: "Creates or updates the currently authenticated user's draft registration data",
         body: RegistrationApplicationDraftRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The registeration draft was updated",
+                description: "The registration draft was created or updated",
                 schema: RegistrationApplicationDraftRequestSchema,
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Registration is closed",
                 schema: RegistrationClosedErrorSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Registration draft not found. Try creating new one.",
-                schema: RegistrationDraftNotFoundErrorSchema,
             },
             [StatusCode.ClientErrorBadRequest]: {
                 description: "Registration is already submitted, cannot update anymore",
@@ -274,17 +204,15 @@ registrationRouter.put(
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const updateRegistration: RegistrationApplicationDraft = {
+        const registrationData: RegistrationApplicationDraft = {
             ...setRequest,
             userId,
         } as RegistrationApplicationDraft;
 
-        const newRegistrationInfo = await Models.RegistrationApplicationDraft.findOneAndUpdate({ userId }, updateRegistration, {
+        const newRegistrationInfo = await Models.RegistrationApplicationDraft.findOneAndUpdate({ userId }, registrationData, {
+            upsert: true,
             new: true,
         });
-        if (!newRegistrationInfo) {
-            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationDraftNotFoundError);
-        }
 
         return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
     },

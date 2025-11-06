@@ -448,13 +448,3 @@ export const [RegisterationIncompleteSubmissionError, RegisterationIncompleteSub
     error: "IncompleteApplication",
     message: "Your application is incomplete. Please fill out all required fields before submitting.",
 });
-
-export const [RegistrationDraftAlreadyExistsError, RegistrationDraftAlreadyExistsErrorSchema] = CreateErrorAndSchema({
-    error: "RegistrationDraftAlreadyExists",
-    message: "Registration draft already exists. Try editing existing draft.",
-});
-
-export const [RegistrationDraftNotFoundError, RegistrationDraftNotFoundErrorSchema] = CreateErrorAndSchema({
-    error: "RegistrationDraftNotFound",
-    message: "Registration draft not found.",
-});

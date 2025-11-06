@@ -119,11 +119,20 @@ describe("GET /registration/draft/", () => {
 });
 
 describe("PUT /registration/draft/", () => {
-    beforeEach(async () => {
-        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
+    it("should create new draft registration when none exists", async () => {
+        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
+
+        // check that it exist in db
+        const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject(DRAFT_REGISTRATION);
     });
 
-    it("should update draft registration", async () => {
+    it("should update existing draft", async () => {
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
+
         const updatedApplication = {
             ...APPLICATION,
             preferredName: "James Updated",
@@ -139,47 +148,13 @@ describe("PUT /registration/draft/", () => {
         expect(stored).toMatchObject({ ...DRAFT_REGISTRATION, ...updatedApplication });
     });
 
-    it("should provide not found error when draft does not exist", async () => {
-        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
-
-        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorNotFound);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "RegistrationDraftNotFound");
-    });
-
-    it("should provide already submitted error when user has already submitted registration", async () => {
-        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
-
-        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
-    });
-});
-
-describe("POST /registration/draft/", () => {
-    it("should create new draft registration", async () => {
-        const response = await postAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
-
-        // Stored in DB as draft
-        const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
-            userId: DRAFT_REGISTRATION.userId,
-        });
-        expect(stored).toMatchObject(DRAFT_REGISTRATION);
-    });
-
-    it("should provide conflict error when draft already exists", async () => {
-        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
-
-        const response = await postAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorConflict);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "RegistrationDraftAlreadyExists");
-    });
-
     it("should provide bad request error when registration is invalid", async () => {
-        const response = await postAsUser("/registration/draft/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        const response = await putAsUser("/registration/draft/").send({}).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("should provide bad request error when email is invalid", async () => {
-        const response = await postAsUser("/registration/draft/")
+        const response = await putAsUser("/registration/draft/")
             .send(APPLICATION_INVALID_EMAIL)
             .expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
@@ -188,7 +163,7 @@ describe("POST /registration/draft/", () => {
     it("should provide already submitted error when user has already submitted registration", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
+        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
