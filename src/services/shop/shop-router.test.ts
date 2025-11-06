@@ -32,6 +32,7 @@ const TESTER_PROFILE = {
     points: 1000,
     pointsAccumulated: 1000,
     foodWave: 1,
+    dietaryRestrictions: ["Peanut Allergy"],
 } satisfies AttendeeProfile;
 
 // Initialize test data before each test

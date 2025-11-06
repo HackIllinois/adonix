@@ -128,23 +128,23 @@ admissionRouter.put(
             } else {
                 await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
             }
-            if (application.requestedTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
+            if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
-                    recipients: [application.emailAddress],
-                    subs: { name: application.preferredName, amount: admissionDecision.reimbursementValue },
+                    recipients: [application.email],
+                    subs: { name: application.firstName, amount: admissionDecision.reimbursementValue },
                 };
             } else {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION,
-                    recipients: [application.emailAddress],
-                    subs: { name: application.preferredName },
+                    recipients: [application.email],
+                    subs: { name: application.firstName },
                 };
             }
         } else {
             mailInfo = {
                 templateId: Templates.RSVP_DECLINED,
-                recipients: [application.emailAddress],
+                recipients: [application.email],
             };
         }
 
@@ -188,7 +188,7 @@ admissionRouter.put(
         const changedUserIds = changedEntries.map((entry) => entry.userId);
 
         const applicationsList = await Models.RegistrationApplicationSubmitted.find({ userId: { $in: changedUserIds } });
-        const recipients = applicationsList.map((app) => app.emailAddress);
+        const recipients = applicationsList.map((app) => app.email);
 
         // Perform all updates
         await Models.AdmissionDecision.bulkWrite(

@@ -1,7 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
-import { RegistrationApplicationSubmittedSchema } from "../registration/registration-schemas";
+import { RegistrationApplicationSubmitted, RegistrationApplicationSubmittedSchema } from "../registration/registration-schemas";
 
 export class Sponsor {
     @prop({ required: true, index: true })
@@ -51,15 +51,14 @@ export const ResumeBookPageQuerySchema = z
 
 export const RESUME_BOOK_ENTRY_FIELDS = {
     userId: true,
-    emailAddress: true,
-    legalName: true,
-    location: true,
-    university: true,
-    degree: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    school: true,
+    education: true,
     major: true,
-    minor: true,
-    gradYear: true,
-} as const;
+    graduate: true,
+} satisfies Partial<Record<keyof RegistrationApplicationSubmitted, boolean | undefined>>;
 export const ResumeBookEntrySchema =
     RegistrationApplicationSubmittedSchema.pick(RESUME_BOOK_ENTRY_FIELDS).openapi("ResumeBookEntry");
 

@@ -42,6 +42,7 @@ const TESTER_PROFILE = {
     points: 0,
     pointsAccumulated: 1000,
     foodWave: 0,
+    dietaryRestrictions: [],
 } satisfies AttendeeProfile;
 
 const TESTER_ATTENDANCE = {
