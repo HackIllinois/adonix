@@ -123,7 +123,6 @@ describe("PUT /registration/draft/", () => {
         const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
-        // check that it exist in db
         const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });

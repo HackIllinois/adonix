@@ -214,6 +214,10 @@ registrationRouter.put(
             new: true,
         });
 
+        if (!newRegistrationInfo) {
+            throw Error("Failed to update registration info");
+        }
+
         return res.status(StatusCode.SuccessOK).send(newRegistrationInfo);
     },
 );
