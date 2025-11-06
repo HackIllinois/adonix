@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { Templates } from "../../common/config";
-import { TESTER, getAsUser, getAsAdmin, postAsUser } from "../../common/testTools";
+import { TESTER, getAsUser, getAsAdmin, postAsUser, putAsUser } from "../../common/testTools";
 import {
     Degree,
     Gender,
@@ -48,26 +48,26 @@ const SUBMITTED_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies R
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
-        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
-    });
-
-    it("should retrieve draft registration", async () => {
-        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(DRAFT_REGISTRATION);
-    });
-
-    it("should retrieve submitted registration when both exist", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
+    });
 
+    it("should retrieve submitted registration", async () => {
         const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
     });
 
-    it("should provide a not found error when registration does not exist", async () => {
-        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
+    it("should provide a not found error when submitted registration does not exist", async () => {
+        await Models.RegistrationApplicationSubmitted.deleteOne(SUBMITTED_REGISTRATION);
 
         const response = await getAsUser("/registration/").expect(StatusCode.ClientErrorNotFound);
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("should not retrieve draft registration even when draft exists", async () => {
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
+
+        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
     });
 });
 
@@ -95,40 +95,65 @@ describe("GET /registration/userid/:USERID", () => {
     });
 });
 
-describe("POST /registration/", () => {
-    it("should create draft registration", async () => {
-        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
+function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
+    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendMail");
+}
+
+describe("GET /registration/draft/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
+    });
+
+    it("should retrieve draft registration", async () => {
+        const response = await getAsUser("/registration/draft/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(DRAFT_REGISTRATION);
+    });
+
+    it("should provide a not found error when draft does not exist", async () => {
+        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
+
+        const response = await getAsUser("/registration/draft/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+});
+
+describe("PUT /registration/draft/", () => {
+    it("should create new draft registration when none exists", async () => {
+        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
 
-        // Stored in DB as draft
         const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(stored).toMatchObject(DRAFT_REGISTRATION);
     });
 
-    it("should update draft registration", async () => {
-        await Models.RegistrationApplicationDraft.create({
-            ...DRAFT_REGISTRATION,
-            degree: "PhD of Data Corruption",
-        });
-        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toMatchObject(APPLICATION);
+    it("should update existing draft", async () => {
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
 
-        // Stored in DB as draft
+        const updatedApplication = {
+            ...APPLICATION,
+            preferredName: "James Updated",
+            emailAddress: "updated@example.com",
+        };
+
+        const response = await putAsUser("/registration/draft/").send(updatedApplication).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(updatedApplication);
+
         const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });
-        expect(stored).toMatchObject(DRAFT_REGISTRATION);
+        expect(stored).toMatchObject({ ...DRAFT_REGISTRATION, ...updatedApplication });
     });
 
     it("should provide bad request error when registration is invalid", async () => {
-        const response = await postAsUser("/registration/").send({}).expect(StatusCode.ClientErrorBadRequest);
+        const response = await putAsUser("/registration/draft/").send({}).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("should provide bad request error when email is invalid", async () => {
-        const response = await postAsUser("/registration/")
+        const response = await putAsUser("/registration/draft/")
             .send(APPLICATION_INVALID_EMAIL)
             .expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
@@ -137,15 +162,10 @@ describe("POST /registration/", () => {
     it("should provide already submitted error when user has already submitted registration", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
+        const response = await putAsUser("/registration/draft/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 });
-
-function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
-    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
-    return jest.spyOn(mailLib, "sendMail");
-}
 
 describe("POST /registration/submit/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
