@@ -4,11 +4,12 @@ import Models from "../../common/models";
 import { Templates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser, putAsUser } from "../../common/testTools";
 import {
-    Degree,
     Gender,
     HackInterest,
     HackOutreach,
     Race,
+    LevelOfStudy,
+    HackathonExperience,
     RegistrationApplicationDraft,
     RegistrationApplicationDraftRequest,
     RegistrationApplicationSubmitted,
@@ -18,18 +19,24 @@ import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
+    firstName: TESTER.name,
+    lastName: "Tester",
     preferredName: TESTER.name,
-    legalName: TESTER.name,
+    age: 20,
     emailAddress: TESTER.email,
     university: "ap",
     hackEssay1: "ap",
     hackEssay2: "ap",
-    optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
-    major: "CS",
-    gradYear: 0,
+    optionalEssay: "",
+    countryOfResidence: "United States",
+    stateOfResidence: "Illinois",
+    gender: Gender.NO_ANSWER,
+    levelOfStudy: LevelOfStudy.UNDERGRAD_3_PLUS_YEAR,
+    graduationDate: "Spring 2026",
+    major: "Computer Science",
+    underrepresentedGroup: "Yes",
+    hackathonExperience: HackathonExperience.ONE,
+    proTrackInterest: true,
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
@@ -145,11 +152,6 @@ describe("PUT /registration/draft/", () => {
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(stored).toMatchObject({ ...DRAFT_REGISTRATION, ...updatedApplication });
-    });
-
-    it("should provide bad request error when registration is invalid", async () => {
-        const response = await putAsUser("/registration/draft/").send({}).expect(StatusCode.ClientErrorBadRequest);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
     it("should provide bad request error when email is invalid", async () => {

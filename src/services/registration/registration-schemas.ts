@@ -3,38 +3,57 @@ import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export enum Gender {
-    MALE = "Male",
-    FEMALE = "Female",
+    MAN = "Man",
+    WOMAN = "Woman",
     NONBINARY = "Non-Binary",
-    OTHER = "Other",
+    SELF_DESCRIBE = "Prefer to Self-Describe",
     NO_ANSWER = "Prefer Not To Answer",
     PLACEHOLDER = "",
 }
 
 export enum Race {
-    AMERICAN_INDIAN_ALASKA_NATIVE = "American Indian or Alaska Native",
-    ARAB_MIDDLE_EASTERN = "Arab or Middle Eastern",
-    BLACK_AFRICAN_AMERICAN = "Black or African American",
-    EAST_ASIAN = "East Asian",
-    HISPANIC_LATINO = "Hispanic or Latino",
-    PACIFIC_ISLANDER = "Native Hawaiian or Pacific Islander",
-    SOUTH_EAST_ASIAN = "South East Asian",
-    SOUTH_ASIAN = "South Asian",
+    ASIAN_INDIAN = "Asian Indian",
+    BLACK_AFRICAN = "Black or African",
+    CHINESE = "Chinese",
+    FILIPINO = "Filipino",
+    GUAMANIAN_CHAMORRO = "Guamanian or Chamorro",
+    HISPANIC_LATINO_SPANISH = "Hispanic / Latino / Spanish Origin",
+    JAPANESE = "Japanese",
+    KOREAN = "Korean",
+    MIDDLE_EASTERN = "Middle Eastern",
+    NATIVE_AMERICAN_ALASKAN = "Native American or Alaskan Native",
+    NATIVE_HAWAIIAN = "Native Hawaiian",
+    SAMOAN = "Samoan",
+    VIETNAMESE = "Vietnamese",
     WHITE = "White",
+    OTHER_ASIAN = "Other Asian (Thai, Cambodian, etc)",
+    OTHER_PACIFIC_ISLANDER = "Other Pacific Islander",
     OTHER = "Other",
     NO_ANSWER = "Prefer Not To Answer",
 }
 
-export enum Degree {
-    ASSOCIATES = "Associates' Degree",
-    BACHELORS = "Bachelors' Degree ",
-    MASTERS = "Masters' Degree",
-    PHD = "PhD",
-    GRADUATED = "Graduated",
+export enum LevelOfStudy {
+    LESS_THAN_HIGH_SCHOOL = "Less than Secondary / High School",
+    HIGH_SCHOOL = "Secondary / High School",
+    UNDERGRAD_2_YEAR = "Undergraduate University (2 year - community college or similar)",
+    UNDERGRAD_3_PLUS_YEAR = "Undergraduate University (3+ year)",
+    GRADUATE = "Graduate University (Masters, Professional, Doctoral, etc)",
+    CODE_SCHOOL = "Code School / Bootcamp",
+    VOCATIONAL = "Other Vocational / Trade Program or Apprenticeship",
+    POST_DOCTORATE = "Post Doctorate",
     OTHER = "Other",
-    NOT_APPLICABLE = "N/A",
-    PLACEHOLDER = "",
+    NOT_STUDENT = "I'm not currently a student",
+    NO_ANSWER = "Prefer not to answer",
 }
+
+
+export enum HackathonExperience {
+    ZERO = "0",
+    ONE = "1",
+    TWO_THREE = "2-3",
+    FOUR_PLUS = "4+",
+}
+
 
 export enum HackInterest {
     TECHNICAL_WORKSHOPS = "Attending technical workshops",
@@ -64,7 +83,8 @@ export enum HackOutreach {
 
 const GenderSchema = z.nativeEnum(Gender).openapi("Gender");
 const RaceSchema = z.nativeEnum(Race).openapi("Race");
-const DegreeSchema = z.nativeEnum(Degree).openapi("Degree");
+const LevelOfStudySchema = z.nativeEnum(LevelOfStudy).openapi("LevelOfStudy");
+const HackathonExperienceSchema = z.nativeEnum(HackathonExperience).openapi("HackathonExperience");
 const HackInterestSchema = z.nativeEnum(HackInterest).openapi("HackInterest");
 const HackOutreachSchema = z.nativeEnum(HackOutreach).openapi("HackOutreach");
 
@@ -73,10 +93,16 @@ export class RegistrationApplicationSubmitted {
     public userId: string;
 
     @prop({ required: true })
+    public firstName: string;
+
+    @prop({ required: true })
+    public lastName: string;
+
+    @prop({ required: true })
     public preferredName: string;
 
     @prop({ required: true })
-    public legalName: string;
+    public age: number;
 
     @prop({ required: true })
     public emailAddress: string;
@@ -91,36 +117,49 @@ export class RegistrationApplicationSubmitted {
     })
     public race: Race[];
 
-    // Not required
-    public resumeFileName?: string;
-
     @prop({ required: true })
-    public requestedTravelReimbursement: boolean;
-
-    @prop({ required: true })
-    public location: string;
-
-    @prop({ required: true })
-    public degree: Degree;
-
-    @prop({ required: true })
-    public major: string;
+    public countryOfResidence: string;
 
     @prop({ required: false })
-    public minor?: string;
+    public stateOfResidence?: string;
 
     @prop({ required: true })
     public university: string;
 
     @prop({ required: true })
-    public gradYear: number;
+    public levelOfStudy: LevelOfStudy;
 
-    @prop({
-        required: true,
-        type: String,
-        enum: HackInterest,
-    })
-    public hackInterest: HackInterest[];
+    @prop({ required: true })
+    public graduationDate: string;
+
+    @prop({ required: true })
+    public major: string;
+
+    @prop({ required: true })
+    public underrepresentedGroup: string;
+
+    @prop({ required: true })
+    public hackathonExperience: HackathonExperience;
+
+    @prop({ required: true })
+    public hackEssay1: string;
+
+    @prop({ required: true })
+    public hackEssay2: string;
+
+    @prop({ required: false })
+    public optionalEssay?: string;
+
+    @prop({ required: true })
+    public proTrackInterest: boolean;
+
+    @prop({ required: false })
+    public proQuestion?: string;
+    
+    public resumeFileName?: string;
+
+    @prop({ required: true })
+    public requestedTravelReimbursement: boolean;
 
     @prop({
         required: true,
@@ -131,107 +170,110 @@ export class RegistrationApplicationSubmitted {
 
     @prop({
         required: true,
+        type: String,
+        enum: HackInterest,
+    })
+    public hackInterest: HackInterest[];
+
+    @prop({
+        required: true,
         type: () => String,
     })
     public dietaryRestrictions: string[];
-
-    @prop({ required: true })
-    public hackEssay1: string;
-
-    @prop({ required: true })
-    public hackEssay2: string;
-
-    @prop({ required: true })
-    public optionalEssay?: string;
-
-    @prop({ required: false })
-    proEssay?: string;
-
-    @prop({ required: false })
-    considerForGeneral?: boolean;
 }
 
 export class RegistrationApplicationDraft {
     @prop({ required: true, index: true })
     public userId: string;
 
-    @prop({ required: true })
-    public preferredName: string;
+    @prop({ required: false })
+    public firstName?: string;
 
-    @prop({ required: true })
-    public legalName: string;
+    @prop({ required: false })
+    public lastName?: string;
 
-    @prop({ required: true })
-    public emailAddress: string;
+    @prop({ required: false })
+    public preferredName?: string;
 
-    @prop({ required: true })
-    public gender: Gender;
+    @prop({ required: false })
+    public age?: number;
+
+    @prop({ required: false })
+    public emailAddress?: string;
+
+    @prop({ required: false })
+    public gender?: Gender;
 
     @prop({
         required: false,
         type: String,
         enum: Race,
     })
-    public race: Race[];
+    public race?: Race[];
 
-    // Not required
+    @prop({ required: false })
+    public countryOfResidence?: string;
+
+    @prop({ required: false })
+    public stateOfResidence?: string;
+
+    @prop({ required: false })
+    public university?: string;
+
+    @prop({ required: false })
+    public levelOfStudy?: LevelOfStudy;
+
+    @prop({ required: false })
+    public graduationDate?: string;
+
+    @prop({ required: false })
+    public major?: string;
+
+    @prop({ required: false })
+    public underrepresentedGroup?: string;
+
+    @prop({ required: false })
+    public hackathonExperience?: HackathonExperience;
+
+    @prop({ required: false })
+    public hackEssay1?: string;
+
+    @prop({ required: false })
+    public hackEssay2?: string;
+
+    @prop({ required: false })
+    public optionalEssay?: string;
+
+    @prop({ required: false })
+    public proTrackInterest?: boolean;
+
+    @prop({ required: false })
+    public proQuestion?: string;
+
     public resumeFileName?: string;
 
     @prop({ required: false })
-    public requestedTravelReimbursement: boolean;
-
-    @prop({ required: false })
-    public location: string;
-
-    @prop({ required: false })
-    public degree: Degree;
-
-    @prop({ required: false })
-    public major: string;
-
-    @prop({ required: false })
-    public minor?: string;
-
-    @prop({ required: false })
-    public university: string;
-
-    @prop({ required: false })
-    public gradYear: number;
-
-    @prop({
-        required: false,
-        type: String,
-        enum: HackInterest,
-    })
-    public hackInterest: HackInterest[];
+    public requestedTravelReimbursement?: boolean;
 
     @prop({
         required: false,
         type: String,
         enum: HackOutreach,
     })
-    public hackOutreach: HackOutreach[];
+    public hackOutreach?: HackOutreach[];
+
+    @prop({
+        required: false,
+        type: String,
+        enum: HackInterest,
+    })
+    public hackInterest?: HackInterest[];
 
     @prop({
         required: false,
         type: () => String,
     })
-    public dietaryRestrictions: string[];
-
-    @prop({ required: false })
-    public hackEssay1: string;
-
-    @prop({ required: false })
-    public hackEssay2: string;
-
-    @prop({ required: false })
-    public optionalEssay?: string;
-
-    @prop({ required: false })
-    proEssay?: string;
-
-    @prop({ required: false })
-    considerForGeneral?: boolean;
+    public dietaryRestrictions?: string[];
 }
 
 export class RegistrationChallenge {
@@ -264,46 +306,55 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationDraftRequestSchema = z
     .object({
-        preferredName: z.string(),
-        legalName: z.string(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        preferredName: z.string().optional(),
+        age: z.number().optional(),
         // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
-        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
-        gender: GenderSchema,
+        emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]).optional(),
+        gender: GenderSchema.optional(),
         race: z.array(RaceSchema).optional(),
-        resumeFileName: z.string().optional(),
-        requestedTravelReimbursement: z.boolean().optional(),
-        location: z.string().optional(),
-        degree: DegreeSchema.optional(),
-        major: z.string().optional(),
-        minor: z.string().optional(),
+        countryOfResidence: z.string().optional(),
+        stateOfResidence: z.string().optional(),
         university: z.string().optional(),
-        gradYear: z.number().optional(),
-        hackInterest: z.array(HackInterestSchema).optional(),
-        hackOutreach: z.array(HackOutreachSchema).optional(),
-        dietaryRestrictions: z.array(z.string()).optional(),
+        levelOfStudy: LevelOfStudySchema.optional(),
+        graduationDate: z.string().optional(),
+        major: z.string().optional(),
+        underrepresentedGroup: z.string().optional(),
+        hackathonExperience: HackathonExperienceSchema.optional(),
         hackEssay1: z.string().optional(),
         hackEssay2: z.string().optional(),
         optionalEssay: z.string().optional(),
-        proEssay: z.string().optional(),
-        considerForGeneral: z.boolean().optional(),
+        proTrackInterest: z.boolean().optional(),
+        proQuestion: z.string().optional(),
+        resumeFileName: z.string().optional(),
+        requestedTravelReimbursement: z.boolean().optional(),
+        hackOutreach: z.array(HackOutreachSchema).optional(),
+        hackInterest: z.array(HackInterestSchema).optional(),
+        dietaryRestrictions: z.array(z.string()).optional(),
     })
     .openapi("RegistrationApplicationDraftRequest", {
         example: {
-            preferredName: "Ronakin",
-            legalName: "Ronakin Kanandini",
+            firstName: "Ronakin",
+            lastName: "Kanandini",
+            preferredName: "Ron",
+            age: 20,
             emailAddress: "rpak@gmail.org",
             university: "University of Illinois Urbana-Champaign",
             hackEssay1: "I love hack",
             hackEssay2: "I love hack",
             optionalEssay: "",
             resumeFileName: "https://www.google.com",
-            location: "Urbana",
+            countryOfResidence: "United States",
+            stateOfResidence: "Illinois",
             gender: Gender.NO_ANSWER,
-            degree: Degree.ASSOCIATES,
+            levelOfStudy: LevelOfStudy.UNDERGRAD_3_PLUS_YEAR,
             major: "Computer Science",
-            gradYear: 0,
-            proEssay: "I wanna be a Knight",
-            considerForGeneral: true,
+            graduationDate: "Spring 2026",
+            underrepresentedGroup: "Yes",
+            hackathonExperience: HackathonExperience.ONE,
+            proTrackInterest: true,
+            proQuestion: "I wanna be a Knight",
             requestedTravelReimbursement: false,
             dietaryRestrictions: ["Vegetarian"],
             race: [Race.NO_ANSWER],
@@ -316,46 +367,55 @@ export type RegistrationApplicationDraftRequest = z.infer<typeof RegistrationApp
 
 export const RegistrationApplicationSubmittedRequestSchema = z
     .object({
+        firstName: z.string(),
+        lastName: z.string(),
         preferredName: z.string(),
-        legalName: z.string(),
+        age: z.number(),
         // Email address needs to allow empty string as placeholder value. Ideally we change this in the future, but this is a temp fix.
         emailAddress: z.union([z.string().email({ message: "Invalid email syntax." }), z.literal("")]),
         gender: GenderSchema,
         race: z.array(RaceSchema),
-        resumeFileName: z.string().optional(),
-        requestedTravelReimbursement: z.boolean(),
-        location: z.string(),
-        degree: DegreeSchema,
-        major: z.string(),
-        minor: z.string().optional(),
+        countryOfResidence: z.string(),
+        stateOfResidence: z.string().optional(),
         university: z.string(),
-        gradYear: z.number(),
-        hackInterest: z.array(HackInterestSchema),
-        hackOutreach: z.array(HackOutreachSchema),
-        dietaryRestrictions: z.array(z.string()),
+        levelOfStudy: LevelOfStudySchema,
+        graduationDate: z.string(),
+        major: z.string(),
+        underrepresentedGroup: z.string(),
+        hackathonExperience: HackathonExperienceSchema,
         hackEssay1: z.string(),
         hackEssay2: z.string(),
         optionalEssay: z.string().optional(),
-        proEssay: z.string().optional(),
-        considerForGeneral: z.boolean().optional(),
+        proTrackInterest: z.boolean(),
+        proQuestion: z.string().optional(),
+        resumeFileName: z.string().optional(),
+        requestedTravelReimbursement: z.boolean(),
+        hackOutreach: z.array(HackOutreachSchema),
+        hackInterest: z.array(HackInterestSchema),
+        dietaryRestrictions: z.array(z.string()),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {
         example: {
-            preferredName: "Ronakin",
-            legalName: "Ronakin Kanandini",
+            firstName: "Ronakin",
+            lastName: "Kanandini",
+            preferredName: "Ron",
+            age: 20,
             emailAddress: "rpak@gmail.org",
             university: "University of Illinois Urbana-Champaign",
             hackEssay1: "I love hack",
             hackEssay2: "I love hack",
             optionalEssay: "",
             resumeFileName: "https://www.google.com",
-            location: "Urbana",
+            countryOfResidence: "United States",
+            stateOfResidence: "Illinois",
             gender: Gender.NO_ANSWER,
-            degree: Degree.ASSOCIATES,
+            levelOfStudy: LevelOfStudy.UNDERGRAD_3_PLUS_YEAR,
             major: "Computer Science",
-            gradYear: 0,
-            proEssay: "I wanna be a Knight",
-            considerForGeneral: true,
+            graduationDate: "Spring 2026",
+            underrepresentedGroup: "Yes",
+            hackathonExperience: HackathonExperience.ONE,
+            proTrackInterest: true,
+            proQuestion: "I wanna be a Knight",
             requestedTravelReimbursement: false,
             dietaryRestrictions: ["Vegetarian"],
             race: [Race.NO_ANSWER],
