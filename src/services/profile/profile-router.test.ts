@@ -5,11 +5,12 @@ import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateReq
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
 import {
-    Degree,
     Gender,
+    LevelOfStudy,
+    Race,
     HackInterest,
     HackOutreach,
-    Race,
+    HackathonExperience,
     RegistrationApplicationSubmitted,
 } from "../registration/registration-schemas";
 
@@ -74,18 +75,24 @@ const UPDATED_PROFILE = {
 
 const REGISTRATION = {
     userId: TESTER.id,
+    firstName: TESTER.name,
+    lastName: "Tester",
     preferredName: TESTER.name,
-    legalName: TESTER.name,
+    age: 20,
     emailAddress: TESTER.email,
     university: "ap",
     hackEssay1: "ap",
     hackEssay2: "ap",
     optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
+    countryOfResidence: "United States",
+    stateOfResidence: "Illinois",
+    gender: Gender.SELF_DESCRIBE,
+    levelOfStudy: LevelOfStudy.UNDERGRAD_3_PLUS_YEAR,
+    graduationDate: "Spring 2026",
     major: "CS",
-    gradYear: 0,
+    underrepresentedGroup: "Yes",
+    hackathonExperience: HackathonExperience.ONE,
+    proTrackInterest: true,
     requestedTravelReimbursement: false,
     dietaryRestrictions: ["some restriction"],
     race: [Race.NO_ANSWER],

@@ -46,14 +46,12 @@ export enum LevelOfStudy {
     NO_ANSWER = "Prefer not to answer",
 }
 
-
 export enum HackathonExperience {
     ZERO = "0",
     ONE = "1",
     TWO_THREE = "2-3",
     FOUR_PLUS = "4+",
 }
-
 
 export enum HackInterest {
     TECHNICAL_WORKSHOPS = "Attending technical workshops",
@@ -155,7 +153,7 @@ export class RegistrationApplicationSubmitted {
 
     @prop({ required: false })
     public proQuestion?: string;
-    
+
     public resumeFileName?: string;
 
     @prop({ required: true })

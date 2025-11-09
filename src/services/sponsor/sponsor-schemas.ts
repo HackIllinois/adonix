@@ -52,13 +52,14 @@ export const ResumeBookPageQuerySchema = z
 export const RESUME_BOOK_ENTRY_FIELDS = {
     userId: true,
     emailAddress: true,
-    legalName: true,
-    location: true,
+    firstName: true,
+    lastName: true,
+    countryOfResidence: true,
+    stateOfResidence: true,
     university: true,
-    degree: true,
+    levelOfStudy: true,
+    graduationDate: true,
     major: true,
-    minor: true,
-    gradYear: true,
 } as const;
 export const ResumeBookEntrySchema =
     RegistrationApplicationSubmittedSchema.pick(RESUME_BOOK_ENTRY_FIELDS).openapi("ResumeBookEntry");

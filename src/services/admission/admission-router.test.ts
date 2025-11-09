@@ -4,10 +4,11 @@ import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission
 import { Templates } from "../../common/config";
 import {
     Gender,
-    Degree,
+    LevelOfStudy,
     Race,
     HackInterest,
     HackOutreach,
+    HackathonExperience,
     RegistrationApplicationSubmitted,
 } from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
@@ -36,18 +37,24 @@ const OTHER_DECISION = {
 
 const TESTER_APPLICATION = {
     userId: TESTER.id,
+    firstName: TESTER.name,
+    lastName: "Tester",
     preferredName: TESTER.name,
-    legalName: TESTER.name,
+    age: 20,
     emailAddress: TESTER.email,
     university: "ap",
     hackEssay1: "ap",
     hackEssay2: "ap",
     optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
+    countryOfResidence: "United States",
+    stateOfResidence: "Illinois",
+    gender: Gender.SELF_DESCRIBE,
+    levelOfStudy: LevelOfStudy.UNDERGRAD_3_PLUS_YEAR,
+    graduationDate: "Spring 2026",
     major: "CS",
-    gradYear: 0,
+    underrepresentedGroup: "Yes",
+    hackathonExperience: HackathonExperience.ONE,
+    proTrackInterest: true,
     requestedTravelReimbursement: false,
     dietaryRestrictions: [],
     race: [Race.NO_ANSWER],
