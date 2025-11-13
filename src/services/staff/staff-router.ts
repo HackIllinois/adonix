@@ -13,6 +13,9 @@ import {
     StaffInfoSchema,
     StaffNotFoundError,
     StaffNotFoundErrorSchema,
+    StaffListSchema,
+    StaffInfo,
+    StaffListParamSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -354,6 +357,65 @@ staffRouter.post(
         );
 
         return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.get(
+    "/list/",
+    specification({
+        method: "get",
+        path: "/staff/list/",
+        tag: Tag.STAFF,
+        role: Role.STAFF,
+        summary: "Gets lit of staff members that match the params",
+        body: StaffListParamSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The list of staff members",
+                schema: StaffListSchema,
+            },
+            ...PerformCheckInErrors,
+        },
+    }),
+    async (req, res) => {
+        const { active, team } = req.body;
+        var staff: StaffInfo[] = [];
+
+        if(active != null && team != null) {
+            staff = await Models.StaffInfo.find({
+                isActive: active,
+                team: team,
+            }).populate("team").lean();
+        } else if(active != null) {
+            staff = await Models.StaffInfo.find({
+                isActive: active,
+            }).populate("team").lean();
+
+        } else if(team != null) {
+            staff = await Models.StaffInfo.find({
+                team: team,
+            }).populate("team").lean();
+
+        } else {
+            staff = await Models.StaffInfo.find().populate("team").lean();
+        }
+
+        const formattedStaff = staff.map((info) => {
+            let team;
+            if (info.team) {
+                team =
+                    typeof info.team === "string"
+                        ? info.team
+                        : info.team._id.toString();
+            }
+        
+            return {
+                ...info,
+                team,
+            };
+        });
+        
+        return res.status(StatusCode.SuccessOK).json({ staffList: formattedStaff });
     },
 );
 
