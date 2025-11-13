@@ -15,6 +15,7 @@ import { MailInfo } from "../mail/mail-schemas";
 const APPLICATION = {
     firstName: TESTER.name,
     lastName: TESTER.name,
+    preferredName: "Bob",
     age: "21",
     email: TESTER.email,
     gender: "Other",

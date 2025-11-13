@@ -12,6 +12,9 @@ export class RegistrationApplicationSubmitted {
     @prop({ required: true })
     public lastName: string;
 
+    @prop({ required: false })
+    public preferredName?: string;
+
     @prop({ required: true })
     public age: string;
 
@@ -82,6 +85,9 @@ export class RegistrationApplicationDraft {
 
     @prop({ required: false })
     public lastName?: string;
+
+    @prop({ required: false })
+    public preferredName?: string;
 
     @prop({ required: false })
     public age?: string;
@@ -176,6 +182,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
     .object({
         firstName: z.string(),
         lastName: z.string(),
+        preferredName: z.string().optional(),
         age: z.string(),
         email: z.string().email({ message: "Invalid email." }),
         gender: z.string(),
