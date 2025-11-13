@@ -379,23 +379,27 @@ staffRouter.get(
     }),
     async (req, res) => {
         const { active, team } = req.body;
-        var staff: StaffInfo[] = [];
+        let staff: StaffInfo[] = [];
 
-        if(active != null && team != null) {
+        if (active != null && team != null) {
             staff = await Models.StaffInfo.find({
                 isActive: active,
                 team: team,
-            }).populate("team").lean();
-        } else if(active != null) {
+            })
+                .populate("team")
+                .lean();
+        } else if (active != null) {
             staff = await Models.StaffInfo.find({
                 isActive: active,
-            }).populate("team").lean();
-
-        } else if(team != null) {
+            })
+                .populate("team")
+                .lean();
+        } else if (team != null) {
             staff = await Models.StaffInfo.find({
                 team: team,
-            }).populate("team").lean();
-
+            })
+                .populate("team")
+                .lean();
         } else {
             staff = await Models.StaffInfo.find().populate("team").lean();
         }
@@ -403,18 +407,15 @@ staffRouter.get(
         const formattedStaff = staff.map((info) => {
             let team;
             if (info.team) {
-                team =
-                    typeof info.team === "string"
-                        ? info.team
-                        : info.team._id.toString();
+                team = typeof info.team === "string" ? info.team : info.team._id.toString();
             }
-        
+
             return {
                 ...info,
                 team,
             };
         });
-        
+
         return res.status(StatusCode.SuccessOK).json({ staffList: formattedStaff });
     },
 );

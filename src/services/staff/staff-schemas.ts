@@ -3,7 +3,7 @@ import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 import { EventSchema } from "../event/event-schemas";
-import { Team} from "../team/team-schemas";
+import { Team } from "../team/team-schemas";
 export class StaffInfo {
     @prop({ required: true })
     public name: string;
