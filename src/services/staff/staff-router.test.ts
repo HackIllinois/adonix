@@ -4,14 +4,6 @@ import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import {
-    Degree,
-    Gender,
-    HackInterest,
-    HackOutreach,
-    Race,
-    RegistrationApplicationSubmitted,
-} from "../registration/registration-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
 
@@ -21,39 +13,15 @@ const TESTER_EVENT_ATTENDANCE = {
     excusedAttendees: [],
 } satisfies EventAttendance;
 
-const TESTER_REGISTRATION = {
-    userId: "some-user",
-    preferredName: "W",
-    emailAddress: "w@illinois.edu",
-    location: "Illinois",
-    degree: Degree.ASSOCIATES,
-    university: "University of Illinois (Chicago)",
-    major: "Computer Science",
-    minor: "Computer Science",
-    gradYear: 2030,
-    hackEssay1: "yay",
-    hackEssay2: "yay",
-    proEssay: "",
-    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
-    hackOutreach: [HackOutreach.INSTAGRAM],
-    dietaryRestrictions: ["Vegan", "No Pork"],
-    resumeFileName: "GitHub cheatsheet.pdf",
-    legalName: "Ronakin Kanandani",
-    considerForGeneral: false,
-    requestedTravelReimbursement: true,
-    gender: Gender.NO_ANSWER,
-    race: [Race.NO_ANSWER],
-    optionalEssay: "Optional Essay",
-} satisfies RegistrationApplicationSubmitted;
-
 const TESTER_PROFILE = {
-    userId: TESTER_REGISTRATION.userId,
+    userId: "some-user",
     displayName: "TestDisplayName",
     avatarUrl: TESTER.avatarUrl,
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 0,
     foodWave: 0,
+    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {
@@ -83,7 +51,6 @@ const TEST_EVENT = {
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
-    await Models.RegistrationApplicationSubmitted.create(TESTER_REGISTRATION);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
     await Models.Event.create(TEST_EVENT);
 });
@@ -99,7 +66,7 @@ describe("PUT /staff/scan-attendee/", () => {
         await Models.UserAttendance.deleteMany({});
 
         // Setup test user and generate QR codes
-        testUserId = TESTER_REGISTRATION.userId;
+        testUserId = TESTER_PROFILE.userId;
         const currentTime = Math.floor(Date.now() / 1000);
 
         // Generate valid QR code
@@ -120,7 +87,7 @@ describe("PUT /staff/scan-attendee/", () => {
             success: true,
             userId: testUserId,
             eventName: TEST_EVENT.name,
-            dietaryRestrictions: TESTER_REGISTRATION.dietaryRestrictions,
+            dietaryRestrictions: TESTER_PROFILE.dietaryRestrictions,
         });
 
         // Verify attendance records
@@ -175,9 +142,9 @@ describe("PUT /staff/scan-attendee/", () => {
         });
     });
 
-    it("handles missing registration data", async () => {
-        // Remove registration data
-        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: testUserId });
+    it("handles missing profile", async () => {
+        // Remove profile
+        await Models.AttendeeProfile.deleteOne({ userId: testUserId });
 
         await putAsStaff("/staff/scan-attendee/")
             .send({ eventId: TEST_EVENT.eventId, attendeeQRCode: validAttendeeQRCode })

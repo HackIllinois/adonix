@@ -141,14 +141,8 @@ staffRouter.put(
             return res.status(checkInResult.status).json(checkInResult.error);
         }
 
-        // Get registration data
-        const registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("dietaryRestrictions");
-        if (!registrationData) {
-            throw Error("No registration data");
-        }
-
-        const { dietaryRestrictions } = registrationData;
         const { eventName } = checkInResult;
+        const { dietaryRestrictions } = checkInResult.profile;
         return res.status(StatusCode.SuccessOK).json({
             success: true,
             userId,

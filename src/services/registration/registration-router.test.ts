@@ -4,11 +4,6 @@ import Models from "../../common/models";
 import { Templates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser, putAsUser } from "../../common/testTools";
 import {
-    Degree,
-    Gender,
-    HackInterest,
-    HackOutreach,
-    Race,
     RegistrationApplicationDraft,
     RegistrationApplicationDraftRequest,
     RegistrationApplicationSubmitted,
@@ -18,26 +13,31 @@ import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
-    preferredName: TESTER.name,
-    legalName: TESTER.name,
-    emailAddress: TESTER.email,
-    university: "ap",
-    hackEssay1: "ap",
-    hackEssay2: "ap",
-    optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
-    major: "CS",
-    gradYear: 0,
-    requestedTravelReimbursement: false,
-    dietaryRestrictions: [],
-    race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
-    hackOutreach: [HackOutreach.INSTAGRAM],
+    firstName: TESTER.name,
+    lastName: TESTER.name,
+    preferredName: "Bob",
+    age: "21",
+    email: TESTER.email,
+    gender: "Other",
+    race: ["Prefer Not to Answer"],
+    country: "United States",
+    state: "Illinois",
+    school: "University of Illinois Urbana-Champaign",
+    education: "Undergraduate University (3+ year)",
+    graduate: "Spring 2026",
+    major: "Computer Science",
+    underrepresented: "No",
+    hackathonsParticipated: "2-3",
+    application1: "I love hack",
+    application2: "I love hack",
+    applicationOptional: "optional essay",
+    applicationPro: "I wanna be a Pro",
+    attribution: "Word of Mouth",
+    eventInterest: "Meeting New People",
+    requestTravelReimbursement: false,
 } satisfies RegistrationApplicationDraftRequest;
 
-const APPLICATION_INVALID_EMAIL = { ...APPLICATION, emailAddress: "invalidemail" };
+const APPLICATION_INVALID_EMAIL = { ...APPLICATION, email: "invalidemail" };
 
 const DRAFT_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies RegistrationApplicationDraft;
 const DRAFT_OTHER_REGISTRATION = {
@@ -134,8 +134,8 @@ describe("PUT /registration/draft/", () => {
 
         const updatedApplication = {
             ...APPLICATION,
-            preferredName: "James Updated",
-            emailAddress: "updated@example.com",
+            firstName: "James Updated",
+            email: "updated@example.com",
         };
 
         const response = await putAsUser("/registration/draft/").send(updatedApplication).expect(StatusCode.SuccessOK);
@@ -147,8 +147,8 @@ describe("PUT /registration/draft/", () => {
         expect(stored).toMatchObject({ ...DRAFT_REGISTRATION, ...updatedApplication });
     });
 
-    it("should provide bad request error when registration is invalid", async () => {
-        const response = await putAsUser("/registration/draft/").send({}).expect(StatusCode.ClientErrorBadRequest);
+    it("should provide bad request error when invalid fields are included", async () => {
+        const response = await putAsUser("/registration/draft/").send({ age: 18 }).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
@@ -183,8 +183,8 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [DRAFT_REGISTRATION.emailAddress],
-            subs: { name: DRAFT_REGISTRATION.preferredName },
+            recipients: [DRAFT_REGISTRATION.email],
+            subs: { name: DRAFT_REGISTRATION.firstName },
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
@@ -217,8 +217,8 @@ describe("POST /registration/submit/", () => {
     it("should provide incomplete application error when draft is incomplete", async () => {
         const incompleteDraft = {
             ...DRAFT_REGISTRATION,
-            hackEssay1: undefined,
-            hackEssay2: undefined,
+            application1: undefined,
+            application2: undefined,
         };
         await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
         await Models.RegistrationApplicationDraft.create(incompleteDraft);

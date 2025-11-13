@@ -25,6 +25,9 @@ export class AttendeeProfile {
 
     @prop({ required: true })
     public foodWave: number;
+
+    @prop({ required: true, type: String })
+    public dietaryRestrictions: string[];
 }
 
 export const AttendeeProfileSchema = z
@@ -36,6 +39,7 @@ export const AttendeeProfileSchema = z
         points: z.number(),
         pointsAccumulated: z.number(),
         foodWave: z.number(),
+        dietaryRestrictions: z.array(z.string()),
     })
     .openapi("AttendeeProfile", {
         example: {
@@ -46,6 +50,7 @@ export const AttendeeProfileSchema = z
             points: 23,
             pointsAccumulated: 104,
             foodWave: 1,
+            dietaryRestrictions: ["Peanut Allergy"],
         },
     });
 
@@ -79,7 +84,11 @@ export const AttendeeProfileRankingSchema = z
         },
     });
 
-export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ discordTag: true, displayName: true })
+export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({
+    discordTag: true,
+    displayName: true,
+    dietaryRestrictions: true,
+})
     .extend({
         avatarId: z.string(),
     })
@@ -88,6 +97,7 @@ export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({ d
             displayName: "Bob The Great",
             discordTag: "hackillinois",
             avatarId: "goblin",
+            dietaryRestrictions: ["Peanut Allergy"],
         },
     });
 export type AttendeeProfileCreateRequest = z.infer<typeof AttendeeProfileCreateRequestSchema>;

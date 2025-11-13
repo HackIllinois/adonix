@@ -49,7 +49,7 @@ registrationRouter.get(
         path: "/registration/status/",
         tag: Tag.REGISTRATION,
         role: null,
-        summary: "Gets the currently authenticated user's registration data",
+        summary: "Gets the status of whether registration is currently active",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The registration status",
@@ -311,8 +311,8 @@ registrationRouter.post(
         // SEND SUCCESSFUL REGISTRATION EMAIL
         const mailInfo: MailInfo = {
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [newSubmissionInfo.emailAddress],
-            subs: { name: newSubmissionInfo.preferredName },
+            recipients: [newSubmissionInfo.email],
+            subs: { name: newSubmissionInfo.firstName },
         };
         await sendMail(mailInfo);
 

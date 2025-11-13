@@ -4,14 +4,6 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
-import {
-    Degree,
-    Gender,
-    HackInterest,
-    HackOutreach,
-    Race,
-    RegistrationApplicationSubmitted,
-} from "../registration/registration-schemas";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -21,6 +13,7 @@ const TESTER_USER = {
     points: 0,
     pointsAccumulated: 0,
     foodWave: 1,
+    dietaryRestrictions: ["Peanut Allergy"],
 } satisfies AttendeeProfile;
 
 const TESTER_USER_2 = {
@@ -31,6 +24,7 @@ const TESTER_USER_2 = {
     points: 12,
     pointsAccumulated: 12,
     foodWave: 2,
+    dietaryRestrictions: [],
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -41,12 +35,14 @@ const TESTER_USER_3 = {
     points: 12,
     pointsAccumulated: 12,
     foodWave: 2,
+    dietaryRestrictions: [],
 } satisfies AttendeeProfile;
 
 const CREATE_REQUEST = {
     avatarId: TESTER.avatarId,
     displayName: TESTER.name,
     discordTag: TESTER.discordTag,
+    dietaryRestrictions: ["Peanut Allergy"],
 } satisfies AttendeeProfileCreateRequest;
 
 const UPDATE_REQUEST = {
@@ -63,6 +59,7 @@ const PROFILE = {
     points: 0,
     pointsAccumulated: 0,
     foodWave: 1,
+    dietaryRestrictions: ["Peanut Allergy"],
 } satisfies AttendeeProfile;
 
 const UPDATED_PROFILE = {
@@ -72,32 +69,10 @@ const UPDATED_PROFILE = {
     avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${UPDATE_REQUEST.avatarId}.png`,
 } satisfies AttendeeProfile;
 
-const REGISTRATION = {
-    userId: TESTER.id,
-    preferredName: TESTER.name,
-    legalName: TESTER.name,
-    emailAddress: TESTER.email,
-    university: "ap",
-    hackEssay1: "ap",
-    hackEssay2: "ap",
-    optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
-    major: "CS",
-    gradYear: 0,
-    requestedTravelReimbursement: false,
-    dietaryRestrictions: ["some restriction"],
-    race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
-    hackOutreach: [HackOutreach.INSTAGRAM],
-} satisfies RegistrationApplicationSubmitted;
-
 beforeEach(async () => {
     await Models.AttendeeProfile.create(TESTER_USER);
     await Models.AttendeeProfile.create(TESTER_USER_2);
     await Models.AttendeeProfile.create(TESTER_USER_3);
-    await Models.RegistrationApplicationSubmitted.create(REGISTRATION);
 });
 
 describe("POST /profile", () => {
@@ -226,6 +201,7 @@ describe("GET /profile/leaderboard", () => {
                 points: 30 - i,
                 pointsAccumulated: 30 + i,
                 foodWave: 1,
+                dietaryRestrictions: [],
             } satisfies AttendeeProfile);
         }
 

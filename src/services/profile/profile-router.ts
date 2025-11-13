@@ -14,7 +14,6 @@ import {
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
 } from "./profile-schemas";
-import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -180,29 +179,17 @@ profileRouter.post(
                 description: "Profile already created",
                 schema: AttendeeProfileAlreadyExistsErrorSchema,
             },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find registration information",
-                schema: RegistrationNotFoundErrorSchema,
-            },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const { avatarId, discordTag, displayName } = req.body;
-
-        const registrationApplication = await Models.RegistrationApplicationSubmitted.findOne({
-            userId,
-        });
-        if (!registrationApplication) {
-            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
-        }
+        const { avatarId, discordTag, displayName, dietaryRestrictions } = req.body;
 
         const existingProfile = await Models.AttendeeProfile.findOne({ userId });
         if (existingProfile) {
             return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
         }
 
-        const dietaryRestrictions = registrationApplication.dietaryRestrictions;
         const profile: AttendeeProfile = {
             userId,
             discordTag,
@@ -211,6 +198,7 @@ profileRouter.post(
             points: Config.DEFAULT_POINT_VALUE,
             pointsAccumulated: Config.DEFAULT_POINT_VALUE,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
+            dietaryRestrictions,
         };
 
         const newProfile = await Models.AttendeeProfile.create(profile);

@@ -2,14 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
 import { Templates } from "../../common/config";
-import {
-    Gender,
-    Degree,
-    Race,
-    HackInterest,
-    HackOutreach,
-    RegistrationApplicationSubmitted,
-} from "../registration/registration-schemas";
+import { RegistrationApplicationSubmitted } from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
@@ -36,23 +29,27 @@ const OTHER_DECISION = {
 
 const TESTER_APPLICATION = {
     userId: TESTER.id,
-    preferredName: TESTER.name,
-    legalName: TESTER.name,
-    emailAddress: TESTER.email,
-    university: "ap",
-    hackEssay1: "ap",
-    hackEssay2: "ap",
-    optionalEssay: "ap",
-    location: "ap",
-    gender: Gender.OTHER,
-    degree: Degree.BACHELORS,
-    major: "CS",
-    gradYear: 0,
-    requestedTravelReimbursement: false,
-    dietaryRestrictions: [],
-    race: [Race.NO_ANSWER],
-    hackInterest: [HackInterest.TECHNICAL_WORKSHOPS],
-    hackOutreach: [HackOutreach.INSTAGRAM],
+    firstName: TESTER.name,
+    lastName: TESTER.name,
+    age: "21",
+    email: TESTER.email,
+    gender: "Other",
+    race: ["Prefer Not to Answer"],
+    country: "United States",
+    state: "Illinois",
+    school: "University of Illinois Urbana-Champaign",
+    education: "Undergraduate University (3+ year)",
+    graduate: "Spring 2026",
+    major: "Computer Science",
+    underrepresented: "No",
+    hackathonsParticipated: "2-3",
+    application1: "I love hack",
+    application2: "I love hack",
+    applicationOptional: "optional essay",
+    applicationPro: "I wanna be a Pro",
+    attribution: "Word of Mouth",
+    eventInterest: "Meeting New People",
+    requestTravelReimbursement: false,
 } satisfies RegistrationApplicationSubmitted;
 
 const updateRequest = [
@@ -112,7 +109,7 @@ describe("PUT /admission/update/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            recipients: [TESTER_APPLICATION.emailAddress],
+            recipients: [TESTER_APPLICATION.email],
         } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
@@ -217,8 +214,8 @@ describe("PUT /admission/rsvp/accept", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_CONFIRMATION,
-            recipients: [TESTER_APPLICATION.emailAddress],
-            subs: { name: TESTER_APPLICATION.preferredName },
+            recipients: [TESTER_APPLICATION.email],
+            subs: { name: TESTER_APPLICATION.firstName },
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({
@@ -270,7 +267,7 @@ describe("PUT /admission/rsvp/decline/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_DECLINED,
-            recipients: [TESTER_APPLICATION.emailAddress],
+            recipients: [TESTER_APPLICATION.email],
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({
