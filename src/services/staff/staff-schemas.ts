@@ -4,7 +4,6 @@ import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 import { EventSchema } from "../event/event-schemas";
 import { Team } from "../team/team-schemas";
-
 export class StaffInfo {
     @prop({ required: true })
     public name: string;
@@ -77,6 +76,15 @@ export const StaffInfoSchema = z.object({
     profilePictureUrl: z.string().optional(),
     quote: z.string().optional(),
     isActive: z.boolean().default(true),
+});
+
+export const StaffListParamSchema = z.object({
+    active: z.boolean().optional(),
+    team: z.string().optional(),
+});
+
+export const StaffListSchema = z.object({
+    staffList: z.array(StaffInfoSchema),
 });
 
 export const [StaffNotFoundError, StaffNotFoundErrorSchema] = CreateErrorAndSchema({
