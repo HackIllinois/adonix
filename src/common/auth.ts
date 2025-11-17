@@ -182,7 +182,7 @@ export function getJwtCookieOptions(): CookieOptions {
     return {
         httpOnly: true,
         secure: apiProd,
-        sameSite: "lax",
+        sameSite: apiProd ? "none" : "lax",
         path: "/",
         domain: apiProd ? PROD_REGISTRABLE_DOMAIN : undefined,
         maxAge: ms(Config.DEFAULT_JWT_EXPIRY_TIME),
