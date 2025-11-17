@@ -66,11 +66,17 @@ export class RegistrationApplicationSubmitted {
     @prop({ required: false })
     public applicationPro?: string;
 
-    @prop({ required: true })
-    public attribution: string;
+    @prop({
+        required: true,
+        type: String,
+    })
+    public attribution: string[];
 
-    @prop({ required: true })
-    public eventInterest: string;
+    @prop({
+        required: true,
+        type: String,
+    })
+    public eventInterest: string[];
 
     @prop({ required: true })
     requestTravelReimbursement: boolean;
@@ -140,11 +146,17 @@ export class RegistrationApplicationDraft {
     @prop({ required: false })
     public applicationPro?: string;
 
-    @prop({ required: false })
-    public attribution?: string;
+    @prop({
+        required: false,
+        type: String,
+    })
+    public attribution?: string[];
 
-    @prop({ required: false })
-    public eventInterest?: string;
+    @prop({
+        required: false,
+        type: String,
+    })
+    public eventInterest?: string[];
 
     @prop({ required: false })
     requestTravelReimbursement?: boolean;
@@ -199,8 +211,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         application2: z.string(),
         applicationOptional: z.string().optional(),
         applicationPro: z.string().optional(),
-        attribution: z.string(),
-        eventInterest: z.string(),
+        attribution: z.array(z.string()),
+        eventInterest: z.array(z.string()),
         requestTravelReimbursement: z.boolean(),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {
@@ -223,8 +235,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             application2: "I love hack",
             applicationOptional: "",
             applicationPro: "I wanna be a Pro",
-            attribution: "Word of Mouth",
-            eventInterest: "Meeting New People",
+            attribution: ["Word of Mouth", "Instagram"],
+            eventInterest: ["Meeting New People"],
             requestTravelReimbursement: false,
         },
     });

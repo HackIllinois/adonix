@@ -32,8 +32,8 @@ const APPLICATION = {
     application2: "I love hack",
     applicationOptional: "optional essay",
     applicationPro: "I wanna be a Pro",
-    attribution: "Word of Mouth",
-    eventInterest: "Meeting New People",
+    attribution: ["Word of Mouth", "Instagram"],
+    eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
 } satisfies RegistrationApplicationDraftRequest;
 
