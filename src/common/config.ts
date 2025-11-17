@@ -34,8 +34,8 @@ function getVersion(): string {
 
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
-export const PROD_DOMAIN = "adonix.hackillinois.org";
-export const PROD_ROOT_URL = `https://${PROD_DOMAIN}`;
+export const PROD_REGISTRABLE_DOMAIN = ".hackillinois.org";
+export const PROD_ROOT_URL = `https://adonix${PROD_REGISTRABLE_DOMAIN}`;
 const ROOT_URL = ((): string => {
     if (env.URL) {
         return env.URL;
