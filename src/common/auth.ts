@@ -3,7 +3,7 @@ import jsonwebtoken, { SignOptions, TokenExpiredError } from "jsonwebtoken";
 import { RequestHandler } from "express-serve-static-core";
 import passport, { AuthenticateOptions, Profile } from "passport";
 
-import Config, { PROD_DOMAIN } from "./config";
+import Config, { PROD_REGISTRABLE_DOMAIN } from "./config";
 
 import { Role, JwtPayload, Provider, ProfileData, RoleOperation } from "../services/auth/auth-schemas";
 
@@ -184,7 +184,7 @@ export function getJwtCookieOptions(): CookieOptions {
         secure: apiProd,
         sameSite: "lax",
         path: "/",
-        domain: apiProd ? PROD_DOMAIN : undefined,
+        domain: apiProd ? PROD_REGISTRABLE_DOMAIN : undefined,
         maxAge: ms(Config.DEFAULT_JWT_EXPIRY_TIME),
     };
 }
