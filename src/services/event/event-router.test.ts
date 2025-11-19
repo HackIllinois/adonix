@@ -307,3 +307,67 @@ describe("GET /event/attendance/:id/", () => {
         expect(data.absent).toContainEqual([TESTER_EVENT_2.eventId, TESTER_EVENT_2.startTime, TESTER_EVENT_2.endTime]);
     });
 });
+
+describe("PUT /event/update-attendance/:id/", () => {
+    it("gives a forbidden error for a non-staff user", async () => {
+        const response = await putAsAttendee(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: true })
+            .expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("gives a not found error for a non-existent event", async () => {
+        await Models.EventAttendance.deleteOne({
+            eventId: TESTER_EVENT_ATTENDANCE_1.eventId,
+        });
+
+        const response = await putAsStaff(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: true })
+            .expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("updates staff user as present", async () => {
+        const response = await putAsStaff(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: true })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const updatedAttendance = await Models.EventAttendance.findOne({
+            eventId: TESTER_EVENT_ATTENDANCE_1.eventId,
+        });
+        expect(updatedAttendance?.attendees).toContain("user3");
+    });
+
+    it("updates staff user as absent", async () => {
+        const response = await putAsStaff(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: false })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const updatedAttendance = await Models.EventAttendance.findOne({
+            eventId: TESTER_EVENT_ATTENDANCE_1.eventId,
+        });
+        expect(updatedAttendance?.attendees).not.toContain("user3");
+    });
+
+    it("does not duplicate users in attendees", async () => {
+        await putAsStaff(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: true })
+            .expect(StatusCode.SuccessOK);
+
+        await putAsStaff(`/event/update-attendance/${TESTER_EVENT_ATTENDANCE_1.eventId}/`)
+            .send({ userId: "user3", present: true })
+            .expect(StatusCode.SuccessOK);
+
+        const updatedAttendance = await Models.EventAttendance.findOne({
+            eventId: TESTER_EVENT_ATTENDANCE_1.eventId,
+        });
+        const count = updatedAttendance?.attendees?.filter((id) => id === "user3").length;
+        expect(count).toBe(1);
+    });
+});

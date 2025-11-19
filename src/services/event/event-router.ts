@@ -428,4 +428,53 @@ eventsRouter.get(
     },
 );
 
+eventsRouter.put(
+    "/update-attendance/:id/",
+    specification({
+        method: "put",
+        path: "/event/update-attendance/{id}/",
+        tag: Tag.EVENT,
+        role: Role.STAFF,
+        summary: "Updates a user's attendance for an event",
+        parameters: z.object({
+            id: EventIdSchema,
+        }),
+        body: z.object({
+            userId: z.string(),
+            present: z.boolean(),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully updated user's attendance status",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the event specified",
+                schema: EventNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: eventId } = req.params;
+        const { userId, present } = req.body;
+
+        const event = await Models.EventAttendance.findOne({ eventId });
+        if (!event) {
+            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
+        }
+
+        if (present && !event.attendees.includes(userId)) {
+            event.attendees.push(userId);
+            await event.save();
+        }
+
+        if (!present && event.attendees.includes(userId)) {
+            event.attendees = event.attendees.filter((id) => id !== userId);
+            await event.save();
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
 export default eventsRouter;
