@@ -30,8 +30,9 @@ const APPLICATION = {
     hackathonsParticipated: "2-3",
     application1: "I love hack",
     application2: "I love hack",
+    application3: "I love hack",
     applicationOptional: "optional essay",
-    applicationPro: "I wanna be a Pro",
+    pro: true,
     attribution: ["Word of Mouth", "Instagram"],
     eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
@@ -219,6 +220,7 @@ describe("POST /registration/submit/", () => {
             ...DRAFT_REGISTRATION,
             application1: undefined,
             application2: undefined,
+            application3: undefined,
         };
         await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
         await Models.RegistrationApplicationDraft.create(incompleteDraft);

@@ -1,6 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
+import Config from "../../common/config";
 
 export class RegistrationApplicationSubmitted {
     @prop({ required: true, index: true })
@@ -60,11 +61,14 @@ export class RegistrationApplicationSubmitted {
     @prop({ required: true })
     public application2: string;
 
+    @prop({ required: true })
+    public application3: string;
+
     @prop({ required: false })
     public applicationOptional?: string;
 
     @prop({ required: false })
-    public applicationPro?: string;
+    public pro?: boolean;
 
     @prop({
         required: true,
@@ -141,10 +145,13 @@ export class RegistrationApplicationDraft {
     public application2?: string;
 
     @prop({ required: false })
+    public application3?: string;
+
+    @prop({ required: false })
     public applicationOptional?: string;
 
     @prop({ required: false })
-    public applicationPro?: string;
+    public pro?: boolean;
 
     @prop({
         required: false,
@@ -192,27 +199,28 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationSubmittedRequestSchema = z
     .object({
-        firstName: z.string(),
-        lastName: z.string(),
-        preferredName: z.string().optional(),
-        age: z.string(),
-        email: z.string().email({ message: "Invalid email." }),
-        gender: z.string(),
-        race: z.array(z.string()),
-        country: z.string(),
-        state: z.string().optional(),
-        school: z.string(),
-        education: z.string(),
-        graduate: z.string(),
-        major: z.string(),
-        underrepresented: z.string(),
-        hackathonsParticipated: z.string(),
-        application1: z.string(),
-        application2: z.string(),
-        applicationOptional: z.string().optional(),
-        applicationPro: z.string().optional(),
-        attribution: z.array(z.string()),
-        eventInterest: z.array(z.string()),
+        firstName: z.string().max(Config.MAX_STRING_LENGTH),
+        lastName: z.string().max(Config.MAX_STRING_LENGTH),
+        preferredName: z.string().max(Config.MAX_STRING_LENGTH).optional(),
+        age: z.string().max(Config.MAX_STRING_LENGTH),
+        email: z.string().email({ message: "Invalid email." }).max(Config.MAX_STRING_LENGTH),
+        gender: z.string().max(Config.MAX_STRING_LENGTH),
+        race: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
+        country: z.string().max(Config.MAX_STRING_LENGTH),
+        state: z.string().max(Config.MAX_STRING_LENGTH).optional(),
+        school: z.string().max(Config.MAX_STRING_LENGTH),
+        education: z.string().max(Config.MAX_STRING_LENGTH),
+        graduate: z.string().max(Config.MAX_STRING_LENGTH),
+        major: z.string().max(Config.MAX_STRING_LENGTH),
+        underrepresented: z.string().max(Config.MAX_STRING_LENGTH),
+        hackathonsParticipated: z.string().max(Config.MAX_STRING_LENGTH),
+        application1: z.string().max(Config.MAX_ESSAY_LENGTH),
+        application2: z.string().max(Config.MAX_ESSAY_LENGTH),
+        application3: z.string().max(Config.MAX_ESSAY_LENGTH),
+        applicationOptional: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
+        pro: z.boolean().optional(),
+        attribution: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
+        eventInterest: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
         requestTravelReimbursement: z.boolean(),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {
@@ -233,8 +241,9 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             hackathonsParticipated: "2-3",
             application1: "I love hack",
             application2: "I love hack",
+            application3: "I love hack",
             applicationOptional: "",
-            applicationPro: "I wanna be a Pro",
+            pro: true,
             attribution: ["Word of Mouth", "Instagram"],
             eventInterest: ["Meeting New People"],
             requestTravelReimbursement: false,
