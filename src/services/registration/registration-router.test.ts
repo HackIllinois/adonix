@@ -179,13 +179,13 @@ describe("POST /registration/submit/", () => {
         sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
     });
 
-    it("should submit registration", async () => {
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.SuccessOK);
+    it("should submit registration with body data", async () => {
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [DRAFT_REGISTRATION.email],
-            subs: { name: DRAFT_REGISTRATION.firstName },
+            recipients: [APPLICATION.email],
+            subs: { name: APPLICATION.firstName },
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
@@ -194,47 +194,65 @@ describe("POST /registration/submit/", () => {
         });
         expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
 
-        // Draft should be deleted
+        // Draft should be deleted if it exists
         const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(storedDraft).toBeNull();
     });
 
-    it("should provide not found error when draft does not exist", async () => {
+    it("should submit registration even when no draft exists", async () => {
         await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorNotFound);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(sendMail).toBeCalledWith({
+            templateId: Templates.REGISTRATION_SUBMISSION,
+            recipients: [APPLICATION.email],
+            subs: { name: APPLICATION.firstName },
+        } satisfies MailInfo);
+
+        // Should be stored in submissions collection
+        const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
     });
 
     it("should provide already submitted error when already submitted", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 
-    it("should provide incomplete application error when draft is incomplete", async () => {
-        const incompleteDraft = {
-            ...DRAFT_REGISTRATION,
-            application1: undefined,
-            application2: undefined,
-            application3: undefined,
+    it("should provide bad request error when required fields are missing", async () => {
+        const incompleteApplication = {
+            firstName: TESTER.name,
+            lastName: TESTER.name,
+            // Missing required fields
         };
-        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
-        await Models.RegistrationApplicationDraft.create(incompleteDraft);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "IncompleteApplication");
+        const response = await postAsUser("/registration/submit/")
+            .send(incompleteApplication)
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
+
+    it("should provide bad request error when email is invalid", async () => {
+        const response = await postAsUser("/registration/submit/")
+            .send(APPLICATION_INVALID_EMAIL)
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
     it("should provide error when email fails to send and still submit registration", async () => {
         // Mock failure
         sendMail.mockImplementation(async (_) => {
             throw new Error("EmailFailedToSend");
         });
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.ServerErrorInternal);
         expect(JSON.parse(response.text)).toHaveProperty("error", "InternalError");
 
         // Should be stored in submissions collection
@@ -243,7 +261,7 @@ describe("POST /registration/submit/", () => {
         });
         expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
 
-        // Draft should be deleted
+        // Draft should be deleted if it exists
         const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });

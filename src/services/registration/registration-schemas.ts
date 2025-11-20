@@ -353,8 +353,3 @@ export const [RegistrationChallengeAlreadySolvedError, RegistrationChallengeAlre
     error: "AlreadySolved",
     message: "You've already solved the challenge!",
 });
-
-export const [RegisterationIncompleteSubmissionError, RegisterationIncompleteSubmissionErrorSchema] = CreateErrorAndSchema({
-    error: "IncompleteApplication",
-    message: "Your application is incomplete. Please fill out all required fields before submitting.",
-});
