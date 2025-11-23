@@ -7,8 +7,6 @@ import Models from "../../common/models";
 import {
     RegistrationAlreadySubmittedError,
     RegistrationAlreadySubmittedErrorSchema,
-    RegisterationIncompleteSubmissionError,
-    RegisterationIncompleteSubmissionErrorSchema,
     RegistrationApplicationSubmitted,
     RegistrationApplicationDraft,
     RegistrationApplicationDraftRequestSchema,
@@ -230,30 +228,20 @@ registrationRouter.post(
         tag: Tag.REGISTRATION,
         role: Role.USER,
         summary: "Submits the currently authenticated user's registration - permanent",
+        body: RegistrationApplicationSubmittedRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new registration information",
                 schema: RegistrationApplicationSubmittedRequestSchema,
             },
-            [StatusCode.ClientErrorBadRequest]: [
-                {
-                    id: RegistrationAlreadySubmittedError.error,
-                    description: "Registration is already submitted, cannot update anymore",
-                    schema: RegistrationAlreadySubmittedErrorSchema,
-                },
-                {
-                    id: RegisterationIncompleteSubmissionError.error,
-                    description: "Your application is incomplete. Please fill out all required fields before submitting.",
-                    schema: RegisterationIncompleteSubmissionErrorSchema,
-                },
-            ],
+            [StatusCode.ClientErrorBadRequest]: {
+                id: RegistrationAlreadySubmittedError.error,
+                description: "Registration is already submitted, cannot update anymore",
+                schema: RegistrationAlreadySubmittedErrorSchema,
+            },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Registration is closed",
                 schema: RegistrationClosedErrorSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find registration information (make sure you create it first!)",
-                schema: RegistrationNotFoundErrorSchema,
             },
         },
     }),
@@ -264,26 +252,16 @@ registrationRouter.post(
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
         }
 
-        const draftInfo = await Models.RegistrationApplicationDraft.findOne({ userId: userId });
-
-        if (!draftInfo) {
-            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
-        }
-
         const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
         if (isSubmitted) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const submissionValidation = RegistrationApplicationSubmittedRequestSchema.safeParse(draftInfo);
-        if (!submissionValidation.success) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(RegisterationIncompleteSubmissionError);
-        }
-
         const submissionData: RegistrationApplicationSubmitted = {
-            ...submissionValidation.data,
+            ...req.body,
             userId: userId,
         } as RegistrationApplicationSubmitted;
+
         const [newSubmissionInfo] = await Promise.all([
             Models.RegistrationApplicationSubmitted.create(submissionData),
             Models.RegistrationApplicationDraft.deleteOne({ userId: userId }),
