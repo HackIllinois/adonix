@@ -58,11 +58,11 @@ async function deployTemplate(templateDir, templateName) {
 
     const command = exists
         ? new UpdateEmailTemplateCommand({
-              TemplateName: metadata.TemplateName,
+              TemplateName: templateName,
               TemplateContent: templateContent,
           })
         : new CreateEmailTemplateCommand({
-              TemplateName: metadata.TemplateName,
+              TemplateName: templateName,
               TemplateContent: templateContent,
           });
 
