@@ -6,7 +6,6 @@ import { RegistrationApplicationSubmitted } from "../registration/registration-s
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
-import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const TESTER_DECISION = {
@@ -91,7 +90,13 @@ describe("PUT /admission/update/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            results: {
+                total_accepted_recipients: 1,
+                total_rejected_recipients: 0,
+                id: "test-message-id",
+            },
+        }));
     });
 
     it("gives forbidden error for user without elevated perms", async () => {
@@ -110,7 +115,7 @@ describe("PUT /admission/update/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            recipients: [TESTER_APPLICATION.email],
+            bulkEmailEntries: [{ destination: TESTER_APPLICATION.email }],
         } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
@@ -190,13 +195,19 @@ describe("GET /admission/rsvp/:id", () => {
     });
 });
 
-describe("PUT /admission/rsvp/accept", () => {
+describe("PUT /admission/rsvp/accept/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            results: {
+                total_accepted_recipients: 1,
+                total_rejected_recipients: 0,
+                id: "test-message-id",
+            },
+        }));
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -215,8 +226,12 @@ describe("PUT /admission/rsvp/accept", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_CONFIRMATION,
-            recipients: [TESTER_APPLICATION.email],
-            subs: { name: TESTER_APPLICATION.firstName },
+            bulkEmailEntries: [
+                {
+                    destination: TESTER_APPLICATION.email,
+                    replacementTemplateData: { name: TESTER_APPLICATION.firstName },
+                },
+            ],
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({
@@ -249,7 +264,13 @@ describe("PUT /admission/rsvp/decline/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            results: {
+                total_accepted_recipients: 1,
+                total_rejected_recipients: 0,
+                id: "test-message-id",
+            },
+        }));
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -268,7 +289,11 @@ describe("PUT /admission/rsvp/decline/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_DECLINED,
-            recipients: [TESTER_APPLICATION.email],
+            bulkEmailEntries: [
+                {
+                    destination: TESTER_APPLICATION.email,
+                },
+            ],
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({

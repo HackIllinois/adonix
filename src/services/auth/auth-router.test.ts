@@ -23,8 +23,8 @@ import { AuthInfo } from "./auth-schemas";
 import { UserInfo } from "../user/user-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
-import { AxiosResponse } from "axios";
 import { generateJwtToken } from "../../common/auth";
+import { MailInfo, MailSendResults } from "../mail/mail-schemas";
 
 const USER = {
     userId: "user",
@@ -263,7 +263,16 @@ describe("POST /auth/sponsor/verify/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(
+            async (_) =>
+                ({
+                    results: {
+                        total_accepted_recipients: 1,
+                        total_rejected_recipients: 0,
+                        id: "test-message-id",
+                    },
+                }) satisfies MailSendResults,
+        );
     });
 
     it("sends an email with code", async () => {
@@ -282,12 +291,16 @@ describe("POST /auth/sponsor/verify/", () => {
         expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
 
         expect(sendMail).toBeCalledWith({
-            recipients: [SPONSOR.email],
-            subs: {
-                code: authCode?.code,
-            },
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-        });
+            bulkEmailEntries: [
+                {
+                    destination: SPONSOR.email,
+                    replacementTemplateData: {
+                        code: authCode?.code,
+                    },
+                },
+            ],
+        } satisfies MailInfo);
     });
 
     it("sends an email with code and updated existing", async () => {
@@ -307,12 +320,16 @@ describe("POST /auth/sponsor/verify/", () => {
         expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
 
         expect(sendMail).toBeCalledWith({
-            recipients: [SPONSOR.email],
-            subs: {
-                code: authCode?.code,
-            },
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-        });
+            bulkEmailEntries: [
+                {
+                    destination: SPONSOR.email,
+                    replacementTemplateData: {
+                        code: authCode?.code,
+                    },
+                },
+            ],
+        } satisfies MailInfo);
     });
 
     it("ignores an invalid email", async () => {

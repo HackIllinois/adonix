@@ -32,7 +32,7 @@ mailRouter.post(
         const mailInfo = req.body;
 
         const result = await sendMail(mailInfo);
-        return res.status(StatusCode.SuccessOK).json(result.data);
+        return res.status(StatusCode.SuccessOK).json(result);
     },
 );
 

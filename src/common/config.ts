@@ -9,7 +9,8 @@ import { readFileSync } from "fs";
 import env from "./env";
 
 export enum Templates {
-    REGISTRATION_SUBMISSION = "2025_registration_confirmation",
+    REGISTRATION_SUBMISSION = "2026_registration_confirmation",
+    CHALLENGE_COMPLETION = "2026_challenge_confirmation",
     STATUS_UPDATE = "2025_status_update",
     RSVP_CONFIRMATION = "2025_rsvp_confirmation",
     RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
@@ -73,8 +74,8 @@ const Config = {
 
     EXPO_ACCESS_TOKEN: requireEnv("EXPO_ACCESS_TOKEN"),
 
-    SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
-    SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",
+    SES_FROM_EMAIL: requireEnv("SES_FROM_EMAIL"),
+    SES_REGION: requireEnv("SES_REGION"),
 
     GITHUB_OAUTH_ID: requireEnv("GITHUB_OAUTH_ID"),
     GITHUB_OAUTH_SECRET: requireEnv("GITHUB_OAUTH_SECRET"),
