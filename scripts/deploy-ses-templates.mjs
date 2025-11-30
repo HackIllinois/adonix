@@ -12,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
-const TEMPLATES_DIR = join(__dirname, "..", "src", "templates");
+const TEMPLATES_DIR = join(__dirname, "..", "templates");
 
 const sesClient = new SESv2Client({ region: AWS_REGION });
 
