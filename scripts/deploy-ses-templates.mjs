@@ -23,12 +23,7 @@ function createTemplate(templateDir) {
 
     const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
 
-    if (
-        !metadata.TemplateName ||
-        typeof metadata.TemplateName !== "string" ||
-        !metadata.SubjectPart ||
-        typeof metadata.SubjectPart !== "string"
-    ) {
+    if (!metadata.Subject || typeof metadata.Subject !== "string") {
         throw new Error(`Invalid metadata in ${metadataPath}`);
     }
 
@@ -54,7 +49,7 @@ async function deployTemplate(templateDir, templateName) {
     const [metadata, htmlContent, textContent] = createTemplate(templateDir);
 
     const templateContent = {
-        Subject: metadata.SubjectPart,
+        Subject: metadata.Subject,
         Html: htmlContent,
         Text: textContent,
     };
