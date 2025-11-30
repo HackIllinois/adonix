@@ -2803,16 +2803,16 @@
   resolved "https://registry.npmjs.org/@tsconfig/node16/-/node16-1.0.4.tgz"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
-"@typegoose/typegoose@^11.5.0":
-  version "11.7.1"
-  resolved "https://registry.npmjs.org/@typegoose/typegoose/-/typegoose-11.7.1.tgz"
-  integrity sha512-+tFasAsrn7mSEpHJvRcmEpCaupntiaCFImd2w/swEj8Sx5v3YTrwdKV2hjesZhIoLIMSQ+CrsNo+Y9RqTnmRig==
+"@typegoose/typegoose@^11.8.0":
+  version "11.8.1"
+  resolved "https://registry.yarnpkg.com/@typegoose/typegoose/-/typegoose-11.8.1.tgz#158ded63e38ef2bd33ae7924d41910f1a03c87ef"
+  integrity sha512-Vozadw9OjE+Jz98m2YcK1WFMxPXoOfYOOuLGmrpFRfRLAlCXYiCpwMW5mwhJNSkO4FDjXuzrCDA6sgirJipRgw==
   dependencies:
     lodash "^4.17.20"
-    loglevel "^1.8.1"
-    reflect-metadata "^0.1.13"
-    semver "^7.5.4"
-    tslib "^2.6.2"
+    loglevel "^1.9.1"
+    reflect-metadata "^0.1.14"
+    semver "^7.6.2"
+    tslib "^2.6.3"
 
 "@types/babel__core@^7.1.14":
   version "7.20.5"
@@ -5441,10 +5441,10 @@ lodash@^4.17.20:
   resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
 
-loglevel@^1.8.1:
-  version "1.8.1"
-  resolved "https://registry.npmjs.org/loglevel/-/loglevel-1.8.1.tgz"
-  integrity sha512-tCRIJM51SHjAayKwC+QAg8hT8vg6z7GSgLJKGvzuPb1Wc+hLzqtuVLxp6/HzSPOozuK+8ErAhy7U/sVzw8Dgfg==
+loglevel@^1.9.1:
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/loglevel/-/loglevel-1.9.2.tgz#c2e028d6c757720107df4e64508530db6621ba08"
+  integrity sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==
 
 lowercase-keys@^2.0.0:
   version "2.0.0"
@@ -5639,18 +5639,7 @@ mongodb-memory-server@^9.0.1:
     mongodb-memory-server-core "9.5.0"
     tslib "^2.6.3"
 
-mongodb@5.9.1:
-  version "5.9.1"
-  resolved "https://registry.npmjs.org/mongodb/-/mongodb-5.9.1.tgz"
-  integrity sha512-NBGA8AfJxGPeB12F73xXwozt8ZpeIPmCUeWRwl9xejozTXFes/3zaep9zhzs1B/nKKsw4P3I4iPfXl3K7s6g+Q==
-  dependencies:
-    bson "^5.5.0"
-    mongodb-connection-string-url "^2.6.0"
-    socks "^2.7.1"
-  optionalDependencies:
-    "@mongodb-js/saslprep" "^1.1.0"
-
-mongodb@^5.7.0, mongodb@^5.9.2:
+mongodb@5.9.2, mongodb@^5.7.0, mongodb@^5.9.2:
   version "5.9.2"
   resolved "https://registry.npmjs.org/mongodb/-/mongodb-5.9.2.tgz"
   integrity sha512-H60HecKO4Bc+7dhOv4sJlgvenK4fQNqqUIlXxZYQNbfEWSALGAwGoyJd/0Qwk4TttFXUOHJ2ZJQe/52ScaUwtQ==
@@ -5661,14 +5650,14 @@ mongodb@^5.7.0, mongodb@^5.9.2:
   optionalDependencies:
     "@mongodb-js/saslprep" "^1.1.0"
 
-mongoose@^7.5.3:
-  version "7.6.8"
-  resolved "https://registry.npmjs.org/mongoose/-/mongoose-7.6.8.tgz"
-  integrity sha512-q9zAySH+UtOK5yonWyNcLfq3PxrY6s4gdta4qNGKNOE2yTVoY9FP4hQtvWYnv4rkdk7T8QmQMC7bbhJjDxIunw==
+mongoose@^7.8.4:
+  version "7.8.7"
+  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-7.8.7.tgz#7a7ccbfd3da25990c88a8c41cd5b5abc30b913c7"
+  integrity sha512-5Bo4CrUxrPITrhMKsqUTOkXXo2CoRC5tXxVQhnddCzqDMwRXfyStrxj1oY865g8gaekSBhxAeNkYyUSJvGm9Hw==
   dependencies:
     bson "^5.5.0"
     kareem "2.5.1"
-    mongodb "5.9.1"
+    mongodb "5.9.2"
     mpath "0.9.0"
     mquery "5.0.0"
     ms "2.1.3"
@@ -6193,9 +6182,9 @@ readable-web-to-node-stream@^3.0.2:
   dependencies:
     readable-stream "^3.6.0"
 
-reflect-metadata@^0.1.13:
+reflect-metadata@^0.1.14:
   version "0.1.14"
-  resolved "https://registry.npmjs.org/reflect-metadata/-/reflect-metadata-0.1.14.tgz"
+  resolved "https://registry.yarnpkg.com/reflect-metadata/-/reflect-metadata-0.1.14.tgz#24cf721fe60677146bb77eeb0e1f9dece3d65859"
   integrity sha512-ZhYeb6nRaXCfhnndflDK8qI6ZQ/YcWZCISRAWICW9XYqMUwjZM9Z0DveWX/ABN01oxSHwVxKQmxeYZSsm0jh5A==
 
 require-directory@^2.1.1:
@@ -6326,6 +6315,11 @@ semver@^7.5.4:
   version "7.6.3"
   resolved "https://registry.npmjs.org/semver/-/semver-7.6.3.tgz"
   integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
+
+semver@^7.6.2:
+  version "7.7.3"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.3.tgz#4b5f4143d007633a8dc671cd0a6ef9147b8bb946"
+  integrity sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==
 
 semver@^7.6.3:
   version "7.7.0"
