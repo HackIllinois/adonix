@@ -1,7 +1,12 @@
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { SESClient, CreateTemplateCommand, UpdateTemplateCommand, GetTemplateCommand } from "@aws-sdk/client-ses";
+import {
+    SESv2Client,
+    CreateEmailTemplateCommand,
+    UpdateEmailTemplateCommand,
+    GetEmailTemplateCommand,
+} from "@aws-sdk/client-sesv2";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -9,7 +14,7 @@ const __dirname = dirname(__filename);
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const TEMPLATES_DIR = join(__dirname, "..", "src", "templates");
 
-const sesClient = new SESClient({ region: AWS_REGION });
+const sesClient = new SESv2Client({ region: AWS_REGION });
 
 function createTemplate(templateDir) {
     const metadataPath = join(templateDir, "metadata.json");
@@ -35,10 +40,10 @@ function createTemplate(templateDir) {
 
 async function templateExists(templateName) {
     try {
-        await sesClient.send(new GetTemplateCommand({ TemplateName: templateName }));
+        await sesClient.send(new GetEmailTemplateCommand({ TemplateName: templateName }));
         return true;
     } catch (error) {
-        if (error.name === "TemplateDoesNotExist") {
+        if (error.name === "NotFoundException") {
             return false;
         }
         throw error;
@@ -48,18 +53,23 @@ async function templateExists(templateName) {
 async function deployTemplate(templateDir, templateName) {
     const [metadata, htmlContent, textContent] = createTemplate(templateDir);
 
-    const templateData = {
-        TemplateName: metadata.TemplateName,
-        SubjectPart: metadata.SubjectPart,
-        HtmlPart: htmlContent,
-        TextPart: textContent,
+    const templateContent = {
+        Subject: metadata.SubjectPart,
+        Html: htmlContent,
+        Text: textContent,
     };
 
     const exists = await templateExists(templateName);
 
     const command = exists
-        ? new UpdateTemplateCommand({ Template: templateData })
-        : new CreateTemplateCommand({ Template: templateData });
+        ? new UpdateEmailTemplateCommand({
+              TemplateName: metadata.TemplateName,
+              TemplateContent: templateContent,
+          })
+        : new CreateEmailTemplateCommand({
+              TemplateName: metadata.TemplateName,
+              TemplateContent: templateContent,
+          });
 
     await sesClient.send(command);
 }
