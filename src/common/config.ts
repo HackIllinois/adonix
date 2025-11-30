@@ -48,7 +48,6 @@ const Config = {
     TEST: false, // False by default, will be mocked over
     PROD,
     VERSION: getVersion(),
-    AWS_REGION: requireEnv("AWS_REGION"),
 
     /* URLs */
     PORT,
@@ -87,6 +86,7 @@ const Config = {
 
     SYSTEM_ADMIN_LIST: requireEnv("SYSTEM_ADMINS").split(","),
 
+    S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
 
     // Runes and Riddles
