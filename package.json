@@ -27,7 +27,7 @@
         "@aws-sdk/client-s3": "^3.496.0",
         "@aws-sdk/s3-presigned-post": "^3.499.0",
         "@aws-sdk/s3-request-presigner": "^3.496.0",
-        "@typegoose/typegoose": "^11.5.0",
+        "@typegoose/typegoose": "^11.8.0",
         "axios": "^1.5.1",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
