@@ -1,0 +1,8 @@
+Hello!
+
+There has been an update to your application. Please sign into your registration portal at https://hackillinois.org/profile to check your status.
+
+Feel free to reach out with any questions at contact@hackillinois.org.
+
+Best,
+The HackIllinois Team

@@ -131,20 +131,35 @@ admissionRouter.put(
             if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
-                    recipients: [application.email],
-                    subs: { name: application.firstName, amount: admissionDecision.reimbursementValue },
+                    bulkEmailEntries: [
+                        {
+                            destination: application.email,
+                            replacementTemplateData: {
+                                name: application.firstName,
+                                amount: admissionDecision.reimbursementValue,
+                            },
+                        },
+                    ],
                 };
             } else {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION,
-                    recipients: [application.email],
-                    subs: { name: application.firstName },
+                    bulkEmailEntries: [
+                        {
+                            destination: application.email,
+                            replacementTemplateData: { name: application.firstName },
+                        },
+                    ],
                 };
             }
         } else {
             mailInfo = {
                 templateId: Templates.RSVP_DECLINED,
-                recipients: [application.email],
+                bulkEmailEntries: [
+                    {
+                        destination: application.email,
+                    },
+                ],
             };
         }
 
@@ -211,7 +226,9 @@ admissionRouter.put(
         // Send mail
         const mailInfo: MailInfo = {
             templateId: Templates.STATUS_UPDATE,
-            recipients,
+            bulkEmailEntries: recipients.map((email) => ({
+                destination: email,
+            })),
         };
         await sendMail(mailInfo);
 

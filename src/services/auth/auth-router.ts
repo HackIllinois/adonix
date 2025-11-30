@@ -150,11 +150,15 @@ authRouter.post(
         );
 
         await sendMail({
-            recipients: [email],
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            subs: {
-                code: GENERATED_CODE,
-            },
+            bulkEmailEntries: [
+                {
+                    destination: email,
+                    replacementTemplateData: {
+                        code: GENERATED_CODE,
+                    },
+                },
+            ],
         });
 
         return res.status(StatusCode.SuccessOK).send({ success: true });

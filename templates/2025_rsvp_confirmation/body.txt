@@ -1,0 +1,18 @@
+Hello {{name}}!
+
+Thanks for RSVPing to HackIllinois 2025 – Pursue your prophecy!
+
+Be sure to complete the following items before our event:
+
+1. Join the HackIllinois 2025 Discord Server if you haven’t already.
+
+2. Stay tuned for the release of the HackIllinois iOS and Android apps! You'll need the app to view our schedule, get important event notifications, and use cool features like our exclusive Point Shop.
+
+3. We'll be sending out more emails closer to February 28th regarding our Kickoff and Opening Ceremony, so please check your inbox.
+
+4. Remember that HackIllinois 2025 will be in-person! We won't be able to allow attendees to sleep overnight at our building location, so please make sure you have lodging arrangements.
+
+As always, please feel free to reach out to contact@hackillinois.org for any questions or concerns! We look forward to seeing you at our Check-In at the Siebel Center for Computer Science on Friday, February 28th from 2:30-5:00 PM, and Opening Ceremony at 5:00 PM.
+
+Sincerely,
+The HackIllinois Team

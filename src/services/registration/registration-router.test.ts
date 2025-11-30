@@ -9,7 +9,6 @@ import {
     RegistrationApplicationSubmitted,
 } from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
-import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const APPLICATION = {
@@ -176,7 +175,13 @@ describe("POST /registration/submit/", () => {
 
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            results: {
+                total_accepted_recipients: 1,
+                total_rejected_recipients: 0,
+                id: "test-message-id",
+            },
+        }));
     });
 
     it("should submit registration with body data", async () => {
@@ -184,8 +189,12 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [APPLICATION.email],
-            subs: { name: APPLICATION.firstName },
+            bulkEmailEntries: [
+                {
+                    destination: APPLICATION.email,
+                    replacementTemplateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
+                },
+            ],
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
@@ -208,8 +217,12 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [APPLICATION.email],
-            subs: { name: APPLICATION.firstName },
+            bulkEmailEntries: [
+                {
+                    destination: APPLICATION.email,
+                    replacementTemplateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
+                },
+            ],
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
