@@ -11,6 +11,7 @@ on:
     types: [published]
 
 env:
+  NODE_VERSION: 24
   AWS_REGION: us-east-1
   ECR_REPOSITORY: hackillinois/adonix
   ECS_CLUSTER: adonix-cluster
@@ -51,7 +52,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
