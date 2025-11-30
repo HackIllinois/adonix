@@ -6,16 +6,7 @@ import { createPresignedPost, PresignedPost } from "@aws-sdk/s3-presigned-post";
 let s3: S3 | undefined = undefined;
 
 function getClient(): S3 {
-    if (!s3) {
-        s3 = new S3({
-            apiVersion: "2006-03-01",
-            credentials: {
-                accessKeyId: Config.S3_ACCESS_KEY,
-                secretAccessKey: Config.S3_SECRET_KEY,
-            },
-            region: Config.S3_REGION,
-        });
-    }
+    s3 ??= new S3({ region: Config.AWS_REGION });
     return s3;
 }
 
