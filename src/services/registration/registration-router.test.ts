@@ -176,11 +176,7 @@ describe("POST /registration/submit/", () => {
         // Mock successful send by default
         sendMail = mockSendMail();
         sendMail.mockImplementation(async (_) => ({
-            results: {
-                total_accepted_recipients: 1,
-                total_rejected_recipients: 0,
-                id: "test-message-id",
-            },
+            messageId: "test-message-id",
         }));
     });
 
@@ -189,12 +185,8 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            bulkEmailEntries: [
-                {
-                    destination: APPLICATION.email,
-                    replacementTemplateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
-                },
-            ],
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
@@ -217,12 +209,8 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            bulkEmailEntries: [
-                {
-                    destination: APPLICATION.email,
-                    replacementTemplateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
-                },
-            ],
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
         } satisfies MailInfo);
 
         // Should be stored in submissions collection

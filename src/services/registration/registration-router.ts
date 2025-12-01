@@ -289,12 +289,8 @@ registrationRouter.post(
         // SEND SUCCESSFUL REGISTRATION EMAIL
         const mailInfo: MailInfo = {
             templateId: Templates.REGISTRATION_SUBMISSION,
-            bulkEmailEntries: [
-                {
-                    destination: newSubmissionInfo.email,
-                    replacementTemplateData: { name: newSubmissionInfo.firstName, pro: newSubmissionInfo.pro ?? false },
-                },
-            ],
+            recipient: newSubmissionInfo.email,
+            templateData: { name: newSubmissionInfo.firstName, pro: newSubmissionInfo.pro ?? false },
         };
         await sendMail(mailInfo);
 

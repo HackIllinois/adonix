@@ -91,11 +91,7 @@ describe("PUT /admission/update/", () => {
         // Mock successful send by default
         sendMail = mockSendMail();
         sendMail.mockImplementation(async (_) => ({
-            results: {
-                total_accepted_recipients: 1,
-                total_rejected_recipients: 0,
-                id: "test-message-id",
-            },
+            messageId: "test-message-id",
         }));
     });
 
@@ -115,7 +111,7 @@ describe("PUT /admission/update/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            bulkEmailEntries: [{ destination: TESTER_APPLICATION.email }],
+            recipient: TESTER_APPLICATION.email,
         } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
@@ -202,11 +198,7 @@ describe("PUT /admission/rsvp/accept/", () => {
         // Mock successful send by default
         sendMail = mockSendMail();
         sendMail.mockImplementation(async (_) => ({
-            results: {
-                total_accepted_recipients: 1,
-                total_rejected_recipients: 0,
-                id: "test-message-id",
-            },
+            messageId: "test-message-id",
         }));
     });
 
@@ -226,12 +218,8 @@ describe("PUT /admission/rsvp/accept/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_CONFIRMATION,
-            bulkEmailEntries: [
-                {
-                    destination: TESTER_APPLICATION.email,
-                    replacementTemplateData: { name: TESTER_APPLICATION.firstName },
-                },
-            ],
+            recipient: TESTER_APPLICATION.email,
+            templateData: { name: TESTER_APPLICATION.firstName },
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({
@@ -265,11 +253,7 @@ describe("PUT /admission/rsvp/decline/", () => {
         // Mock successful send by default
         sendMail = mockSendMail();
         sendMail.mockImplementation(async (_) => ({
-            results: {
-                total_accepted_recipients: 1,
-                total_rejected_recipients: 0,
-                id: "test-message-id",
-            },
+            messageId: "test-message-id",
         }));
     });
 
@@ -289,11 +273,7 @@ describe("PUT /admission/rsvp/decline/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_DECLINED,
-            bulkEmailEntries: [
-                {
-                    destination: TESTER_APPLICATION.email,
-                },
-            ],
+            recipient: TESTER_APPLICATION.email,
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({

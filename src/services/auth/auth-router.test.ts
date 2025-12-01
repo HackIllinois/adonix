@@ -266,11 +266,7 @@ describe("POST /auth/sponsor/verify/", () => {
         sendMail.mockImplementation(
             async (_) =>
                 ({
-                    results: {
-                        total_accepted_recipients: 1,
-                        total_rejected_recipients: 0,
-                        id: "test-message-id",
-                    },
+                    messageId: "test-message-id",
                 }) satisfies MailSendResults,
         );
     });
@@ -292,14 +288,10 @@ describe("POST /auth/sponsor/verify/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            bulkEmailEntries: [
-                {
-                    destination: SPONSOR.email,
-                    replacementTemplateData: {
-                        code: authCode?.code,
-                    },
-                },
-            ],
+            recipient: SPONSOR.email,
+            templateData: {
+                code: authCode?.code,
+            },
         } satisfies MailInfo);
     });
 
@@ -321,14 +313,10 @@ describe("POST /auth/sponsor/verify/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            bulkEmailEntries: [
-                {
-                    destination: SPONSOR.email,
-                    replacementTemplateData: {
-                        code: authCode?.code,
-                    },
-                },
-            ],
+            recipient: SPONSOR.email,
+            templateData: {
+                code: authCode?.code,
+            },
         } satisfies MailInfo);
     });
 
