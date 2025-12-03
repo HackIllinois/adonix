@@ -303,7 +303,7 @@ export const RegistrationChallengeStatusSchema = z
             attempts: 3,
             complete: false,
         },
-    }); 
+    });
 
 export const RegistrationChallengeSolveSchema = z
     .object({
