@@ -219,8 +219,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         application3: z.string().max(Config.MAX_ESSAY_LENGTH),
         applicationOptional: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
         pro: z.boolean().optional(),
-        attribution: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
-        eventInterest: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
+        attribution: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
+        eventInterest: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         requestTravelReimbursement: z.boolean(),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {

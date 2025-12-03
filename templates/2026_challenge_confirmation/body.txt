@@ -1,0 +1,12 @@
+Hello {{name}}!
+
+You have successfully complete the HackVoyagers challenge. Congratulations!
+
+Admission decisions will be sent out on a rolling basis, so be on the lookout for an email regarding updates to your application status.
+
+Feel free to reach out to us with any questions at contact@hackillinois.org.
+
+We look forward to seeing all of the amazing work that you will do at HackIllinois 2026. Get excited for a weekend of hacking!
+
+Sincerely,
+The HackIllinois Team

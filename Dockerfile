@@ -1,5 +1,5 @@
-# Start from base image node v23, see https://hub.docker.com/_/node for reference
-FROM node:23
+# Start from base image node v24, see https://hub.docker.com/_/node for reference
+FROM node:24
 
 # All of our code will live under /adonix
 WORKDIR /adonix
