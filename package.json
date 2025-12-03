@@ -19,12 +19,14 @@
         "build": "tsc",
         "verify": "yarn lint:check && yarn format:check",
         "send-notif": "node scripts/send-notif.js",
+        "deploy:templates": "node scripts/deploy-ses-templates.mjs",
         "start": "node --enable-source-maps out/index.js",
         "serve": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\""
     },
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^7.1.1",
         "@aws-sdk/client-s3": "^3.496.0",
+        "@aws-sdk/client-sesv2": "^3.496.0",
         "@aws-sdk/s3-presigned-post": "^3.499.0",
         "@aws-sdk/s3-request-presigner": "^3.496.0",
         "@typegoose/typegoose": "^11.8.0",
