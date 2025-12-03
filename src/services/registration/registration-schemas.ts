@@ -173,14 +173,11 @@ export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
-    @prop({ required: true, type: () => Number })
-    public people: Map<string, number>;
-
-    @prop({ required: true, type: () => [[String]] })
-    public alliances: string[][];
+    @prop({ required: true })
+    public inputFileId: string;
 
     @prop({ required: true })
-    public solution: number;
+    public solutionFileId: string;
 
     @prop({ required: true })
     public attempts: number;
@@ -296,36 +293,21 @@ export const RegistrationApplicationSubmittedSchema = RegistrationApplicationSub
 
 export const RegistrationChallengeStatusSchema = z
     .object({
-        people: z.record(z.string(), z.number()),
-        alliances: z.array(z.array(z.string())),
+        inputFileId: z.string(),
         attempts: z.number(),
         complete: z.boolean(),
     })
-    .openapi("RegistrationChallengeInput", {
+    .openapi("RegistrationChallengeStatus", {
         example: {
-            people: {
-                Zeus: 36,
-                Apollo: 32,
-                Athena: 34,
-                Hades: 28,
-                Hermes: 29,
-                Artemis: 30,
-            },
-            alliances: [
-                ["Zeus", "Apollo"],
-                ["Apollo", "Athena"],
-                ["Hades", "Hermes"],
-                ["Hermes", "Artemis"],
-                ["Hades", "Artemis"],
-            ],
+            inputFileId: "abc123",
             attempts: 3,
             complete: false,
         },
-    });
+    }); 
 
 export const RegistrationChallengeSolveSchema = z
     .object({
-        solution: z.number().openapi({ example: 123 }),
+        fileId: z.string().openapi({ example: "uploaded_file_id" }),
     })
     .openapi("RegistrationChallengeSolve");
 
