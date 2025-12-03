@@ -53,13 +53,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Deploy SES email templates
-        run: npm run deploy:templates
+        run: yarn deploy:templates
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
