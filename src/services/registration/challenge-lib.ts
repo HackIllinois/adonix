@@ -1,5 +1,104 @@
 /* eslint-disable no-magic-numbers */
 import { RegistrationChallenge } from "./registration-schemas";
+import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
+import Config from "../../common/config";
+import { createPresignedPost, PresignedPost } from "@aws-sdk/s3-presigned-post";
+import sharp from "sharp";
+
+let s3: S3 | undefined = undefined;
+
+function getClient(): S3 {
+    s3 ??= new S3({ region: Config.S3_REGION });
+    return s3;
+}
+
+/**
+ * Creates a presigned POST URL for uploading a challenge solution image
+ */
+export function createSignedChallengeSolutionPostUrl(userId: string): Promise<PresignedPost> {
+    const s3 = getClient();
+
+    return createPresignedPost(s3, {
+        Bucket: Config.S3_CHALLENGE_BUCKET_NAME,
+        Key: `solution_${userId}.png`,
+        Conditions: [
+            ["content-length-range", 0, Config.MAX_CHALLENGE_IMAGE_SIZE_BYTES], // e.g., 10 MB max
+        ],
+        Fields: {
+            success_action_status: "201",
+            "Content-Type": "image/png",
+        },
+        Expires: Config.CHALLENGE_URL_EXPIRY_SECONDS,
+    });
+}
+
+/**
+ * Fetches an image from S3
+ */
+async function fetchImageFromS3(bucketName: string, key: string): Promise<Buffer> {
+    const s3 = getClient();
+    const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+    });
+
+    const response = await s3.send(command);
+    const stream = response.Body;
+
+    if (!stream) {
+        throw new Error("No data returned from S3");
+    }
+
+    // Convert stream to buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of stream as AsyncIterable<Uint8Array>) {
+        chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+}
+
+/**
+ * Compares two images pixel by pixel
+ * Returns true if images are identical
+ */
+export async function compareChallengeSolution(userId: string, inputFileId: string): Promise<boolean> {
+    try {
+        // Fetch the uploaded solution
+        const uploadedImage = await fetchImageFromS3(Config.S3_CHALLENGE_BUCKET_NAME, `solution_${userId}.png`);
+
+        // Fetch the reference solution (stored as inputFileId.png)
+        const referenceImage = await fetchImageFromS3(Config.S3_CHALLENGE_BUCKET_NAME, `${inputFileId}.png`);
+
+        // Get image metadata
+        const uploadedMeta = await sharp(uploadedImage).metadata();
+        const referenceMeta = await sharp(referenceImage).metadata();
+
+        // Check dimensions match
+        if (uploadedMeta.width !== referenceMeta.width || uploadedMeta.height !== referenceMeta.height) {
+            return false;
+        }
+
+        // Convert both to raw pixel data
+        const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
+        const referencePixels = await sharp(referenceImage).raw().toBuffer();
+
+        // Compare pixel by pixel
+        if (uploadedPixels.length !== referencePixels.length) {
+            return false;
+        }
+
+        for (let i = 0; i < uploadedPixels.length; i++) {
+            if (uploadedPixels[i] !== referencePixels[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Error comparing images:", error);
+        return false;
+    }
+}
 
 const PEOPLE = [
     "Zeus",
@@ -173,3 +272,5 @@ export function generateChallenge(): Pick<RegistrationChallenge, "alliances" | "
 
     return { people, alliances, solution };
 }
+
+

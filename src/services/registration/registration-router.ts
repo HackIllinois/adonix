@@ -2,6 +2,7 @@ import { StatusCode } from "status-code-enum";
 import { Router } from "express";
 
 import { Templates } from "../../common/config";
+import { createSignedChallengeSolutionPostUrl, compareChallengeSolution } from "./challenge-lib";
 
 import Models from "../../common/models";
 import {
@@ -13,6 +14,7 @@ import {
     RegistrationApplicationSubmittedRequestSchema,
     RegistrationApplicationDraftSchema,
     RegistrationChallenge,
+    RegistrationChallengeSolutionUploadURLSchema,
     RegistrationChallengeStatusSchema,
     RegistrationChallengeSolveFailedError,
     RegistrationChallengeSolveFailedErrorSchema,
@@ -37,7 +39,7 @@ import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
 import { generateChallenge } from "./challenge-lib";
-
+import Config from "../../common/config";
 const registrationRouter = Router();
 
 registrationRouter.get(
@@ -331,6 +333,30 @@ registrationRouter.get(
     },
 );
 
+registrationRouter.get(
+    "/challenge/upload/",
+    specification({
+        method: "get",
+        path: "/registration/challenge/upload/",
+        tag: Tag.REGISTRATION,
+        role: Role.USER,
+        summary: "Gets an upload URL for the challenge solution image",
+        description: `This is a presigned url from S3 that is valid for ${Config.CHALLENGE_URL_EXPIRY_SECONDS} seconds`,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The upload url",
+                schema: RegistrationChallengeSolutionUploadURLSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+        const { url, fields } = await createSignedChallengeSolutionPostUrl(userId);
+        return res.status(StatusCode.SuccessOK).send({ url, fields });
+    },
+);
+
+
 registrationRouter.post(
     "/challenge/",
     specification({
@@ -364,7 +390,7 @@ registrationRouter.post(
         },
     }),
     async (req, res) => {
-        const { solution } = req.body;
+        const { solutionFileId } = req.body;
         const { id: userId } = getAuthenticatedUser(req);
 
         if (!isRegistrationAlive()) {
@@ -372,20 +398,33 @@ registrationRouter.post(
         }
 
         const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
-        if (challenge?.complete) {
-            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationChallengeAlreadySolvedError);
+        
+        if (!challenge) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "RegistrationClosed",
+                message: "Registration is closed, check back next year!",
+            });
         }
-        if (solution != challenge?.solution) {
-            if (challenge) {
-                await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: challenge.attempts + 1 });
-            }
+
+        if (challenge.complete) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeAlreadySolvedError);
+        }
+
+        // Compare the uploaded solution with the reference solution
+        const isCorrect = await compareChallengeSolution(userId, challenge.inputFileId);
+
+        // Update attempts
+        const updatedAttempts = challenge.attempts + 1;
+
+        if (!isCorrect) {
+            await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: updatedAttempts });
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeSolveFailedError);
         }
 
         const result = await Models.RegistrationChallenge.findOneAndUpdate(
             { userId },
             {
-                attempts: challenge.attempts + 1,
+                attempts: updatedAttempts,
                 complete: true,
             },
             {
@@ -398,12 +437,9 @@ registrationRouter.post(
         }
 
         return res.status(StatusCode.SuccessOK).send({
-            alliances: result.alliances,
-            people: Object.fromEntries(result.people.entries()),
+            inputFileId: result.inputFileId,
             attempts: result.attempts,
             complete: result.complete,
         });
     },
 );
-
-export default registrationRouter;

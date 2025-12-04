@@ -177,9 +177,6 @@ export class RegistrationChallenge {
     public inputFileId: string;
 
     @prop({ required: true })
-    public solutionFileId: string;
-
-    @prop({ required: true })
     public attempts: number;
 
     @prop({ required: true })
@@ -291,6 +288,28 @@ export const RegistrationApplicationSubmittedSchema = RegistrationApplicationSub
     },
 });
 
+export const RegistrationChallengeSolutionUploadURLSchema = z
+    .object({
+        url: z.string().openapi({ example: "https://challenge-bucket-dev.s3.us-east-2.amazonaws.com/solution_abcd" }),
+        fields: z.any(),
+    })
+    .openapi("RegistrationChallengeSolutionUploadURL", {
+        example: {
+            url: "https://challenge-bucket-dev.s3.us-east-2.amazonaws.com/",
+            fields: {
+                success_action_status: "201",
+                "Content-Type": "image/png",
+                bucket: "challenge-bucket-dev",
+                "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+                "X-Amz-Credential": "ABCD/20241013/us-east-2/s3/aws4_request",
+                "X-Amz-Date": "20241013T081251Z",
+                key: "solution_abc123.png",
+                Policy: "eyJ==",
+                "X-Amz-Signature": "bfe6f0c382",
+            },
+        },
+    });
+
 export const RegistrationChallengeStatusSchema = z
     .object({
         inputFileId: z.string(),
@@ -307,10 +326,10 @@ export const RegistrationChallengeStatusSchema = z
 
 export const RegistrationChallengeSolveSchema = z
     .object({
-        fileId: z.string().openapi({ example: "uploaded_file_id" }),
+        solutionFileId: z.string().openapi({ example: "solution_abc123" }),
     })
     .openapi("RegistrationChallengeSolve");
-
+    
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Couldn't find your registration",
