@@ -24,6 +24,8 @@ import {
     RegistrationStatusSchema,
     RegistrationChallengeAlreadySolvedError,
     RegistrationChallengeAlreadySolvedErrorSchema,
+    RegistrationMissingProErrorSchema,
+    RegistrationMissingProError,
 } from "./registration-schemas";
 import { DecisionStatus } from "../admission/admission-schemas";
 
@@ -36,7 +38,7 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { generateChallenge } from "./challenge-lib";
+import { generateChallenge2026 } from "./challenge-lib";
 
 const registrationRouter = Router();
 
@@ -311,26 +313,41 @@ registrationRouter.get(
                 description: "The challenge status",
                 schema: RegistrationChallengeStatusSchema,
             },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find your registration",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "You are not registered for this track",
+                schema: RegistrationMissingProErrorSchema,
+            },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
+        const registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registrationData) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+        if (!registrationData.pro) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationMissingProError);
+        }
+
         let challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
         if (!challenge) {
-            challenge = { userId, ...generateChallenge(), attempts: 0, complete: false };
+            challenge = { userId, ...generateChallenge2026(userId), attempts: 0, complete: false };
             await Models.RegistrationChallenge.create(challenge);
         }
 
         return res.status(StatusCode.SuccessOK).send({
-            alliances: challenge.alliances,
-            people: Object.fromEntries(challenge.people.entries()),
+            inputFileId: challenge.inputFileId,
             attempts: challenge.attempts,
             complete: challenge.complete,
         });
     },
 );
-
+/*
 registrationRouter.post(
     "/challenge/",
     specification({
@@ -405,5 +422,5 @@ registrationRouter.post(
         });
     },
 );
-
+*/
 export default registrationRouter;
