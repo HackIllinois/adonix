@@ -15,14 +15,12 @@ import { MailInfo } from "../mail/mail-schemas";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../../middleware/upload", () => ({
-    single: (): (req: Request, _res: Response, next: NextFunction) => void => {
-        return (req: Request, _res: Response, next: NextFunction): void => {
-            if ((global as { mockFile?: Express.Multer.File }).mockFile) {
-                req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
-            }
-            next();
-        };
-    },
+    single: () => (req: Request, _res: Response, next: NextFunction): void => {
+        if ((global as { mockFile?: Express.Multer.File }).mockFile) {
+            req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
+        }
+        next();
+    }
 }));
 
 const APPLICATION = {
@@ -324,7 +322,7 @@ describe("POST /registration/challenge/", () => {
 
     it("should accept correct solution and mark challenge as complete", async () => {
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
-        (global as any).mockFile = {
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
             buffer: mockImageBuffer,
             originalname: "solution.png",
             mimetype: "image/png",
@@ -355,7 +353,7 @@ describe("POST /registration/challenge/", () => {
         compareImages.mockResolvedValue(false); // Incorrect solution
 
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
-        (global as any).mockFile = {
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
             buffer: mockImageBuffer,
             originalname: "solution.png",
             mimetype: "image/png",
@@ -389,7 +387,7 @@ describe("POST /registration/challenge/", () => {
         );
 
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
-        (global as any).mockFile = {
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
             buffer: mockImageBuffer,
             originalname: "solution.png",
             mimetype: "image/png",
@@ -405,7 +403,7 @@ describe("POST /registration/challenge/", () => {
         await Models.RegistrationChallenge.deleteOne({ userId: TESTER.id });
 
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
-        (global as any).mockFile = {
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
             buffer: mockImageBuffer,
             originalname: "solution.png",
             mimetype: "image/png",
