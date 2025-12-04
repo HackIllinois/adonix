@@ -9,12 +9,13 @@ const FILE_IDS = [
     "1Q8kWbK-RuGdBle-CDRlfWPnDjuGZuv6q",
 ];
 
-export function generateChallenge2026(userId: string) {
+export function generateChallenge2026(userId: string): { inputFileId: string } {
     const hash = crypto.createHash("sha256").update(userId).digest();
     const hash_num = hash.readUInt32BE(0);
 
     const index = hash_num % FILE_IDS.length;
-    return { inputFileId: FILE_IDS[index] };
+    const inputFileId = FILE_IDS[index]!;
+    return { inputFileId };
 }
 
 /* --------------- 2025 Challenge --------------- 
