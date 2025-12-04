@@ -27,7 +27,6 @@ export function generateChallenge2026(userId: string): { inputFileId: string } {
     return { inputFileId };
 }
 
-
 export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
     const s3 = getClient();
 
@@ -37,7 +36,7 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
     });
 
     const response = await s3.send(command);
-    
+
     if (!response.Body) {
         throw new Error("Failed to fetch image from S3");
     }
@@ -47,7 +46,7 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
     for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
         chunks.push(chunk);
     }
-    
+
     return Buffer.concat(chunks);
 }
 

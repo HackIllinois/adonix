@@ -15,12 +15,14 @@ import { MailInfo } from "../mail/mail-schemas";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../../middleware/upload", () => ({
-    single: () => (req: Request, _res: Response, next: NextFunction): void => {
-        if ((global as { mockFile?: Express.Multer.File }).mockFile) {
-            req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
-        }
-        next();
-    }
+    single:
+        () =>
+        (req: Request, _res: Response, next: NextFunction): void => {
+            if ((global as { mockFile?: Express.Multer.File }).mockFile) {
+                req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
+            }
+            next();
+        },
 }));
 
 const APPLICATION = {
@@ -327,9 +329,8 @@ describe("POST /registration/challenge/", () => {
             originalname: "solution.png",
             mimetype: "image/png",
         } as Express.Multer.File;
-        
-        const response = await postAsUser("/registration/challenge/")
-            .expect(StatusCode.SuccessOK);
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         const responseData = JSON.parse(response.text);
         expect(responseData).toMatchObject({
@@ -358,9 +359,8 @@ describe("POST /registration/challenge/", () => {
             originalname: "solution.png",
             mimetype: "image/png",
         } as Express.Multer.File;
-        
-        const response = await postAsUser("/registration/challenge/")
-            .expect(StatusCode.ClientErrorBadRequest);
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "IncorrectSolution");
 
@@ -374,17 +374,13 @@ describe("POST /registration/challenge/", () => {
 
     it("should provide bad request error when no file is uploaded", async () => {
         // Don't set mockFile
-        const response = await postAsUser("/registration/challenge/")
-            .expect(StatusCode.ClientErrorBadRequest);
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NoFileUploaded");
     });
 
     it("should provide already solved error when challenge is already complete", async () => {
-        await Models.RegistrationChallenge.updateOne(
-            { userId: TESTER.id },
-            { complete: true }
-        );
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { complete: true });
 
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
         (global as { mockFile?: Express.Multer.File }).mockFile = {
@@ -392,9 +388,8 @@ describe("POST /registration/challenge/", () => {
             originalname: "solution.png",
             mimetype: "image/png",
         } as Express.Multer.File;
-        
-        const response = await postAsUser("/registration/challenge/")
-            .expect(StatusCode.ClientErrorBadRequest);
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySolved");
     });
@@ -408,9 +403,8 @@ describe("POST /registration/challenge/", () => {
             originalname: "solution.png",
             mimetype: "image/png",
         } as Express.Multer.File;
-        
-        const response = await postAsUser("/registration/challenge/")
-            .expect(StatusCode.ClientErrorBadRequest);
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NoChallengeFound");
     });
