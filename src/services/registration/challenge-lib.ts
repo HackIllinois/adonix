@@ -1,6 +1,5 @@
 /* eslint-disable no-magic-numbers */
 import crypto from "crypto";
-import sharp from "sharp";
 import Config from "../../common/config";
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
 
@@ -53,6 +52,8 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
 }
 
 export async function compareImages(uploadedImage: Buffer, referenceImage: Buffer): Promise<boolean> {
+    const sharp = (await import("sharp")).default;
+
     try {
         const uploadedMeta = await sharp(uploadedImage).metadata();
         const referenceMeta = await sharp(referenceImage).metadata();
