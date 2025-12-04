@@ -15,13 +15,15 @@ import { MailInfo } from "../mail/mail-schemas";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../../middleware/upload", () => ({
-            single: () => (req: Request, _res: Response, next: NextFunction) => {
-                if ((global as any).mockFile) {
-                    req.file = (global as any).mockFile;
-                }
-                next();
-            },
-    }));
+    single: (): (req: Request, _res: Response, next: NextFunction) => void => {
+        return (req: Request, _res: Response, next: NextFunction): void => {
+            if ((global as { mockFile?: Express.Multer.File }).mockFile) {
+                req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
+            }
+            next();
+        };
+    },
+}));
 
 const APPLICATION = {
     firstName: TESTER.name,
@@ -303,7 +305,7 @@ describe("POST /registration/challenge/", () => {
     let fetchImageFromS3: jest.SpiedFunction<typeof ChallengeLib.fetchImageFromS3> = undefined!;
     let compareImages: jest.SpiedFunction<typeof ChallengeLib.compareImages> = undefined!;
 
-    beforeEach(async () => {
+    beforeEach(async (): Promise<void> => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
         await Models.RegistrationChallenge.create(CHALLENGE);
 
@@ -315,9 +317,9 @@ describe("POST /registration/challenge/", () => {
         compareImages.mockResolvedValue(true); // Default to correct solution
     });
 
-    afterEach(() => {
+    afterEach((): void => {
         // Clean up mock file
-        delete (global as any).mockFile;
+        delete (global as { mockFile?: Express.Multer.File }).mockFile;
     });
 
     it("should accept correct solution and mark challenge as complete", async () => {

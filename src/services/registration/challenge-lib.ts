@@ -44,7 +44,7 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
 
     // Convert the stream to a buffer
     const chunks: Uint8Array[] = [];
-    for await (const chunk of response.Body as any) {
+    for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
         chunks.push(chunk);
     }
     
