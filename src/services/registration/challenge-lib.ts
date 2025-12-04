@@ -1,5 +1,23 @@
 /* eslint-disable no-magic-numbers */
-import { RegistrationChallenge } from "./registration-schemas";
+import crypto from "crypto";
+
+const FILE_IDS = [
+    "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
+    "1m3j0YAoJYfEYSWt6Vr3BZUnEETfdtB8K",
+    "16nz6i-ScM7_3s2KqHKWQGmwLr1Tx0zbH",
+    "1EDa0336F4YUOIiaNvmxnMvk2ZVfsu1Oq",
+    "1Q8kWbK-RuGdBle-CDRlfWPnDjuGZuv6q",
+];
+
+export function generateChallenge2026(userId: string) {
+    const hash = crypto.createHash("sha256").update(userId).digest();
+    const hash_num = hash.readUInt32BE(0);
+
+    const index = hash_num % FILE_IDS.length;
+    return { inputFileId: FILE_IDS[index] };
+}
+
+/* --------------- 2025 Challenge --------------- 
 
 const PEOPLE = [
     "Zeus",
@@ -58,7 +76,7 @@ const PEOPLE = [
 // Generates a challenge
 // NOTE: We generate BACKWARDS from the solution in order to not reveal the solution to solve the problem
 // So, if you're an attendee trying to solve the challenge by looking at the source code, great attempt but it won't work
-export function generateChallenge(): Pick<RegistrationChallenge, "alliances" | "people" | "solution"> {
+export function generateChallenge2025(): Pick<RegistrationChallenge, "alliances" | "people" | "solution"> {
     // Random solution [-100_000_000, 100_000_000]
     const solution = Math.floor(Math.random() * 100_000_000) + 50_000_000;
 
@@ -173,3 +191,4 @@ export function generateChallenge(): Pick<RegistrationChallenge, "alliances" | "
 
     return { people, alliances, solution };
 }
+*/
