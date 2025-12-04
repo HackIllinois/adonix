@@ -14,16 +14,14 @@ import type * as ChallengeLib from "./challenge-lib";
 import { MailInfo } from "../mail/mail-schemas";
 import { Request, Response, NextFunction } from "express";
 
-jest.mock("../../middleware/upload", () => {
-    return {
+jest.mock("../../middleware/upload", () => ({
             single: () => (req: Request, _res: Response, next: NextFunction) => {
                 if ((global as any).mockFile) {
                     req.file = (global as any).mockFile;
                 }
                 next();
             },
-    };
-});
+    }));
 
 const APPLICATION = {
     firstName: TESTER.name,
