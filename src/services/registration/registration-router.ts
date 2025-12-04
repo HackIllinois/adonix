@@ -16,7 +16,6 @@ import {
     RegistrationChallengeStatusSchema,
     RegistrationChallengeSolveFailedError,
     RegistrationChallengeSolveFailedErrorSchema,
-    RegistrationChallengeSolveSchema,
     RegistrationClosedError,
     RegistrationClosedErrorSchema,
     RegistrationNotFoundError,

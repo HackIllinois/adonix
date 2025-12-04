@@ -33,7 +33,7 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
 
     const command = new GetObjectCommand({
         Bucket: "challenge-solution-bucket-prod",
-        Key: `${fileId}.png`,
+        Key: `${fileId}`,
     });
 
     const response = await s3.send(command);
