@@ -14,16 +14,16 @@ import {
     RegistrationApplicationDraftSchema,
     RegistrationChallenge,
     RegistrationChallengeStatusSchema,
-    // RegistrationChallengeSolveFailedError,
-    // RegistrationChallengeSolveFailedErrorSchema,
-    // RegistrationChallengeSolveSchema,
+    RegistrationChallengeSolveFailedError,
+    RegistrationChallengeSolveFailedErrorSchema,
+    RegistrationChallengeSolveSchema,
     RegistrationClosedError,
     RegistrationClosedErrorSchema,
     RegistrationNotFoundError,
     RegistrationNotFoundErrorSchema,
     RegistrationStatusSchema,
-    // RegistrationChallengeAlreadySolvedError,
-    // RegistrationChallengeAlreadySolvedErrorSchema,
+    RegistrationChallengeAlreadySolvedError,
+    RegistrationChallengeAlreadySolvedErrorSchema,
     RegistrationMissingProErrorSchema,
     RegistrationMissingProError,
 } from "./registration-schemas";
@@ -38,7 +38,8 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { generateChallenge2026 } from "./challenge-lib";
+import { compareImages, fetchImageFromS3, generateChallenge2026 } from "./challenge-lib";
+import upload from "../../middleware/upload";
 
 const registrationRouter = Router();
 
@@ -347,16 +348,16 @@ registrationRouter.get(
         });
     },
 );
-/*
+
 registrationRouter.post(
     "/challenge/",
+    upload.single("solution"), // middleware handles this
     specification({
         method: "post",
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        body: RegistrationChallengeSolveSchema,
-        summary: "Attempts to solve the challenge",
+        summary: "Attempts to solve the challenge by uploading a solution image",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully solved, the new challenge status is returned",
@@ -381,28 +382,49 @@ registrationRouter.post(
         },
     }),
     async (req, res) => {
-        const { solution } = req.body;
         const { id: userId } = getAuthenticatedUser(req);
 
         if (!isRegistrationAlive()) {
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
         }
 
-        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
-        if (challenge?.complete) {
-            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationChallengeAlreadySolvedError);
+        if (!req.file) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoFileUploaded",
+                message: "Please upload a solution image",
+            });
         }
-        if (solution != challenge?.solution) {
-            if (challenge) {
-                await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: challenge.attempts + 1 });
-            }
+
+        // Get the user's challenge
+        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
+
+        if (!challenge) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoChallengeFound",
+                message: "No challenge found. Please request a challenge first.",
+            });
+        }
+
+        if (challenge.complete) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeAlreadySolvedError);
+        }
+
+        const referenceSolution = await fetchImageFromS3(challenge.inputFileId);
+
+        const isCorrect = await compareImages(req.file.buffer, referenceSolution);
+
+        const updatedAttempts = challenge.attempts + 1;
+
+        if (!isCorrect) {
+            await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: updatedAttempts });
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeSolveFailedError);
         }
 
+        // Solution is correct
         const result = await Models.RegistrationChallenge.findOneAndUpdate(
             { userId },
             {
-                attempts: challenge.attempts + 1,
+                attempts: updatedAttempts,
                 complete: true,
             },
             {
@@ -415,12 +437,11 @@ registrationRouter.post(
         }
 
         return res.status(StatusCode.SuccessOK).send({
-            alliances: result.alliances,
-            people: Object.fromEntries(result.people.entries()),
+            inputFileId: result.inputFileId,
             attempts: result.attempts,
             complete: result.complete,
         });
     },
 );
-*/
+
 export default registrationRouter;
