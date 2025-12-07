@@ -49,6 +49,7 @@ const APPLICATION = {
     attribution: ["Word of Mouth", "Instagram"],
     eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
+    mlhNewsletter: true,
 } satisfies RegistrationApplicationDraftRequest;
 
 const APPLICATION_INVALID_EMAIL = { ...APPLICATION, email: "invalidemail" };

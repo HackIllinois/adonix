@@ -84,6 +84,9 @@ export class RegistrationApplicationSubmitted {
 
     @prop({ required: true })
     requestTravelReimbursement: boolean;
+
+    @prop({ required: true })
+    mlhNewsletter: boolean;
 }
 
 export class RegistrationApplicationDraft {
@@ -167,6 +170,9 @@ export class RegistrationApplicationDraft {
 
     @prop({ required: false })
     requestTravelReimbursement?: boolean;
+
+    @prop({ required: false })
+    mlhNewsletter?: boolean;
 }
 
 export class RegistrationChallenge {
@@ -216,6 +222,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         attribution: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         eventInterest: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         requestTravelReimbursement: z.boolean(),
+        mlhNewsletter: z.boolean(),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {
         example: {
@@ -241,6 +248,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             attribution: ["Word of Mouth", "Instagram"],
             eventInterest: ["Meeting New People"],
             requestTravelReimbursement: false,
+            mlhNewsletter: true,
         },
     });
 
