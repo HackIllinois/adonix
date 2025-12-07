@@ -1,20 +1,23 @@
 Hello {{name}}!
 
-Thank you for registering for HackIllinois 2026! Please do the following to get ready for the event:
+Thank you for registering for HackIllinois 2026. Your journey to Launch Your Legacy start now. Before liftoff, make sure you complete the following:
 
-1) Admission decisions will be sent out on a rolling basis, so be on the lookout for an email regarding updates to your application status.
-
-2) As for transportation reimbursements, your status for reimbursement and the expected amount reimbursed will be communicated along with your admission decision.
-
-3) Make sure to follow our Instagram (@hackillinois) for announcements and our TikTok (@hackillinois) to potentially be featured in a TikTok during the event.
+1) Admission decisions will be released on a rolling basis. Lookout for an email regarding updates to your application status — and once admitted, you will need to RSVP to confirm your spot at the event.
 
 {{#if pro}}
-4) Be sure to complete the challenge (https://go.hackillinois.org/registration-challenge) to be considered for HackVoyagers!
+2) Be sure to complete the challenge (https://go.hackillinois.org/registration-challenge) to be considered for HackVoyagers!
 {{/if}}
 
-Feel free to reach out to us with any questions at contact@hackillinois.org.
+{{#if pro}}3{{else}}2{{/if}}) Transportation reimbursement details (eligibility + expected amount) will be sent alongside your admission decision.
 
-We look forward to seeing all of the amazing work that you will do at HackIllinois 2026. Get excited for a weekend of hacking!
+Stay tuned to mission control:
+
+    Instagram: @hackillinois — for important announcements
+    TikTok: @hackillinois — chances to be featured during the event
+
+If you have questions, reach out at contact@hackillinois.org.
+
+We can't wait to see the ideas you launch at HackIllinois 2026. Get excited for a weekend of building, discovery, and beyond. 🚀
 
 Sincerely,
-The HackIllinois Team
+The HackIllinois Team 
