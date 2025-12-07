@@ -33,6 +33,9 @@ export class AdmissionDecision {
 
     @prop({ default: 0 })
     public reimbursementValue: number;
+
+    @prop({default: false})
+    public correctProChallenge: boolean;
 }
 
 export const DecisionStatusSchema = z.nativeEnum(DecisionStatus);

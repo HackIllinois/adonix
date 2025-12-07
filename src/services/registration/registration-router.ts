@@ -431,6 +431,16 @@ registrationRouter.post(
             },
         );
 
+        Models.AdmissionDecision.findOneAndUpdate(
+            {userId: userId},
+            {
+                correctProChallenge: true,
+            },
+            {
+                new: true,
+            },
+        );
+
         if (!result) {
             throw Error("Failed to update challenge");
         }
