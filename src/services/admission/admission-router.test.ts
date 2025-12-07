@@ -50,6 +50,7 @@ const TESTER_APPLICATION = {
     attribution: ["Word of Mouth", "Instagram"],
     eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
+    mlhNewsletter: true,
 } satisfies RegistrationApplicationSubmitted;
 
 const updateRequest = [
