@@ -305,6 +305,7 @@ describe("POST /registration/submit/", () => {
 describe("POST /registration/challenge/", () => {
     let fetchImageFromS3: jest.SpiedFunction<typeof ChallengeLib.fetchImageFromS3> = undefined!;
     let compareImages: jest.SpiedFunction<typeof ChallengeLib.compareImages> = undefined!;
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async (): Promise<void> => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
@@ -321,6 +322,12 @@ describe("POST /registration/challenge/", () => {
 
         compareImages = mockCompareImages();
         compareImages.mockResolvedValue(true); // Default to correct solution
+
+        // Mock email send
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
     });
 
     afterEach((): void => {
@@ -347,6 +354,13 @@ describe("POST /registration/challenge/", () => {
 
         expect(fetchImageFromS3).toHaveBeenCalledWith(CHALLENGE.inputFileId);
         expect(compareImages).toHaveBeenCalled();
+
+        // Verify email sent
+        expect(sendMail).toBeCalledWith({
+            templateId: Templates.CHALLENGE_COMPLETION,
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName },
+        } satisfies MailInfo);
 
         // Verify in database
         const storedChallenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({
@@ -402,6 +416,21 @@ describe("POST /registration/challenge/", () => {
 
     it("should provide bad request error when no challenge exists", async () => {
         await Models.RegistrationChallenge.deleteOne({ userId: TESTER.id });
+
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NoChallengeFound");
+    });
+
+    it("should provide bad request error when no registration exists", async () => {
+        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: TESTER.id });
 
         const mockImageBuffer = Buffer.from("mock-uploaded-image");
         (global as { mockFile?: Express.Multer.File }).mockFile = {

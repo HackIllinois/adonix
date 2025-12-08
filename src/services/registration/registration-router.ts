@@ -394,6 +394,14 @@ registrationRouter.post(
             });
         }
 
+        const registration = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registration) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoChallengeFound",
+                message: "No challenge found. Please request a challenge first.",
+            });
+        }
+
         // Get the user's challenge
         const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
 
@@ -448,6 +456,14 @@ registrationRouter.post(
         if (!admissionResult) {
             throw Error("Failed to update admission");
         }
+
+        // SEND CHALLENGE COMPLETION EMAIL
+        const mailInfo: MailInfo = {
+            templateId: Templates.CHALLENGE_COMPLETION,
+            recipient: registration.email,
+            templateData: { name: registration.firstName },
+        };
+        await sendMail(mailInfo);
 
         return res.status(StatusCode.SuccessOK).send({
             inputFileId: challengeResult.inputFileId,
