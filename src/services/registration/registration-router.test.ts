@@ -310,6 +310,11 @@ describe("POST /registration/challenge/", () => {
     beforeEach(async (): Promise<void> => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
         await Models.RegistrationChallenge.create(CHALLENGE);
+        await Models.AdmissionDecision.create({
+            userId: TESTER.id,
+            status: "TBD",
+            response: "PENDING",
+        });
 
         // Mock S3 fetch and image comparison
         fetchImageFromS3 = mockFetchImageFromS3();

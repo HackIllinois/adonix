@@ -33,6 +33,9 @@ export class AdmissionDecision {
 
     @prop({ default: 0 })
     public reimbursementValue: number;
+
+    @prop({ default: false })
+    public correctProChallenge: boolean;
 }
 
 export const DecisionStatusSchema = z.nativeEnum(DecisionStatus);
@@ -46,6 +49,7 @@ export const AdmissionDecisionSchema = z
         response: DecisionResponseSchema,
         emailSent: z.boolean().openapi({ example: false }),
         reimbursementValue: z.number(),
+        correctProChallenge: z.boolean().openapi({ example: false }),
     })
     .openapi("AdmissionDecision");
 
