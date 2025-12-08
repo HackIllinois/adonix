@@ -431,8 +431,8 @@ registrationRouter.post(
             },
         );
 
-        Models.AdmissionDecision.findOneAndUpdate(
-            {userId: userId},
+        await Models.AdmissionDecision.findOneAndUpdate(
+            { userId: userId },
             {
                 correctProChallenge: true,
             },
