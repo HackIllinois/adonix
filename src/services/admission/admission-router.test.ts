@@ -15,6 +15,7 @@ const TESTER_DECISION = {
     emailSent: false,
     admittedPro: false,
     reimbursementValue: 0,
+    correctProChallenge: false,
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -24,6 +25,7 @@ const OTHER_DECISION = {
     emailSent: true,
     admittedPro: false,
     reimbursementValue: 0,
+    correctProChallenge: false,
 } satisfies AdmissionDecision;
 
 const TESTER_APPLICATION = {
