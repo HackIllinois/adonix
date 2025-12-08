@@ -420,7 +420,7 @@ registrationRouter.post(
         }
 
         // Solution is correct
-        const result = await Models.RegistrationChallenge.findOneAndUpdate(
+        const challengeResult = await Models.RegistrationChallenge.findOneAndUpdate(
             { userId },
             {
                 attempts: updatedAttempts,
@@ -431,7 +431,11 @@ registrationRouter.post(
             },
         );
 
-        await Models.AdmissionDecision.findOneAndUpdate(
+        if (!challengeResult) {
+            throw Error("Failed to update challenge");
+        }
+
+        const admissionResult = await Models.AdmissionDecision.findOneAndUpdate(
             { userId: userId },
             {
                 correctProChallenge: true,
@@ -441,14 +445,14 @@ registrationRouter.post(
             },
         );
 
-        if (!result) {
-            throw Error("Failed to update challenge");
+        if (!admissionResult) {
+            throw Error("Failed to update admission");
         }
 
         return res.status(StatusCode.SuccessOK).send({
-            inputFileId: result.inputFileId,
-            attempts: result.attempts,
-            complete: result.complete,
+            inputFileId: challengeResult.inputFileId,
+            attempts: challengeResult.attempts,
+            complete: challengeResult.complete,
         });
     },
 );
