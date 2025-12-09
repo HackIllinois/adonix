@@ -2,7 +2,7 @@ Hello {{name}}!
 
 Thank you for registering for HackIllinois 2026. Your journey to Launch Your Legacy start now. Before liftoff, make sure you complete the following:
 
-1) Admission decisions will be released on a rolling basis. Lookout for an email regarding updates to your application status — and once admitted, you will need to RSVP to confirm your spot at the event.
+1) You will receive an email regarding your admission status — and if admitted, you’ll need to RSVP to confirm your spot at the event.
 
 {{#if pro}}
 2) Be sure to complete the challenge (https://go.hackillinois.org/registration-challenge) to be considered for HackVoyagers!
