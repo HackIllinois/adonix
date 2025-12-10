@@ -54,27 +54,48 @@ export async function compareImages(uploadedImage: Buffer, referenceImage: Buffe
     const sharp = (await import("sharp")).default;
 
     try {
-        const uploadedMeta = await sharp(uploadedImage).metadata();
-        const referenceMeta = await sharp(referenceImage).metadata();
+        // Normalize both images to same format to avoid metadata/compression differences
+        const normalizeImage = async (buffer: Buffer): Promise<Buffer<ArrayBufferLike>> =>
+            await sharp(buffer)
+                .png() // Convert to consistent format
+                .toBuffer();
 
+        const [normalizedUploaded, normalizedReference] = await Promise.all([
+            normalizeImage(uploadedImage),
+            normalizeImage(referenceImage),
+        ]);
+
+        const uploadedMeta = await sharp(normalizedUploaded).metadata();
+        const referenceMeta = await sharp(normalizedReference).metadata();
+
+        // Check dimensions match
         if (uploadedMeta.width !== referenceMeta.width || uploadedMeta.height !== referenceMeta.height) {
             return false;
         }
 
-        const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
-        const referencePixels = await sharp(referenceImage).raw().toBuffer();
+        // Get raw pixel data
+        const uploadedPixels = await sharp(normalizedUploaded).raw().toBuffer();
+        const referencePixels = await sharp(normalizedReference).raw().toBuffer();
 
         if (uploadedPixels.length !== referencePixels.length) {
             return false;
         }
 
+        // Calculate percentage of matching pixels (allows for minor variations)
+        let matchingPixels = 0;
+        const totalPixels = uploadedPixels.length;
+        const PIXEL_TOLERANCE = 2; // Allow minimal color differences per channel (for encoding/rounding variations)
+        const MATCH_THRESHOLD = 0.99; // Require 99% of pixels to match
+
         for (let i = 0; i < uploadedPixels.length; i++) {
-            if (uploadedPixels[i] !== referencePixels[i]) {
-                return false;
+            const diff = Math.abs(uploadedPixels[i]! - referencePixels[i]!);
+            if (diff <= PIXEL_TOLERANCE) {
+                matchingPixels++;
             }
         }
 
-        return true;
+        const matchPercentage = matchingPixels / totalPixels;
+        return matchPercentage >= MATCH_THRESHOLD;
     } catch (error) {
         console.error("Error comparing images:", error);
         return false;
