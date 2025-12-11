@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import Config from "../../common/config";
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
-import looksSame from 'looks-same';
+import looksSame from "looks-same";
 const FILE_IDS = [
     "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
     "1m3j0YAoJYfEYSWt6Vr3BZUnEETfdtB8K",
