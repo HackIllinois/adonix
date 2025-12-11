@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import Config from "../../common/config";
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
-import looksSame from "looks-same";
+
 const FILE_IDS = [
     "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
     "1m3j0YAoJYfEYSWt6Vr3BZUnEETfdtB8K",
@@ -51,6 +51,7 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
 }
 
 export async function compareImages(uploadedImage: Buffer, referenceImage: Buffer): Promise<boolean> {
+    const { default: looksSame } = await import("looks-same");
     try {
         const result = await looksSame(uploadedImage, referenceImage, {
             tolerance: 50,
