@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import Config from "../../common/config";
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
-
+import looksSame from 'looks-same';
 const FILE_IDS = [
     "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
     "1m3j0YAoJYfEYSWt6Vr3BZUnEETfdtB8K",
@@ -51,32 +51,15 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
 }
 
 export async function compareImages(uploadedImage: Buffer, referenceImage: Buffer): Promise<boolean> {
-    const sharp = (await import("sharp")).default;
-
     try {
-        const uploadedMeta = await sharp(uploadedImage).metadata();
-        const referenceMeta = await sharp(referenceImage).metadata();
-
-        if (uploadedMeta.width !== referenceMeta.width || uploadedMeta.height !== referenceMeta.height) {
-            return false;
-        }
-
-        const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
-        const referencePixels = await sharp(referenceImage).raw().toBuffer();
-
-        if (uploadedPixels.length !== referencePixels.length) {
-            return false;
-        }
-
-        for (let i = 0; i < uploadedPixels.length; i++) {
-            if (uploadedPixels[i] !== referencePixels[i]) {
-                return false;
-            }
-        }
-
-        return true;
-    } catch (error) {
-        console.error("Error comparing images:", error);
+        const result = await looksSame(uploadedImage, referenceImage, {
+            tolerance: 50,
+            ignoreAntialiasing: true,
+            antialiasingTolerance: 3,
+        });
+        return result.equal;
+    } catch (err) {
+        console.error("compareImages error:", err);
         return false;
     }
 }
