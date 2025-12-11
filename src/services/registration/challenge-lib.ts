@@ -50,17 +50,46 @@ export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
     return Buffer.concat(chunks);
 }
 
-export async function compareImages(uploadedImage: Buffer, referenceImage: Buffer): Promise<boolean> {
-    const { default: looksSame } = await import("looks-same");
-    try {
-        const result = await looksSame(uploadedImage, referenceImage, {
-            tolerance: 50,
-            ignoreAntialiasing: true,
-            antialiasingTolerance: 3,
-        });
-        return result.equal;
-    } catch (err) {
-        console.error("compareImages error:", err);
-        return false;
+export async function compareImages(uploadedImage: Buffer, baseFileId: string): Promise<boolean> {
+    const sharp = (await import("sharp")).default;
+    const variantIds = [`${baseFileId}v1`, `${baseFileId}v2`];
+
+    for (const variantId of variantIds) {
+        try {
+            const referenceImage = await fetchImageFromS3(variantId);
+
+            const uploadedMeta = await sharp(uploadedImage).metadata();
+            const referenceMeta = await sharp(referenceImage).metadata();
+
+            if (uploadedMeta.width !== referenceMeta.width || uploadedMeta.height !== referenceMeta.height) {
+                continue; // Try next variant
+            }
+
+            // Extract raw pixels
+            const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
+            const referencePixels = await sharp(referenceImage).raw().toBuffer();
+
+            if (uploadedPixels.length !== referencePixels.length) {
+                continue; // Try next variant
+            }
+
+            // Compare pixel-by-pixel
+            let match = true;
+            for (let i = 0; i < uploadedPixels.length; i++) {
+                if (uploadedPixels[i] !== referencePixels[i]) {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match) {
+                return true; // Success
+            }
+        } catch (err) {
+            console.warn(`Failed checking variant ${variantId}:`, err);
+            // Continue to next variant
+        }
     }
+
+    return false;
 }

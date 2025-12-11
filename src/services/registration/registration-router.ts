@@ -416,9 +416,7 @@ registrationRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeAlreadySolvedError);
         }
 
-        const referenceSolution = await fetchImageFromS3(challenge.inputFileId);
-
-        const isCorrect = await compareImages(req.file.buffer, referenceSolution);
+        const isCorrect = await compareImages(req.file.buffer, challenge.inputFileId);
 
         const updatedAttempts = challenge.attempts + 1;
 
