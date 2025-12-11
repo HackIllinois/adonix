@@ -37,6 +37,7 @@
         "expo-server-sdk": "^3.15.0",
         "express": "^5.0.1",
         "jsonwebtoken": "^9.0.1",
+        "looks-same": "^10.0.1",
         "mongodb": "^5.7.0",
         "mongoose": "^7.8.4",
         "morgan": "^1.10.0",
