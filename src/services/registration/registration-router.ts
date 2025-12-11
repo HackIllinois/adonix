@@ -37,7 +37,7 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { compareImages, fetchImageFromS3, generateChallenge2026 } from "./challenge-lib";
+import { compareImages, generateChallenge2026 } from "./challenge-lib";
 import upload from "../../middleware/upload";
 
 const registrationRouter = Router();
