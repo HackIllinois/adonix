@@ -122,11 +122,6 @@ function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
     return jest.spyOn(mailLib, "sendMail");
 }
 
-function mockFetchImageFromS3(): jest.SpiedFunction<typeof ChallengeLib.fetchImageFromS3> {
-    const challengeLib = require("./challenge-lib") as typeof ChallengeLib;
-    return jest.spyOn(challengeLib, "fetchImageFromS3");
-}
-
 function mockCompareImages(): jest.SpiedFunction<typeof ChallengeLib.compareImages> {
     const challengeLib = require("./challenge-lib") as typeof ChallengeLib;
     return jest.spyOn(challengeLib, "compareImages");
