@@ -122,11 +122,6 @@ function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
     return jest.spyOn(mailLib, "sendMail");
 }
 
-function mockFetchImageFromS3(): jest.SpiedFunction<typeof ChallengeLib.fetchImageFromS3> {
-    const challengeLib = require("./challenge-lib") as typeof ChallengeLib;
-    return jest.spyOn(challengeLib, "fetchImageFromS3");
-}
-
 function mockCompareImages(): jest.SpiedFunction<typeof ChallengeLib.compareImages> {
     const challengeLib = require("./challenge-lib") as typeof ChallengeLib;
     return jest.spyOn(challengeLib, "compareImages");
@@ -303,7 +298,6 @@ describe("POST /registration/submit/", () => {
 });
 
 describe("POST /registration/challenge/", () => {
-    let fetchImageFromS3: jest.SpiedFunction<typeof ChallengeLib.fetchImageFromS3> = undefined!;
     let compareImages: jest.SpiedFunction<typeof ChallengeLib.compareImages> = undefined!;
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
@@ -316,10 +310,7 @@ describe("POST /registration/challenge/", () => {
             response: "PENDING",
         });
 
-        // Mock S3 fetch and image comparison
-        fetchImageFromS3 = mockFetchImageFromS3();
-        fetchImageFromS3.mockResolvedValue(Buffer.from("mock-reference-image"));
-
+        // Mock image comparison
         compareImages = mockCompareImages();
         compareImages.mockResolvedValue(true); // Default to correct solution
 
@@ -352,8 +343,8 @@ describe("POST /registration/challenge/", () => {
             complete: true,
         });
 
-        expect(fetchImageFromS3).toHaveBeenCalledWith(CHALLENGE.inputFileId);
-        expect(compareImages).toHaveBeenCalled();
+        // Verify compareImages was called with the uploaded buffer and base file ID
+        expect(compareImages).toHaveBeenCalledWith(mockImageBuffer, CHALLENGE.inputFileId);
 
         // Verify email sent
         expect(sendMail).toBeCalledWith({
