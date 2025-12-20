@@ -23,6 +23,9 @@ export class RegistrationApplicationSubmitted {
     public email: string;
 
     @prop({ required: true })
+    public phoneNumber: string;
+
+    @prop({ required: true })
     public gender: string;
 
     @prop({
@@ -107,6 +110,9 @@ export class RegistrationApplicationDraft {
 
     @prop({ required: false })
     public email?: string;
+
+    @prop({ required: false })
+    public phoneNumber?: string;
 
     @prop({ required: false })
     public gender?: string;
@@ -204,6 +210,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         preferredName: z.string().max(Config.MAX_STRING_LENGTH).optional(),
         age: z.string().max(Config.MAX_STRING_LENGTH),
         email: z.string().email({ message: "Invalid email." }).max(Config.MAX_STRING_LENGTH),
+        phoneNumber: z.string().max(Config.MAX_STRING_LENGTH),
         gender: z.string().max(Config.MAX_STRING_LENGTH),
         race: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
         country: z.string().max(Config.MAX_STRING_LENGTH),
@@ -230,6 +237,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             lastName: "Kanandini",
             age: "21",
             email: "rpak@gmail.org",
+            phoneNumber: "+1 123-456-7890",
             gender: "Prefer Not to Answer",
             race: ["Prefer Not to Answer"],
             country: "United States",
