@@ -31,6 +31,7 @@ const APPLICATION = {
     preferredName: "Bob",
     age: "21",
     email: TESTER.email,
+    phoneNumber: TESTER.phoneNumber,
     gender: "Other",
     race: ["Prefer Not to Answer"],
     country: "United States",

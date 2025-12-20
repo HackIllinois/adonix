@@ -34,6 +34,7 @@ const TESTER_APPLICATION = {
     lastName: TESTER.name,
     age: "21",
     email: TESTER.email,
+    phoneNumber: TESTER.phoneNumber,
     gender: "Other",
     race: ["Prefer Not to Answer"],
     country: "United States",

@@ -7,8 +7,9 @@ import { Provider, Role } from "../services/auth/auth-schemas";
 // and not have to hardcode values, aka TESTER is the data used to create the JWT
 export const TESTER = {
     id: "bob-the-tester101010101011",
-    email: "bob-the-tester@hackillinois.org",
     name: "Bob Tester",
+    email: "bob-the-tester@hackillinois.org",
+    phoneNumber: "+1 123-456-7890",
     avatarId: "mushroom",
     avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/mushroom.png",
     discordTag: "hackillinoistest",
