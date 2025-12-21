@@ -14,17 +14,25 @@ import {
     DecisionNotFoundErrorSchema,
     AdmissionDecisionSchema,
     AdmissionDecisionUpdatesSchema,
+    ProfileDataRequiredError,
+    ProfileDataRequiredErrorSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
 import { MailInfo } from "../mail/mail-schemas";
-import { Templates } from "../../common/config";
+import Config, { Templates } from "../../common/config";
 import { sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
+import {
+    AttendeeProfileCreateRequestSchema,
+    AttendeeProfileAlreadyExistsError,
+    AttendeeProfileAlreadyExistsErrorSchema,
+} from "../profile/profile-schemas";
+import { getAvatarUrlForId } from "../profile/profile-lib";
 
 const admissionRouter = Router();
 
@@ -60,6 +68,7 @@ admissionRouter.put(
         parameters: z.object({
             decision: DecisionRequestSchema,
         }),
+        body: z.unknown(), 
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The updated decision",
@@ -81,6 +90,18 @@ admissionRouter.put(
                 description: "Not accepted so can't make a decision",
                 schema: DecisionNotAcceptedErrorSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: AttendeeProfileAlreadyExistsError.error,
+                    description: "Profile already exists",
+                    schema: AttendeeProfileAlreadyExistsErrorSchema,
+                },
+                {
+                    id: ProfileDataRequiredError.error,
+                    description: "Profile data required when accepting",
+                    schema: ProfileDataRequiredErrorSchema,
+                },
+            ],
             [StatusCode.ClientErrorConflict]: {
                 description: "Already RSVPd",
                 schema: DecisionAlreadyRSVPdErrorSchema,
@@ -114,6 +135,38 @@ admissionRouter.put(
 
         // They can make a decision! Handle what they chose:
         const response = req.params.decision === "accept" ? DecisionResponse.ACCEPTED : DecisionResponse.DECLINED;
+        
+        // If accepting, create profile if it doesn't exist
+        if (response === DecisionResponse.ACCEPTED) {
+            // Cast request body to the profile schema
+            const parsedBody = AttendeeProfileCreateRequestSchema.safeParse(req.body);
+
+            if (!parsedBody.success) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(ProfileDataRequiredError);
+            }
+
+            const existingProfile = await Models.AttendeeProfile.findOne({ userId });
+            if (existingProfile) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
+            }
+
+            const profileData = parsedBody.data;
+            const { avatarId, discordTag, displayName } = profileData;
+
+            const dietaryRestrictions = application.dietaryRestrictions;
+            const profile = {
+                userId,
+                discordTag,
+                displayName,
+                avatarUrl: getAvatarUrlForId(avatarId),
+                points: Config.DEFAULT_POINT_VALUE,
+                pointsAccumulated: Config.DEFAULT_POINT_VALUE,
+                foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
+            };
+
+            await Models.AttendeeProfile.create(profile);
+        }
+
         const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate({ userId }, { response }, { new: true });
 
         if (!updatedDecision) {

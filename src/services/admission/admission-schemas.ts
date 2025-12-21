@@ -83,3 +83,8 @@ export const [DecisionNotFoundError, DecisionNotFoundErrorSchema] = CreateErrorA
     error: "DecisionNotFound",
     message: "Couldn't find your decision!",
 });
+
+export const [ProfileDataRequiredError, ProfileDataRequiredErrorSchema] = CreateErrorAndSchema({
+    error: "ProfileDataRequired",
+    message: "Profile data is required when accepting admission",
+});

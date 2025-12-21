@@ -217,7 +217,13 @@ describe("PUT /admission/rsvp/accept/", () => {
     });
 
     it("lets applicant accept accepted decision", async () => {
-        await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.SuccessOK);
+        await putAsApplicant("/admission/rsvp/accept/")
+            .send({
+                avatarId: TESTER.avatarId,
+                displayName: TESTER.name,
+                discordTag: TESTER.discordTag,
+            })
+            .expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
@@ -247,6 +253,11 @@ describe("PUT /admission/rsvp/accept/", () => {
 
         const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorConflict);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyRSVPed");
+    });
+
+    it("does not let applicant accept without profile data", async () => {
+        const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "ProfileDataRequired");
     });
 });
 
