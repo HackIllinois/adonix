@@ -222,6 +222,7 @@ describe("PUT /admission/rsvp/accept/", () => {
                 avatarId: TESTER.avatarId,
                 displayName: TESTER.name,
                 discordTag: TESTER.discordTag,
+                dietaryRestrictions: [],
             })
             .expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });

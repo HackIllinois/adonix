@@ -68,7 +68,7 @@ admissionRouter.put(
         parameters: z.object({
             decision: DecisionRequestSchema,
         }),
-        body: z.unknown(), 
+        body: z.unknown(),
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The updated decision",
@@ -135,7 +135,7 @@ admissionRouter.put(
 
         // They can make a decision! Handle what they chose:
         const response = req.params.decision === "accept" ? DecisionResponse.ACCEPTED : DecisionResponse.DECLINED;
-        
+
         // If accepting, create profile if it doesn't exist
         if (response === DecisionResponse.ACCEPTED) {
             // Cast request body to the profile schema
@@ -151,9 +151,8 @@ admissionRouter.put(
             }
 
             const profileData = parsedBody.data;
-            const { avatarId, discordTag, displayName } = profileData;
+            const { avatarId, discordTag, displayName, dietaryRestrictions } = profileData;
 
-            const dietaryRestrictions = application.dietaryRestrictions;
             const profile = {
                 userId,
                 discordTag,
@@ -162,6 +161,7 @@ admissionRouter.put(
                 points: Config.DEFAULT_POINT_VALUE,
                 pointsAccumulated: Config.DEFAULT_POINT_VALUE,
                 foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
+                dietaryRestrictions,
             };
 
             await Models.AttendeeProfile.create(profile);
