@@ -1,0 +1,11 @@
+Hello {{name}}!
+
+You have successfully completed the HackVoyagers challenge. Congratulations! 🎉
+
+Your application will continue through our review process, and you will receive an email once a decision is made. If admitted, make sure to RSVP to secure your spot.
+If you have questions, reach out at contact@hackillinois.org.
+
+We can't wait to see the ideas you launch at HackIllinois 2026. Get excited for a weekend of building, discovery, and beyond. 🚀
+
+Sincerely,
+The HackIllinois Team

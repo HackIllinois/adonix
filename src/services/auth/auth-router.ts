@@ -150,9 +150,9 @@ authRouter.post(
         );
 
         await sendMail({
-            recipients: [email],
             templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            subs: {
+            recipient: email,
+            templateData: {
                 code: GENERATED_CODE,
             },
         });

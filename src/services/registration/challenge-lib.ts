@@ -1,175 +1,95 @@
 /* eslint-disable no-magic-numbers */
-import { RegistrationChallenge } from "./registration-schemas";
+import crypto from "crypto";
+import Config from "../../common/config";
+import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
 
-const PEOPLE = [
-    "Zeus",
-    "Poseidon",
-    "Hades",
-    "Ares",
-    "Hermes",
-    "Apollo",
-    "Artemis",
-    "Athena",
-    "Aphrodite",
-    "Hephaestus",
-    "Demeter",
-    "Dionysus",
-    "Hera",
-    "Eros",
-    "Helios",
-    "Selene",
-    "Pan",
-    "Heracles",
-    "Prometheus",
-    "Hecate",
-    "Persephone",
-    "Asclepius",
-    "Aeolus",
-    "Iris",
-    "Nike",
-    "Nemesis",
-    "Hypnos",
-    "Thanatos",
-    "Chronos",
-    "Rhea",
-    "Cronus",
-    "Gaia",
-    "Uranus",
-    "Oceanus",
-    "Tethys",
-    "Hyperion",
-    "Theia",
-    "Coeus",
-    "Phoebe",
-    "Iapetus",
-    "Themis",
-    "Mnemosyne",
-    "Pontus",
-    "Tartarus",
-    "Nyx",
-    "Erebus",
-    "Harmonia",
-    "Eris",
-    "Tyche",
-    "Phobos",
-    "Deimos",
+const FILE_IDS = [
+    "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
+    "1m3j0YAoJYfEYSWt6Vr3BZUnEETfdtB8K",
+    "16nz6i-ScM7_3s2KqHKWQGmwLr1Tx0zbH",
+    "1EDa0336F4YUOIiaNvmxnMvk2ZVfsu1Oq",
+    "1Q8kWbK-RuGdBle-CDRlfWPnDjuGZuv6q",
 ];
 
-// Generates a challenge
-// NOTE: We generate BACKWARDS from the solution in order to not reveal the solution to solve the problem
-// So, if you're an attendee trying to solve the challenge by looking at the source code, great attempt but it won't work
-export function generateChallenge(): Pick<RegistrationChallenge, "alliances" | "people" | "solution"> {
-    // Random solution [-100_000_000, 100_000_000]
-    const solution = Math.floor(Math.random() * 100_000_000) + 50_000_000;
+let s3: S3 | undefined = undefined;
 
-    // Divide people into random groups
-    const remainingPeople = [...PEOPLE];
-    remainingPeople.sort(() => Math.random() - 0.5); // Randomly sort
-    const groups = [];
+function getClient(): S3 {
+    s3 ??= new S3({ region: Config.S3_REGION });
+    return s3;
+}
 
-    // One quarter to half group (random)
-    groups.push(
-        remainingPeople.splice(
-            0,
-            Math.floor(remainingPeople.length / 4) + Math.floor(Math.random() * (remainingPeople.length / 4)),
-        ),
-    );
-    // A group of 5
-    groups.push(remainingPeople.splice(0, 5));
-    // Half of remaining into groups of 3
-    for (let i = 0; i < Math.floor(remainingPeople.length / 3); i += 3) {
-        groups.push(remainingPeople.splice(0, 3));
-    }
-    // Half of remaining into groups of 2
-    for (let i = 0; i < Math.floor(remainingPeople.length / 2); i += 2) {
-        groups.push(remainingPeople.splice(0, 2));
-    }
-    // Rest into groups of 1
-    for (let i = 0; i < remainingPeople.length; i++) {
-        groups.push(remainingPeople.splice(0, 1));
+export function generateChallenge2026(userId: string): { inputFileId: string } {
+    const hash = crypto.createHash("sha256").update(userId).digest();
+    const hash_num = hash.readUInt32BE(0);
+
+    const index = hash_num % FILE_IDS.length;
+    const inputFileId = FILE_IDS[index]!;
+    return { inputFileId };
+}
+
+export async function fetchImageFromS3(fileId: string): Promise<Buffer> {
+    const s3 = getClient();
+
+    const command = new GetObjectCommand({
+        Bucket: "challenge-solution-bucket-prod",
+        Key: `${fileId}`,
+    });
+
+    const response = await s3.send(command);
+
+    if (!response.Body) {
+        throw new Error("Failed to fetch image from S3");
     }
 
-    // Figure out weights for each person
-    const people: Map<string, number> = new Map();
-    const solutionGroup = groups[Math.floor(Math.random() * groups.length)];
-    for (const group of groups) {
-        // The goal sum of the group is the solution if it's the solution group, or some random about lower than that
-        const groupSum = group === solutionGroup ? solution : solution - Math.floor(Math.random() * 50_000_000);
-        // Weights start off evenly dividing group sum
-        const groupWeights = group.map(() => Math.floor(groupSum / group.length));
-        for (let n = 0; n < 10; n++) {
-            for (let i = 0; i < groupWeights.length; i++) {
-                // Apply offsets, where we both add and subtract the same value between two nodes in the group
-                // This ensures the sum stays the same, but prevents all the values being just groupSum / length
-                // Also makes it non-reversible
-                const j = Math.floor(Math.random() * group.length);
-                const offset = Math.floor(Math.random() * 50_000_000);
-                groupWeights[i]! += offset;
-                groupWeights[j]! -= offset;
+    // Convert the stream to a buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as ReadableStream<Uint8Array>) {
+        chunks.push(chunk);
+    }
+
+    return Buffer.concat(chunks);
+}
+
+export async function compareImages(uploadedImage: Buffer, baseFileId: string): Promise<boolean> {
+    const sharp = (await import("sharp")).default;
+    const variantIds = [`${baseFileId}v1`, `${baseFileId}v2`];
+
+    for (const variantId of variantIds) {
+        try {
+            const referenceImage = await fetchImageFromS3(variantId);
+
+            const uploadedMeta = await sharp(uploadedImage).metadata();
+            const referenceMeta = await sharp(referenceImage).metadata();
+
+            if (uploadedMeta.width !== referenceMeta.width || uploadedMeta.height !== referenceMeta.height) {
+                continue; // Try next variant
             }
-        }
 
-        // Since we floor what each person gets, we'll be off by a little bit sometimes
-        // This corrects that
-        groupWeights[0]! -= groupWeights.reduce((acc, curr) => acc + curr) - groupSum;
+            // Extract raw pixels
+            const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
+            const referencePixels = await sharp(referenceImage).raw().toBuffer();
 
-        // Update each person in the group
-        for (let i = 0; i < group.length; i++) {
-            people.set(group[i]!, groupWeights[i]!);
-        }
-    }
-
-    // Make edges
-    const alliances: [string, string][] = [];
-
-    const addAlliance = (a: string, b: string): void => {
-        // Check for duplicates
-        for (const alliance of alliances) {
-            if ((alliance[0] == a && alliance[1] == b) || (alliance[1] == a && alliance[0] == b)) {
-                return;
+            if (uploadedPixels.length !== referencePixels.length) {
+                continue; // Try next variant
             }
-        }
 
-        alliances.push([a, b]);
-    };
-
-    for (const group of groups) {
-        // If len > 1, add edges that at least ensure connectivity
-        // For 2 and 3 this is a straight line, for the rest it's spread out
-        if (group.length == 1) {
-            continue;
-        } else if (group.length == 2) {
-            addAlliance(group[0]!, group[1]!);
-        } else if (group.length == 3) {
-            addAlliance(group[0]!, group[1]!);
-            addAlliance(group[1]!, group[2]!);
-        } else if (group.length == 4) {
-            addAlliance(group[0]!, group[3]!);
-            addAlliance(group[0]!, group[1]!);
-            addAlliance(group[1]!, group[2]!);
-        } else if (group.length == 5) {
-            addAlliance(group[0]!, group[4]!);
-            addAlliance(group[0]!, group[1]!);
-            addAlliance(group[1]!, group[2]!);
-            addAlliance(group[3]!, group[4]!);
-        } else {
-            for (let i = 0; i < group.length; i += 3) {
-                addAlliance(group[i]!, group[(i + 3) % group.length]!);
-                addAlliance(group[i]!, group[(i + 1) % group.length]!);
-                addAlliance(group[(i + 2) % group.length]!, group[(i + 3) % group.length]!);
-            }
-        }
-
-        // Add random edges
-        for (const person1 of group) {
-            for (const person2 of group) {
-                if (person1 == person2 || Math.random() < 0.1) {
-                    continue;
+            // Compare pixel-by-pixel
+            let match = true;
+            for (let i = 0; i < uploadedPixels.length; i++) {
+                if (uploadedPixels[i] !== referencePixels[i]) {
+                    match = false;
+                    break;
                 }
-                addAlliance(person1, person2);
             }
+
+            if (match) {
+                return true; // Success
+            }
+        } catch (err) {
+            console.warn(`Failed checking variant ${variantId}:`, err);
+            // Continue to next variant
         }
     }
 
-    return { people, alliances, solution };
+    return false;
 }

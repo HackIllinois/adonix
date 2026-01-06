@@ -6,7 +6,6 @@ import { RegistrationApplicationSubmitted } from "../registration/registration-s
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
-import type { AxiosResponse } from "axios";
 import { MailInfo } from "../mail/mail-schemas";
 
 const TESTER_DECISION = {
@@ -16,6 +15,7 @@ const TESTER_DECISION = {
     emailSent: false,
     admittedPro: false,
     reimbursementValue: 0,
+    correctProChallenge: false,
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -25,6 +25,7 @@ const OTHER_DECISION = {
     emailSent: true,
     admittedPro: false,
     reimbursementValue: 0,
+    correctProChallenge: false,
 } satisfies AdmissionDecision;
 
 const TESTER_APPLICATION = {
@@ -33,6 +34,7 @@ const TESTER_APPLICATION = {
     lastName: TESTER.name,
     age: "21",
     email: TESTER.email,
+    phoneNumber: TESTER.phoneNumber,
     gender: "Other",
     race: ["Prefer Not to Answer"],
     country: "United States",
@@ -45,11 +47,13 @@ const TESTER_APPLICATION = {
     hackathonsParticipated: "2-3",
     application1: "I love hack",
     application2: "I love hack",
+    application3: "I love hack",
     applicationOptional: "optional essay",
-    applicationPro: "I wanna be a Pro",
-    attribution: "Word of Mouth",
-    eventInterest: "Meeting New People",
+    pro: true,
+    attribution: ["Word of Mouth", "Instagram"],
+    eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
+    mlhNewsletter: true,
 } satisfies RegistrationApplicationSubmitted;
 
 const updateRequest = [
@@ -90,7 +94,9 @@ describe("PUT /admission/update/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
     });
 
     it("gives forbidden error for user without elevated perms", async () => {
@@ -109,7 +115,7 @@ describe("PUT /admission/update/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            recipients: [TESTER_APPLICATION.email],
+            recipient: TESTER_APPLICATION.email,
         } satisfies MailInfo);
 
         expect(retrievedEntries).toMatchObject(
@@ -189,13 +195,15 @@ describe("GET /admission/rsvp/:id", () => {
     });
 });
 
-describe("PUT /admission/rsvp/accept", () => {
+describe("PUT /admission/rsvp/accept/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -214,8 +222,8 @@ describe("PUT /admission/rsvp/accept", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_CONFIRMATION,
-            recipients: [TESTER_APPLICATION.email],
-            subs: { name: TESTER_APPLICATION.firstName },
+            recipient: TESTER_APPLICATION.email,
+            templateData: { name: TESTER_APPLICATION.firstName },
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({
@@ -248,7 +256,9 @@ describe("PUT /admission/rsvp/decline/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -267,7 +277,7 @@ describe("PUT /admission/rsvp/decline/", () => {
 
         expect(sendMail).toBeCalledWith({
             templateId: Templates.RSVP_DECLINED,
-            recipients: [TESTER_APPLICATION.email],
+            recipient: TESTER_APPLICATION.email,
         } satisfies MailInfo);
 
         expect(stored).toMatchObject({

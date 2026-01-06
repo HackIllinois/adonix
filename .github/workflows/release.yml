@@ -11,6 +11,7 @@ on:
     types: [published]
 
 env:
+  NODE_VERSION: 24
   AWS_REGION: us-east-1
   ECR_REPOSITORY: hackillinois/adonix
   ECS_CLUSTER: adonix-cluster
@@ -47,6 +48,20 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Deploy SES email templates
+        run: yarn deploy:templates
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login

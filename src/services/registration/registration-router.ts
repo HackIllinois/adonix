@@ -7,8 +7,6 @@ import Models from "../../common/models";
 import {
     RegistrationAlreadySubmittedError,
     RegistrationAlreadySubmittedErrorSchema,
-    RegisterationIncompleteSubmissionError,
-    RegisterationIncompleteSubmissionErrorSchema,
     RegistrationApplicationSubmitted,
     RegistrationApplicationDraft,
     RegistrationApplicationDraftRequestSchema,
@@ -18,7 +16,6 @@ import {
     RegistrationChallengeStatusSchema,
     RegistrationChallengeSolveFailedError,
     RegistrationChallengeSolveFailedErrorSchema,
-    RegistrationChallengeSolveSchema,
     RegistrationClosedError,
     RegistrationClosedErrorSchema,
     RegistrationNotFoundError,
@@ -26,6 +23,8 @@ import {
     RegistrationStatusSchema,
     RegistrationChallengeAlreadySolvedError,
     RegistrationChallengeAlreadySolvedErrorSchema,
+    RegistrationMissingProErrorSchema,
+    RegistrationMissingProError,
 } from "./registration-schemas";
 import { DecisionStatus } from "../admission/admission-schemas";
 
@@ -38,7 +37,8 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { generateChallenge } from "./challenge-lib";
+import { compareImages, generateChallenge2026 } from "./challenge-lib";
+import upload from "../../middleware/upload";
 
 const registrationRouter = Router();
 
@@ -230,30 +230,20 @@ registrationRouter.post(
         tag: Tag.REGISTRATION,
         role: Role.USER,
         summary: "Submits the currently authenticated user's registration - permanent",
+        body: RegistrationApplicationSubmittedRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The new registration information",
                 schema: RegistrationApplicationSubmittedRequestSchema,
             },
-            [StatusCode.ClientErrorBadRequest]: [
-                {
-                    id: RegistrationAlreadySubmittedError.error,
-                    description: "Registration is already submitted, cannot update anymore",
-                    schema: RegistrationAlreadySubmittedErrorSchema,
-                },
-                {
-                    id: RegisterationIncompleteSubmissionError.error,
-                    description: "Your application is incomplete. Please fill out all required fields before submitting.",
-                    schema: RegisterationIncompleteSubmissionErrorSchema,
-                },
-            ],
+            [StatusCode.ClientErrorBadRequest]: {
+                id: RegistrationAlreadySubmittedError.error,
+                description: "Registration is already submitted, cannot update anymore",
+                schema: RegistrationAlreadySubmittedErrorSchema,
+            },
             [StatusCode.ClientErrorForbidden]: {
                 description: "Registration is closed",
                 schema: RegistrationClosedErrorSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find registration information (make sure you create it first!)",
-                schema: RegistrationNotFoundErrorSchema,
             },
         },
     }),
@@ -264,26 +254,16 @@ registrationRouter.post(
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
         }
 
-        const draftInfo = await Models.RegistrationApplicationDraft.findOne({ userId: userId });
-
-        if (!draftInfo) {
-            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
-        }
-
         const isSubmitted = await Models.RegistrationApplicationSubmitted.findOne({ userId: userId });
         if (isSubmitted) {
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
-        const submissionValidation = RegistrationApplicationSubmittedRequestSchema.safeParse(draftInfo);
-        if (!submissionValidation.success) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(RegisterationIncompleteSubmissionError);
-        }
-
         const submissionData: RegistrationApplicationSubmitted = {
-            ...submissionValidation.data,
+            ...req.body,
             userId: userId,
         } as RegistrationApplicationSubmitted;
+
         const [newSubmissionInfo] = await Promise.all([
             Models.RegistrationApplicationSubmitted.create(submissionData),
             Models.RegistrationApplicationDraft.deleteOne({ userId: userId }),
@@ -311,8 +291,8 @@ registrationRouter.post(
         // SEND SUCCESSFUL REGISTRATION EMAIL
         const mailInfo: MailInfo = {
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [newSubmissionInfo.email],
-            subs: { name: newSubmissionInfo.firstName },
+            recipient: newSubmissionInfo.email,
+            templateData: { name: newSubmissionInfo.firstName, pro: newSubmissionInfo.pro ?? false },
         };
         await sendMail(mailInfo);
 
@@ -333,20 +313,35 @@ registrationRouter.get(
                 description: "The challenge status",
                 schema: RegistrationChallengeStatusSchema,
             },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find your registration",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "You are not registered for this track",
+                schema: RegistrationMissingProErrorSchema,
+            },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
+        const registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registrationData) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+        if (!registrationData.pro) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationMissingProError);
+        }
+
         let challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
         if (!challenge) {
-            challenge = { userId, ...generateChallenge(), attempts: 0, complete: false };
+            challenge = { userId, ...generateChallenge2026(userId), attempts: 0, complete: false };
             await Models.RegistrationChallenge.create(challenge);
         }
 
         return res.status(StatusCode.SuccessOK).send({
-            alliances: challenge.alliances,
-            people: Object.fromEntries(challenge.people.entries()),
+            inputFileId: challenge.inputFileId,
             attempts: challenge.attempts,
             complete: challenge.complete,
         });
@@ -355,13 +350,13 @@ registrationRouter.get(
 
 registrationRouter.post(
     "/challenge/",
+    upload.single("solution"), // middleware handles this
     specification({
         method: "post",
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        body: RegistrationChallengeSolveSchema,
-        summary: "Attempts to solve the challenge",
+        summary: "Attempts to solve the challenge by uploading a solution image",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully solved, the new challenge status is returned",
@@ -386,28 +381,55 @@ registrationRouter.post(
         },
     }),
     async (req, res) => {
-        const { solution } = req.body;
         const { id: userId } = getAuthenticatedUser(req);
 
         if (!isRegistrationAlive()) {
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationClosedError);
         }
 
-        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
-        if (challenge?.complete) {
-            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationChallengeAlreadySolvedError);
+        if (!req.file) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoFileUploaded",
+                message: "Please upload a solution image",
+            });
         }
-        if (solution != challenge?.solution) {
-            if (challenge) {
-                await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: challenge.attempts + 1 });
-            }
+
+        const registration = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registration) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoChallengeFound",
+                message: "No challenge found. Please request a challenge first.",
+            });
+        }
+
+        // Get the user's challenge
+        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
+
+        if (!challenge) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                error: "NoChallengeFound",
+                message: "No challenge found. Please request a challenge first.",
+            });
+        }
+
+        if (challenge.complete) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeAlreadySolvedError);
+        }
+
+        const isCorrect = await compareImages(req.file.buffer, challenge.inputFileId);
+
+        const updatedAttempts = challenge.attempts + 1;
+
+        if (!isCorrect) {
+            await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: updatedAttempts });
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeSolveFailedError);
         }
 
-        const result = await Models.RegistrationChallenge.findOneAndUpdate(
+        // Solution is correct
+        const challengeResult = await Models.RegistrationChallenge.findOneAndUpdate(
             { userId },
             {
-                attempts: challenge.attempts + 1,
+                attempts: updatedAttempts,
                 complete: true,
             },
             {
@@ -415,15 +437,36 @@ registrationRouter.post(
             },
         );
 
-        if (!result) {
+        if (!challengeResult) {
             throw Error("Failed to update challenge");
         }
 
+        const admissionResult = await Models.AdmissionDecision.findOneAndUpdate(
+            { userId: userId },
+            {
+                correctProChallenge: true,
+            },
+            {
+                new: true,
+            },
+        );
+
+        if (!admissionResult) {
+            throw Error("Failed to update admission");
+        }
+
+        // SEND CHALLENGE COMPLETION EMAIL
+        const mailInfo: MailInfo = {
+            templateId: Templates.CHALLENGE_COMPLETION,
+            recipient: registration.email,
+            templateData: { name: registration.firstName },
+        };
+        await sendMail(mailInfo);
+
         return res.status(StatusCode.SuccessOK).send({
-            alliances: result.alliances,
-            people: Object.fromEntries(result.people.entries()),
-            attempts: result.attempts,
-            complete: result.complete,
+            inputFileId: challengeResult.inputFileId,
+            attempts: challengeResult.attempts,
+            complete: challengeResult.complete,
         });
     },
 );

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest, afterEach } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { Templates } from "../../common/config";
@@ -7,10 +7,23 @@ import {
     RegistrationApplicationDraft,
     RegistrationApplicationDraftRequest,
     RegistrationApplicationSubmitted,
+    RegistrationChallenge,
 } from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
-import type { AxiosResponse } from "axios";
+import type * as ChallengeLib from "./challenge-lib";
 import { MailInfo } from "../mail/mail-schemas";
+import { Request, Response, NextFunction } from "express";
+
+jest.mock("../../middleware/upload", () => ({
+    single:
+        () =>
+        (req: Request, _res: Response, next: NextFunction): void => {
+            if ((global as { mockFile?: Express.Multer.File }).mockFile) {
+                req.file = (global as { mockFile?: Express.Multer.File }).mockFile;
+            }
+            next();
+        },
+}));
 
 const APPLICATION = {
     firstName: TESTER.name,
@@ -18,6 +31,7 @@ const APPLICATION = {
     preferredName: "Bob",
     age: "21",
     email: TESTER.email,
+    phoneNumber: TESTER.phoneNumber,
     gender: "Other",
     race: ["Prefer Not to Answer"],
     country: "United States",
@@ -30,11 +44,13 @@ const APPLICATION = {
     hackathonsParticipated: "2-3",
     application1: "I love hack",
     application2: "I love hack",
+    application3: "I love hack",
     applicationOptional: "optional essay",
-    applicationPro: "I wanna be a Pro",
-    attribution: "Word of Mouth",
-    eventInterest: "Meeting New People",
+    pro: true,
+    attribution: ["Word of Mouth", "Instagram"],
+    eventInterest: ["Meeting New People"],
     requestTravelReimbursement: false,
+    mlhNewsletter: true,
 } satisfies RegistrationApplicationDraftRequest;
 
 const APPLICATION_INVALID_EMAIL = { ...APPLICATION, email: "invalidemail" };
@@ -45,6 +61,13 @@ const DRAFT_OTHER_REGISTRATION = {
     userId: "otherUser",
 } satisfies RegistrationApplicationDraft;
 const SUBMITTED_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies RegistrationApplicationSubmitted;
+
+const CHALLENGE = {
+    userId: TESTER.id,
+    inputFileId: "1U1UL1iNfrygNv5YsXPvlyk9ha4erMzF_",
+    attempts: 0,
+    complete: false,
+} satisfies RegistrationChallenge;
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
@@ -98,6 +121,11 @@ describe("GET /registration/userid/:USERID", () => {
 function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
     const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
     return jest.spyOn(mailLib, "sendMail");
+}
+
+function mockCompareImages(): jest.SpiedFunction<typeof ChallengeLib.compareImages> {
+    const challengeLib = require("./challenge-lib") as typeof ChallengeLib;
+    return jest.spyOn(challengeLib, "compareImages");
 }
 
 describe("GET /registration/draft/", () => {
@@ -175,16 +203,18 @@ describe("POST /registration/submit/", () => {
 
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({}) as AxiosResponse);
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
     });
 
-    it("should submit registration", async () => {
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.SuccessOK);
+    it("should submit registration with body data", async () => {
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith({
             templateId: Templates.REGISTRATION_SUBMISSION,
-            recipients: [DRAFT_REGISTRATION.email],
-            subs: { name: DRAFT_REGISTRATION.firstName },
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
         } satisfies MailInfo);
 
         // Should be stored in submissions collection
@@ -193,46 +223,65 @@ describe("POST /registration/submit/", () => {
         });
         expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
 
-        // Draft should be deleted
+        // Draft should be deleted if it exists
         const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(storedDraft).toBeNull();
     });
 
-    it("should provide not found error when draft does not exist", async () => {
+    it("should submit registration even when no draft exists", async () => {
         await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorNotFound);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(sendMail).toBeCalledWith({
+            templateId: Templates.REGISTRATION_SUBMISSION,
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
+        } satisfies MailInfo);
+
+        // Should be stored in submissions collection
+        const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
     });
 
     it("should provide already submitted error when already submitted", async () => {
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.ClientErrorBadRequest);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySubmitted");
     });
 
-    it("should provide incomplete application error when draft is incomplete", async () => {
-        const incompleteDraft = {
-            ...DRAFT_REGISTRATION,
-            application1: undefined,
-            application2: undefined,
+    it("should provide bad request error when required fields are missing", async () => {
+        const incompleteApplication = {
+            firstName: TESTER.name,
+            lastName: TESTER.name,
+            // Missing required fields
         };
-        await Models.RegistrationApplicationDraft.deleteOne(DRAFT_REGISTRATION);
-        await Models.RegistrationApplicationDraft.create(incompleteDraft);
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ClientErrorBadRequest);
-        expect(JSON.parse(response.text)).toHaveProperty("error", "IncompleteApplication");
+        const response = await postAsUser("/registration/submit/")
+            .send(incompleteApplication)
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
+
+    it("should provide bad request error when email is invalid", async () => {
+        const response = await postAsUser("/registration/submit/")
+            .send(APPLICATION_INVALID_EMAIL)
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
     it("should provide error when email fails to send and still submit registration", async () => {
         // Mock failure
         sendMail.mockImplementation(async (_) => {
             throw new Error("EmailFailedToSend");
         });
 
-        const response = await postAsUser("/registration/submit/").send().expect(StatusCode.ServerErrorInternal);
+        const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.ServerErrorInternal);
         expect(JSON.parse(response.text)).toHaveProperty("error", "InternalError");
 
         // Should be stored in submissions collection
@@ -241,10 +290,149 @@ describe("POST /registration/submit/", () => {
         });
         expect(storedSubmission).toMatchObject(SUBMITTED_REGISTRATION);
 
-        // Draft should be deleted
+        // Draft should be deleted if it exists
         const storedDraft: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(storedDraft).toBeNull();
+    });
+});
+
+describe("POST /registration/challenge/", () => {
+    let compareImages: jest.SpiedFunction<typeof ChallengeLib.compareImages> = undefined!;
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+
+    beforeEach(async (): Promise<void> => {
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
+        await Models.RegistrationChallenge.create(CHALLENGE);
+        await Models.AdmissionDecision.create({
+            userId: TESTER.id,
+            status: "TBD",
+            response: "PENDING",
+        });
+
+        // Mock image comparison
+        compareImages = mockCompareImages();
+        compareImages.mockResolvedValue(true); // Default to correct solution
+
+        // Mock email send
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async (_) => ({
+            messageId: "test-message-id",
+        }));
+    });
+
+    afterEach((): void => {
+        // Clean up mock file
+        delete (global as { mockFile?: Express.Multer.File }).mockFile;
+    });
+
+    it("should accept correct solution and mark challenge as complete", async () => {
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
+
+        const responseData = JSON.parse(response.text);
+        expect(responseData).toMatchObject({
+            inputFileId: CHALLENGE.inputFileId,
+            attempts: 1,
+            complete: true,
+        });
+
+        // Verify compareImages was called with the uploaded buffer and base file ID
+        expect(compareImages).toHaveBeenCalledWith(mockImageBuffer, CHALLENGE.inputFileId);
+
+        // Verify email sent
+        expect(sendMail).toBeCalledWith({
+            templateId: Templates.CHALLENGE_COMPLETION,
+            recipient: APPLICATION.email,
+            templateData: { name: APPLICATION.firstName },
+        } satisfies MailInfo);
+
+        // Verify in database
+        const storedChallenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({
+            userId: TESTER.id,
+        });
+        expect(storedChallenge?.complete).toBe(true);
+        expect(storedChallenge?.attempts).toBe(1);
+    });
+
+    it("should reject incorrect solution and increment attempts", async () => {
+        compareImages.mockResolvedValue(false); // Incorrect solution
+
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "IncorrectSolution");
+
+        // Verify attempts incremented but not complete
+        const storedChallenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({
+            userId: TESTER.id,
+        });
+        expect(storedChallenge?.complete).toBe(false);
+        expect(storedChallenge?.attempts).toBe(1);
+    });
+
+    it("should provide bad request error when no file is uploaded", async () => {
+        // Don't set mockFile
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NoFileUploaded");
+    });
+
+    it("should provide already solved error when challenge is already complete", async () => {
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { complete: true });
+
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadySolved");
+    });
+
+    it("should provide bad request error when no challenge exists", async () => {
+        await Models.RegistrationChallenge.deleteOne({ userId: TESTER.id });
+
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NoChallengeFound");
+    });
+
+    it("should provide bad request error when no registration exists", async () => {
+        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: TESTER.id });
+
+        const mockImageBuffer = Buffer.from("mock-uploaded-image");
+        (global as { mockFile?: Express.Multer.File }).mockFile = {
+            buffer: mockImageBuffer,
+            originalname: "solution.png",
+            mimetype: "image/png",
+        } as Express.Multer.File;
+
+        const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NoChallengeFound");
     });
 });

@@ -9,7 +9,8 @@ import { readFileSync } from "fs";
 import env from "./env";
 
 export enum Templates {
-    REGISTRATION_SUBMISSION = "2025_registration_confirmation",
+    REGISTRATION_SUBMISSION = "2026_registration_confirmation",
+    CHALLENGE_COMPLETION = "2026_challenge_confirmation",
     STATUS_UPDATE = "2025_status_update",
     RSVP_CONFIRMATION = "2025_rsvp_confirmation",
     RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
@@ -34,8 +35,8 @@ function getVersion(): string {
 
 const PROD = env.PROD ? true : false;
 const PORT = env.PORT ? parseInt(env.PORT) : 3000;
-export const PROD_DOMAIN = "adonix.hackillinois.org";
-export const PROD_ROOT_URL = `https://${PROD_DOMAIN}`;
+export const PROD_REGISTRABLE_DOMAIN = ".hackillinois.org";
+export const PROD_ROOT_URL = `https://adonix${PROD_REGISTRABLE_DOMAIN}`;
 const ROOT_URL = ((): string => {
     if (env.URL) {
         return env.URL;
@@ -73,8 +74,8 @@ const Config = {
 
     EXPO_ACCESS_TOKEN: requireEnv("EXPO_ACCESS_TOKEN"),
 
-    SPARKPOST_KEY: requireEnv("SPARKPOST_KEY"),
-    SPARKPOST_URL: "https://api.sparkpost.com/api/v1/transmissions?num_rcpt_errors=3",
+    SES_FROM_EMAIL: requireEnv("SES_FROM_EMAIL"),
+    SES_REGION: requireEnv("SES_REGION"),
 
     GITHUB_OAUTH_ID: requireEnv("GITHUB_OAUTH_ID"),
     GITHUB_OAUTH_SECRET: requireEnv("GITHUB_OAUTH_SECRET"),
@@ -86,8 +87,6 @@ const Config = {
 
     SYSTEM_ADMIN_LIST: requireEnv("SYSTEM_ADMINS").split(","),
 
-    S3_ACCESS_KEY: requireEnv("S3_ACCESS_KEY"),
-    S3_SECRET_KEY: requireEnv("S3_SECRET_KEY"),
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
 
@@ -123,6 +122,9 @@ const Config = {
     STATISTIC_LOG_FILTER_LIMIT: 25,
     MAX_RESUME_SIZE_BYTES: 2 * 1024 * 1024,
     MAX_REQUEST_SIZE_BYTES: 100 * 1024,
+    MAX_STRING_LENGTH: 200,
+    MAX_ESSAY_LENGTH: 2000,
+    MAX_ARRAY_LENGTH: 20,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

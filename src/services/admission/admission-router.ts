@@ -131,20 +131,23 @@ admissionRouter.put(
             if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
-                    recipients: [application.email],
-                    subs: { name: application.firstName, amount: admissionDecision.reimbursementValue },
+                    recipient: application.email,
+                    templateData: {
+                        name: application.firstName,
+                        amount: admissionDecision.reimbursementValue,
+                    },
                 };
             } else {
                 mailInfo = {
                     templateId: Templates.RSVP_CONFIRMATION,
-                    recipients: [application.email],
-                    subs: { name: application.firstName },
+                    recipient: application.email,
+                    templateData: { name: application.firstName },
                 };
             }
         } else {
             mailInfo = {
                 templateId: Templates.RSVP_DECLINED,
-                recipients: [application.email],
+                recipient: application.email,
             };
         }
 
@@ -209,11 +212,14 @@ admissionRouter.put(
         );
 
         // Send mail
-        const mailInfo: MailInfo = {
-            templateId: Templates.STATUS_UPDATE,
-            recipients,
-        };
-        await sendMail(mailInfo);
+        await Promise.all(
+            recipients.map((email) =>
+                sendMail({
+                    templateId: Templates.STATUS_UPDATE,
+                    recipient: email,
+                }),
+            ),
+        );
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },

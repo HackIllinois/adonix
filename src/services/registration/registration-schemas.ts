@@ -1,6 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
+import Config from "../../common/config";
 
 export class RegistrationApplicationSubmitted {
     @prop({ required: true, index: true })
@@ -20,6 +21,9 @@ export class RegistrationApplicationSubmitted {
 
     @prop({ required: true })
     public email: string;
+
+    @prop({ required: true })
+    public phoneNumber: string;
 
     @prop({ required: true })
     public gender: string;
@@ -60,20 +64,32 @@ export class RegistrationApplicationSubmitted {
     @prop({ required: true })
     public application2: string;
 
+    @prop({ required: true })
+    public application3: string;
+
     @prop({ required: false })
     public applicationOptional?: string;
 
     @prop({ required: false })
-    public applicationPro?: string;
+    public pro?: boolean;
 
-    @prop({ required: true })
-    public attribution: string;
+    @prop({
+        required: true,
+        type: String,
+    })
+    public attribution: string[];
 
-    @prop({ required: true })
-    public eventInterest: string;
+    @prop({
+        required: true,
+        type: String,
+    })
+    public eventInterest: string[];
 
     @prop({ required: true })
     requestTravelReimbursement: boolean;
+
+    @prop({ required: true })
+    mlhNewsletter: boolean;
 }
 
 export class RegistrationApplicationDraft {
@@ -94,6 +110,9 @@ export class RegistrationApplicationDraft {
 
     @prop({ required: false })
     public email?: string;
+
+    @prop({ required: false })
+    public phoneNumber?: string;
 
     @prop({ required: false })
     public gender?: string;
@@ -135,33 +154,39 @@ export class RegistrationApplicationDraft {
     public application2?: string;
 
     @prop({ required: false })
+    public application3?: string;
+
+    @prop({ required: false })
     public applicationOptional?: string;
 
     @prop({ required: false })
-    public applicationPro?: string;
+    public pro?: boolean;
 
-    @prop({ required: false })
-    public attribution?: string;
+    @prop({
+        required: false,
+        type: String,
+    })
+    public attribution?: string[];
 
-    @prop({ required: false })
-    public eventInterest?: string;
+    @prop({
+        required: false,
+        type: String,
+    })
+    public eventInterest?: string[];
 
     @prop({ required: false })
     requestTravelReimbursement?: boolean;
+
+    @prop({ required: false })
+    mlhNewsletter?: boolean;
 }
 
 export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
-    @prop({ required: true, type: () => Number })
-    public people: Map<string, number>;
-
-    @prop({ required: true, type: () => [[String]] })
-    public alliances: string[][];
-
     @prop({ required: true })
-    public solution: number;
+    public inputFileId: string;
 
     @prop({ required: true })
     public attempts: number;
@@ -180,28 +205,31 @@ export const RegistrationStatusSchema = z
 
 export const RegistrationApplicationSubmittedRequestSchema = z
     .object({
-        firstName: z.string(),
-        lastName: z.string(),
-        preferredName: z.string().optional(),
-        age: z.string(),
-        email: z.string().email({ message: "Invalid email." }),
-        gender: z.string(),
-        race: z.array(z.string()),
-        country: z.string(),
-        state: z.string().optional(),
-        school: z.string(),
-        education: z.string(),
-        graduate: z.string(),
-        major: z.string(),
-        underrepresented: z.string(),
-        hackathonsParticipated: z.string(),
-        application1: z.string(),
-        application2: z.string(),
-        applicationOptional: z.string().optional(),
-        applicationPro: z.string().optional(),
-        attribution: z.string(),
-        eventInterest: z.string(),
+        firstName: z.string().max(Config.MAX_STRING_LENGTH),
+        lastName: z.string().max(Config.MAX_STRING_LENGTH),
+        preferredName: z.string().max(Config.MAX_STRING_LENGTH).optional(),
+        age: z.string().max(Config.MAX_STRING_LENGTH),
+        email: z.string().email({ message: "Invalid email." }).max(Config.MAX_STRING_LENGTH),
+        phoneNumber: z.string().max(Config.MAX_STRING_LENGTH),
+        gender: z.string().max(Config.MAX_STRING_LENGTH),
+        race: z.array(z.string()).max(Config.MAX_ARRAY_LENGTH),
+        country: z.string().max(Config.MAX_STRING_LENGTH),
+        state: z.string().max(Config.MAX_STRING_LENGTH).optional(),
+        school: z.string().max(Config.MAX_STRING_LENGTH),
+        education: z.string().max(Config.MAX_STRING_LENGTH),
+        graduate: z.string().max(Config.MAX_STRING_LENGTH),
+        major: z.string().max(Config.MAX_STRING_LENGTH),
+        underrepresented: z.string().max(Config.MAX_STRING_LENGTH),
+        hackathonsParticipated: z.string().max(Config.MAX_STRING_LENGTH),
+        application1: z.string().max(Config.MAX_ESSAY_LENGTH),
+        application2: z.string().max(Config.MAX_ESSAY_LENGTH),
+        application3: z.string().max(Config.MAX_ESSAY_LENGTH),
+        applicationOptional: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
+        pro: z.boolean().optional(),
+        attribution: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
+        eventInterest: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         requestTravelReimbursement: z.boolean(),
+        mlhNewsletter: z.boolean(),
     })
     .openapi("RegistrationApplicationSubmittedRequest", {
         example: {
@@ -209,6 +237,7 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             lastName: "Kanandini",
             age: "21",
             email: "rpak@gmail.org",
+            phoneNumber: "+1 123-456-7890",
             gender: "Prefer Not to Answer",
             race: ["Prefer Not to Answer"],
             country: "United States",
@@ -221,11 +250,13 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             hackathonsParticipated: "2-3",
             application1: "I love hack",
             application2: "I love hack",
+            application3: "I love hack",
             applicationOptional: "",
-            applicationPro: "I wanna be a Pro",
-            attribution: "Word of Mouth",
-            eventInterest: "Meeting New People",
+            pro: true,
+            attribution: ["Word of Mouth", "Instagram"],
+            eventInterest: ["Meeting New People"],
             requestTravelReimbursement: false,
+            mlhNewsletter: true,
         },
     });
 
@@ -275,28 +306,13 @@ export const RegistrationApplicationSubmittedSchema = RegistrationApplicationSub
 
 export const RegistrationChallengeStatusSchema = z
     .object({
-        people: z.record(z.string(), z.number()),
-        alliances: z.array(z.array(z.string())),
+        inputFileId: z.string(),
         attempts: z.number(),
         complete: z.boolean(),
     })
-    .openapi("RegistrationChallengeInput", {
+    .openapi("RegistrationChallengeStatus", {
         example: {
-            people: {
-                Zeus: 36,
-                Apollo: 32,
-                Athena: 34,
-                Hades: 28,
-                Hermes: 29,
-                Artemis: 30,
-            },
-            alliances: [
-                ["Zeus", "Apollo"],
-                ["Apollo", "Athena"],
-                ["Hades", "Hermes"],
-                ["Hermes", "Artemis"],
-                ["Hades", "Artemis"],
-            ],
+            inputFileId: "abc123",
             attempts: 3,
             complete: false,
         },
@@ -304,13 +320,18 @@ export const RegistrationChallengeStatusSchema = z
 
 export const RegistrationChallengeSolveSchema = z
     .object({
-        solution: z.number().openapi({ example: 123 }),
+        fileId: z.string().openapi({ example: "uploaded_file_id" }),
     })
     .openapi("RegistrationChallengeSolve");
 
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Couldn't find your registration",
+});
+
+export const [RegistrationMissingProError, RegistrationMissingProErrorSchema] = CreateErrorAndSchema({
+    error: "MissingPro",
+    message: "You are not registered for this track",
 });
 
 export const [RegistrationAlreadySubmittedError, RegistrationAlreadySubmittedErrorSchema] = CreateErrorAndSchema({
@@ -331,9 +352,4 @@ export const [RegistrationChallengeSolveFailedError, RegistrationChallengeSolveF
 export const [RegistrationChallengeAlreadySolvedError, RegistrationChallengeAlreadySolvedErrorSchema] = CreateErrorAndSchema({
     error: "AlreadySolved",
     message: "You've already solved the challenge!",
-});
-
-export const [RegisterationIncompleteSubmissionError, RegisterationIncompleteSubmissionErrorSchema] = CreateErrorAndSchema({
-    error: "IncompleteApplication",
-    message: "Your application is incomplete. Please fill out all required fields before submitting.",
 });
