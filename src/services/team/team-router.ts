@@ -18,7 +18,7 @@ teamRouter.get(
     specification({
         method: "get",
         path: "/team/",
-        tag: Tag.USER,
+        tag: Tag.TEAM,
         role: Role.USER,
         summary: "Gets all teams",
         responses: {
@@ -39,7 +39,7 @@ teamRouter.get(
     specification({
         method: "get",
         path: "/team/{id}/",
-        tag: Tag.USER,
+        tag: Tag.TEAM,
         role: Role.USER,
         summary: "Gets a team and its staff",
         parameters: z.object({
@@ -83,7 +83,7 @@ teamRouter.post(
     specification({
         method: "post",
         path: "/team/",
-        tag: Tag.USER,
+        tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Creates a new team",
         responses: {
@@ -104,7 +104,7 @@ teamRouter.put(
     specification({
         method: "put",
         path: "/team/{id}/",
-        tag: Tag.USER,
+        tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Updates a team by ID",
         parameters: z.object({
@@ -140,7 +140,7 @@ teamRouter.delete(
     specification({
         method: "delete",
         path: "/team/{id}/",
-        tag: Tag.USER,
+        tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Deletes a team by ID",
         parameters: z.object({
