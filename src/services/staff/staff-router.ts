@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { Role } from "../auth/auth-schemas";
 import { getAuthenticatedUser } from "../../common/auth";
 import {
@@ -9,6 +10,9 @@ import {
     ShiftsAddRequestSchema,
     ShiftsSchema,
     StaffAttendanceRequestSchema,
+    StaffInfoSchema,
+    StaffNotFoundError,
+    StaffNotFoundErrorSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -29,6 +33,133 @@ import {
 } from "../user/user-schemas";
 
 const staffRouter = Router();
+
+staffRouter.get(
+    "/info/",
+    specification({
+        method: "get",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.USER,
+        summary: "Gets all active staff information for the team page",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Active staff information",
+                schema: z.object({
+                    staffInfo: z.array(StaffInfoSchema),
+                }),
+            },
+        },
+    }),
+    async (_req, res) => {
+        const staffInfo = await Models.StaffInfo.find({ isActive: true }).populate("team").lean();
+
+        const formattedStaffInfo = staffInfo.map((info) => {
+            let team;
+            if (info.team) {
+                team = typeof info.team === "string" ? info.team : info.team._id.toString();
+            }
+            return {
+                ...info,
+                team,
+            };
+        });
+
+        return res.status(StatusCode.SuccessOK).json({ staffInfo: formattedStaffInfo });
+    },
+);
+
+staffRouter.post(
+    "/info/",
+    specification({
+        method: "post",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Creates a new staff member profile",
+        body: StaffInfoSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Staff member created successfully",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        await Models.StaffInfo.create(req.body);
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.put(
+    "/info/",
+    specification({
+        method: "put",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Updates an existing staff member profile",
+        body: StaffInfoSchema.partial().extend({
+            staffId: z.string(),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Staff member updated successfully",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Staff member not found",
+                schema: StaffNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { staffId, ...updateData } = req.body;
+
+        const staff = await Models.StaffInfo.findByIdAndUpdate(staffId, updateData, { new: true });
+
+        if (!staff) {
+            return res.status(StatusCode.ClientErrorNotFound).json(StaffNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.delete(
+    "/info/",
+    specification({
+        method: "delete",
+        path: "/staff/info/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Deletes a staff member profile",
+        body: z.object({
+            staffId: z.string(),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Staff member deleted successfully",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Staff member not found",
+                schema: StaffNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { staffId } = req.body;
+
+        const staff = await Models.StaffInfo.findByIdAndDelete(staffId);
+
+        if (!staff) {
+            return res.status(StatusCode.ClientErrorNotFound).json(StaffNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
 
 staffRouter.post(
     "/attendance/",

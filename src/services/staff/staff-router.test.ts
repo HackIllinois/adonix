@@ -1,11 +1,22 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { putAsAttendee, putAsStaff, TESTER } from "../../common/testTools";
+import {
+    putAsAttendee,
+    putAsStaff,
+    TESTER,
+    delAsAdmin,
+    getAsAttendee,
+    postAsAdmin,
+    postAsAttendee,
+    putAsAdmin,
+    delAsAttendee,
+} from "../../common/testTools";
 
 import { Event, EventAttendance, EventType } from "../event/event-schemas";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
+import { Team } from "../team/team-schemas";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -48,11 +59,313 @@ const TEST_EVENT = {
     isPro: false,
 } satisfies Event;
 
+const TESTER_TEAM = {
+    name: "Systems",
+} satisfies Team;
+
+const TESTER_STAFF_INFO = {
+    name: "Test User",
+    title: "Systems Lead",
+    emoji: "💻",
+    profilePictureUrl: "https://example.com/profile.jpg",
+    quote: "six seven",
+    isActive: true,
+};
+
+const INACTIVE_STAFF_INFO = {
+    name: "Inactive Staff",
+    title: "Former Lead",
+    emoji: "👋",
+    profilePictureUrl: "https://example.com/inactive.jpg",
+    quote: "Goodbye",
+    isActive: false,
+};
+
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
     await Models.Event.create(TEST_EVENT);
+    await Models.Team.create(TESTER_TEAM);
+});
+describe("GET /staff/info/", () => {
+    it("returns all active staff members for public access", async () => {
+        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+
+        await Models.StaffInfo.create({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            team: team!._id,
+            emoji: TESTER_STAFF_INFO.emoji,
+            profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
+            quote: TESTER_STAFF_INFO.quote,
+            isActive: true,
+        });
+
+        const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
+
+        const data = JSON.parse(response.text);
+        expect(data.staffInfo).toHaveLength(1);
+        expect(data.staffInfo[0]).toMatchObject({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            emoji: TESTER_STAFF_INFO.emoji,
+            profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
+            quote: TESTER_STAFF_INFO.quote,
+            isActive: true,
+        });
+        expect(data.staffInfo[0].team).toBeDefined();
+    });
+
+    it("excludes inactive staff members", async () => {
+        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+
+        await Models.StaffInfo.create({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            team: team!._id,
+            isActive: true,
+        });
+
+        await Models.StaffInfo.create({
+            name: INACTIVE_STAFF_INFO.name,
+            title: INACTIVE_STAFF_INFO.title,
+            team: team!._id,
+            isActive: false,
+        });
+
+        const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
+
+        const data = JSON.parse(response.text);
+        expect(data.staffInfo).toHaveLength(1);
+        expect(data.staffInfo[0].name).toBe(TESTER_STAFF_INFO.name);
+    });
+
+    it("returns empty array when no active staff exists", async () => {
+        const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
+
+        const data = JSON.parse(response.text);
+        expect(data.staffInfo).toHaveLength(0);
+    });
+
+    it("returns staff without team when team is not set", async () => {
+        await Models.StaffInfo.create({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            isActive: true,
+        });
+
+        const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
+
+        const data = JSON.parse(response.text);
+        expect(data.staffInfo).toHaveLength(1);
+        expect(data.staffInfo[0].team).toBeUndefined();
+    });
+});
+
+describe("POST /staff/info/", () => {
+    it("successfully creates staff info", async () => {
+        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+
+        const response = await postAsAdmin("/staff/info/")
+            .send({
+                name: TESTER_STAFF_INFO.name,
+                title: TESTER_STAFF_INFO.title,
+                team: team!._id.toString(),
+                emoji: TESTER_STAFF_INFO.emoji,
+                profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
+                quote: TESTER_STAFF_INFO.quote,
+                isActive: true,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const staffInfo = await Models.StaffInfo.findOne({ name: TESTER_STAFF_INFO.name }).populate("team");
+        expect(staffInfo).toBeDefined();
+        expect(staffInfo?.title).toBe(TESTER_STAFF_INFO.title);
+        expect((staffInfo?.team as unknown as Team)?.name).toBe(TESTER_TEAM.name);
+    });
+
+    it("creates staff info without optional fields", async () => {
+        await postAsAdmin("/staff/info/")
+            .send({
+                name: "New Staff",
+                title: "Co-Director",
+                isActive: true,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        const staffInfo = await Models.StaffInfo.findOne({ name: "New Staff" });
+
+        expect(staffInfo?.title).toBe("Co-Director");
+        expect(staffInfo?.emoji).toBeUndefined();
+        expect(staffInfo?.quote).toBeUndefined();
+        expect(staffInfo?.isActive).toBe(true);
+    });
+
+    it("creates staff info with default isActive as true", async () => {
+        await postAsAdmin("/staff/info/")
+            .send({
+                name: "Default Active Staff",
+                title: "Developer",
+            })
+            .expect(StatusCode.SuccessOK);
+
+        const staffInfo = await Models.StaffInfo.findOne({ name: "Default Active Staff" });
+        expect(staffInfo?.isActive).toBe(true);
+    });
+
+    it("rejects non-admin users", async () => {
+        await postAsAttendee("/staff/info/")
+            .send({
+                name: TESTER_STAFF_INFO.name,
+                title: TESTER_STAFF_INFO.title,
+                isActive: true,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+    });
+});
+
+describe("PUT /staff/info/", () => {
+    let staffId: string;
+
+    beforeEach(async () => {
+        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+
+        const staffInfo = await Models.StaffInfo.create({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            team: team!._id,
+            emoji: TESTER_STAFF_INFO.emoji,
+            profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
+            quote: TESTER_STAFF_INFO.quote,
+            isActive: true,
+        });
+
+        staffId = staffInfo._id.toString();
+    });
+
+    it("successfully updates staff info", async () => {
+        const updatedData = {
+            staffId: staffId,
+            name: "Updated Name",
+            title: "Lead Systems Engineer",
+            emoji: "🚀",
+            profilePictureUrl: "https://example.com/new-profile.jpg",
+            quote: "Updated quote",
+            isActive: true,
+        };
+
+        const response = await putAsAdmin("/staff/info/").send(updatedData).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const staffInfo = await Models.StaffInfo.findById(staffId);
+
+        expect(staffInfo?.name).toBe(updatedData.name);
+        expect(staffInfo?.title).toBe(updatedData.title);
+        expect(staffInfo?.emoji).toBe(updatedData.emoji);
+        expect(staffInfo?.quote).toBe(updatedData.quote);
+    });
+
+    it("can deactivate a staff member", async () => {
+        await putAsAdmin("/staff/info/")
+            .send({
+                staffId: staffId,
+                name: TESTER_STAFF_INFO.name,
+                title: TESTER_STAFF_INFO.title,
+                isActive: false,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        const staffInfo = await Models.StaffInfo.findById(staffId);
+
+        expect(staffInfo?.isActive).toBe(false);
+    });
+
+    it("can update only specific fields", async () => {
+        await putAsAdmin("/staff/info/")
+            .send({
+                staffId: staffId,
+                title: "New Title Only",
+            })
+            .expect(StatusCode.SuccessOK);
+
+        const staffInfo = await Models.StaffInfo.findById(staffId);
+
+        expect(staffInfo?.title).toBe("New Title Only");
+        expect(staffInfo?.name).toBe(TESTER_STAFF_INFO.name);
+    });
+
+    it("returns error when staff does not exist", async () => {
+        const response = await putAsAdmin("/staff/info/")
+            .send({
+                staffId: "507f1f77bcf86cd799439011",
+                name: "Test",
+                title: "Test",
+                isActive: true,
+            })
+            .expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "StaffNotFound",
+        });
+    });
+
+    it("rejects non-admin users", async () => {
+        await putAsAttendee("/staff/info/")
+            .send({
+                staffId: staffId,
+                name: TESTER_STAFF_INFO.name,
+                title: TESTER_STAFF_INFO.title,
+                isActive: true,
+            })
+            .expect(StatusCode.ClientErrorForbidden);
+    });
+});
+
+describe("DELETE /staff/info/", () => {
+    let staffId: string;
+
+    beforeEach(async () => {
+        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+
+        const staffInfo = await Models.StaffInfo.create({
+            name: TESTER_STAFF_INFO.name,
+            title: TESTER_STAFF_INFO.title,
+            team: team!._id,
+            emoji: TESTER_STAFF_INFO.emoji,
+            profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
+            quote: TESTER_STAFF_INFO.quote,
+            isActive: true,
+        });
+
+        staffId = staffInfo._id.toString();
+    });
+
+    it("successfully deletes staff info", async () => {
+        const response = await delAsAdmin("/staff/info/").send({ staffId: staffId }).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+
+        const staffInfo = await Models.StaffInfo.findById(staffId);
+        expect(staffInfo).toBeNull();
+    });
+
+    it("returns error when staff does not exist", async () => {
+        const response = await delAsAdmin("/staff/info/")
+            .send({ staffId: "507f1f77bcf86cd799439011" })
+            .expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "StaffNotFound",
+        });
+    });
+
+    it("rejects non-admin users", async () => {
+        await delAsAttendee("/staff/info/").send({ staffId: staffId }).expect(StatusCode.ClientErrorForbidden);
+    });
 });
 
 describe("PUT /staff/scan-attendee/", () => {
