@@ -129,7 +129,7 @@ describe.each(["github", "google"])("GET /auth/login/%s/", (provider) => {
     });
 
     it("logs in with deploy preview redirect url", async () => {
-        const redirect = "https://deploy-preview-311--hackillinois.netlify.app/profile";
+        const redirect = "https://example-pr.systems-f4f.workers.dev/profile";
         await get(`/auth/login/${provider}/?redirect=${redirect}`).expect(StatusCode.SuccessOK);
 
         expect(mockedSelectAuthProvider).toBeCalledWith(provider, redirect);
