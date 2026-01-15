@@ -10,6 +10,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   NODE_VERSION: 24
   AWS_REGION: us-east-1
@@ -43,10 +47,9 @@ jobs:
           echo "Versions match! ($PACKAGE_VERSION)"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::461497099412:role/adonix-github-actions-deployment
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Node.js
@@ -57,11 +60,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
-
-      - name: Deploy SES email templates
-        run: yarn deploy:templates
-        env:
-          AWS_REGION: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login
