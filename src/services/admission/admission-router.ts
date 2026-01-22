@@ -277,8 +277,7 @@ admissionRouter.put(
         }
 
         // Send email
-        let mailInfo: MailInfo;
-        mailInfo = {
+        const mailInfo: MailInfo = {
             templateId: Templates.RSVP_DECLINED,
             recipient: application.email,
         };
