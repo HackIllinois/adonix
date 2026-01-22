@@ -7,7 +7,6 @@ import {
     AdmissionDecisionsSchema,
     DecisionNotAcceptedErrorSchema,
     DecisionNotAcceptedError,
-    DecisionRequestSchema,
     DecisionAlreadyRSVPdError,
     DecisionAlreadyRSVPdErrorSchema,
     DecisionNotFoundError,

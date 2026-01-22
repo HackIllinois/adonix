@@ -67,8 +67,6 @@ export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
     });
 export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
 
-export const DecisionRequestSchema = z.enum(["accept", "decline"]);
-
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",
     message: "You weren't accepted, you cannot accept/decline this decision",
