@@ -129,10 +129,6 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
         }
 
-        if (!req.body) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(ProfileDataRequiredError);
-        }
-
         const { avatarId, discordTag, displayName, dietaryRestrictions, shirtSize } = req.body;
         const existingProfile = await Models.AttendeeProfile.findOne({ userId });
         if (existingProfile) {
@@ -223,18 +219,6 @@ admissionRouter.put(
                 description: "Not accepted so can't make a decision",
                 schema: DecisionNotAcceptedErrorSchema,
             },
-            [StatusCode.ClientErrorBadRequest]: [
-                {
-                    id: AttendeeProfileAlreadyExistsError.error,
-                    description: "Profile already exists",
-                    schema: AttendeeProfileAlreadyExistsErrorSchema,
-                },
-                {
-                    id: ProfileDataRequiredError.error,
-                    description: "Profile data required when accepting",
-                    schema: ProfileDataRequiredErrorSchema,
-                },
-            ],
             [StatusCode.ClientErrorConflict]: {
                 description: "Already RSVPd",
                 schema: DecisionAlreadyRSVPdErrorSchema,
