@@ -58,17 +58,14 @@ admissionRouter.get(
 );
 
 admissionRouter.put(
-    "/rsvp/:decision/",
+    "/accept/",
     specification({
         method: "put",
-        path: "/admission/rsvp/{decision}/",
+        path: "/admission/accept/",
         tag: Tag.ADMISSION,
         role: Role.USER,
-        summary: "RSVP with a accept or decline decision",
-        parameters: z.object({
-            decision: DecisionRequestSchema,
-        }),
-        body: z.unknown(),
+        summary: "RSVP with an accept decision",
+        body: AttendeeProfileCreateRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The updated decision",
@@ -133,41 +130,35 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
         }
 
-        // They can make a decision! Handle what they chose:
-        const response = req.params.decision === "accept" ? DecisionResponse.ACCEPTED : DecisionResponse.DECLINED;
-
-        // If accepting, create profile if it doesn't exist
-        if (response === DecisionResponse.ACCEPTED) {
-            // Cast request body to the profile schema
-            const parsedBody = AttendeeProfileCreateRequestSchema.safeParse(req.body);
-
-            if (!parsedBody.success) {
-                return res.status(StatusCode.ClientErrorBadRequest).send(ProfileDataRequiredError);
-            }
-
-            const existingProfile = await Models.AttendeeProfile.findOne({ userId });
-            if (existingProfile) {
-                return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
-            }
-
-            const profileData = parsedBody.data;
-            const { avatarId, discordTag, displayName, dietaryRestrictions } = profileData;
-
-            const profile = {
-                userId,
-                discordTag,
-                displayName,
-                avatarUrl: getAvatarUrlForId(avatarId),
-                points: Config.DEFAULT_POINT_VALUE,
-                pointsAccumulated: Config.DEFAULT_POINT_VALUE,
-                foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
-                dietaryRestrictions,
-            };
-
-            await Models.AttendeeProfile.create(profile);
+        if (!req.body) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(ProfileDataRequiredError);
         }
 
-        const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate({ userId }, { response }, { new: true });
+        const { avatarId, discordTag, displayName, dietaryRestrictions, shirtSize } = req.body;
+        const existingProfile = await Models.AttendeeProfile.findOne({ userId });
+        if (existingProfile) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
+        }
+
+        const profile = {
+            userId,
+            discordTag,
+            displayName,
+            avatarUrl: getAvatarUrlForId(avatarId),
+            points: Config.DEFAULT_POINT_VALUE,
+            pointsAccumulated: Config.DEFAULT_POINT_VALUE,
+            foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
+            dietaryRestrictions,
+            shirtSize,
+        };
+
+        await Models.AttendeeProfile.create(profile);
+
+        const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate(
+            { userId },
+            { response: DecisionResponse.ACCEPTED },
+            { new: true },
+        );
 
         if (!updatedDecision) {
             throw Error("Failed to update decision");
@@ -175,34 +166,123 @@ admissionRouter.put(
 
         // Send email
         let mailInfo: MailInfo;
-        if (response == DecisionResponse.ACCEPTED) {
-            if (admissionDecision.admittedPro) {
-                await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.PRO, Role.ATTENDEE] } } });
-            } else {
-                await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
-            }
-            if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
-                mailInfo = {
-                    templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
-                    recipient: application.email,
-                    templateData: {
-                        name: application.firstName,
-                        amount: admissionDecision.reimbursementValue,
-                    },
-                };
-            } else {
-                mailInfo = {
-                    templateId: Templates.RSVP_CONFIRMATION,
-                    recipient: application.email,
-                    templateData: { name: application.firstName },
-                };
-            }
+        if (admissionDecision.admittedPro) {
+            await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.PRO, Role.ATTENDEE] } } });
+        } else {
+            await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
+        }
+        if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
+            mailInfo = {
+                templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
+                recipient: application.email,
+                templateData: {
+                    name: application.firstName,
+                    amount: admissionDecision.reimbursementValue,
+                },
+            };
         } else {
             mailInfo = {
-                templateId: Templates.RSVP_DECLINED,
+                templateId: Templates.RSVP_CONFIRMATION,
                 recipient: application.email,
+                templateData: { name: application.firstName },
             };
         }
+
+        await sendMail(mailInfo);
+
+        // We did it!
+        return res.status(StatusCode.SuccessOK).send(updatedDecision);
+    },
+);
+
+admissionRouter.put(
+    "/decline/",
+    specification({
+        method: "put",
+        path: "/admission/rsvp/{decision}/",
+        tag: Tag.ADMISSION,
+        role: Role.USER,
+        summary: "RSVP with a decline decision",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The updated decision",
+                schema: AdmissionDecisionSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: [
+                {
+                    id: DecisionNotFoundError.error,
+                    description: "Couldn't find user's decision",
+                    schema: DecisionNotFoundErrorSchema,
+                },
+                {
+                    id: RegistrationNotFoundError.error,
+                    description: "Couldn't find user's application",
+                    schema: RegistrationNotFoundErrorSchema,
+                },
+            ],
+            [StatusCode.ClientErrorForbidden]: {
+                description: "Not accepted so can't make a decision",
+                schema: DecisionNotAcceptedErrorSchema,
+            },
+            [StatusCode.ClientErrorBadRequest]: [
+                {
+                    id: AttendeeProfileAlreadyExistsError.error,
+                    description: "Profile already exists",
+                    schema: AttendeeProfileAlreadyExistsErrorSchema,
+                },
+                {
+                    id: ProfileDataRequiredError.error,
+                    description: "Profile data required when accepting",
+                    schema: ProfileDataRequiredErrorSchema,
+                },
+            ],
+            [StatusCode.ClientErrorConflict]: {
+                description: "Already RSVPd",
+                schema: DecisionAlreadyRSVPdErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        // Verify they have a decision
+        const admissionDecision = await Models.AdmissionDecision.findOne({ userId: userId });
+        if (!admissionDecision) {
+            return res.status(StatusCode.ClientErrorNotFound).send(DecisionNotFoundError);
+        }
+
+        // Verify they have an application
+        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!application) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+
+        // Must be accepted to make a decision
+        if (admissionDecision.status != DecisionStatus.ACCEPTED) {
+            return res.status(StatusCode.ClientErrorForbidden).send(DecisionNotAcceptedError);
+        }
+
+        // Cannot have already made a decision
+        if (admissionDecision.response != DecisionResponse.PENDING) {
+            return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
+        }
+
+        const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate(
+            { userId },
+            { response: DecisionResponse.DECLINED },
+            { new: true },
+        );
+
+        if (!updatedDecision) {
+            throw Error("Failed to update decision");
+        }
+
+        // Send email
+        let mailInfo: MailInfo;
+        mailInfo = {
+            templateId: Templates.RSVP_DECLINED,
+            recipient: application.email,
+        };
 
         await sendMail(mailInfo);
 
