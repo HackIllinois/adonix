@@ -7,6 +7,7 @@ import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsAppli
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import { MailInfo } from "../mail/mail-schemas";
+import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -55,6 +56,14 @@ const TESTER_APPLICATION = {
     requestTravelReimbursement: false,
     mlhNewsletter: true,
 } satisfies RegistrationApplicationSubmitted;
+
+const CREATE_REQUEST = {
+    avatarId: TESTER.avatarId,
+    displayName: TESTER.name,
+    discordTag: TESTER.discordTag,
+    dietaryRestrictions: ["Peanut Allergy"],
+    shirtSize: "M",
+} satisfies AttendeeProfileCreateRequest;
 
 const updateRequest = [
     {
@@ -195,7 +204,7 @@ describe("GET /admission/rsvp/:id", () => {
     });
 });
 
-describe("PUT /admission/rsvp/accept/", () => {
+describe("PUT /admission/accept/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async () => {
@@ -211,13 +220,13 @@ describe("PUT /admission/rsvp/accept/", () => {
             userId: TESTER.id,
         });
 
-        const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorNotFound);
+        const response = await putAsApplicant("/admission/accept/").send(CREATE_REQUEST).expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 
     it("lets applicant accept accepted decision", async () => {
-        await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.SuccessOK);
+        await putAsApplicant("/admission/accept/").send(CREATE_REQUEST).expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
@@ -235,7 +244,7 @@ describe("PUT /admission/rsvp/accept/", () => {
     it("doesn't let applicant accept rejected decision", async () => {
         await Models.AdmissionDecision.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
 
-        const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorForbidden);
+        const response = await putAsApplicant("/admission/accept/").send(CREATE_REQUEST).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotAccepted");
     });
@@ -245,12 +254,17 @@ describe("PUT /admission/rsvp/accept/", () => {
             { status: DecisionStatus.ACCEPTED, response: DecisionResponse.DECLINED },
         );
 
-        const response = await putAsApplicant("/admission/rsvp/accept/").expect(StatusCode.ClientErrorConflict);
+        const response = await putAsApplicant("/admission/accept/").send(CREATE_REQUEST).expect(StatusCode.ClientErrorConflict);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyRSVPed");
+    });
+
+    it("does not let applicant accept with empty or incomplete profile data", async () => {
+        await putAsApplicant("/admission/accept/").expect(StatusCode.ClientErrorBadRequest);
+        await putAsApplicant("/admission/accept/").send({ displayName: "Bob" }).expect(StatusCode.ClientErrorBadRequest);
     });
 });
 
-describe("PUT /admission/rsvp/decline/", () => {
+describe("PUT /admission/decline/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async () => {
@@ -266,13 +280,13 @@ describe("PUT /admission/rsvp/decline/", () => {
             userId: TESTER.id,
         });
 
-        const response = await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.ClientErrorNotFound);
+        const response = await putAsApplicant("/admission/decline/").expect(StatusCode.ClientErrorNotFound);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "DecisionNotFound");
     });
 
     it("lets applicant decline accepted decision", async () => {
-        await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.SuccessOK);
+        await putAsApplicant("/admission/decline/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
@@ -289,7 +303,7 @@ describe("PUT /admission/rsvp/decline/", () => {
     it("doesn't let applicant accept rejected decision", async () => {
         await Models.AdmissionDecision.findOneAndUpdate({ userId: TESTER.id }, { status: DecisionStatus.REJECTED });
 
-        const response = await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.ClientErrorForbidden);
+        const response = await putAsApplicant("/admission/decline/").expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotAccepted");
     });
@@ -300,7 +314,7 @@ describe("PUT /admission/rsvp/decline/", () => {
             { status: DecisionStatus.ACCEPTED, response: DecisionResponse.DECLINED },
         );
 
-        const response = await putAsApplicant("/admission/rsvp/decline/").expect(StatusCode.ClientErrorConflict);
+        const response = await putAsApplicant("/admission/decline/").expect(StatusCode.ClientErrorConflict);
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyRSVPed");
     });
 });

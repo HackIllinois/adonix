@@ -67,8 +67,6 @@ export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
     });
 export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
 
-export const DecisionRequestSchema = z.enum(["accept", "decline"]);
-
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",
     message: "You weren't accepted, you cannot accept/decline this decision",
@@ -82,4 +80,9 @@ export const [DecisionAlreadyRSVPdError, DecisionAlreadyRSVPdErrorSchema] = Crea
 export const [DecisionNotFoundError, DecisionNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "DecisionNotFound",
     message: "Couldn't find your decision!",
+});
+
+export const [ProfileDataRequiredError, ProfileDataRequiredErrorSchema] = CreateErrorAndSchema({
+    error: "ProfileDataRequired",
+    message: "Profile data is required when accepting admission",
 });

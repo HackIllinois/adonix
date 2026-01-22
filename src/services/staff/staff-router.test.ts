@@ -33,6 +33,7 @@ const TESTER_PROFILE = {
     pointsAccumulated: 0,
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
+    shirtSize: "M",
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {

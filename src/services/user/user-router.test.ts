@@ -43,6 +43,7 @@ const TESTER_PROFILE = {
     pointsAccumulated: 1000,
     foodWave: 0,
     dietaryRestrictions: [],
+    shirtSize: "M",
 } satisfies AttendeeProfile;
 
 const TESTER_ATTENDANCE = {

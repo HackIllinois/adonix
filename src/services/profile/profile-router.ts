@@ -183,7 +183,7 @@ profileRouter.post(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const { avatarId, discordTag, displayName, dietaryRestrictions } = req.body;
+        const { avatarId, discordTag, displayName, dietaryRestrictions, shirtSize } = req.body;
 
         const existingProfile = await Models.AttendeeProfile.findOne({ userId });
         if (existingProfile) {
@@ -199,6 +199,7 @@ profileRouter.post(
             pointsAccumulated: Config.DEFAULT_POINT_VALUE,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
+            shirtSize,
         };
 
         const newProfile = await Models.AttendeeProfile.create(profile);
@@ -228,7 +229,7 @@ profileRouter.put(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const { avatarId, discordTag, displayName } = req.body;
+        const { avatarId, discordTag, displayName, shirtSize } = req.body;
 
         const existingProfile = await Models.AttendeeProfile.findOne({ userId });
         if (!existingProfile) {
@@ -243,6 +244,7 @@ profileRouter.put(
                 displayName,
                 avatarUrl: avatarId ? getAvatarUrlForId(avatarId) : undefined,
                 discordTag,
+                shirtSize,
             },
             {
                 new: true,

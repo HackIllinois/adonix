@@ -14,6 +14,7 @@ const TESTER_USER = {
     pointsAccumulated: 0,
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
+    shirtSize: "M",
 } satisfies AttendeeProfile;
 
 const TESTER_USER_2 = {
@@ -25,6 +26,7 @@ const TESTER_USER_2 = {
     pointsAccumulated: 12,
     foodWave: 2,
     dietaryRestrictions: [],
+    shirtSize: "L",
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -36,6 +38,7 @@ const TESTER_USER_3 = {
     pointsAccumulated: 12,
     foodWave: 2,
     dietaryRestrictions: [],
+    shirtSize: "S",
 } satisfies AttendeeProfile;
 
 const CREATE_REQUEST = {
@@ -43,12 +46,14 @@ const CREATE_REQUEST = {
     displayName: TESTER.name,
     discordTag: TESTER.discordTag,
     dietaryRestrictions: ["Peanut Allergy"],
+    shirtSize: "M",
 } satisfies AttendeeProfileCreateRequest;
 
 const UPDATE_REQUEST = {
     avatarId: "new avatar",
     displayName: "new name",
     discordTag: "new tag",
+    shirtSize: "L",
 } satisfies AttendeeProfileUpdateRequest;
 
 const PROFILE = {
@@ -60,6 +65,7 @@ const PROFILE = {
     pointsAccumulated: 0,
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
+    shirtSize: CREATE_REQUEST.shirtSize,
 } satisfies AttendeeProfile;
 
 const UPDATED_PROFILE = {
@@ -67,6 +73,7 @@ const UPDATED_PROFILE = {
     displayName: UPDATE_REQUEST.displayName,
     discordTag: UPDATE_REQUEST.discordTag,
     avatarUrl: `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${UPDATE_REQUEST.avatarId}.png`,
+    shirtSize: UPDATE_REQUEST.shirtSize,
 } satisfies AttendeeProfile;
 
 beforeEach(async () => {
@@ -202,6 +209,7 @@ describe("GET /profile/leaderboard", () => {
                 pointsAccumulated: 30 + i,
                 foodWave: 1,
                 dietaryRestrictions: [],
+                shirtSize: "M",
             } satisfies AttendeeProfile);
         }
 

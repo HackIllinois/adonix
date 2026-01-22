@@ -28,6 +28,9 @@ export class AttendeeProfile {
 
     @prop({ required: true, type: String })
     public dietaryRestrictions: string[];
+
+    @prop({ required: true })
+    public shirtSize: string;
 }
 
 export const AttendeeProfileSchema = z
@@ -40,6 +43,7 @@ export const AttendeeProfileSchema = z
         pointsAccumulated: z.number(),
         foodWave: z.number(),
         dietaryRestrictions: z.array(z.string()),
+        shirtSize: z.string(),
     })
     .openapi("AttendeeProfile", {
         example: {
@@ -51,6 +55,7 @@ export const AttendeeProfileSchema = z
             pointsAccumulated: 104,
             foodWave: 1,
             dietaryRestrictions: ["Peanut Allergy"],
+            shirtSize: "M",
         },
     });
 
@@ -88,6 +93,7 @@ export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({
     discordTag: true,
     displayName: true,
     dietaryRestrictions: true,
+    shirtSize: true,
 })
     .extend({
         avatarId: z.string(),
@@ -98,6 +104,7 @@ export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({
             discordTag: "hackillinois",
             avatarId: "goblin",
             dietaryRestrictions: ["Peanut Allergy"],
+            shirtSize: "M",
         },
     });
 export type AttendeeProfileCreateRequest = z.infer<typeof AttendeeProfileCreateRequestSchema>;
@@ -109,6 +116,7 @@ export const AttendeeProfileUpdateRequestSchema = AttendeeProfileCreateRequestSc
             displayName: "Bob The Great",
             discordTag: "hackillinois",
             avatarId: "goblin",
+            shirtSize: "L",
         },
     },
 );
