@@ -6,7 +6,7 @@ import { RegistrationApplicationSubmitted } from "../registration/registration-s
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
-import { MailInfo } from "../mail/mail-schemas";
+import { BulkMailInfo, MailInfo } from "../mail/mail-schemas";
 import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
 
 const TESTER_DECISION = {
@@ -97,8 +97,14 @@ function mockSendMail(): jest.SpiedFunction<typeof MailLib.sendMail> {
     return jest.spyOn(mailLib, "sendMail");
 }
 
+function mockSendBulkMail(): jest.SpiedFunction<typeof MailLib.sendBulkMail> {
+    const mailLib = require("../../services/mail/mail-lib") as typeof MailLib;
+    return jest.spyOn(mailLib, "sendBulkMail");
+}
+
 describe("PUT /admission/update/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+    let sendBulkMail: jest.SpiedFunction<typeof MailLib.sendBulkMail> = undefined!;
 
     beforeEach(async () => {
         // Mock successful send by default
@@ -106,6 +112,9 @@ describe("PUT /admission/update/", () => {
         sendMail.mockImplementation(async (_) => ({
             messageId: "test-message-id",
         }));
+
+        sendBulkMail = mockSendBulkMail();
+        sendBulkMail.mockImplementation(async (_) => {});
     });
 
     it("gives forbidden error for user without elevated perms", async () => {
@@ -122,10 +131,16 @@ describe("PUT /admission/update/", () => {
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
 
-        expect(sendMail).toBeCalledWith({
+        expect(sendBulkMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            recipient: TESTER_APPLICATION.email,
-        } satisfies MailInfo);
+            defaultTemplateData: { status: DecisionStatus.TBD, reimbursementValue: 0, admittedPro: false },
+            recipientIds: [
+                {
+                    email: TESTER_APPLICATION.email,
+                    data: { status: DecisionStatus.ACCEPTED, reimbursementValue: 12, admittedPro: true },
+                },
+            ],
+        } satisfies BulkMailInfo);
 
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(

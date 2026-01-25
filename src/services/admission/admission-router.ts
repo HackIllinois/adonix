@@ -21,7 +21,7 @@ import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
 import { MailInfo } from "../mail/mail-schemas";
 import Config, { Templates } from "../../common/config";
-import { sendMail } from "../mail/mail-lib";
+import { sendBulkMail, sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
@@ -306,11 +306,15 @@ admissionRouter.put(
         const changedUserIds = changedEntries.map((entry) => entry.userId);
 
         const applicationsList = await Models.RegistrationApplicationSubmitted.find({ userId: { $in: changedUserIds } });
-        const recipients = applicationsList.map((app) => app.email);
+        const emailMap = new Map(applicationsList.map((app) => [app.userId, app.email]));
 
-        // Perform all updates
-        await Models.AdmissionDecision.bulkWrite(
-            changedEntries.map((entry) => ({
+        const entriesWithEmails = changedEntries.map((entry) => ({
+            ...entry,
+            email: emailMap.get(entry.userId) ?? "",
+        }));
+
+        const operations = entriesWithEmails.map((entry) => {
+            const update = {
                 updateOne: {
                     filter: { userId: entry.userId },
                     update: {
@@ -323,18 +327,25 @@ admissionRouter.put(
                     },
                     upsert: true,
                 },
-            })),
-        );
+            };
+
+            const recipient = {
+                email: entry.email,
+                data: { status: entry.status, reimbursementValue: entry.reimbursementValue, admittedPro: entry.admittedPro },
+            };
+
+            return { update, recipient };
+        });
+
+        // Perform all updates
+        await Models.AdmissionDecision.bulkWrite(operations.map((operation) => operation.update));
 
         // Send mail
-        await Promise.all(
-            recipients.map((email) =>
-                sendMail({
-                    templateId: Templates.STATUS_UPDATE,
-                    recipient: email,
-                }),
-            ),
-        );
+        await sendBulkMail({
+            templateId: Templates.STATUS_UPDATE,
+            defaultTemplateData: { status: DecisionStatus.TBD, reimbursementValue: 0, admittedPro: false },
+            recipientIds: operations.map((operation) => operation.recipient),
+        });
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
