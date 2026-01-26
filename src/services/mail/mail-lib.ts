@@ -1,12 +1,19 @@
 import Config from "../../common/config";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { MailInfo, MailSendResults } from "./mail-schemas";
+import { BulkMailInfo, MailInfo, MailSendResults } from "./mail-schemas";
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 
 let ses: SESv2Client | undefined = undefined;
+let sqs: SQSClient | undefined = undefined;
 
-function getClient(): SESv2Client {
+function getSESClient(): SESv2Client {
     ses ??= new SESv2Client({ region: Config.SES_REGION });
     return ses;
+}
+
+function getSQSClient(): SQSClient {
+    sqs ??= new SQSClient({ region: Config.SQS_REGION });
+    return sqs;
 }
 
 export async function sendMail(mailInfo: MailInfo): Promise<MailSendResults> {
@@ -25,7 +32,7 @@ export async function sendMail(mailInfo: MailInfo): Promise<MailSendResults> {
 
     let response;
     try {
-        response = await getClient().send(command);
+        response = await getSESClient().send(command);
     } catch (error) {
         console.error("Failed to send email:", error);
         throw new Error("Failed to send mail");
@@ -34,4 +41,13 @@ export async function sendMail(mailInfo: MailInfo): Promise<MailSendResults> {
     return {
         messageId: response.MessageId || "",
     };
+}
+
+export async function sendBulkMail(bulkMailInfo: BulkMailInfo): Promise<void> {
+    const command = new SendMessageCommand({
+        QueueUrl: Config.EMAIL_QUEUE_URL,
+        MessageBody: JSON.stringify(bulkMailInfo),
+    });
+
+    await getSQSClient().send(command);
 }

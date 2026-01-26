@@ -11,10 +11,9 @@ import env from "./env";
 export enum Templates {
     REGISTRATION_SUBMISSION = "2026_registration_confirmation",
     CHALLENGE_COMPLETION = "2026_challenge_confirmation",
-    STATUS_UPDATE = "2025_status_update",
-    RSVP_CONFIRMATION = "2025_rsvp_confirmation",
-    RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
-    RSVP_DECLINED = "2025_rsvp_declined",
+    STATUS_UPDATE = "2026_status_update",
+    RSVP_ACCEPTED = "2026_rsvp_accepted",
+    RSVP_DECLINED = "2026_rsvp_declined",
     SPONSOR_VERIFICATION_CODE = "sponsor_verification_code",
 }
 
@@ -90,6 +89,9 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
+
+    SQS_REGION: requireEnv("SQS_REGION"),
+    EMAIL_QUEUE_URL: requireEnv("EMAIL_QUEUE_URL"),
 
     // Runes and Riddles
     PUZZLE_EVENT_END_TIME: 1708812000,

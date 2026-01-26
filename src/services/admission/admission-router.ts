@@ -21,7 +21,7 @@ import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
 import { MailInfo } from "../mail/mail-schemas";
 import Config, { Templates } from "../../common/config";
-import { sendMail } from "../mail/mail-lib";
+import { sendBulkMail, sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
@@ -159,29 +159,18 @@ admissionRouter.put(
             throw Error("Failed to update decision");
         }
 
-        // Send email
-        let mailInfo: MailInfo;
         if (admissionDecision.admittedPro) {
             await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.PRO, Role.ATTENDEE] } } });
         } else {
             await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
         }
-        if (application.requestTravelReimbursement && (admissionDecision.reimbursementValue ?? 0) > 0) {
-            mailInfo = {
-                templateId: Templates.RSVP_CONFIRMATION_WITH_REIMBURSE,
-                recipient: application.email,
-                templateData: {
-                    name: application.firstName,
-                    amount: admissionDecision.reimbursementValue,
-                },
-            };
-        } else {
-            mailInfo = {
-                templateId: Templates.RSVP_CONFIRMATION,
-                recipient: application.email,
-                templateData: { name: application.firstName },
-            };
-        }
+
+        // Send email
+        const mailInfo: MailInfo = {
+            templateId: Templates.RSVP_ACCEPTED,
+            recipient: application.email,
+            templateData: { name: application.preferredName ?? application.firstName },
+        };
 
         await sendMail(mailInfo);
 
@@ -305,12 +294,28 @@ admissionRouter.put(
         const changedEntries = updateEntries.filter((entry) => existingDecisions.get(entry.userId)?.status !== entry.status);
         const changedUserIds = changedEntries.map((entry) => entry.userId);
 
-        const applicationsList = await Models.RegistrationApplicationSubmitted.find({ userId: { $in: changedUserIds } });
-        const recipients = applicationsList.map((app) => app.email);
+        const applicationsList = await Models.RegistrationApplicationSubmitted.find({ userId: { $in: changedUserIds } }).select({
+            userId: 1,
+            preferredName: 1,
+            firstName: 1,
+            email: 1,
+        });
+        const applicationMap = new Map(
+            applicationsList.map((app) => [app.userId, { name: app.preferredName ?? app.firstName, email: app.email }]),
+        );
 
-        // Perform all updates
-        await Models.AdmissionDecision.bulkWrite(
-            changedEntries.map((entry) => ({
+        const entriesWithEmails = changedEntries.map((entry) => {
+            const application = applicationMap.get(entry.userId);
+
+            return {
+                ...entry,
+                name: application?.name ?? "",
+                email: application?.email ?? "",
+            };
+        });
+
+        const operations = entriesWithEmails.map((entry) => {
+            const update = {
                 updateOne: {
                     filter: { userId: entry.userId },
                     update: {
@@ -323,18 +328,30 @@ admissionRouter.put(
                     },
                     upsert: true,
                 },
-            })),
-        );
+            };
+
+            const recipient = {
+                email: entry.email,
+                data: {
+                    name: entry.name,
+                    isAccepted: entry.status === DecisionStatus.ACCEPTED,
+                    reimbursementValue: entry.reimbursementValue || false,
+                    pro: entry.admittedPro,
+                },
+            };
+
+            return { update, recipient };
+        });
+
+        // Perform all updates
+        await Models.AdmissionDecision.bulkWrite(operations.map((operation) => operation.update));
 
         // Send mail
-        await Promise.all(
-            recipients.map((email) =>
-                sendMail({
-                    templateId: Templates.STATUS_UPDATE,
-                    recipient: email,
-                }),
-            ),
-        );
+        await sendBulkMail({
+            templateId: Templates.STATUS_UPDATE,
+            defaultTemplateData: { name: "", isAccepted: false, reimbursementValue: false, pro: false },
+            recipientIds: operations.map((operation) => operation.recipient),
+        });
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
