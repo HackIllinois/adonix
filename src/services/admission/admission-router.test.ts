@@ -133,11 +133,11 @@ describe("PUT /admission/update/", () => {
 
         expect(sendBulkMail).toBeCalledWith({
             templateId: Templates.STATUS_UPDATE,
-            defaultTemplateData: { status: DecisionStatus.TBD, reimbursementValue: 0, admittedPro: false },
+            defaultTemplateData: { name: "", isAccepted: false, reimbursementValue: false, pro: false },
             recipientIds: [
                 {
                     email: TESTER_APPLICATION.email,
-                    data: { status: DecisionStatus.ACCEPTED, reimbursementValue: 12, admittedPro: true },
+                    data: { name: TESTER_APPLICATION.firstName, isAccepted: true, reimbursementValue: 12, pro: true },
                 },
             ],
         } satisfies BulkMailInfo);
@@ -245,7 +245,7 @@ describe("PUT /admission/accept/", () => {
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
         expect(sendMail).toBeCalledWith({
-            templateId: Templates.RSVP_CONFIRMATION,
+            templateId: Templates.RSVP_ACCEPTED,
             recipient: TESTER_APPLICATION.email,
             templateData: { name: TESTER_APPLICATION.firstName },
         } satisfies MailInfo);

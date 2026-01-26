@@ -12,9 +12,8 @@ export enum Templates {
     REGISTRATION_SUBMISSION = "2026_registration_confirmation",
     CHALLENGE_COMPLETION = "2026_challenge_confirmation",
     STATUS_UPDATE = "2026_status_update",
-    RSVP_CONFIRMATION = "2025_rsvp_confirmation",
-    RSVP_CONFIRMATION_WITH_REIMBURSE = "2025_rsvp_confirmation_reimburse",
-    RSVP_DECLINED = "2025_rsvp_declined",
+    RSVP_ACCEPTED = "2026_rsvp_accepted",
+    RSVP_DECLINED = "2026_rsvp_declined",
     SPONSOR_VERIFICATION_CODE = "sponsor_verification_code",
 }
 
