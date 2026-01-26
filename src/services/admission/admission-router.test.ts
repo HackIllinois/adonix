@@ -33,6 +33,7 @@ const TESTER_APPLICATION = {
     userId: TESTER.id,
     firstName: TESTER.name,
     lastName: TESTER.name,
+    preferredName: "",
     age: "21",
     email: TESTER.email,
     phoneNumber: TESTER.phoneNumber,

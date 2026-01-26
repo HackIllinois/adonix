@@ -169,7 +169,7 @@ admissionRouter.put(
         const mailInfo: MailInfo = {
             templateId: Templates.RSVP_ACCEPTED,
             recipient: application.email,
-            templateData: { name: application.preferredName ?? application.firstName },
+            templateData: { name: application.preferredName || application.firstName },
         };
 
         await sendMail(mailInfo);
@@ -301,7 +301,7 @@ admissionRouter.put(
             email: 1,
         });
         const applicationMap = new Map(
-            applicationsList.map((app) => [app.userId, { name: app.preferredName ?? app.firstName, email: app.email }]),
+            applicationsList.map((app) => [app.userId, { name: app.preferredName || app.firstName, email: app.email }]),
         );
 
         const entriesWithEmails = changedEntries.map((entry) => {
