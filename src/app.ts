@@ -81,7 +81,7 @@ app.use("/shop/", shopRouter);
 app.use("/sponsor/", sponsorRouter);
 app.use("/staff/", staffRouter);
 app.use("/statistic/", statisticRouter);
-app.use("/team/", staffTeamRouter);
+app.use("/staff-team/", staffTeamRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", userRouter);
 
