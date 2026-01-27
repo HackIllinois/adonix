@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { getAsAttendee, postAsStaff, putAsStaff, delAsStaff } from "../../common/testTools";
+import { getAsAttendee, postAsStaff, putAsStaff } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { AttendeeTeam, CreateAttendeeTeamRequest } from "./attendee-team-schemas";
