@@ -18,7 +18,7 @@ staffTeamRouter.get(
     specification({
         method: "get",
         path: "/staff-team/",
-        tag: Tag.TEAM,
+        tag: Tag.STAFFTEAM,
         role: Role.USER,
         summary: "Gets all teams",
         responses: {
@@ -29,7 +29,7 @@ staffTeamRouter.get(
         },
     }),
     async (_req, res) => {
-        const teams = await Models.Team.find();
+        const teams = await Models.StaffTeam.find();
         return res.status(StatusCode.SuccessOK).json(teams);
     },
 );
@@ -39,7 +39,7 @@ staffTeamRouter.get(
     specification({
         method: "get",
         path: "/staff-team/{id}/",
-        tag: Tag.TEAM,
+        tag: Tag.STAFFTEAM,
         role: Role.USER,
         summary: "Gets a team and its staff",
         parameters: z.object({
@@ -64,7 +64,7 @@ staffTeamRouter.get(
         if (!isValidObjectId(id)) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
-        const team = await Models.Team.findById(id);
+        const team = await Models.StaffTeam.findById(id);
         if (!team) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
@@ -83,7 +83,7 @@ staffTeamRouter.post(
     specification({
         method: "post",
         path: "/staff-team/",
-        tag: Tag.TEAM,
+        tag: Tag.STAFFTEAM,
         role: Role.STAFF,
         summary: "Creates a new team",
         responses: {
@@ -94,7 +94,7 @@ staffTeamRouter.post(
         },
     }),
     async (req, res) => {
-        const team = await Models.Team.create(req.body);
+        const team = await Models.StaffTeam.create(req.body);
         return res.status(StatusCode.SuccessCreated).json(team);
     },
 );
@@ -104,7 +104,7 @@ staffTeamRouter.put(
     specification({
         method: "put",
         path: "/staff-team/{id}/",
-        tag: Tag.TEAM,
+        tag: Tag.STAFFTEAM,
         role: Role.STAFF,
         summary: "Updates a team by ID",
         parameters: z.object({
@@ -127,7 +127,7 @@ staffTeamRouter.put(
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
         const updateData = StaffTeamSchema.parse(req.body);
-        const team = await Models.Team.findByIdAndUpdate(id, updateData, { new: true });
+        const team = await Models.StaffTeam.findByIdAndUpdate(id, updateData, { new: true });
         if (!team) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
@@ -140,7 +140,7 @@ staffTeamRouter.delete(
     specification({
         method: "delete",
         path: "/staff-team/{id}/",
-        tag: Tag.TEAM,
+        tag: Tag.STAFFTEAM,
         role: Role.STAFF,
         summary: "Deletes a team by ID",
         parameters: z.object({
@@ -162,7 +162,7 @@ staffTeamRouter.delete(
         if (!isValidObjectId(id)) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
-        const team = await Models.Team.findByIdAndDelete(id);
+        const team = await Models.StaffTeam.findByIdAndDelete(id);
         if (!team) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }

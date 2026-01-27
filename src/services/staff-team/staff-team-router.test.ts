@@ -18,7 +18,7 @@ const TEST_STAFF = {
 };
 
 beforeEach(async () => {
-    await Models.Team.deleteMany({});
+    await Models.StaffTeam.deleteMany({});
     await Models.UserInfo.deleteMany({});
 });
 
@@ -29,7 +29,7 @@ describe("GET /staff-team/", () => {
     });
 
     it("returns all existing teams", async () => {
-        const createdTeam = await Models.Team.create(TEST_TEAM);
+        const createdTeam = await Models.StaffTeam.create(TEST_TEAM);
 
         const response = await getAsAttendee("/staff-team/").expect(StatusCode.SuccessOK);
         const data = JSON.parse(response.text);
@@ -52,7 +52,7 @@ describe("GET /staff-team/:id/", () => {
     });
 
     it("returns a team and its associated staff", async () => {
-        const createdTeam = await Models.Team.create(TEST_TEAM);
+        const createdTeam = await Models.StaffTeam.create(TEST_TEAM);
 
         await Models.StaffInfo.create({
             ...TEST_STAFF,
@@ -84,7 +84,7 @@ describe("POST /staff-team/", () => {
         expect(created).toHaveProperty("_id");
         expect(created.name).toBe(TEST_TEAM.name);
 
-        const dbTeam = await Models.Team.findById(created._id);
+        const dbTeam = await Models.StaffTeam.findById(created._id);
         expect(dbTeam?.toObject()).toMatchObject(TEST_TEAM);
     });
 });
@@ -99,14 +99,14 @@ describe("PUT /staff-team/:id/", () => {
     });
 
     it("updates an existing team successfully", async () => {
-        const createdTeam = await Models.Team.create(TEST_TEAM);
+        const createdTeam = await Models.StaffTeam.create(TEST_TEAM);
 
         const response = await putAsStaff(`/staff-team/${createdTeam.id}/`).send(UPDATED_TEAM).expect(StatusCode.SuccessOK);
 
         const updated = JSON.parse(response.text);
         expect(updated.name).toBe(UPDATED_TEAM.name);
 
-        const dbTeam = await Models.Team.findById(createdTeam.id);
+        const dbTeam = await Models.StaffTeam.findById(createdTeam.id);
         expect(dbTeam?.name).toBe(UPDATED_TEAM.name);
     });
 });
@@ -121,11 +121,11 @@ describe("DELETE /staff-team/:id/", () => {
     });
 
     it("deletes an existing team successfully", async () => {
-        const createdTeam = await Models.Team.create(TEST_TEAM);
+        const createdTeam = await Models.StaffTeam.create(TEST_TEAM);
 
         await delAsStaff(`/staff-team/${createdTeam.id}/`).expect(StatusCode.SuccessNoContent);
 
-        const deleted = await Models.Team.findById(createdTeam.id);
+        const deleted = await Models.StaffTeam.findById(createdTeam.id);
         expect(deleted).toBeNull();
     });
 });
