@@ -7,24 +7,24 @@ import specification, { Tag } from "../../middleware/specification";
 import Models from "../../common/models";
 import { isValidObjectId } from "mongoose";
 
-import { TeamSchema, TeamNotFoundError, TeamNotFoundErrorSchema } from "./team-schemas";
+import { StaffTeamSchema, TeamNotFoundError, TeamNotFoundErrorSchema } from "./staff-team-schemas";
 
 import { StaffInfoSchema } from "../staff/staff-schemas";
 
-const teamRouter = Router();
+const staffTeamRouter = Router();
 
-teamRouter.get(
+staffTeamRouter.get(
     "/",
     specification({
         method: "get",
-        path: "/team/",
+        path: "/staff-team/",
         tag: Tag.TEAM,
         role: Role.USER,
         summary: "Gets all teams",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "List of all teams",
-                schema: z.array(TeamSchema),
+                schema: z.array(StaffTeamSchema),
             },
         },
     }),
@@ -34,11 +34,11 @@ teamRouter.get(
     },
 );
 
-teamRouter.get(
+staffTeamRouter.get(
     "/:id/",
     specification({
         method: "get",
-        path: "/team/{id}/",
+        path: "/staff-team/{id}/",
         tag: Tag.TEAM,
         role: Role.USER,
         summary: "Gets a team and its staff",
@@ -49,7 +49,7 @@ teamRouter.get(
             [StatusCode.SuccessOK]: {
                 description: "Team and its staff members",
                 schema: z.object({
-                    team: TeamSchema,
+                    team: StaffTeamSchema,
                     staff: z.array(StaffInfoSchema).openapi({ description: "List of staff in the team" }),
                 }),
             },
@@ -78,18 +78,18 @@ teamRouter.get(
     },
 );
 
-teamRouter.post(
+staffTeamRouter.post(
     "/",
     specification({
         method: "post",
-        path: "/team/",
+        path: "/staff-team/",
         tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Creates a new team",
         responses: {
             [StatusCode.SuccessCreated]: {
                 description: "The created team",
-                schema: TeamSchema,
+                schema: StaffTeamSchema,
             },
         },
     }),
@@ -99,11 +99,11 @@ teamRouter.post(
     },
 );
 
-teamRouter.put(
+staffTeamRouter.put(
     "/:id/",
     specification({
         method: "put",
-        path: "/team/{id}/",
+        path: "/staff-team/{id}/",
         tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Updates a team by ID",
@@ -113,7 +113,7 @@ teamRouter.put(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Updated team",
-                schema: TeamSchema,
+                schema: StaffTeamSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Could not find the team",
@@ -126,7 +126,7 @@ teamRouter.put(
         if (!isValidObjectId(id)) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
-        const updateData = TeamSchema.parse(req.body);
+        const updateData = StaffTeamSchema.parse(req.body);
         const team = await Models.Team.findByIdAndUpdate(id, updateData, { new: true });
         if (!team) {
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
@@ -135,11 +135,11 @@ teamRouter.put(
     },
 );
 
-teamRouter.delete(
+staffTeamRouter.delete(
     "/:id/",
     specification({
         method: "delete",
-        path: "/team/{id}/",
+        path: "/staff-team/{id}/",
         tag: Tag.TEAM,
         role: Role.STAFF,
         summary: "Deletes a team by ID",
@@ -170,4 +170,4 @@ teamRouter.delete(
     },
 );
 
-export default teamRouter;
+export default staffTeamRouter;

@@ -3,7 +3,7 @@ import { UserIdSchema, EventIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 import { EventSchema } from "../event/event-schemas";
-import { Team } from "../team/team-schemas";
+import { StaffTeam } from "../staff-team/staff-team-schemas";
 
 export class StaffInfo {
     @prop({ required: true })
@@ -12,8 +12,8 @@ export class StaffInfo {
     @prop({ required: true })
     public title!: string;
 
-    @prop({ ref: () => Team, required: false })
-    public team?: Ref<Team>;
+    @prop({ ref: () => StaffTeam, required: false })
+    public team?: Ref<StaffTeam>;
 
     @prop({ required: false })
     public emoji?: string;

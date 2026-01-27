@@ -16,7 +16,7 @@ import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
-import { Team } from "../team/team-schemas";
+import { StaffTeam } from "../staff-team/staff-team-schemas";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -62,7 +62,7 @@ const TEST_EVENT = {
 
 const TESTER_TEAM = {
     name: "Systems",
-} satisfies Team;
+} satisfies StaffTeam;
 
 const TESTER_STAFF_INFO = {
     name: "Test User",
@@ -185,7 +185,7 @@ describe("POST /staff/info/", () => {
         const staffInfo = await Models.StaffInfo.findOne({ name: TESTER_STAFF_INFO.name }).populate("team");
         expect(staffInfo).toBeDefined();
         expect(staffInfo?.title).toBe(TESTER_STAFF_INFO.title);
-        expect((staffInfo?.team as unknown as Team)?.name).toBe(TESTER_TEAM.name);
+        expect((staffInfo?.team as unknown as StaffTeam)?.name).toBe(TESTER_TEAM.name);
     });
 
     it("creates staff info without optional fields", async () => {

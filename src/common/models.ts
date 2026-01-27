@@ -20,7 +20,7 @@ import { NotificationMappings, NotificationMessages } from "../services/notifica
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
 import { StatisticLog } from "../services/statistic/statistic-schemas";
-import { Team } from "../services/team/team-schemas";
+import { StaffTeam } from "../services/staff-team/staff-team-schemas";
 import Config from "./config";
 import { RuntimeConfigModel } from "./runtimeConfig";
 
@@ -217,7 +217,7 @@ export default class Models {
     static StatisticLog: Model<StatisticLog> = getModel(StatisticLog, Group.STATISTIC, StatisticCollection.LOGS);
 
     // Team
-    static Team: Model<Team> = getModel(Team, Group.TEAM, TeamCollection.TEAMS);
+    static Team: Model<StaffTeam> = getModel(StaffTeam, Group.TEAM, TeamCollection.TEAMS);
 
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);

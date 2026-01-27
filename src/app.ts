@@ -21,7 +21,7 @@ import versionRouter from "./services/version/version-router";
 import userRouter from "./services/user/user-router";
 import sponsorRouter from "./services/sponsor/sponsor-router";
 import statisticRouter from "./services/statistic/statistic-router";
-import teamRouter from "./services/team/team-router";
+import staffTeamRouter from "./services/staff-team/staff-team-router";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -81,7 +81,7 @@ app.use("/shop/", shopRouter);
 app.use("/sponsor/", sponsorRouter);
 app.use("/staff/", staffRouter);
 app.use("/statistic/", statisticRouter);
-app.use("/team/", teamRouter);
+app.use("/team/", staffTeamRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", userRouter);
 
