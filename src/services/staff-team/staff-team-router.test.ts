@@ -24,7 +24,7 @@ beforeEach(async () => {
 
 describe("GET /staff-team/", () => {
     it("returns an empty list when no teams exist", async () => {
-        const response = await getAsAttendee("/team/").expect(StatusCode.SuccessOK);
+        const response = await getAsAttendee("/staff-team/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toEqual([]);
     });
 

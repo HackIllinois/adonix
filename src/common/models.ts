@@ -40,7 +40,7 @@ export enum Group {
     SPONSOR = "sponsor",
     STAFF = "staff",
     STATISTIC = "statistic",
-    TEAM = "team",
+    STAFFTEAM = "staffteam",
     USER = "user",
 }
 
@@ -107,8 +107,8 @@ enum StaffCollection {
     INFO = "info",
 }
 
-enum TeamCollection {
-    TEAMS = "teams",
+enum StaffTeamCollection {
+    STAFFTEAMS = "staffteams",
 }
 
 enum StatisticCollection {
@@ -217,7 +217,7 @@ export default class Models {
     static StatisticLog: Model<StatisticLog> = getModel(StatisticLog, Group.STATISTIC, StatisticCollection.LOGS);
 
     // Team
-    static Team: Model<StaffTeam> = getModel(StaffTeam, Group.TEAM, TeamCollection.TEAMS);
+    static StaffTeam: Model<StaffTeam> = getModel(StaffTeam, Group.STAFFTEAM, StaffTeamCollection.STAFFTEAMS);
 
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);

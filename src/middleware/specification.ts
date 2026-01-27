@@ -22,7 +22,7 @@ export enum Tag {
     SHOP = "Shop",
     STAFF = "Staff",
     STATISTIC = "Statistic",
-    TEAM = "Team",
+    STAFFTEAM = "StaffTeam",
     USER = "User",
     VERSION = "Version",
     SPONSOR = "Sponsor",
