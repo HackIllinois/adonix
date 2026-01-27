@@ -87,12 +87,11 @@ beforeEach(async () => {
     await Models.EventAttendance.create(TESTER_EVENT_ATTENDANCE);
     await Models.AttendeeProfile.create(TESTER_PROFILE);
     await Models.Event.create(TEST_EVENT);
-    await Models.Team.create(TESTER_TEAM);
+    await Models.StaffTeam.create(TESTER_TEAM);
 });
 describe("GET /staff/info/", () => {
     it("returns all active staff members for public access", async () => {
-        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
-
+        const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
         await Models.StaffInfo.create({
             name: TESTER_STAFF_INFO.name,
             title: TESTER_STAFF_INFO.title,
@@ -119,7 +118,7 @@ describe("GET /staff/info/", () => {
     });
 
     it("excludes inactive staff members", async () => {
-        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+        const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         await Models.StaffInfo.create({
             name: TESTER_STAFF_INFO.name,
@@ -166,7 +165,7 @@ describe("GET /staff/info/", () => {
 
 describe("POST /staff/info/", () => {
     it("successfully creates staff info", async () => {
-        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+        const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const response = await postAsAdmin("/staff/info/")
             .send({
@@ -232,7 +231,7 @@ describe("PUT /staff/info/", () => {
     let staffId: string;
 
     beforeEach(async () => {
-        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+        const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const staffInfo = await Models.StaffInfo.create({
             name: TESTER_STAFF_INFO.name,
@@ -330,7 +329,7 @@ describe("DELETE /staff/info/", () => {
     let staffId: string;
 
     beforeEach(async () => {
-        const team = await Models.Team.findOne({ name: TESTER_TEAM.name });
+        const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const staffInfo = await Models.StaffInfo.create({
             name: TESTER_STAFF_INFO.name,
