@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import { getAsAttendee, postAsStaff, putAsStaff } from "../../common/testTools";
+import { getAsAttendee, postAsStaff, putAsStaff, delAsStaff } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 import { AttendeeTeam, CreateAttendeeTeamRequest } from "./attendee-team-schemas";
@@ -115,5 +115,24 @@ describe("GET /attendee-team/", () => {
             name: TEST_TEAM.name,
             points: TEST_TEAM.points + TEST_EVENT.points,
         });
+    });
+});
+
+describe("DELETE /attendee-team/:id/", () => {
+    it("returns 404 for non-existent team", async () => {
+        const response = await delAsStaff("/staff-team/invalidId/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "NotFound",
+            message: "Failed to find team",
+        });
+    });
+
+    it("deletes an existing team successfully", async () => {
+        const createdTeam = await Models.AttendeeTeam.create(TEST_TEAM);
+
+        await delAsStaff(`/attendee-team/${createdTeam.id}/`).expect(StatusCode.SuccessNoContent);
+
+        const deleted = await Models.AttendeeTeam.findById(createdTeam.id);
+        expect(deleted).toBeNull();
     });
 });

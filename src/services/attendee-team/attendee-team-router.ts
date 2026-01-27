@@ -5,9 +5,8 @@ import { z } from "zod";
 import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import Models from "../../common/models";
-// import { isValidObjectId } from "mongoose";
 
-// import { TeamNotFoundError, TeamNotFoundErrorSchema } from "./staff-team-schemas";
+import { TeamNotFoundError, TeamNotFoundErrorSchema } from "../staff-team/staff-team-schemas";
 import { AttendeeTeamSchema, CreateAttendeeTeamRequestSchema } from "./attendee-team-schemas";
 
 const attendeeTeamRouter = Router();
@@ -52,6 +51,38 @@ attendeeTeamRouter.get(
     async (_req, res) => {
         const teams = await Models.AttendeeTeam.find();
         return res.status(StatusCode.SuccessOK).json(teams);
+    },
+);
+
+attendeeTeamRouter.delete(
+    "/:id/",
+    specification({
+        method: "delete",
+        path: "/attendee-team/{id}/",
+        tag: Tag.ATTENDEETEAM,
+        role: Role.STAFF,
+        summary: "Deletes a team by ID",
+        parameters: z.object({
+            id: z.string(),
+        }),
+        responses: {
+            [StatusCode.SuccessNoContent]: {
+                description: "Successfully deleted team",
+                schema: z.object({}).openapi({ description: "Empty response" }),
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Could not find the team",
+                schema: TeamNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id } = req.params;
+        const team = await Models.AttendeeTeam.findByIdAndDelete(id);
+        if (!team) {
+            return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
+        }
+        return res.status(StatusCode.SuccessNoContent).send();
     },
 );
 
