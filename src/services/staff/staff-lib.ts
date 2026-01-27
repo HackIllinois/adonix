@@ -5,6 +5,7 @@ import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { Specification } from "../../middleware/specification";
 import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-schemas";
+import { updateTeamPoints } from "../attendee-team/attendee-team-lib";
 
 export type PerformCheckInResult =
     | { success: true; profile: AttendeeProfile; eventName: string; points: number }
@@ -50,6 +51,10 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
 
     if (!newProfile) {
         throw Error("No profile exists, cannot checkin");
+    }
+
+    if (newProfile.team) {
+        await updateTeamPoints(newProfile.team, points);
     }
 
     return { success: true, profile: newProfile, eventName: event.name, points };

@@ -31,6 +31,9 @@ export class AttendeeProfile {
 
     @prop({ required: true })
     public shirtSize: string;
+
+    @prop({ required: false })
+    public team?: string;
 }
 
 export const AttendeeProfileSchema = z
