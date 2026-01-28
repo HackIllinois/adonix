@@ -23,7 +23,7 @@ import { AuthInfo } from "./auth-schemas";
 import { UserInfo } from "../user/user-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
-import { generateJwtToken } from "../../common/auth";
+import { decodeJwtToken, generateJwtToken } from "../../common/auth";
 import { MailInfo, MailSendResults } from "../mail/mail-schemas";
 
 const USER = {
@@ -246,6 +246,53 @@ describe("POST /auth/token/", () => {
 
     it("returns error when empty cookie is provided", async () => {
         const response = await get("/auth/token/").set("Cookie", "jwt=").expect(StatusCode.ClientErrorUnauthorized);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("error", "NoToken");
+    });
+});
+
+describe("POST /auth/refresh/", () => {
+    it("updates JWT token when valid authenticated cookie is present", async () => {
+        await Models.AuthInfo.create({
+            userId: TESTER.id,
+            provider: "github",
+            roles: [Role.USER, Role.ATTENDEE],
+        });
+
+        await Models.UserInfo.create({
+            userId: TESTER.id,
+            name: TESTER.name,
+            email: TESTER.email,
+        });
+
+        const payload = {
+            id: TESTER.id,
+            email: TESTER.email,
+            provider: "github",
+            roles: [Role.USER],
+        };
+
+        const intialJwt = generateJwtToken(payload, false);
+
+        const response = await post("/auth/refresh/").set("Cookie", `jwt=${intialJwt}`).expect(StatusCode.SuccessOK);
+
+        const json = JSON.parse(response.text);
+
+        const newPayload = decodeJwtToken(json["jwt"] as string);
+
+        expect(newPayload.roles).toContain(Role.ATTENDEE);
+    });
+
+    it("returns error when no authentication is provided", async () => {
+        const response = await post("/auth/refresh/").expect(StatusCode.ClientErrorUnauthorized);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("error", "NoToken");
+    });
+
+    it("returns error when empty cookie is provided", async () => {
+        const response = await post("/auth/refresh/").set("Cookie", "jwt=").expect(StatusCode.ClientErrorUnauthorized);
 
         const json = JSON.parse(response.text);
         expect(json).toHaveProperty("error", "NoToken");

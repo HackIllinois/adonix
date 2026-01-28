@@ -25,6 +25,7 @@ import {
     SponsorLoginRequestSchema,
     BadCodeErrorSchema,
     BadCodeError,
+    TokenSchema,
 } from "./auth-schemas";
 import {
     generateJwtToken,
@@ -39,6 +40,7 @@ import {
     getJwtCookieOptions,
     redirectUrlType,
     RedirectType,
+    getJwtPayloadFromDB,
 } from "../../common/auth";
 import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
@@ -88,9 +90,7 @@ authRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "JWT token",
-                schema: z.object({
-                    jwt: z.string(),
-                }),
+                schema: TokenSchema,
             },
             [StatusCode.ClientErrorUnauthorized]: {
                 description: "No valid authentication cookie found",
@@ -106,6 +106,33 @@ authRouter.get(
         }
 
         return res.status(StatusCode.SuccessOK).send({ jwt });
+    },
+);
+
+authRouter.post(
+    "/refresh/",
+    specification({
+        method: "post",
+        path: "/auth/refresh/",
+        tag: Tag.AUTH,
+        role: Role.USER,
+        summary: "Refresh the user's JWT",
+        description: "Refreshes the user's JWT to reflect their most up to date authentication information",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "JWT refresh succeeded",
+                schema: TokenSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const user = getAuthenticatedUser(req);
+        const payload = await getJwtPayloadFromDB(user.id);
+
+        const token = generateJwtToken(payload, false);
+        res.cookie("jwt", token, getJwtCookieOptions());
+
+        return res.status(StatusCode.SuccessOK).send({ jwt: token });
     },
 );
 
