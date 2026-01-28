@@ -75,6 +75,7 @@ export interface ModifyRoleRequest {
     role: string;
 }
 
+export const TokenSchema = z.object({ jwt: z.string() });
 export const ProviderSchema = z.nativeEnum(Provider).openapi("Provider", {
     description: "The provider to use for authentication. Attendees use GitHub and staff use Google.",
     example: Provider.GITHUB,
