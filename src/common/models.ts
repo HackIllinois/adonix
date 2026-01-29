@@ -20,9 +20,10 @@ import { NotificationMappings, NotificationMessages } from "../services/notifica
 import { PuzzleItem, PuzzleAnswer } from "../services/puzzle/puzzle-schemas";
 import { Sponsor } from "../services/sponsor/sponsor-schemas";
 import { StatisticLog } from "../services/statistic/statistic-schemas";
-import { Team } from "../services/team/team-schemas";
+import { StaffTeam } from "../services/staff-team/staff-team-schemas";
 import Config from "./config";
 import { RuntimeConfigModel } from "./runtimeConfig";
+import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
 
 // Groups for collections
 export enum Group {
@@ -40,7 +41,8 @@ export enum Group {
     SPONSOR = "sponsor",
     STAFF = "staff",
     STATISTIC = "statistic",
-    TEAM = "team",
+    STAFFTEAM = "staffteam",
+    ATTENDEETEAM = "attendeeteam",
     USER = "user",
 }
 
@@ -107,8 +109,12 @@ enum StaffCollection {
     INFO = "info",
 }
 
-enum TeamCollection {
-    TEAMS = "teams",
+enum StaffTeamCollection {
+    STAFFTEAMS = "staffteams",
+}
+
+enum AttendeeTeamCollection {
+    ATTENDEETEAMS = "attendeeteams",
 }
 
 enum StatisticCollection {
@@ -216,8 +222,11 @@ export default class Models {
     // Statistic
     static StatisticLog: Model<StatisticLog> = getModel(StatisticLog, Group.STATISTIC, StatisticCollection.LOGS);
 
-    // Team
-    static Team: Model<Team> = getModel(Team, Group.TEAM, TeamCollection.TEAMS);
+    // Staff Team
+    static StaffTeam: Model<StaffTeam> = getModel(StaffTeam, Group.STAFFTEAM, StaffTeamCollection.STAFFTEAMS);
+
+    // Attendee Team
+    static AttendeeTeam: Model<AttendeeTeam> = getModel(AttendeeTeam, Group.ATTENDEETEAM, AttendeeTeamCollection.ATTENDEETEAMS);
 
     // User
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
