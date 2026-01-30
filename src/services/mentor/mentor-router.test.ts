@@ -7,36 +7,57 @@ import { MentorOfficeHours } from "./mentor-schemas";
 const TESTER_OFFICE_HOURS_1 = {
     mentorName: "asdf",
     mentorId: "io213123012",
+    location: "Siebel 2407",
+    startTime: 1707235200,
+    endTime: 1707238800,
     attendees: [],
 } satisfies MentorOfficeHours;
 
 const TESTER_OFFICE_HOURS_2 = {
     mentorName: "3211",
     mentorId: "2k2kk3mmn3",
+    location: "ECEB 3017",
+    startTime: 1707242400,
+    endTime: 1707246000,
     attendees: [],
 } satisfies MentorOfficeHours;
 
 describe("POST /mentor", () => {
     it("gives an invalid perms error for a non-staff user", async () => {
         const response = await postAsAttendee(`/mentor/`)
-            .send({ mentorName: "John Sanson" })
+            .send({
+                mentorName: "John Sanson",
+                location: "Siebel 2407",
+                startTime: 1707235200,
+                endTime: 1707238800,
+            })
             .expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 
     it("works for staff", async () => {
-        const response = await postAsAdmin(`/mentor/`).send({ mentorName: "John Sanson" }).expect(StatusCode.SuccessCreated);
+        const response = await postAsAdmin(`/mentor/`)
+            .send({
+                mentorName: "John Sanson",
+                location: "Siebel 2407",
+                startTime: 1707235200,
+                endTime: 1707238800,
+            })
+            .expect(StatusCode.SuccessCreated);
 
-        expect(JSON.parse(response.text)).toHaveProperty("mentorName", "John Sanson");
+        const body = JSON.parse(response.text);
+        expect(body).toHaveProperty("mentorName", "John Sanson");
+        expect(body).toHaveProperty("location", "Siebel 2407");
+        expect(body).toHaveProperty("startTime", 1707235200);
+        expect(body).toHaveProperty("endTime", 1707238800);
+        expect(body).toHaveProperty("mentorId");
     });
 });
 
 describe("GET /mentor", () => {
     it("gives an invalid perms error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/mentor/`)
-            .send({ mentorName: "John Sanson" })
-            .expect(StatusCode.ClientErrorForbidden);
+        const response = await getAsAttendee(`/mentor/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
