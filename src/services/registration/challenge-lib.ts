@@ -66,8 +66,8 @@ export async function compareImages(uploadedImage: Buffer, baseFileId: string): 
             }
 
             // Extract raw pixels
-            const uploadedPixels = await sharp(uploadedImage).raw().toBuffer();
-            const referencePixels = await sharp(referenceImage).raw().toBuffer();
+            const uploadedPixels = await sharp(uploadedImage).ensureAlpha().raw().toBuffer();
+            const referencePixels = await sharp(referenceImage).ensureAlpha().raw().toBuffer();
 
             if (uploadedPixels.length !== referencePixels.length) {
                 continue; // Try next variant
