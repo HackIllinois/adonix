@@ -33,17 +33,23 @@ mentorRouter.post(
         summary: "Create a mentor's office hours",
         body: MentorCreateOfficeHoursRequest,
         responses: {
-            [StatusCode.SuccessOK]: {
+            [StatusCode.SuccessCreated]: {
                 description: "The new office hours",
                 schema: MentorOfficeHoursSchema,
             },
         },
     }),
     async (req, res) => {
-        const { mentorName } = req.body;
+        const { mentorName, location, startTime, endTime } = req.body;
 
         const mentorId = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
-        const officeHours: MentorOfficeHours = { mentorId, mentorName, attendees: [] };
+        const officeHours: MentorOfficeHours = {
+            mentorId,
+            mentorName,
+            location,
+            startTime,
+            endTime,
+        };
         const newOfficeHours = await Models.MentorOfficeHours.create(officeHours);
 
         return res.status(StatusCode.SuccessCreated).send(newOfficeHours);
@@ -140,7 +146,7 @@ mentorRouter.post(
         }
 
         // Not already checked in
-        if (officeHours.attendees.includes(userId)) {
+        if ((officeHours.attendees ?? []).includes(userId)) {
             return res.status(StatusCode.ClientErrorBadRequest).send(AlreadyCheckedInError);
         }
 
