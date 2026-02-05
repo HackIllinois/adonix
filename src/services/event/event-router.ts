@@ -294,10 +294,28 @@ eventsRouter.post(
         const createRequest = req.body;
         const eventId = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
 
+        const isPrivate = createRequest.eventType === EventType.SIDEQUEST ? true : createRequest.isPrivate;
+        // Index the side quests for tracking streak
+        let sidequestId: number | undefined = undefined;
+        if (createRequest.eventType === EventType.SIDEQUEST) {
+            await Models.Event.updateMany(
+                { eventType: EventType.SIDEQUEST, startTime: { $gte: createRequest.startTime }, sidequestId: { $exists: true, $ne: null } },
+                { $inc: { sidequestId: 1 } }
+            ); // in case there are existing side quests that happen later
+            const earlierCount = await Models.Event.countDocuments({
+                eventType: EventType.SIDEQUEST,
+                startTime: { $lt: createRequest.startTime },
+                sidequestId: { $exists: true, $ne: null }
+            });
+            sidequestId = earlierCount + 1;
+        }
+
         // Create the new event and its attendance
         const event = await Models.Event.create({
             ...createRequest,
             eventId,
+            isPrivate,
+            sidequestId,
         });
         await Models.EventAttendance.create({ eventId: eventId, attendees: [], excusedAttendees: [] });
         return res.status(StatusCode.SuccessCreated).send(event);
