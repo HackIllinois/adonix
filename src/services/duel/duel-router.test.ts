@@ -5,7 +5,6 @@ import Models from "../../common/models";
 import { DuelCreateRequest } from "./duel-schemas";
 import { TESTER } from "../../common/testTools";
 import { AttendeeProfile } from "../profile/profile-schemas";
-import exp from "constants";
 
 const TESTER_PROFILE = {
     userId: TESTER.id,
