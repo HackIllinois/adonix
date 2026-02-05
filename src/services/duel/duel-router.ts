@@ -150,7 +150,7 @@ duelRouter.put(
         duel.pendingUpdates[opp] = duel.pendingUpdates[opp].filter((u) => u !== updatePayload);
         Object.assign(duel, req.body);
         await duel.save();
-        checkGameStatus(duelId, duel);
+        await checkGameStatus(duelId, duel);
         return res.status(StatusCode.SuccessOK).send(duel);
     },
 );
