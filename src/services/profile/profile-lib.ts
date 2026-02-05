@@ -19,7 +19,7 @@ export async function updateRafflePoints(
     userId: string,
     amount: number,
     eventType?: EventType,
-    sidequestId?: number
+    sidequestId?: number,
 ): Promise<AttendeeProfile | null> {
     if (eventType !== EventType.SIDEQUEST || sidequestId === undefined) {
         return Models.AttendeeProfile.findOne({ userId });

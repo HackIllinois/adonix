@@ -386,22 +386,24 @@ describe("Sidequest creation and streak", () => {
     });
 
     it("creates first sidequest", async () => {
-        const response = await postAsAdmin("/event/").send({
-            name: "Sidequest 1",
-            description: "First sidequest",
-            startTime: 100,
-            endTime: 200,
-            eventType: EventType.SIDEQUEST,
-            locations: [],
-            isAsync: false,
-            points: 10,
-            rafflePoints: 5,
-            isStaff: false,
-            isPrivate: false,
-            isPro: false,
-            isMandatory: false,
-            displayOnStaffCheckIn: false,
-        }).expect(StatusCode.SuccessCreated);
+        const response = await postAsAdmin("/event/")
+            .send({
+                name: "Sidequest 1",
+                description: "First sidequest",
+                startTime: 100,
+                endTime: 200,
+                eventType: EventType.SIDEQUEST,
+                locations: [],
+                isAsync: false,
+                points: 10,
+                rafflePoints: 5,
+                isStaff: false,
+                isPrivate: false,
+                isPro: false,
+                isMandatory: false,
+                displayOnStaffCheckIn: false,
+            })
+            .expect(StatusCode.SuccessCreated);
 
         const event = JSON.parse(response.text) as Event;
         expect(event.sidequestId).toBe(1);
@@ -444,28 +446,30 @@ describe("Sidequest creation and streak", () => {
             sidequestId: 2,
         });
 
-        const response = await postAsAdmin("/event/").send({
-            name: "Sidequest Middle",
-            description: "Middle",
-            startTime: 300,
-            endTime: 350,
-            eventType: EventType.SIDEQUEST,
-            locations: [],
-            isAsync: false,
-            points: 10,
-            rafflePoints: 5,
-            isStaff: false,
-            isPrivate: false,
-            isPro: false,
-            isMandatory: false,
-            displayOnStaffCheckIn: false,
-        }).expect(StatusCode.SuccessCreated);
+        const response = await postAsAdmin("/event/")
+            .send({
+                name: "Sidequest Middle",
+                description: "Middle",
+                startTime: 300,
+                endTime: 350,
+                eventType: EventType.SIDEQUEST,
+                locations: [],
+                isAsync: false,
+                points: 10,
+                rafflePoints: 5,
+                isStaff: false,
+                isPrivate: false,
+                isPro: false,
+                isMandatory: false,
+                displayOnStaffCheckIn: false,
+            })
+            .expect(StatusCode.SuccessCreated);
 
         const event = JSON.parse(response.text) as Event;
-        expect(event.sidequestId).toBe(2); 
+        expect(event.sidequestId).toBe(2);
 
         const updatedFirst = await Models.Event.findOne({ eventId: "sq1" });
-        expect(updatedFirst?.sidequestId).toBe(1); 
+        expect(updatedFirst?.sidequestId).toBe(1);
         const updatedSecond = await Models.Event.findOne({ eventId: "sq2" });
         expect(updatedSecond?.sidequestId).toBe(3);
     });

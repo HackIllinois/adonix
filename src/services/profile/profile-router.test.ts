@@ -3,15 +3,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
-import {
-    TESTER,
-    getAsAdmin,
-    getAsAttendee,
-    getAsStaff,
-    getAsUser,
-    postAsAttendee,
-    putAsAttendee,
-} from "../../common/testTools";
+import { TESTER, getAsAdmin, getAsAttendee, getAsStaff, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
 
 const TESTER_USER = {
     userId: TESTER.id,

@@ -299,13 +299,17 @@ eventsRouter.post(
         let sidequestId: number | undefined = undefined;
         if (createRequest.eventType === EventType.SIDEQUEST) {
             await Models.Event.updateMany(
-                { eventType: EventType.SIDEQUEST, startTime: { $gte: createRequest.startTime }, sidequestId: { $exists: true, $ne: null } },
-                { $inc: { sidequestId: 1 } }
+                {
+                    eventType: EventType.SIDEQUEST,
+                    startTime: { $gte: createRequest.startTime },
+                    sidequestId: { $exists: true, $ne: null },
+                },
+                { $inc: { sidequestId: 1 } },
             ); // in case there are existing side quests that happen later
             const earlierCount = await Models.Event.countDocuments({
                 eventType: EventType.SIDEQUEST,
                 startTime: { $lt: createRequest.startTime },
-                sidequestId: { $exists: true, $ne: null }
+                sidequestId: { $exists: true, $ne: null },
             });
             sidequestId = earlierCount + 1;
         }
