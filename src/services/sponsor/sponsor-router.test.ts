@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
-import {
-    getAsAttendee,
-    getAsAdmin,
-} from "../../common/testTools";
+import { getAsAttendee, getAsAdmin } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
 
@@ -110,12 +107,7 @@ beforeEach(async () => {
         { userId: "user4", response: "REJECTED", status: "REJECTED" },
     ]);
 
-    await Models.RegistrationApplicationSubmitted.create([
-        ACCEPTED_USER_1,
-        ACCEPTED_USER_2,
-        ACCEPTED_USER_3,
-        REJECTED_USER,
-    ]);
+    await Models.RegistrationApplicationSubmitted.create([ACCEPTED_USER_1, ACCEPTED_USER_2, ACCEPTED_USER_3, REJECTED_USER]);
 });
 
 describe("GET /sponsor/resumebook/all", () => {
@@ -124,8 +116,8 @@ describe("GET /sponsor/resumebook/all", () => {
 
         const data = JSON.parse(response.text);
         expect(data).toHaveLength(3);
-        
-        const userIds = data.map((applicant: any) => applicant.userId);
+
+        const userIds = data.map((applicant: { userId: string }) => applicant.userId);
         expect(userIds).toContain("user1");
         expect(userIds).toContain("user2");
         expect(userIds).toContain("user3");
