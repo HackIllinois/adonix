@@ -47,6 +47,7 @@ export const AttendeeProfileSchema = z
         foodWave: z.number(),
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
+        team: z.string().optional(),
     })
     .openapi("AttendeeProfile", {
         example: {
@@ -59,6 +60,7 @@ export const AttendeeProfileSchema = z
             foodWave: 1,
             dietaryRestrictions: ["Peanut Allergy"],
             shirtSize: "M",
+            team: "Alpha",
         },
     });
 
