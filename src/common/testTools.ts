@@ -189,6 +189,26 @@ export function delAsStaff(url: string): request.Test {
     return del(url, Role.STAFF);
 }
 
+export function getAsSponsor(url: string): request.Test {
+    return get(url, Role.SPONSOR);
+}
+
+export function postAsSponsor(url: string): request.Test {
+    return post(url, Role.SPONSOR);
+}
+
+export function putAsSponsor(url: string): request.Test {
+    return put(url, Role.SPONSOR);
+}
+
+export function patchAsSponsor(url: string): request.Test {
+    return patch(url, Role.SPONSOR);
+}
+
+export function delAsSponsor(url: string): request.Test {
+    return del(url, Role.SPONSOR);
+}
+
 export function getAsAdmin(url: string): request.Test {
     return get(url, Role.ADMIN);
 }
