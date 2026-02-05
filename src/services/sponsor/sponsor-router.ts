@@ -205,4 +205,33 @@ sponsorRouter.post(
     },
 );
 
+sponsorRouter.get(
+    "/resumebook/all",
+    specification({
+        method: "get",
+        path: "/sponsor/resumebook/all",
+        tag: Tag.SPONSOR,
+        role: [Role.SPONSOR, Role.ADMIN],
+        summary: "Returns all admitted applicants",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The complete list of admitted applicants",
+                schema: z.array(ResumeBookEntrySchema),
+            },
+        },
+    }),
+    async (_, res) => {
+        const admissionDecisionQuery = { response: "ACCEPTED", status: "ACCEPTED" };
+        const acceptedUserIds = (await Models.AdmissionDecision.find(admissionDecisionQuery).select({ userId: true })).map(
+            (doc) => doc.userId,
+        );
+
+        const allApplicants = await Models.RegistrationApplicationSubmitted.find({
+            userId: { $in: acceptedUserIds },
+        }).select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS });
+
+        return res.status(StatusCode.SuccessOK).send(allApplicants);
+    },
+);
+
 export default sponsorRouter;
