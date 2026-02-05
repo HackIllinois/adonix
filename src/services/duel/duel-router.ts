@@ -21,6 +21,7 @@ import { checkGameStatus } from "./duel-lib";
 import { getAuthenticatedUser } from "../../common/auth";
 
 const duelRouter = Router();
+const MAX_DUELS = 5;
 
 duelRouter.post(
     "/",
@@ -51,7 +52,7 @@ duelRouter.post(
             ],
         });
 
-        if (existingDuels.length >= 5) {
+        if (existingDuels.length >= MAX_DUELS) {
             return res.status(StatusCode.ClientErrorConflict).send(MaxDuelsExceededError);
         }
         const duel = await Models.Duel.create(req.body);
