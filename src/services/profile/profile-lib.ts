@@ -1,7 +1,6 @@
 import { AttendeeProfile } from "./profile-schemas";
 import { UpdateQuery } from "mongoose";
 import Models from "../../common/models";
-import { EventType } from "../event/event-schemas";
 
 export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
     const updateQuery: UpdateQuery<AttendeeProfile> = {
@@ -18,12 +17,8 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
 export async function updateRafflePoints(
     userId: string,
     amount: number,
-    eventType?: EventType,
     sidequestId?: number,
 ): Promise<AttendeeProfile | null> {
-    if (eventType !== EventType.SIDEQUEST || sidequestId === undefined) {
-        return Models.AttendeeProfile.findOne({ userId });
-    }
 
     const profile = await Models.AttendeeProfile.findOne({ userId });
     if (!profile) {
@@ -41,12 +36,9 @@ export async function updateRafflePoints(
         newStreak = currentStreak;
     }
 
-    // Compute multiplier e.g. 4 hour streak = 1+(1.2^1)+(1.2^2)+(1.2^3) = 5.368
+    // Multiplier for current streak: 1.2^(streak-1)
     const STREAK_MULTIPLIER_BASE = 1.2;
-    let multiplier = 0;
-    for (let i = 0; i < newStreak; i++) {
-        multiplier += Math.pow(STREAK_MULTIPLIER_BASE, i);
-    }
+    const multiplier = Math.pow(STREAK_MULTIPLIER_BASE, newStreak - 1);
     const effectiveAmount = amount * multiplier;
 
     const updateQuery: UpdateQuery<AttendeeProfile> = {

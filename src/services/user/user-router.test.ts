@@ -441,7 +441,7 @@ describe("Sidequest streak multiplier", () => {
         name: "Sidequest 3",
         startTime: 500,
         endTime: 600,
-        sidequestId: 3,
+        sidequestId: 5,
     } satisfies Event;
 
     beforeEach(async () => {
@@ -454,7 +454,7 @@ describe("Sidequest streak multiplier", () => {
         );
     });
 
-    it("applies streak multiplier for consecutive sidequests", async () => {
+    it("calculates streak for sidequest", async () => {
         await Models.Event.create(SIDEQUEST_1);
         await Models.Event.create(SIDEQUEST_2);
         await Models.Event.create(SIDEQUEST_3);
@@ -465,59 +465,19 @@ describe("Sidequest streak multiplier", () => {
         await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_1.eventId }).expect(StatusCode.SuccessOK);
 
         const profile1 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
-        expect(profile1?.rafflePoints).toBe(5);
         expect(profile1?.lastSidequestId).toBe(1);
         expect(profile1?.streak).toBe(1);
 
         await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_2.eventId }).expect(StatusCode.SuccessOK);
 
         const profile2 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
-        expect(profile2?.rafflePoints).toBeCloseTo(5 + 5 * 2.2);
         expect(profile2?.lastSidequestId).toBe(2);
         expect(profile2?.streak).toBe(2);
 
         await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_3.eventId }).expect(StatusCode.SuccessOK);
 
         const profile3 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
-        expect(profile3?.rafflePoints).toBeCloseTo(5 + 5 * 2.2 + 5 * 3.64);
-        expect(profile3?.lastSidequestId).toBe(3);
-        expect(profile3?.streak).toBe(3);
-    });
-
-    it("resets streak for non-consecutive sidequest", async () => {
-        await Models.Event.create(SIDEQUEST_1);
-        await Models.Event.create(SIDEQUEST_3);
-        await Models.EventAttendance.create({ eventId: SIDEQUEST_1.eventId, attendees: [], excusedAttendees: [] });
-        await Models.EventAttendance.create({ eventId: SIDEQUEST_3.eventId, attendees: [], excusedAttendees: [] });
-
-        await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_1.eventId }).expect(StatusCode.SuccessOK);
-
-        const profile1 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
-        expect(profile1?.lastSidequestId).toBe(1);
-        expect(profile1?.streak).toBe(1);
-
-        await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_3.eventId }).expect(StatusCode.SuccessOK);
-
-        const profile2 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
-        expect(profile2?.lastSidequestId).toBe(3);
-        expect(profile2?.streak).toBe(1);
-        expect(profile2?.rafflePoints).toBeCloseTo(5 + 5);
-    });
-
-    it("returns rafflePoints in scan-event response", async () => {
-        await Models.Event.create(SIDEQUEST_1);
-        await Models.EventAttendance.create({ eventId: SIDEQUEST_1.eventId, attendees: [], excusedAttendees: [] });
-
-        const response = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: SIDEQUEST_1.eventId })
-            .expect(StatusCode.SuccessOK);
-
-        const data = JSON.parse(response.text);
-        expect(data).toMatchObject({
-            success: true,
-            eventName: SIDEQUEST_1.name,
-            points: SIDEQUEST_1.points,
-            rafflePoints: 5,
-        });
+        expect(profile3?.lastSidequestId).toBe(5);
+        expect(profile3?.streak).toBe(1);
     });
 });

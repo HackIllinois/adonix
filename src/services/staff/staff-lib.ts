@@ -50,7 +50,7 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
     const rafflePoints = event.rafflePoints || 0;
 
     await updatePoints(userId, points);
-    const newProfile = await updateRafflePoints(userId, rafflePoints, event.eventType, event.sidequestId);
+    const newProfile = await updateRafflePoints(userId, rafflePoints, event.sidequestId);
 
     if (!newProfile) {
         throw Error("No profile exists, cannot checkin");
