@@ -24,3 +24,20 @@ export const ResumeUploadURLSchema = ResumeDownloadURLSchema.extend({
         },
     },
 });
+
+export const BatchResumeDownloadListSchema = z.object({
+    userIds: z.string().array(),
+});
+
+export const ResumeListDownloadURLSchema = z
+    .object({
+        urls: z.array(z.string()),
+    })
+    .openapi("ResumeListDownloadURL", {
+        example: {
+            urls: [
+                "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/abcd",
+                "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/xyzw",
+            ],
+        },
+    });
