@@ -14,12 +14,7 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
     return Models.AttendeeProfile.findOneAndUpdate({ userId: userId }, updateQuery, { new: true });
 }
 
-export async function updateRafflePoints(
-    userId: string,
-    amount: number,
-    sidequestId?: number,
-): Promise<AttendeeProfile | null> {
-
+export async function updateRafflePoints(userId: string, amount: number, sidequestId?: number): Promise<AttendeeProfile | null> {
     const profile = await Models.AttendeeProfile.findOne({ userId });
     if (!profile) {
         return null;
