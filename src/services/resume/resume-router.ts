@@ -92,10 +92,10 @@ resumeRouter.get(
 );
 
 resumeRouter.post(
-    "/batch/download/",
+    "/batch-download/",
     specification({
         method: "post",
-        path: "/resume/batch/download/",
+        path: "/resume/batch-download/",
         tag: Tag.RESUME,
         role: [Role.SPONSOR, Role.ADMIN],
         summary: "Gets a download url for all the resumes",
