@@ -101,7 +101,7 @@ describe("GET /resume/download/:id", () => {
     });
 });
 
-describe("POST /resume/batch/download/", () => {
+describe("POST /resume/batch-download/", () => {
     let getSignedResumeDownloadUrlList: jest.SpiedFunction<typeof ResumeService.getSignedResumeDownloadUrlList>;
 
     beforeEach(() => {
@@ -118,7 +118,7 @@ describe("POST /resume/batch/download/", () => {
         ];
         getSignedResumeDownloadUrlList.mockResolvedValue(mockUrls);
 
-        const response = await postAsAdmin("/resume/batch/download/").send({ userIds }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/resume/batch-download/").send({ userIds }).expect(StatusCode.SuccessOK);
 
         const json = JSON.parse(response.text);
         expect(json).toHaveProperty("urls", mockUrls);
@@ -133,7 +133,7 @@ describe("POST /resume/batch/download/", () => {
         ];
         getSignedResumeDownloadUrlList.mockResolvedValue(mockUrls);
 
-        const response = await postAsAdmin("/resume/batch/download/").send({ userIds }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/resume/batch-download/").send({ userIds }).expect(StatusCode.SuccessOK);
 
         const json = JSON.parse(response.text);
         expect(json).toHaveProperty("urls", mockUrls);
@@ -144,25 +144,25 @@ describe("POST /resume/batch/download/", () => {
         const userIds = ["user1", "user2"];
         getSignedResumeDownloadUrlList.mockResolvedValue([]);
 
-        const response = await postAsAdmin("/resume/batch/download/").send({ userIds }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/resume/batch-download/").send({ userIds }).expect(StatusCode.SuccessOK);
 
         const json = JSON.parse(response.text);
         expect(json).toHaveProperty("urls", []);
     });
 
     it("rejects non-sponsor/admin users", async () => {
-        await postAsAttendee("/resume/batch/download/")
+        await postAsAttendee("/resume/batch-download/")
             .send({ userIds: ["user1"] })
             .expect(StatusCode.ClientErrorForbidden);
     });
 
     it("rejects unauthenticated requests", async () => {
-        await post("/resume/batch/download/")
+        await post("/resume/batch-download/")
             .send({ userIds: ["user1"] })
             .expect(StatusCode.ClientErrorUnauthorized);
     });
 
     it("rejects invalid request body", async () => {
-        await postAsAdmin("/resume/batch/download/").send({ invalidField: "test" }).expect(StatusCode.ClientErrorBadRequest);
+        await postAsAdmin("/resume/batch-download/").send({ invalidField: "test" }).expect(StatusCode.ClientErrorBadRequest);
     });
 });
