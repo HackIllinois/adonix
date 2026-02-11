@@ -84,6 +84,9 @@ export class Event {
 
     @prop({ default: false })
     isPro: boolean;
+
+    @prop({ required: false })
+    menu?: string[];
 }
 
 export class EventAttendance {
@@ -141,6 +144,7 @@ export const EventSchema = z
         displayOnStaffCheckIn: z.boolean().optional(),
         isMandatory: z.boolean().optional(),
         isPro: z.boolean(),
+        menu: z.array(z.string()).optional(),
     })
     .openapi("Event", {
         example: {
@@ -167,6 +171,7 @@ export const EventSchema = z
             displayOnStaffCheckIn: true,
             mapImageUrl: "example.com/image.png",
             exp: 12393928829,
+            menu: ["Pizza", "Pizza"],
         },
     });
 
