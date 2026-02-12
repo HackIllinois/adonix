@@ -15,8 +15,6 @@ const TESTER_USER = {
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_2 = {
@@ -29,8 +27,6 @@ const TESTER_USER_2 = {
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "L",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -43,8 +39,6 @@ const TESTER_USER_3 = {
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "S",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const CREATE_REQUEST = {
@@ -72,8 +66,6 @@ const PROFILE = {
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: CREATE_REQUEST.shirtSize,
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const UPDATED_PROFILE = {
@@ -218,8 +210,6 @@ describe("GET /profile/leaderboard", () => {
                 foodWave: 1,
                 dietaryRestrictions: [],
                 shirtSize: "M",
-                duelsPlayed: 0,
-                duelsWon: 0,
             } satisfies AttendeeProfile);
         }
 

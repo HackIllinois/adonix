@@ -200,8 +200,6 @@ profileRouter.post(
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
-            duelsPlayed: 0,
-            duelsWon: 0,
         };
 
         const newProfile = await Models.AttendeeProfile.create(profile);
