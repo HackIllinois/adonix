@@ -12,6 +12,8 @@ import {
     DuelNotFoundError,
     DuelNotFoundErrorSchema,
     DuelUpdateRequestSchema,
+    DuelForbiddenErrorSchema,
+    DuelForbiddenError,
 } from "./duel-schemas";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { isValidObjectId } from "mongoose";
@@ -116,6 +118,10 @@ duelRouter.put(
                 description: "Update pending confirmation",
                 schema: DuelSchema,
             },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "You do not have permission to perform this action.",
+                schema: DuelForbiddenErrorSchema,
+            },
         },
     }),
     async (req, res) => {
@@ -126,6 +132,10 @@ duelRouter.put(
         const duel = await Models.Duel.findById(duelId);
         if (!duel) {
             return res.status(StatusCode.ClientErrorNotFound).send(DuelNotFoundError);
+        }
+
+        if (sender !== duel.hostId && sender !== duel.guestId) {
+            return res.status(StatusCode.ClientErrorForbidden).send(DuelForbiddenError);
         }
 
         const isHost = sender === duel.hostId;

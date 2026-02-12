@@ -108,3 +108,8 @@ export const [DuelNotFoundError, DuelNotFoundErrorSchema] = CreateErrorAndSchema
     error: "DuelNotFoundError",
     message: "The requested duel was not found.",
 });
+
+export const [DuelForbiddenError, DuelForbiddenErrorSchema] = CreateErrorAndSchema({
+    error: "DuelForbiddenError",
+    message: "You do not have permission to perform this action.",
+});

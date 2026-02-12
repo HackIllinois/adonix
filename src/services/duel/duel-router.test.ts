@@ -17,8 +17,6 @@ const TESTER_PROFILE = {
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
     team: "Team 1",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_PROFILE_2 = {
@@ -31,8 +29,6 @@ const TEST_PROFILE_2 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_DUEL = {
@@ -163,16 +159,26 @@ describe("PUT /duel/:id/", () => {
             .expect(StatusCode.SuccessOK);
 
         const winner = await Models.AttendeeProfile.findById(host.id);
-        expect(winner!.pointsAccumulated).toEqual(5);
-        expect(winner!.points).toEqual(5);
-        expect(winner!.duelsPlayed).toEqual(1);
-        expect(winner!.duelsWon).toEqual(1);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 5,
+            points: 5,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 1,
+                uniqueDuelsPlayed: 1,
+            },
+        });
 
         const loser = await Models.AttendeeProfile.findById(guest.id);
-        expect(loser!.pointsAccumulated).toEqual(1);
-        expect(loser!.points).toEqual(1);
-        expect(loser!.duelsPlayed).toEqual(1);
-        expect(loser!.duelsWon).toEqual(0);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 1,
+            points: 1,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+                uniqueDuelsPlayed: 1,
+            },
+        });
 
         const updatedDuel = await Models.Duel.findById(createdDuel.id);
         expect(updatedDuel!.hasFinished).toBe(true);
@@ -190,16 +196,66 @@ describe("PUT /duel/:id/", () => {
             .expect(StatusCode.SuccessOK);
 
         const winner = await Models.AttendeeProfile.findById(host.id);
-        expect(winner!.pointsAccumulated).toEqual(0);
-        expect(winner!.points).toEqual(0);
-        expect(winner!.duelsPlayed).toEqual(1);
-        expect(winner!.duelsWon).toEqual(1);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 1,
+            },
+        });
 
         const loser = await Models.AttendeeProfile.findById(guest.id);
-        expect(loser!.pointsAccumulated).toEqual(0);
-        expect(loser!.points).toEqual(0);
-        expect(loser!.duelsPlayed).toEqual(1);
-        expect(loser!.duelsWon).toEqual(0);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+            },
+        });
+
+        const updatedDuel = await Models.Duel.findById(createdDuel.id);
+        expect(updatedDuel!.hasFinished).toBe(true);
+    });
+
+    it("does not award points if maximum scoring duels exceeded", async () => {
+        const host = await Models.AttendeeProfile.create({
+            ...TESTER_PROFILE,
+            duelStats: { duelsPlayed: 25, uniqueDuelsPlayed: 25, duelsWon: 20 },
+        });
+        const guest = await Models.AttendeeProfile.create(TEST_PROFILE_2);
+        const createdDuel = await Models.Duel.create(TEST_DUEL);
+
+        await putAsAttendee(`/duel/${createdDuel.id}/`)
+            .send({
+                hostScore: 3,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        // Winner exceeded max duels, points not awarded
+        const winner = await Models.AttendeeProfile.findById(host.id);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 26,
+                duelsWon: 21,
+                uniqueDuelsPlayed: 26,
+            },
+        });
+
+        // Loser still gets participation points
+        const loser = await Models.AttendeeProfile.findById(guest.id);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 1,
+            points: 1,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+                uniqueDuelsPlayed: 1,
+            },
+        });
 
         const updatedDuel = await Models.Duel.findById(createdDuel.id);
         expect(updatedDuel!.hasFinished).toBe(true);

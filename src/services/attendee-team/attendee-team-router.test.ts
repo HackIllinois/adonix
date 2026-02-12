@@ -41,8 +41,6 @@ const TESTER_PROFILE = {
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
     team: "Team 1",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_ASSIGN_1 = {
@@ -55,8 +53,6 @@ const TEST_ASSIGN_1 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_ASSIGN_2 = {
@@ -69,8 +65,6 @@ const TEST_ASSIGN_2 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_ASSIGN_3 = {
@@ -83,8 +77,6 @@ const TEST_ASSIGN_3 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_ASSIGN_4 = {
@@ -97,8 +89,6 @@ const TEST_ASSIGN_4 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    duelsPlayed: 0,
-    duelsWon: 0,
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {
