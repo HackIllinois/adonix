@@ -1,8 +1,25 @@
-import { prop } from "@typegoose/typegoose";
+import { modelOptions, prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
+@modelOptions({ schemaOptions: { _id: false } })
+export class DuelStats {
+    @prop({ required: true, default: 0 })
+    public duelsPlayed: number;
+
+    @prop({ required: true, default: 0 })
+    public uniqueDuelsPlayed: number;
+
+    @prop({ required: true, default: 0 })
+    public duelsWon: number;
+}
+
+export const DuelStatsSchema = z.object({
+    duelsPlayed: z.number().default(0),
+    uniqueDuelsPlayed: z.number().default(0),
+    duelsWon: z.number().default(0),
+});
 export class AttendeeProfile {
     @prop({ required: true, index: true })
     public userId: string;
@@ -34,6 +51,9 @@ export class AttendeeProfile {
 
     @prop({ required: false })
     public team?: string;
+
+    @prop({ required: false, type: () => DuelStats, default: () => ({}) })
+    public duelStats?: DuelStats;
 }
 
 export const AttendeeProfileSchema = z
@@ -48,6 +68,7 @@ export const AttendeeProfileSchema = z
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
         team: z.string().optional(),
+        duelStats: DuelStatsSchema.optional(),
     })
     .openapi("AttendeeProfile", {
         example: {

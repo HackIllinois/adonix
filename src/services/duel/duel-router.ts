@@ -8,12 +8,12 @@ import Models from "../../common/models";
 import {
     DuelSchema,
     DuelCreateRequestSchema,
-    MaxDuelsExceededError,
-    MaxDuelsExceededErrorSchema,
     DuelIdSchema,
     DuelNotFoundError,
     DuelNotFoundErrorSchema,
     DuelUpdateRequestSchema,
+    DuelForbiddenErrorSchema,
+    DuelForbiddenError,
 } from "./duel-schemas";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { isValidObjectId } from "mongoose";
@@ -21,7 +21,6 @@ import { checkGameStatus } from "./duel-lib";
 import { getAuthenticatedUser } from "../../common/auth";
 
 const duelRouter = Router();
-const MAX_DUELS = 5;
 
 duelRouter.post(
     "/",
@@ -37,25 +36,21 @@ duelRouter.post(
                 description: "The created duel",
                 schema: DuelSchema,
             },
-            [StatusCode.ClientErrorConflict]: {
-                description: "Maximum number of duels between these users has been exceeded.",
-                schema: MaxDuelsExceededErrorSchema,
-            },
         },
     }),
     async (req, res) => {
-        // Enforces maximum of 5 duels between any two users
-        const existingDuels = await Models.Duel.find({
+        const scoringDuelExists = await Models.Duel.exists({
+            isScoringDuel: true,
             $or: [
                 { hostId: req.body.hostId, guestId: req.body.guestId },
                 { hostId: req.body.guestId, guestId: req.body.hostId },
             ],
         });
 
-        if (existingDuels.length >= MAX_DUELS) {
-            return res.status(StatusCode.ClientErrorConflict).send(MaxDuelsExceededError);
-        }
-        const duel = await Models.Duel.create(req.body);
+        // Only first duel between two users counts for points
+        const isScoringDuel = !scoringDuelExists;
+
+        const duel = await Models.Duel.create({ ...req.body, isScoringDuel });
         return res.status(StatusCode.SuccessCreated).json(duel.toObject());
     },
 );
@@ -123,6 +118,10 @@ duelRouter.put(
                 description: "Update pending confirmation",
                 schema: DuelSchema,
             },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "You do not have permission to perform this action.",
+                schema: DuelForbiddenErrorSchema,
+            },
         },
     }),
     async (req, res) => {
@@ -133,6 +132,10 @@ duelRouter.put(
         const duel = await Models.Duel.findById(duelId);
         if (!duel) {
             return res.status(StatusCode.ClientErrorNotFound).send(DuelNotFoundError);
+        }
+
+        if (sender !== duel.hostId && sender !== duel.guestId) {
+            return res.status(StatusCode.ClientErrorForbidden).send(DuelForbiddenError);
         }
 
         const isHost = sender === duel.hostId;

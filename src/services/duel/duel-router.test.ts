@@ -19,26 +19,52 @@ const TESTER_PROFILE = {
     team: "Team 1",
 } satisfies AttendeeProfile;
 
+const TEST_PROFILE_2 = {
+    userId: "attendee1",
+    displayName: "TestDisplayName",
+    avatarUrl: "TestAvatarUrl",
+    discordTag: "TestTag",
+    points: 0,
+    pointsAccumulated: 0,
+    foodWave: 0,
+    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
+    shirtSize: "M",
+} satisfies AttendeeProfile;
+
 const TEST_DUEL = {
     hostId: TESTER.id,
-    guestId: "google67890",
+    guestId: TEST_PROFILE_2.userId,
     hostScore: 0,
     guestScore: 2,
     hostHasDisconnected: false,
     guestHasDisconnected: false,
     hasFinished: false,
+    isScoringDuel: true,
     pendingUpdates: { host: [], guest: ['{"hostScore":3}'] },
 };
 
 const TEST_DUEL_2 = {
-    hostId: "google12345",
+    hostId: TEST_PROFILE_2.userId,
     guestId: TESTER.id,
     hostScore: 0,
     guestScore: 2,
     hostHasDisconnected: false,
     guestHasDisconnected: false,
     hasFinished: false,
+    isScoringDuel: false,
     pendingUpdates: { host: ['{"hostScore":1}'], guest: [] },
+};
+
+const DISCONNECTED_DUEL = {
+    hostId: TEST_PROFILE_2.userId,
+    guestId: TESTER.id,
+    hostScore: 0,
+    guestScore: 2,
+    hostHasDisconnected: true,
+    guestHasDisconnected: false,
+    hasFinished: true,
+    isScoringDuel: false,
+    pendingUpdates: { host: [], guest: [] },
 };
 
 const TEST_DUEL_REQUEST = {
@@ -64,16 +90,16 @@ describe("POST /duel/", () => {
         });
     });
 
-    it("successfully enforces maximum of 5 duels", async () => {
-        for (let i = 0; i < 5; i++) {
-            await postAsAttendee("/duel/").send(TEST_DUEL_REQUEST).expect(StatusCode.SuccessCreated);
-        }
-        const stored = await Models.Duel.find();
-        expect(stored.length).toBe(5);
+    it("marks first duel as scoring duel", async () => {
+        await Models.Duel.create(DISCONNECTED_DUEL);
+        const firstResponse = await postAsAttendee("/duel/").send(TEST_DUEL_REQUEST).expect(StatusCode.SuccessCreated);
+        const secondResponse = await postAsAttendee("/duel/").send(TEST_DUEL_REQUEST).expect(StatusCode.SuccessCreated);
 
-        await postAsAttendee("/duel/").send(TEST_DUEL_REQUEST).expect(StatusCode.ClientErrorConflict);
-        const storedAfterConflict = await Models.Duel.find();
-        expect(storedAfterConflict.length).toBe(5);
+        const firstDuel = JSON.parse(firstResponse.text);
+        const secondDuel = JSON.parse(secondResponse.text);
+
+        expect(firstDuel.isScoringDuel).toBe(true);
+        expect(secondDuel.isScoringDuel).toBe(false);
     });
 });
 
@@ -121,8 +147,9 @@ describe("PUT /duel/:id/", () => {
         expect(updatedDuel!.pendingUpdates.guest).toHaveLength(0);
     });
 
-    it("awards points to winner of duel", async () => {
-        const profile = await Models.AttendeeProfile.create(TESTER_PROFILE);
+    it("awards winning and participation points", async () => {
+        const host = await Models.AttendeeProfile.create(TESTER_PROFILE);
+        const guest = await Models.AttendeeProfile.create(TEST_PROFILE_2);
         const createdDuel = await Models.Duel.create(TEST_DUEL);
 
         await putAsAttendee(`/duel/${createdDuel.id}/`)
@@ -131,9 +158,107 @@ describe("PUT /duel/:id/", () => {
             })
             .expect(StatusCode.SuccessOK);
 
-        const winner = await Models.AttendeeProfile.findById(profile.id);
-        expect(winner!.pointsAccumulated).toEqual(10);
-        expect(winner!.points).toEqual(10);
+        const winner = await Models.AttendeeProfile.findById(host.id);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 5,
+            points: 5,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 1,
+                uniqueDuelsPlayed: 1,
+            },
+        });
+
+        const loser = await Models.AttendeeProfile.findById(guest.id);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 1,
+            points: 1,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+                uniqueDuelsPlayed: 1,
+            },
+        });
+
+        const updatedDuel = await Models.Duel.findById(createdDuel.id);
+        expect(updatedDuel!.hasFinished).toBe(true);
+    });
+
+    it("does not award points for non-scoring duel", async () => {
+        const host = await Models.AttendeeProfile.create(TESTER_PROFILE);
+        const guest = await Models.AttendeeProfile.create(TEST_PROFILE_2);
+        const createdDuel = await Models.Duel.create({ ...TEST_DUEL, isScoringDuel: false });
+
+        await putAsAttendee(`/duel/${createdDuel.id}/`)
+            .send({
+                hostScore: 3,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        const winner = await Models.AttendeeProfile.findById(host.id);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 1,
+            },
+        });
+
+        const loser = await Models.AttendeeProfile.findById(guest.id);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+            },
+        });
+
+        const updatedDuel = await Models.Duel.findById(createdDuel.id);
+        expect(updatedDuel!.hasFinished).toBe(true);
+    });
+
+    it("does not award points if maximum scoring duels exceeded", async () => {
+        const host = await Models.AttendeeProfile.create({
+            ...TESTER_PROFILE,
+            duelStats: { duelsPlayed: 25, uniqueDuelsPlayed: 25, duelsWon: 20 },
+        });
+        const guest = await Models.AttendeeProfile.create(TEST_PROFILE_2);
+        const createdDuel = await Models.Duel.create(TEST_DUEL);
+
+        await putAsAttendee(`/duel/${createdDuel.id}/`)
+            .send({
+                hostScore: 3,
+            })
+            .expect(StatusCode.SuccessOK);
+
+        // Winner exceeded max duels, points not awarded
+        const winner = await Models.AttendeeProfile.findById(host.id);
+        expect(winner?.toObject()).toMatchObject({
+            pointsAccumulated: 0,
+            points: 0,
+            duelStats: {
+                duelsPlayed: 26,
+                duelsWon: 21,
+                uniqueDuelsPlayed: 26,
+            },
+        });
+
+        // Loser still gets participation points
+        const loser = await Models.AttendeeProfile.findById(guest.id);
+        expect(loser?.toObject()).toMatchObject({
+            pointsAccumulated: 1,
+            points: 1,
+            duelStats: {
+                duelsPlayed: 1,
+                duelsWon: 0,
+                uniqueDuelsPlayed: 1,
+            },
+        });
+
+        const updatedDuel = await Models.Duel.findById(createdDuel.id);
+        expect(updatedDuel!.hasFinished).toBe(true);
     });
 });
 
