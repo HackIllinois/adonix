@@ -8,8 +8,6 @@ import Models from "../../common/models";
 import {
     DuelSchema,
     DuelCreateRequestSchema,
-    MaxDuelsExceededError,
-    MaxDuelsExceededErrorSchema,
     DuelIdSchema,
     DuelNotFoundError,
     DuelNotFoundErrorSchema,
@@ -21,7 +19,6 @@ import { checkGameStatus } from "./duel-lib";
 import { getAuthenticatedUser } from "../../common/auth";
 
 const duelRouter = Router();
-const MAX_DUELS = 5;
 
 duelRouter.post(
     "/",
@@ -37,14 +34,9 @@ duelRouter.post(
                 description: "The created duel",
                 schema: DuelSchema,
             },
-            [StatusCode.ClientErrorConflict]: {
-                description: "Maximum number of duels between these users has been exceeded.",
-                schema: MaxDuelsExceededErrorSchema,
-            },
         },
     }),
     async (req, res) => {
-        // Enforces maximum of 5 duels between any two users
         const existingDuels = await Models.Duel.find({
             $or: [
                 { hostId: req.body.hostId, guestId: req.body.guestId },
@@ -52,10 +44,12 @@ duelRouter.post(
             ],
         });
 
-        if (existingDuels.length >= MAX_DUELS) {
-            return res.status(StatusCode.ClientErrorConflict).send(MaxDuelsExceededError);
-        }
-        const duel = await Models.Duel.create(req.body);
+        // Only first duel between two users counts for points
+        const duel = await Models.Duel.create({
+            ...req.body,
+            isScoringDuel: existingDuels.length > 0,
+        });
+
         return res.status(StatusCode.SuccessCreated).json(duel.toObject());
     },
 );

@@ -38,6 +38,9 @@ export class Duel {
     @prop({ required: true, default: false })
     public hasFinished: boolean;
 
+    @prop({ required: true, default: false })
+    public isScoringDuel: boolean;
+
     @prop({ required: true, type: () => PendingUpdates, default: () => ({ host: [], guest: [] }) })
     pendingUpdates: PendingUpdates;
 }
@@ -51,6 +54,7 @@ export const DuelSchema = z
         hostHasDisconnected: z.boolean(),
         guestHasDisconnected: z.boolean(),
         hasFinished: z.boolean(),
+        isScoringDuel: z.boolean(),
         pendingUpdates: PendingUpdatesSchema,
     })
     .openapi("Duel", {
@@ -62,6 +66,7 @@ export const DuelSchema = z
             hostHasDisconnected: false,
             guestHasDisconnected: false,
             hasFinished: false,
+            isScoringDuel: true,
             pendingUpdates: { host: [], guest: [] },
         },
     });
@@ -82,6 +87,7 @@ export const DuelUpdateRequestSchema = DuelSchema.omit({
     hostId: true,
     guestId: true,
     pendingUpdates: true,
+    isScoringDuel: true,
 })
     .partial()
     .openapi("DuelUpdateRequest", {
@@ -101,9 +107,4 @@ export const DuelIdSchema = z.string().openapi("DuelId", { example: "duel1" });
 export const [DuelNotFoundError, DuelNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "DuelNotFoundError",
     message: "The requested duel was not found.",
-});
-
-export const [MaxDuelsExceededError, MaxDuelsExceededErrorSchema] = CreateErrorAndSchema({
-    error: "MaxDuelsExceededError",
-    message: "Maximum number of duels between these users has been exceeded.",
 });
