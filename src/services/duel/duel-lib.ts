@@ -3,13 +3,44 @@ import { Duel } from "./duel-schemas";
 import { updatePoints } from "../profile/profile-lib";
 
 const WINNING_SCORE = 3;
-const WINNING_POINTS = 10;
+const WINNING_POINTS = 5;
+const PARTICIPATION_POINTS = 1;
+const MAX_DUELS = 25;
 
 export async function checkGameStatus(duelId: string, duel: Duel): Promise<void> {
-    // First to reach 3 points gets 10 points
-    if (duel.hostScore == WINNING_SCORE || duel.guestScore == WINNING_SCORE) {
-        const winnerId = duel.hostScore == WINNING_SCORE ? duel.hostId : duel.guestId;
-        await updatePoints(winnerId, WINNING_POINTS);
+    // First to reach 3 points wins the duel
+    const playerHasWon = duel.hostScore === WINNING_SCORE || duel.guestScore === WINNING_SCORE;
+
+    if (duel.isScoringDuel && playerHasWon && !duel.hasFinished) {
+        const hostWon = duel.hostScore === WINNING_SCORE;
+
+        const winnerId = hostWon ? duel.hostId : duel.guestId;
+        const loserId = hostWon ? duel.guestId : duel.hostId;
+
+        const profiles = await Models.AttendeeProfile.find({
+            userId: { $in: [winnerId, loserId] },
+        });
+
+        const winnerProfile = profiles.find((profile) => profile.userId === winnerId);
+        const loserProfile = profiles.find((profile) => profile.userId === loserId);
+
+        if (!winnerProfile || !loserProfile) {
+            throw new Error("Profile(s) not found");
+        }
+
+        if (winnerProfile.duelsPlayed < MAX_DUELS) {
+            await updatePoints(winnerId, WINNING_POINTS);
+            winnerProfile.duelsPlayed += 1;
+            winnerProfile.duelsWon += 1;
+            await winnerProfile.save();
+        }
+
+        if (loserProfile.duelsPlayed < MAX_DUELS) {
+            await updatePoints(loserId, PARTICIPATION_POINTS);
+            loserProfile.duelsPlayed += 1;
+            await loserProfile.save();
+        }
+
         await Models.Duel.updateOne({ _id: duelId }, { $set: { hasFinished: true } });
     }
 }

@@ -34,6 +34,12 @@ export class AttendeeProfile {
 
     @prop({ required: false })
     public team?: string;
+
+    @prop({ required: true, default: 0 })
+    public duelsPlayed: number;
+
+    @prop({ required: true, default: 0 })
+    public duelsWon: number;
 }
 
 export const AttendeeProfileSchema = z
@@ -48,6 +54,8 @@ export const AttendeeProfileSchema = z
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
         team: z.string().optional(),
+        duelsPlayed: z.number(),
+        duelsWon: z.number(),
     })
     .openapi("AttendeeProfile", {
         example: {
@@ -61,6 +69,8 @@ export const AttendeeProfileSchema = z
             dietaryRestrictions: ["Peanut Allergy"],
             shirtSize: "M",
             team: "Alpha",
+            duelsPlayed: 6,
+            duelsWon: 7,
         },
     });
 
