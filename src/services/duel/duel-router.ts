@@ -37,7 +37,8 @@ duelRouter.post(
         },
     }),
     async (req, res) => {
-        const existingDuels = await Models.Duel.find({
+        const scoringDuelExists = await Models.Duel.exists({
+            isScoringDuel: true,
             $or: [
                 { hostId: req.body.hostId, guestId: req.body.guestId },
                 { hostId: req.body.guestId, guestId: req.body.hostId },
@@ -45,11 +46,9 @@ duelRouter.post(
         });
 
         // Only first duel between two users counts for points
-        const duel = await Models.Duel.create({
-            ...req.body,
-            isScoringDuel: existingDuels.length > 0,
-        });
+        const isScoringDuel = !scoringDuelExists;
 
+        const duel = await Models.Duel.create({ ...req.body, isScoringDuel });
         return res.status(StatusCode.SuccessCreated).json(duel.toObject());
     },
 );
