@@ -298,19 +298,28 @@ eventsRouter.post(
         // Index the side quests for tracking streak
         let sidequestId: number | undefined = undefined;
         if (createRequest.eventType === EventType.SIDEQUEST) {
-            await Models.Event.updateMany(
-                {
-                    eventType: EventType.SIDEQUEST,
-                    startTime: { $gte: createRequest.startTime },
-                    sidequestId: { $exists: true, $ne: null },
-                },
-                { $inc: { sidequestId: 1 } },
-            ); // in case there are existing side quests that happen later
+            const totalCount = await Models.Event.countDocuments({
+                eventType: EventType.SIDEQUEST,
+                sidequestId: { $exists: true, $ne: null },
+            });
             const earlierCount = await Models.Event.countDocuments({
                 eventType: EventType.SIDEQUEST,
                 startTime: { $lt: createRequest.startTime },
                 sidequestId: { $exists: true, $ne: null },
             });
+
+            if (earlierCount < totalCount) {
+                // If there are existing side quests that happen later
+                await Models.Event.updateMany(
+                    {
+                        eventType: EventType.SIDEQUEST,
+                        startTime: { $gte: createRequest.startTime },
+                        sidequestId: { $exists: true, $ne: null },
+                    },
+                    { $inc: { sidequestId: 1 } },
+                );
+            }
+
             sidequestId = earlierCount + 1;
         }
 
