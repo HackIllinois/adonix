@@ -142,6 +142,7 @@ admissionRouter.put(
             avatarUrl: getAvatarUrlForId(avatarId),
             points: Config.DEFAULT_POINT_VALUE,
             pointsAccumulated: Config.DEFAULT_POINT_VALUE,
+            rafflePoints: 0,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
