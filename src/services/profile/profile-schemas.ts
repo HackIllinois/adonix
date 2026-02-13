@@ -115,6 +115,16 @@ export const AttendeeProfileRankingSchema = z
         },
     });
 
+export const AttendeeProfileNextRankSchema = z
+    .object({
+        points: z.number(),
+    })
+    .openapi("AttendeeProfileRanking", {
+        example: {
+            points: 25,
+        },
+    });
+
 export const AttendeeProfileCreateRequestSchema = AttendeeProfileSchema.pick({
     discordTag: true,
     displayName: true,
@@ -163,4 +173,9 @@ export const [AttendeeProfileNotFoundError, AttendeeProfileNotFoundErrorSchema] 
 export const [AttendeeProfileAlreadyExistsError, AttendeeProfileAlreadyExistsErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyExists",
     message: "Your profile is already created!",
+});
+
+export const [AboveUserNotFoundError, AboveUserNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NotCreated",
+    message: "Couldn't find user above",
 });
