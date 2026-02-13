@@ -2,10 +2,15 @@ import { Router } from "express";
 import { Role } from "../auth/auth-schemas";
 import { StatusCode } from "status-code-enum";
 import { getAuthenticatedUser } from "../../common/auth";
-import { createSignedResumePostUrl, getSignedResumeDownloadUrl } from "./resume-service";
+import { createSignedResumePostUrl, getSignedResumeDownloadUrl, getSignedResumeDownloadUrlList } from "./resume-service";
 import specification, { Tag } from "../../middleware/specification";
 import Config from "../../common/config";
-import { ResumeDownloadURLSchema, ResumeUploadURLSchema } from "./resume-schemas";
+import {
+    ResumeDownloadURLSchema,
+    ResumeUploadURLSchema,
+    BatchResumeDownloadListSchema,
+    ResumeListDownloadURLSchema,
+} from "./resume-schemas";
 import { UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 
@@ -83,6 +88,31 @@ resumeRouter.get(
         const downloadUrl = await getSignedResumeDownloadUrl(userId);
 
         return res.status(StatusCode.SuccessOK).send({ url: downloadUrl });
+    },
+);
+
+resumeRouter.post(
+    "/batch-download/",
+    specification({
+        method: "post",
+        path: "/resume/batch-download/",
+        tag: Tag.RESUME,
+        role: [Role.SPONSOR, Role.ADMIN],
+        summary: "Gets a download url for all the resumes",
+        body: BatchResumeDownloadListSchema,
+        description: `List of presigned urls from s3 that is valid for ${Config.RESUME_URL_EXPIRY_SECONDS} seconds`,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "List of download urls",
+                schema: ResumeListDownloadURLSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { userIds } = req.body;
+
+        const urls = await getSignedResumeDownloadUrlList(userIds);
+        return res.status(StatusCode.SuccessOK).send({ urls: urls });
     },
 );
 

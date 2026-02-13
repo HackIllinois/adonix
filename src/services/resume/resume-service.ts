@@ -23,6 +23,13 @@ export function getSignedResumeDownloadUrl(userId: string): Promise<string> {
     });
 }
 
+export async function getSignedResumeDownloadUrlList(userIds: string[]): Promise<string[]> {
+    const results = await Promise.all(userIds.map((userId) => getSignedResumeDownloadUrl(userId).catch(() => null)));
+    const list = results.filter((url): url is string => url !== null);
+
+    return list;
+}
+
 export function createSignedResumePostUrl(userId: string): Promise<PresignedPost> {
     const s3 = getClient();
 

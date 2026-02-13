@@ -24,6 +24,7 @@ import { StaffTeam } from "../services/staff-team/staff-team-schemas";
 import Config from "./config";
 import { RuntimeConfigModel } from "./runtimeConfig";
 import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
+import { Duel } from "../services/duel/duel-schemas";
 
 // Groups for collections
 export enum Group {
@@ -44,6 +45,7 @@ export enum Group {
     STAFFTEAM = "staffteam",
     ATTENDEETEAM = "attendeeteam",
     USER = "user",
+    DUEL = "duel",
 }
 
 // Collections for each database, where models will be stored
@@ -125,6 +127,10 @@ enum UserCollection {
     INFO = "users",
     ATTENDANCE = "attendance",
     FOLLOWING = "following",
+}
+
+enum DuelCollection {
+    DUELS = "duels",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -232,6 +238,9 @@ export default class Models {
     static UserInfo: Model<UserInfo> = getModel(UserInfo, Group.USER, UserCollection.INFO);
     static UserAttendance: Model<UserAttendance> = getModel(UserAttendance, Group.USER, UserCollection.ATTENDANCE);
     static UserFollowing: Model<UserFollowing> = getModel(UserFollowing, Group.USER, UserCollection.FOLLOWING);
+
+    // Duel
+    static Duel: Model<Duel> = getModel(Duel, Group.DUEL, DuelCollection.DUELS);
 }
 
 let initialized = false;

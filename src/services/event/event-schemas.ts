@@ -91,6 +91,9 @@ export class Event {
 
     @prop({ required: false })
     public sidequestId?: number;
+  
+    @prop({ required: false })
+    menu?: string[];
 }
 
 export class EventAttendance {
@@ -150,6 +153,7 @@ export const EventSchema = z
         isMandatory: z.boolean().optional(),
         isPro: z.boolean(),
         sidequestId: z.number().optional(),
+        menu: z.array(z.string()).optional(),
     })
     .openapi("Event", {
         example: {
@@ -177,6 +181,7 @@ export const EventSchema = z
             displayOnStaffCheckIn: true,
             mapImageUrl: "example.com/image.png",
             exp: 12393928829,
+            menu: ["Pizza", "Pizza"],
         },
     });
 
