@@ -298,7 +298,7 @@ profileRouter.get(
         const userAbovePoints = sortedUsers[userIndex - 1]?.pointsAccumulated;
         const currentPoints = sortedUsers[userIndex]?.pointsAccumulated;
 
-        if(userAbovePoints == undefined || currentPoints == undefined) {
+        if (userAbovePoints == undefined || currentPoints == undefined) {
             return res.status(StatusCode.ClientErrorPreconditionFailed).send(AboveUserNotFoundError);
         }
 
