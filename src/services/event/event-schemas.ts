@@ -91,7 +91,7 @@ export class Event {
 
     @prop({ required: false })
     public sidequestId?: number;
-  
+
     @prop({ required: false })
     menu?: string[];
 }

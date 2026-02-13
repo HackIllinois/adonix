@@ -60,7 +60,7 @@ export class AttendeeProfile {
 
     @prop({ required: false, default: 0 })
     public streak?: number;
-  
+
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
     public duelStats?: DuelStats;
 }
@@ -96,6 +96,7 @@ export const AttendeeProfileSchema = z
             shirtSize: "M",
             lastSidequestId: 5,
             streak: 3,
+            team: "Alpha",
         },
     });
 
@@ -106,7 +107,6 @@ export const RafflePointsSchema = z
     .openapi("RafflePoints", {
         example: {
             rafflePoints: 7,
-            team: "Alpha",
         },
     });
 
