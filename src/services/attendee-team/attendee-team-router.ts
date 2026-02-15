@@ -40,7 +40,7 @@ attendeeTeamRouter.get(
         method: "get",
         path: "/attendee-team/",
         tag: Tag.ATTENDEETEAM,
-        role: Role.USER,
+        role: null,
         summary: "Gets all teams",
         responses: {
             [StatusCode.SuccessOK]: {
