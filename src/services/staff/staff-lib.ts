@@ -1,6 +1,6 @@
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { updatePoints } from "../profile/profile-lib";
+import { updatePoints, updateRafflePoints } from "../profile/profile-lib";
 import { AlreadyCheckedInError, AlreadyCheckedInErrorSchema } from "../user/user-schemas";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { Specification } from "../../middleware/specification";
@@ -8,7 +8,7 @@ import { EventNotFoundError, EventNotFoundErrorSchema } from "../event/event-sch
 import { updateTeamPoints } from "../attendee-team/attendee-team-lib";
 
 export type PerformCheckInResult =
-    | { success: true; profile: AttendeeProfile; eventName: string; points: number }
+    | { success: true; profile: AttendeeProfile; eventName: string; points: number; rafflePoints: number }
     | {
           success: false;
           status: StatusCode.ClientErrorBadRequest;
@@ -47,7 +47,10 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
     await Models.EventAttendance.findOneAndUpdate({ eventId: eventId }, { $addToSet: { attendees: userId } }, { upsert: true });
 
     const points = event.points || 0;
-    const newProfile = await updatePoints(userId, points);
+    const rafflePoints = event.rafflePoints || 0;
+
+    await updatePoints(userId, points);
+    const newProfile = await updateRafflePoints(userId, rafflePoints, event.sidequestId);
 
     if (!newProfile) {
         throw Error("No profile exists, cannot checkin");
@@ -57,5 +60,5 @@ export async function performCheckIn(eventId: string, userId: string): Promise<P
         await updateTeamPoints(newProfile.team, points);
     }
 
-    return { success: true, profile: newProfile, eventName: event.name, points };
+    return { success: true, profile: newProfile, eventName: event.name, points, rafflePoints: newProfile.rafflePoints };
 }

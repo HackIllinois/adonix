@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
-import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
+import { TESTER, getAsAdmin, getAsAttendee, getAsStaff, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -12,6 +12,7 @@ const TESTER_USER = {
     discordTag: TESTER.discordTag,
     points: 0,
     pointsAccumulated: 0,
+    rafflePoints: 0,
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: "M",
@@ -24,6 +25,7 @@ const TESTER_USER_2 = {
     discordTag: TESTER.discordTag,
     points: 12,
     pointsAccumulated: 12,
+    rafflePoints: 0,
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "L",
@@ -36,6 +38,7 @@ const TESTER_USER_3 = {
     discordTag: TESTER.discordTag,
     points: 12,
     pointsAccumulated: 12,
+    rafflePoints: 0,
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "S",
@@ -63,6 +66,7 @@ const PROFILE = {
     discordTag: CREATE_REQUEST.discordTag,
     points: 0,
     pointsAccumulated: 0,
+    rafflePoints: 0,
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: CREATE_REQUEST.shirtSize,
@@ -207,6 +211,7 @@ describe("GET /profile/leaderboard", () => {
                 discordTag: TESTER.discordTag,
                 points: 30 - i,
                 pointsAccumulated: 30 + i,
+                rafflePoints: 0,
                 foodWave: 1,
                 dietaryRestrictions: [],
                 shirtSize: "M",
@@ -223,5 +228,43 @@ describe("GET /profile/leaderboard", () => {
         const response = await getAsUser("/profile/leaderboard?limit=0").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+});
+
+describe("GET /profile/raffle-points", () => {
+    it("returns raffle points for an attendee", async () => {
+        await Models.AttendeeProfile.updateOne({ userId: TESTER_USER.userId }, { rafflePoints: 12 });
+
+        const response = await getAsAttendee("/profile/raffle-points/").expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ rafflePoints: 12 });
+    });
+
+    it("returns not found when profile is missing", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER.userId });
+
+        const response = await getAsAttendee("/profile/raffle-points/").expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+});
+
+describe("GET /profile/raffle-points/:id", () => {
+    it("returns raffle points for staff", async () => {
+        await Models.AttendeeProfile.updateOne({ userId: TESTER_USER_2.userId }, { rafflePoints: 8 });
+
+        const response = await getAsStaff(`/profile/raffle-points/${TESTER_USER_2.userId}/`).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toMatchObject({ rafflePoints: 8 });
+    });
+
+    it("returns not found when profile is missing", async () => {
+        await Models.AttendeeProfile.deleteOne({ userId: TESTER_USER_2.userId });
+
+        const response = await getAsStaff(`/profile/raffle-points/${TESTER_USER_2.userId}/`).expect(
+            StatusCode.ClientErrorNotFound,
+        );
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });
