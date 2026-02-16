@@ -406,7 +406,11 @@ describe("POST /auth/sponsor/login/", () => {
             false,
         );
 
-        expect(JSON.parse(response.text)).toMatchObject({ success: true });
+        const json = JSON.parse(response.text);
+
+        const newPayload = decodeJwtToken(json["jwt"] as string);
+
+        expect(newPayload.roles).toContain(Role.SPONSOR);
         expect(response.headers["set-cookie"]).toBeDefined();
 
         const authCode = await Models.AuthCode.findOne({ email: SPONSOR.email });
