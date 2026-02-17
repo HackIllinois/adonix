@@ -363,7 +363,7 @@ profileRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
-        if(userIndex == 0) {
+        if (userIndex == 0) {
             return res.status(StatusCode.SuccessOK).send({ points: 0, first: true });
         }
 
@@ -375,7 +375,7 @@ profileRouter.get(
         }
 
         const pointDiff = userAbovePoints - currentPoints;
-        return res.status(StatusCode.SuccessOK).send({ points: pointDiff, first: false});
+        return res.status(StatusCode.SuccessOK).send({ points: pointDiff, first: false });
     },
 );
 
