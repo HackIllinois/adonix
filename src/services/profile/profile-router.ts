@@ -16,6 +16,7 @@ import {
     AttendeeProfileNextRankSchema,
     AboveUserNotFoundError,
     AboveUserNotFoundErrorSchema,
+    RafflePointsSchema,
 } from "./profile-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
@@ -27,6 +28,72 @@ import { UserIdSchema } from "../../common/schemas";
 import { getAvatarUrlForId } from "./profile-lib";
 
 const profileRouter = Router();
+
+profileRouter.get(
+    "/raffle-points/",
+    specification({
+        method: "get",
+        path: "/profile/raffle-points/",
+        tag: Tag.PROFILE,
+        role: Role.ATTENDEE,
+        summary: "Gets the raffle points for the currently authenticated user",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The raffle points",
+                schema: RafflePointsSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the profile (is it created yet?)",
+                schema: AttendeeProfileNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        const profile = await Models.AttendeeProfile.findOne({ userId: userId });
+
+        if (!profile) {
+            return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ rafflePoints: profile.rafflePoints });
+    },
+);
+
+profileRouter.get(
+    "/raffle-points/:id/",
+    specification({
+        method: "get",
+        path: "/profile/raffle-points/{id}/",
+        tag: Tag.PROFILE,
+        role: Role.STAFF,
+        summary: "Gets raffle points for the specified user",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The raffle points",
+                schema: RafflePointsSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the profile",
+                schema: AttendeeProfileNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = req.params;
+
+        const profile = await Models.AttendeeProfile.findOne({ userId });
+        if (!profile) {
+            return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ rafflePoints: profile.rafflePoints });
+    },
+);
 
 profileRouter.get(
     "/leaderboard/",
@@ -200,6 +267,7 @@ profileRouter.post(
             avatarUrl: getAvatarUrlForId(avatarId),
             points: Config.DEFAULT_POINT_VALUE,
             pointsAccumulated: Config.DEFAULT_POINT_VALUE,
+            rafflePoints: 0,
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
@@ -295,6 +363,10 @@ profileRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
+        if(userIndex == 0) {
+            return res.status(StatusCode.SuccessOK).send({ points: 0, first: true });
+        }
+
         const userAbovePoints = sortedUsers[userIndex - 1]?.pointsAccumulated;
         const currentPoints = sortedUsers[userIndex]?.pointsAccumulated;
 
@@ -303,7 +375,7 @@ profileRouter.get(
         }
 
         const pointDiff = userAbovePoints - currentPoints;
-        return res.status(StatusCode.SuccessOK).send({ points: pointDiff });
+        return res.status(StatusCode.SuccessOK).send({ points: pointDiff, first: false});
     },
 );
 

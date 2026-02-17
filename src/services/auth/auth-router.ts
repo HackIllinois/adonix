@@ -200,7 +200,7 @@ authRouter.post(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Successfully logged in, returns the auth token for future requests",
-                schema: SuccessResponseSchema,
+                schema: TokenSchema,
             },
             [StatusCode.ClientErrorForbidden]: {
                 description: "The email or code sent was invalid",
@@ -235,7 +235,7 @@ authRouter.post(
         const token = generateJwtToken(payload, false);
         res.cookie("jwt", token, getJwtCookieOptions());
 
-        return res.status(StatusCode.SuccessOK).send({ success: true });
+        return res.status(StatusCode.SuccessOK).send({ jwt: token });
     },
 );
 

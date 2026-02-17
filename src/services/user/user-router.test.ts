@@ -41,9 +41,11 @@ const TESTER_PROFILE = {
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 1000,
+    rafflePoints: 0,
     foodWave: 0,
     dietaryRestrictions: [],
     shirtSize: "M",
+    streak: 0,
 } satisfies AttendeeProfile;
 
 const TESTER_ATTENDANCE = {
@@ -81,6 +83,7 @@ const TEST_EVENT = {
     mapImageUrl: "",
     sponsor: "",
     points: 100,
+    rafflePoints: 2,
     isPrivate: false,
     displayOnStaffCheckIn: false,
     isPro: false,
@@ -398,5 +401,83 @@ describe("PUT /user/scan-event/", () => {
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(duplicateResponse.text)).toHaveProperty("error", "AlreadyCheckedIn");
+    });
+});
+
+describe("Sidequest streak multiplier", () => {
+    const SIDEQUEST_1 = {
+        eventId: "sidequest-1",
+        isStaff: false,
+        name: "Sidequest 1",
+        description: "First sidequest",
+        startTime: 100,
+        endTime: 200,
+        eventType: EventType.SIDEQUEST,
+        locations: [],
+        isAsync: false,
+        mapImageUrl: "",
+        sponsor: "",
+        points: 10,
+        rafflePoints: 5,
+        isPrivate: false,
+        displayOnStaffCheckIn: false,
+        isPro: false,
+        isMandatory: false,
+        sidequestId: 1,
+    } satisfies Event;
+
+    const SIDEQUEST_2 = {
+        ...SIDEQUEST_1,
+        eventId: "sidequest-2",
+        name: "Sidequest 2",
+        startTime: 300,
+        endTime: 400,
+        sidequestId: 2,
+    } satisfies Event;
+
+    const SIDEQUEST_3 = {
+        ...SIDEQUEST_1,
+        eventId: "sidequest-3",
+        name: "Sidequest 3",
+        startTime: 500,
+        endTime: 600,
+        sidequestId: 5,
+    } satisfies Event;
+
+    beforeEach(async () => {
+        await Models.Event.deleteMany({ eventType: EventType.SIDEQUEST });
+        await Models.EventAttendance.deleteMany({});
+        await Models.UserAttendance.deleteMany({});
+        await Models.AttendeeProfile.updateOne(
+            { userId: TESTER.id },
+            { $set: { lastSidequestId: undefined, streak: 0, rafflePoints: 0 } },
+        );
+    });
+
+    it("calculates streak for sidequest", async () => {
+        await Models.Event.create(SIDEQUEST_1);
+        await Models.Event.create(SIDEQUEST_2);
+        await Models.Event.create(SIDEQUEST_3);
+        await Models.EventAttendance.create({ eventId: SIDEQUEST_1.eventId, attendees: [], excusedAttendees: [] });
+        await Models.EventAttendance.create({ eventId: SIDEQUEST_2.eventId, attendees: [], excusedAttendees: [] });
+        await Models.EventAttendance.create({ eventId: SIDEQUEST_3.eventId, attendees: [], excusedAttendees: [] });
+
+        await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_1.eventId }).expect(StatusCode.SuccessOK);
+
+        const profile1 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
+        expect(profile1?.lastSidequestId).toBe(1);
+        expect(profile1?.streak).toBe(1);
+
+        await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_2.eventId }).expect(StatusCode.SuccessOK);
+
+        const profile2 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
+        expect(profile2?.lastSidequestId).toBe(2);
+        expect(profile2?.streak).toBe(2);
+
+        await putAsAttendee("/user/scan-event/").send({ eventId: SIDEQUEST_3.eventId }).expect(StatusCode.SuccessOK);
+
+        const profile3 = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
+        expect(profile3?.lastSidequestId).toBe(5);
+        expect(profile3?.streak).toBe(1);
     });
 });
