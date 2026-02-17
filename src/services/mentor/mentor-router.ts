@@ -62,7 +62,7 @@ mentorRouter.get(
         method: "get",
         path: "/mentor/",
         tag: Tag.MENTOR,
-        role: Role.STAFF,
+        role: Role.USER,
         summary: "Gets all mentor office hours",
         responses: {
             [StatusCode.SuccessOK]: {
