@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { postAsAdmin, postAsAttendee, getAsAttendee, delAsAttendee, delAsAdmin, getAsStaff } from "../../common/testTools";
+import { postAsAdmin, postAsAttendee, getAsAttendee, delAsAttendee, delAsAdmin } from "../../common/testTools";
 import { MentorOfficeHours } from "./mentor-schemas";
 
 const TESTER_OFFICE_HOURS_1 = {
@@ -56,17 +56,11 @@ describe("POST /mentor", () => {
 });
 
 describe("GET /mentor", () => {
-    it("gives an invalid perms error for a non-staff user", async () => {
-        const response = await getAsAttendee(`/mentor/`).expect(StatusCode.ClientErrorForbidden);
-
-        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
-    });
-
-    it("works for staff", async () => {
+    it("works for attendees", async () => {
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_1);
         await Models.MentorOfficeHours.create(TESTER_OFFICE_HOURS_2);
 
-        const response = await getAsStaff(`/mentor/`).expect(StatusCode.SuccessOK);
+        const response = await getAsAttendee(`/mentor/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject([TESTER_OFFICE_HOURS_1, TESTER_OFFICE_HOURS_2]);
     });
 });
