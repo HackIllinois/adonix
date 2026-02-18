@@ -14,8 +14,6 @@ import {
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
     AttendeeProfileNextRankSchema,
-    AboveUserNotFoundError,
-    AboveUserNotFoundErrorSchema,
     RafflePointsSchema,
 } from "./profile-schemas";
 import Models from "../../common/models";
@@ -185,14 +183,15 @@ profileRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const sortedUsers = await Models.AttendeeProfile.find().sort({ pointsAccumulated: -1, userId: 1 });
-        const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
+        const currentUser = await Models.AttendeeProfile.findOne({ userId });
 
-        if (userIndex < 0) {
+        if (!currentUser) {
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
-        const ranking = userIndex + Config.RANKING_OFFSET;
+        const peopleAbove = await Models.AttendeeProfile.count({ pointsAccumulated: { $gt: currentUser.pointsAccumulated } });
+
+        const ranking = peopleAbove + Config.RANKING_OFFSET;
         return res.status(StatusCode.SuccessOK).send({ ranking: ranking });
     },
 );
@@ -347,34 +346,28 @@ profileRouter.get(
                 description: "Couldn't find the profile (is it created yet?)",
                 schema: AttendeeProfileNotFoundErrorSchema,
             },
-            [StatusCode.ClientErrorPreconditionFailed]: {
-                description: "Couldn't find above user",
-                schema: AboveUserNotFoundErrorSchema,
-            },
         },
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const sortedUsers = await Models.AttendeeProfile.find().sort({ pointsAccumulated: -1, userId: 1 });
-        const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
+        const currentUser = await Models.AttendeeProfile.findOne({ userId });
 
-        if (userIndex < 0) {
+        if (!currentUser) {
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
 
-        if (userIndex == 0) {
+        const aboveUser = await Models.AttendeeProfile.findOne({
+            pointsAccumulated: { $gt: currentUser.pointsAccumulated },
+        }).sort({
+            pointsAccumulated: 1,
+        });
+
+        if (!aboveUser) {
             return res.status(StatusCode.SuccessOK).send({ points: 0, first: true });
         }
 
-        const userAbovePoints = sortedUsers[userIndex - 1]?.pointsAccumulated;
-        const currentPoints = sortedUsers[userIndex]?.pointsAccumulated;
-
-        if (userAbovePoints == undefined || currentPoints == undefined) {
-            return res.status(StatusCode.ClientErrorPreconditionFailed).send(AboveUserNotFoundError);
-        }
-
-        const pointDiff = userAbovePoints - currentPoints;
+        const pointDiff = aboveUser.pointsAccumulated - currentUser.pointsAccumulated;
         return res.status(StatusCode.SuccessOK).send({ points: pointDiff, first: false });
     },
 );
