@@ -201,8 +201,3 @@ export const [AttendeeProfileAlreadyExistsError, AttendeeProfileAlreadyExistsErr
     error: "AlreadyExists",
     message: "Your profile is already created!",
 });
-
-export const [AboveUserNotFoundError, AboveUserNotFoundErrorSchema] = CreateErrorAndSchema({
-    error: "NotCreated",
-    message: "Couldn't find user above",
-});
