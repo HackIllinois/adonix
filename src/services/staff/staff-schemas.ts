@@ -7,7 +7,10 @@ import { StaffTeam } from "../staff-team/staff-team-schemas";
 
 export class StaffInfo {
     @prop({ required: true })
-    public name: string;
+    public firstName: string;
+
+    @prop({ required: true })
+    public lastName: string;
 
     @prop({ required: true })
     public title!: string;
@@ -26,6 +29,27 @@ export class StaffInfo {
 
     @prop({ required: true, default: true })
     public isActive!: boolean;
+
+    @prop({ required: true })
+    public email: string;
+
+    @prop({ required: true })
+    public staffEmail: string;
+
+    @prop({ required: true })
+    public school: string;
+
+    @prop({ required: true })
+    public major: string;
+
+    @prop({ required: true })
+    public education: string;
+
+    @prop({ required: true })
+    public graduate: string;
+
+    @prop({ required: true })
+    public userId: string;
 }
 
 export class StaffShift {
@@ -69,19 +93,35 @@ export const ShiftsAddRequestSchema = z.object({
     shifts: z.array(EventIdSchema),
 });
 
-export const StaffInfoSchema = z.object({
-    name: z.string(),
+export const StaffInfoRequestSchema = z.object({
+    firstName: z.string(),
+    lastName: z.string(),
     title: z.string(),
     team: z.string().optional(),
     emoji: z.string().optional(),
     profilePictureUrl: z.string().optional(),
     quote: z.string().optional(),
     isActive: z.boolean().default(true),
+    email: z.string(),
+    staffEmail: z.string(),
+    school: z.string(),
+    major: z.string(),
+    education: z.string(),
+    graduate: z.string(),
+});
+
+export const StaffInfoSchema = StaffInfoRequestSchema.extend({
+    userId: UserIdSchema,
 });
 
 export const [StaffNotFoundError, StaffNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "StaffNotFound",
     message: "The specified staff member was not found",
+});
+
+export const [StaffEmailNotFoundError, StaffEmailNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "StaffEmailNotFound",
+    message: "No account found for this email, the staff member must sign in with their staff email first",
 });
 
 export const [CodeExpiredError, CodeExpiredErrorSchema] = CreateErrorAndSchema({
