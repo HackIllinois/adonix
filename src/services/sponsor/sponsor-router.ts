@@ -233,7 +233,7 @@ sponsorRouter.get(
                 .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS })
                 .lean(),
             Models.StaffInfo.find({ isActive: true })
-                .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS })
+                .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS, title: 1 })
                 .lean(),
         ]);
 

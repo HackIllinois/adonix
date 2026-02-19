@@ -211,6 +211,7 @@ describe("GET /sponsor/resumebook/all", () => {
         expect(staffEntry).toHaveProperty("school", ACTIVE_STAFF.school);
         expect(staffEntry).toHaveProperty("education", ACTIVE_STAFF.education);
         expect(staffEntry).toHaveProperty("major", ACTIVE_STAFF.major);
+        expect(staffEntry).toHaveProperty("title", ACTIVE_STAFF.title);
         expect(staffEntry).not.toHaveProperty("_id");
     });
 
