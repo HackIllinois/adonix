@@ -226,11 +226,18 @@ sponsorRouter.get(
             (doc) => doc.userId,
         );
 
-        const allApplicants = await Models.RegistrationApplicationSubmitted.find({
-            userId: { $in: acceptedUserIds },
-        }).select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS });
+        const [allApplicants, staffMembers] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.find({
+                userId: { $in: acceptedUserIds },
+            })
+                .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS })
+                .lean(),
+            Models.StaffInfo.find({ isActive: true })
+                .select({ _id: 0, ...RESUME_BOOK_ENTRY_FIELDS, title: 1 })
+                .lean(),
+        ]);
 
-        return res.status(StatusCode.SuccessOK).send(allApplicants);
+        return res.status(StatusCode.SuccessOK).send([...staffMembers, ...allApplicants]);
     },
 );
 

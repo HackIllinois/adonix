@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { getAsAttendee, postAsStaff, putAsStaff, delAsStaff } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
+import { StaffInfo } from "../staff/staff-schemas";
 
 const TEST_TEAM = {
     name: "Systems",
@@ -12,10 +13,18 @@ const UPDATED_TEAM = {
 };
 
 const TEST_STAFF = {
-    name: "Shlong",
+    firstName: "Sh",
+    lastName: "Long",
     title: "API",
     isActive: true,
-};
+    email: "shlong@example.com",
+    staffEmail: "shlong@hackillinois.org",
+    major: "Computer Science",
+    education: "Undergraduate",
+    graduate: "Fall 2025",
+    school: "University of Illinois Urbana-Champaign",
+    userId: "some-staff-user",
+} satisfies StaffInfo;
 
 beforeEach(async () => {
     await Models.StaffTeam.deleteMany({});
@@ -71,7 +80,8 @@ describe("GET /staff-team/:id/", () => {
         expect(data.staff[0]).toMatchObject({
             team: createdTeam.id,
             title: TEST_STAFF.title,
-            name: TEST_STAFF.name,
+            firstName: TEST_STAFF.firstName,
+            lastName: TEST_STAFF.lastName,
         });
     });
 });

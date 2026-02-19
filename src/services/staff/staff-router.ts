@@ -10,9 +10,12 @@ import {
     ShiftsAddRequestSchema,
     ShiftsSchema,
     StaffAttendanceRequestSchema,
+    StaffInfoRequestSchema,
     StaffInfoSchema,
     StaffNotFoundError,
     StaffNotFoundErrorSchema,
+    StaffEmailNotFoundError,
+    StaffEmailNotFoundErrorSchema,
 } from "./staff-schemas";
 import Config from "../../common/config";
 import Models from "../../common/models";
@@ -77,16 +80,25 @@ staffRouter.post(
         tag: Tag.STAFF,
         role: Role.ADMIN,
         summary: "Creates a new staff member profile",
-        body: StaffInfoSchema,
+        body: StaffInfoRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "Staff member created successfully",
                 schema: SuccessResponseSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "No account found for the provided email",
+                schema: StaffEmailNotFoundErrorSchema,
+            },
         },
     }),
     async (req, res) => {
-        await Models.StaffInfo.create(req.body);
+        const userInfo = await Models.UserInfo.findOne({ email: req.body.staffEmail });
+        if (!userInfo) {
+            return res.status(StatusCode.ClientErrorBadRequest).json(StaffEmailNotFoundError);
+        }
+
+        await Models.StaffInfo.create({ ...req.body, userId: userInfo.userId });
         return res.status(StatusCode.SuccessOK).json({ success: true });
     },
 );

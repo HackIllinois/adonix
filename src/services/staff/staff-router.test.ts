@@ -17,6 +17,7 @@ import Models from "../../common/models";
 import { AttendeeProfile } from "../profile/profile-schemas";
 import { generateQRCode } from "../user/user-lib";
 import { StaffTeam } from "../staff-team/staff-team-schemas";
+import { StaffInfo } from "./staff-schemas";
 
 const TESTER_EVENT_ATTENDANCE = {
     eventId: "some-event",
@@ -65,22 +66,38 @@ const TESTER_TEAM = {
 } satisfies StaffTeam;
 
 const TESTER_STAFF_INFO = {
-    name: "Test User",
+    firstName: "Test",
+    lastName: "User",
     title: "Systems Lead",
     emoji: "💻",
     profilePictureUrl: "https://example.com/profile.jpg",
     quote: "six seven",
     isActive: true,
-};
+    email: "example@email.com",
+    staffEmail: "example@hackillinois.org",
+    school: "University of Illinois",
+    education: "Undergraduate",
+    graduate: "Fall 2027",
+    major: "Computer Science",
+    userId: "some-staff-user",
+} satisfies StaffInfo;
 
 const INACTIVE_STAFF_INFO = {
-    name: "Inactive Staff",
+    firstName: "Inactive",
+    lastName: "Staff",
     title: "Former Lead",
     emoji: "👋",
     profilePictureUrl: "https://example.com/inactive.jpg",
     quote: "Goodbye",
     isActive: false,
-};
+    email: "example@email.com",
+    staffEmail: "example@hackillinois.org",
+    school: "University of Illinois",
+    education: "Undergraduate",
+    graduate: "Fall 2027",
+    major: "Computer Science",
+    userId: "some-inactive-staff-user",
+} satisfies StaffInfo;
 
 // Before each test, initialize database with Event in EventAttendance
 beforeEach(async () => {
@@ -93,13 +110,21 @@ describe("GET /staff/info/", () => {
     it("returns all active staff members for public access", async () => {
         const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
         await Models.StaffInfo.create({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             team: team!._id,
             emoji: TESTER_STAFF_INFO.emoji,
             profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
             quote: TESTER_STAFF_INFO.quote,
             isActive: true,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: TESTER_STAFF_INFO.staffEmail,
+            school: TESTER_STAFF_INFO.school,
+            major: TESTER_STAFF_INFO.major,
+            education: TESTER_STAFF_INFO.education,
+            graduate: TESTER_STAFF_INFO.graduate,
+            userId: TESTER_STAFF_INFO.userId,
         });
 
         const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
@@ -107,7 +132,8 @@ describe("GET /staff/info/", () => {
         const data = JSON.parse(response.text);
         expect(data.staffInfo).toHaveLength(1);
         expect(data.staffInfo[0]).toMatchObject({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             emoji: TESTER_STAFF_INFO.emoji,
             profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
@@ -121,24 +147,40 @@ describe("GET /staff/info/", () => {
         const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         await Models.StaffInfo.create({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             team: team!._id,
             isActive: true,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: TESTER_STAFF_INFO.staffEmail,
+            school: TESTER_STAFF_INFO.school,
+            major: TESTER_STAFF_INFO.major,
+            education: TESTER_STAFF_INFO.education,
+            graduate: TESTER_STAFF_INFO.graduate,
+            userId: TESTER_STAFF_INFO.userId,
         });
 
         await Models.StaffInfo.create({
-            name: INACTIVE_STAFF_INFO.name,
+            firstName: INACTIVE_STAFF_INFO.firstName,
+            lastName: INACTIVE_STAFF_INFO.lastName,
             title: INACTIVE_STAFF_INFO.title,
             team: team!._id,
             isActive: false,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: INACTIVE_STAFF_INFO.staffEmail,
+            school: INACTIVE_STAFF_INFO.school,
+            major: INACTIVE_STAFF_INFO.major,
+            education: INACTIVE_STAFF_INFO.education,
+            graduate: INACTIVE_STAFF_INFO.graduate,
+            userId: INACTIVE_STAFF_INFO.userId,
         });
 
         const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
 
         const data = JSON.parse(response.text);
         expect(data.staffInfo).toHaveLength(1);
-        expect(data.staffInfo[0].name).toBe(TESTER_STAFF_INFO.name);
+        expect(data.staffInfo[0].firstName).toBe(TESTER_STAFF_INFO.firstName);
     });
 
     it("returns empty array when no active staff exists", async () => {
@@ -150,9 +192,17 @@ describe("GET /staff/info/", () => {
 
     it("returns staff without team when team is not set", async () => {
         await Models.StaffInfo.create({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             isActive: true,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: TESTER_STAFF_INFO.staffEmail,
+            school: TESTER_STAFF_INFO.school,
+            major: TESTER_STAFF_INFO.major,
+            education: TESTER_STAFF_INFO.education,
+            graduate: TESTER_STAFF_INFO.graduate,
+            userId: TESTER_STAFF_INFO.userId,
         });
 
         const response = await getAsAttendee("/staff/info/").expect(StatusCode.SuccessOK);
@@ -164,39 +214,62 @@ describe("GET /staff/info/", () => {
 });
 
 describe("POST /staff/info/", () => {
+    beforeEach(async () => {
+        await Models.UserInfo.create({
+            userId: TESTER_STAFF_INFO.userId,
+            name: `${TESTER_STAFF_INFO.firstName} ${TESTER_STAFF_INFO.lastName}`,
+            email: TESTER_STAFF_INFO.staffEmail,
+        });
+    });
+
     it("successfully creates staff info", async () => {
         const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const response = await postAsAdmin("/staff/info/")
             .send({
-                name: TESTER_STAFF_INFO.name,
+                firstName: TESTER_STAFF_INFO.firstName,
+                lastName: TESTER_STAFF_INFO.lastName,
                 title: TESTER_STAFF_INFO.title,
                 team: team!._id.toString(),
                 emoji: TESTER_STAFF_INFO.emoji,
                 profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
                 quote: TESTER_STAFF_INFO.quote,
                 isActive: true,
+                email: TESTER_STAFF_INFO.email,
+                staffEmail: TESTER_STAFF_INFO.staffEmail,
+                school: TESTER_STAFF_INFO.school,
+                major: TESTER_STAFF_INFO.major,
+                education: TESTER_STAFF_INFO.education,
+                graduate: TESTER_STAFF_INFO.graduate,
             })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({ success: true });
 
-        const staffInfo = await Models.StaffInfo.findOne({ name: TESTER_STAFF_INFO.name }).populate("team");
+        const staffInfo = await Models.StaffInfo.findOne({ firstName: TESTER_STAFF_INFO.firstName }).populate("team");
         expect(staffInfo).toBeDefined();
         expect(staffInfo?.title).toBe(TESTER_STAFF_INFO.title);
+        expect(staffInfo?.userId).toBe(TESTER_STAFF_INFO.userId);
         expect((staffInfo?.team as unknown as StaffTeam)?.name).toBe(TESTER_TEAM.name);
     });
 
     it("creates staff info without optional fields", async () => {
         await postAsAdmin("/staff/info/")
             .send({
-                name: "New Staff",
+                firstName: "New",
+                lastName: "Staff",
                 title: "Co-Director",
                 isActive: true,
+                email: TESTER_STAFF_INFO.email,
+                staffEmail: TESTER_STAFF_INFO.staffEmail,
+                school: TESTER_STAFF_INFO.school,
+                major: TESTER_STAFF_INFO.major,
+                education: TESTER_STAFF_INFO.education,
+                graduate: TESTER_STAFF_INFO.graduate,
             })
             .expect(StatusCode.SuccessOK);
 
-        const staffInfo = await Models.StaffInfo.findOne({ name: "New Staff" });
+        const staffInfo = await Models.StaffInfo.findOne({ firstName: "New" });
 
         expect(staffInfo?.title).toBe("Co-Director");
         expect(staffInfo?.emoji).toBeUndefined();
@@ -207,23 +280,51 @@ describe("POST /staff/info/", () => {
     it("creates staff info with default isActive as true", async () => {
         await postAsAdmin("/staff/info/")
             .send({
-                name: "Default Active Staff",
+                firstName: "Default",
+                lastName: "ActiveStaff",
                 title: "Developer",
+                email: TESTER_STAFF_INFO.email,
+                staffEmail: TESTER_STAFF_INFO.staffEmail,
+                school: TESTER_STAFF_INFO.school,
+                major: TESTER_STAFF_INFO.major,
+                education: TESTER_STAFF_INFO.education,
+                graduate: TESTER_STAFF_INFO.graduate,
             })
             .expect(StatusCode.SuccessOK);
 
-        const staffInfo = await Models.StaffInfo.findOne({ name: "Default Active Staff" });
+        const staffInfo = await Models.StaffInfo.findOne({ firstName: "Default" });
         expect(staffInfo?.isActive).toBe(true);
     });
 
     it("rejects non-admin users", async () => {
         await postAsAttendee("/staff/info/")
             .send({
-                name: TESTER_STAFF_INFO.name,
+                firstName: TESTER_STAFF_INFO.firstName,
+                lastName: TESTER_STAFF_INFO.lastName,
                 title: TESTER_STAFF_INFO.title,
                 isActive: true,
             })
             .expect(StatusCode.ClientErrorForbidden);
+    });
+
+    it("returns error when staff email has no matching user account", async () => {
+        const response = await postAsAdmin("/staff/info/")
+            .send({
+                firstName: "Ghost",
+                lastName: "Staff",
+                title: "Unknown",
+                email: TESTER_STAFF_INFO.email,
+                staffEmail: "notregistered@email.com",
+                school: TESTER_STAFF_INFO.school,
+                major: TESTER_STAFF_INFO.major,
+                education: TESTER_STAFF_INFO.education,
+                graduate: TESTER_STAFF_INFO.graduate,
+            })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "StaffEmailNotFound",
+        });
     });
 });
 
@@ -234,13 +335,21 @@ describe("PUT /staff/info/", () => {
         const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const staffInfo = await Models.StaffInfo.create({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             team: team!._id,
             emoji: TESTER_STAFF_INFO.emoji,
             profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
             quote: TESTER_STAFF_INFO.quote,
             isActive: true,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: TESTER_STAFF_INFO.staffEmail,
+            school: TESTER_STAFF_INFO.school,
+            major: TESTER_STAFF_INFO.major,
+            education: TESTER_STAFF_INFO.education,
+            graduate: TESTER_STAFF_INFO.graduate,
+            userId: TESTER_STAFF_INFO.userId,
         });
 
         staffId = staffInfo._id.toString();
@@ -249,7 +358,8 @@ describe("PUT /staff/info/", () => {
     it("successfully updates staff info", async () => {
         const updatedData = {
             staffId: staffId,
-            name: "Updated Name",
+            firstName: "Updated",
+            lastName: "Name",
             title: "Lead Systems Engineer",
             emoji: "🚀",
             profilePictureUrl: "https://example.com/new-profile.jpg",
@@ -263,7 +373,8 @@ describe("PUT /staff/info/", () => {
 
         const staffInfo = await Models.StaffInfo.findById(staffId);
 
-        expect(staffInfo?.name).toBe(updatedData.name);
+        expect(staffInfo?.firstName).toBe(updatedData.firstName);
+        expect(staffInfo?.lastName).toBe(updatedData.lastName);
         expect(staffInfo?.title).toBe(updatedData.title);
         expect(staffInfo?.emoji).toBe(updatedData.emoji);
         expect(staffInfo?.quote).toBe(updatedData.quote);
@@ -273,7 +384,8 @@ describe("PUT /staff/info/", () => {
         await putAsAdmin("/staff/info/")
             .send({
                 staffId: staffId,
-                name: TESTER_STAFF_INFO.name,
+                firstName: TESTER_STAFF_INFO.firstName,
+                lastName: TESTER_STAFF_INFO.lastName,
                 title: TESTER_STAFF_INFO.title,
                 isActive: false,
             })
@@ -295,14 +407,15 @@ describe("PUT /staff/info/", () => {
         const staffInfo = await Models.StaffInfo.findById(staffId);
 
         expect(staffInfo?.title).toBe("New Title Only");
-        expect(staffInfo?.name).toBe(TESTER_STAFF_INFO.name);
+        expect(staffInfo?.firstName).toBe(TESTER_STAFF_INFO.firstName);
     });
 
     it("returns error when staff does not exist", async () => {
         const response = await putAsAdmin("/staff/info/")
             .send({
                 staffId: "507f1f77bcf86cd799439011",
-                name: "Test",
+                firstName: "Test",
+                lastName: "User",
                 title: "Test",
                 isActive: true,
             })
@@ -317,7 +430,8 @@ describe("PUT /staff/info/", () => {
         await putAsAttendee("/staff/info/")
             .send({
                 staffId: staffId,
-                name: TESTER_STAFF_INFO.name,
+                firstName: TESTER_STAFF_INFO.firstName,
+                lastName: TESTER_STAFF_INFO.lastName,
                 title: TESTER_STAFF_INFO.title,
                 isActive: true,
             })
@@ -332,13 +446,21 @@ describe("DELETE /staff/info/", () => {
         const team = await Models.StaffTeam.findOne({ name: TESTER_TEAM.name });
 
         const staffInfo = await Models.StaffInfo.create({
-            name: TESTER_STAFF_INFO.name,
+            firstName: TESTER_STAFF_INFO.firstName,
+            lastName: TESTER_STAFF_INFO.lastName,
             title: TESTER_STAFF_INFO.title,
             team: team!._id,
             emoji: TESTER_STAFF_INFO.emoji,
             profilePictureUrl: TESTER_STAFF_INFO.profilePictureUrl,
             quote: TESTER_STAFF_INFO.quote,
             isActive: true,
+            email: TESTER_STAFF_INFO.email,
+            staffEmail: TESTER_STAFF_INFO.staffEmail,
+            school: TESTER_STAFF_INFO.school,
+            major: TESTER_STAFF_INFO.major,
+            education: TESTER_STAFF_INFO.education,
+            graduate: TESTER_STAFF_INFO.graduate,
+            userId: TESTER_STAFF_INFO.userId,
         });
 
         staffId = staffInfo._id.toString();
