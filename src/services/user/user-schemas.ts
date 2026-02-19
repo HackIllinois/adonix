@@ -77,10 +77,6 @@ export const ScanEventSchema = z
             description: "Points added from checking into the event",
             example: 5,
         }),
-        rafflePoints: z.number().openapi({
-            description: "Raffle points added from checking into side quest",
-            example: 2,
-        }),
     })
     .openapi("ScanEvent");
 

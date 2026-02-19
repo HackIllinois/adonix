@@ -304,7 +304,6 @@ userRouter.put(
             success: true,
             eventName: result.eventName,
             points: result.points,
-            rafflePoints: result.profile.rafflePoints,
         });
     },
 );

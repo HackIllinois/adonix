@@ -40,9 +40,6 @@ export class AttendeeProfile {
     @prop({ required: true })
     public pointsAccumulated: number;
 
-    @prop({ required: true, default: 0 })
-    public rafflePoints: number;
-
     @prop({ required: true })
     public foodWave: number;
 
@@ -54,12 +51,6 @@ export class AttendeeProfile {
 
     @prop({ required: false })
     public team?: string;
-
-    @prop({ required: false })
-    public lastSidequestId?: number;
-
-    @prop({ required: false, default: 0 })
-    public streak?: number;
 
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
     public duelStats?: DuelStats;
@@ -73,12 +64,9 @@ export const AttendeeProfileSchema = z
         discordTag: z.string(),
         points: z.number(),
         pointsAccumulated: z.number(),
-        rafflePoints: z.number(),
         foodWave: z.number(),
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
-        lastSidequestId: z.number().optional(),
-        streak: z.number().optional(),
         team: z.string().optional(),
         duelStats: DuelStatsSchema.optional(),
     })
@@ -90,23 +78,10 @@ export const AttendeeProfileSchema = z
             avatarUrl: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/goblin.png",
             points: 23,
             pointsAccumulated: 104,
-            rafflePoints: 7,
             foodWave: 1,
             dietaryRestrictions: ["Peanut Allergy"],
             shirtSize: "M",
-            lastSidequestId: 5,
-            streak: 3,
             team: "Alpha",
-        },
-    });
-
-export const RafflePointsSchema = z
-    .object({
-        rafflePoints: z.number(),
-    })
-    .openapi("RafflePoints", {
-        example: {
-            rafflePoints: 7,
         },
     });
 

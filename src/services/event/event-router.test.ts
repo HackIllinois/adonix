@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "@jest/globals";
 import { EventFollowers, EventAttendance, EventType, Event } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff, postAsAdmin } from "../../common/testTools";
+import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "../../common/testTools";
 import { UserFollowing, UserInfo } from "../user/user-schemas";
 import { EventSchema } from "./event-schemas";
 import { z } from "zod";
@@ -58,7 +58,6 @@ const TESTER_EVENT_1 = {
     locations: [],
     isAsync: false,
     points: 0,
-    rafflePoints: 0,
     isPrivate: true,
     isMandatory: true,
     isPro: false,
@@ -75,7 +74,6 @@ const TESTER_EVENT_2 = {
     locations: [],
     isAsync: false,
     points: 0,
-    rafflePoints: 0,
     isPrivate: true,
     isMandatory: true,
     isPro: false,
@@ -206,7 +204,7 @@ describe("EventSchema", () => {
             ],
             eventType: "WORKSHOP",
             points: 10,
-            rafflePoints: 0,
+
             isStaff: false,
             isPrivate: false,
             isAsync: false,
@@ -233,7 +231,7 @@ describe("EventSchema", () => {
             ],
             eventType: "MEETING",
             points: 5,
-            rafflePoints: 0,
+
             isStaff: false,
             isPrivate: false,
             isAsync: false,
@@ -259,7 +257,7 @@ describe("EventSchema", () => {
             ],
             eventType: "QNA",
             points: 0,
-            rafflePoints: 0,
+
             isStaff: false,
             isPrivate: false,
             isAsync: false,
@@ -374,103 +372,5 @@ describe("PUT /event/update-attendance/:id/", () => {
         });
         const count = updatedAttendance?.attendees?.filter((id) => id === "user3").length;
         expect(count).toBe(1);
-    });
-});
-
-describe("Sidequest creation and streak", () => {
-    beforeEach(async () => {
-        await Models.Event.deleteMany({ eventType: EventType.SIDEQUEST });
-        await Models.AttendeeProfile.deleteMany({});
-        await Models.EventAttendance.deleteMany({});
-        await Models.UserAttendance.deleteMany({});
-    });
-
-    it("creates first sidequest", async () => {
-        const response = await postAsAdmin("/event/")
-            .send({
-                name: "Sidequest 1",
-                description: "First sidequest",
-                startTime: 100,
-                endTime: 200,
-                eventType: EventType.SIDEQUEST,
-                locations: [],
-                isAsync: false,
-                points: 10,
-                rafflePoints: 5,
-                isStaff: false,
-                isPrivate: false,
-                isPro: false,
-                isMandatory: false,
-                displayOnStaffCheckIn: false,
-            })
-            .expect(StatusCode.SuccessCreated);
-
-        const event = JSON.parse(response.text) as Event;
-        expect(event.sidequestId).toBe(1);
-        expect(event.eventType).toBe(EventType.SIDEQUEST);
-    });
-
-    it("creates sidequests with different times", async () => {
-        await Models.Event.create({
-            eventId: "sq1",
-            name: "Sidequest 1",
-            description: "First",
-            startTime: 200,
-            endTime: 300,
-            eventType: EventType.SIDEQUEST,
-            locations: [],
-            isAsync: false,
-            points: 0,
-            rafflePoints: 5,
-            isStaff: false,
-            isPrivate: false,
-            isPro: false,
-            isMandatory: false,
-            sidequestId: 1,
-        });
-        await Models.Event.create({
-            eventId: "sq2",
-            name: "Sidequest 2",
-            description: "Second",
-            startTime: 400,
-            endTime: 500,
-            eventType: EventType.SIDEQUEST,
-            locations: [],
-            isAsync: false,
-            points: 0,
-            rafflePoints: 5,
-            isStaff: false,
-            isPrivate: false,
-            isPro: false,
-            isMandatory: false,
-            sidequestId: 2,
-        });
-
-        const response = await postAsAdmin("/event/")
-            .send({
-                name: "Sidequest Middle",
-                description: "Middle",
-                startTime: 300,
-                endTime: 350,
-                eventType: EventType.SIDEQUEST,
-                locations: [],
-                isAsync: false,
-                points: 10,
-                rafflePoints: 5,
-                isStaff: false,
-                isPrivate: false,
-                isPro: false,
-                isMandatory: false,
-                displayOnStaffCheckIn: false,
-            })
-            .expect(StatusCode.SuccessCreated);
-
-        const event = JSON.parse(response.text) as Event;
-        expect(event.sidequestId).toBe(2);
-
-        const updatedFirst = await Models.Event.findOne({ eventId: "sq1" });
-        expect(updatedFirst?.sidequestId).toBe(1);
-        const updatedSecond = await Models.Event.findOne({ eventId: "sq2" });
-        expect(updatedSecond?.sidequestId).toBe(3);
     });
 });

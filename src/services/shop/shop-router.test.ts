@@ -31,11 +31,10 @@ const TESTER_PROFILE = {
     discordTag: TESTER.discordTag,
     points: 1000,
     pointsAccumulated: 1000,
-    rafflePoints: 0,
+
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: "M",
-    streak: 0,
 } satisfies AttendeeProfile;
 
 // Initialize test data before each test
