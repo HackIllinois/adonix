@@ -13,9 +13,6 @@ import {
     ProfileLeaderboardEntriesSchema,
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
-    AttendeeProfileNextRankSchema,
-    AboveUserNotFoundError,
-    AboveUserNotFoundErrorSchema,
 } from "./profile-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
