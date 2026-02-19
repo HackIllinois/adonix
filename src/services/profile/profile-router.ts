@@ -13,9 +13,6 @@ import {
     ProfileLeaderboardEntriesSchema,
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
-    AttendeeProfileNextRankSchema,
-    AboveUserNotFoundError,
-    AboveUserNotFoundErrorSchema,
     RafflePointsSchema,
 } from "./profile-schemas";
 import Models from "../../common/models";
@@ -327,55 +324,6 @@ profileRouter.put(
         }
 
         return res.status(StatusCode.SuccessOK).send(newProfile);
-    },
-);
-
-profileRouter.get(
-    "/ranking/place/",
-    specification({
-        method: "get",
-        path: "/profile/ranking/place/",
-        tag: Tag.PROFILE,
-        role: Role.ATTENDEE,
-        summary: "Gets how many points away from the next rank for current authenticated user",
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "The number of points",
-                schema: AttendeeProfileNextRankSchema,
-            },
-            [StatusCode.ClientErrorNotFound]: {
-                description: "Couldn't find the profile (is it created yet?)",
-                schema: AttendeeProfileNotFoundErrorSchema,
-            },
-            [StatusCode.ClientErrorPreconditionFailed]: {
-                description: "Couldn't find above user",
-                schema: AboveUserNotFoundErrorSchema,
-            },
-        },
-    }),
-    async (req, res) => {
-        const { id: userId } = getAuthenticatedUser(req);
-
-        const sortedUsers = await Models.AttendeeProfile.find().sort({ pointsAccumulated: -1, userId: 1 });
-        const userIndex = sortedUsers.findIndex((u) => u.userId == userId);
-
-        if (userIndex < 0) {
-            return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
-        }
-
-        if (userIndex == 0) {
-            return res.status(StatusCode.SuccessOK).send({ points: 0, first: true });
-        }
-
-        const userAbovePoints = sortedUsers[userIndex - 1]?.pointsAccumulated;
-        const currentPoints = sortedUsers[userIndex]?.pointsAccumulated;
-
-        if (userAbovePoints == undefined || currentPoints == undefined) {
-            return res.status(StatusCode.ClientErrorPreconditionFailed).send(AboveUserNotFoundError);
-        }
-
-        const pointDiff = userAbovePoints - currentPoints;
-        return res.status(StatusCode.SuccessOK).send({ points: pointDiff, first: false });
     },
 );
 
