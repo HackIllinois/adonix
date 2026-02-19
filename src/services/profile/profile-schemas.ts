@@ -52,6 +52,9 @@ export class AttendeeProfile {
     @prop({ required: false })
     public team?: string;
 
+    @prop({ required: false })
+    public tier?: string;
+
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
     public duelStats?: DuelStats;
 }
@@ -68,6 +71,7 @@ export const AttendeeProfileSchema = z
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
         team: z.string().optional(),
+        tier: z.string().optional(),
         duelStats: DuelStatsSchema.optional(),
     })
     .openapi("AttendeeProfile", {
@@ -82,6 +86,7 @@ export const AttendeeProfileSchema = z
             dietaryRestrictions: ["Peanut Allergy"],
             shirtSize: "M",
             team: "Alpha",
+            tier: "Gold",
         },
     });
 

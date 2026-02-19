@@ -4,6 +4,7 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
+import { updatePoints, GOLD_PTS, BRONZE_PTS } from "./profile-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -164,6 +165,25 @@ describe("GET /profile", () => {
     it("gets a profile that exists", async () => {
         const response = await getAsAttendee("/profile/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(PROFILE);
+    });
+
+    it("correctly updates tiers", async () => {
+        await getAsAttendee("/profile/").expect(StatusCode.SuccessOK);
+        const updatedBronze = await updatePoints(TESTER_USER.userId, BRONZE_PTS);
+        expect(updatedBronze!.pointsAccumulated).toEqual(BRONZE_PTS);
+        expect(updatedBronze!.tier).toEqual("Bronze");
+
+        const updatedBronzeProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
+        expect(updatedBronzeProfile!.pointsAccumulated).toEqual(BRONZE_PTS);
+        expect(updatedBronzeProfile!.tier).toEqual("Bronze");
+
+        const updatedGold = await updatePoints(TESTER_USER.userId, GOLD_PTS);
+        expect(updatedGold!.pointsAccumulated).toEqual(BRONZE_PTS + GOLD_PTS);
+        expect(updatedGold!.tier).toEqual("Gold");
+
+        const updatedGoldProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
+        expect(updatedGoldProfile!.pointsAccumulated).toEqual(BRONZE_PTS + GOLD_PTS);
+        expect(updatedGoldProfile!.tier).toEqual("Gold");
     });
 });
 
