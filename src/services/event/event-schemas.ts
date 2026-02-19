@@ -74,9 +74,6 @@ export class Event {
     @prop({ default: 0 })
     points: number;
 
-    @prop({ default: 0 })
-    rafflePoints: number;
-
     @prop({ required: true, default: false })
     isPrivate: boolean;
 
@@ -88,9 +85,6 @@ export class Event {
 
     @prop({ default: false })
     isPro: boolean;
-
-    @prop({ required: false })
-    public sidequestId?: number;
 
     @prop({ required: false })
     menu?: string[];
@@ -147,12 +141,10 @@ export const EventSchema = z
         mapImageUrl: z.string().optional(),
         sponsor: z.string().optional(),
         points: z.number().min(0),
-        rafflePoints: z.number().min(0),
         isPrivate: z.boolean(),
         displayOnStaffCheckIn: z.boolean().optional(),
         isMandatory: z.boolean().optional(),
         isPro: z.boolean(),
-        sidequestId: z.number().optional(),
         menu: z.array(z.string()).optional(),
     })
     .openapi("Event", {
@@ -172,7 +164,6 @@ export const EventSchema = z
             sponsor: "AwesomeSocks",
             eventType: EventType.WORKSHOP,
             points: 10,
-            rafflePoints: 1,
             isStaff: false,
             isPrivate: false,
             isAsync: false,
@@ -202,7 +193,6 @@ export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).open
         sponsor: "AwesomeSocks",
         eventType: EventType.WORKSHOP,
         points: 10,
-        rafflePoints: 1,
         isStaff: false,
         isPrivate: false,
         isAsync: false,

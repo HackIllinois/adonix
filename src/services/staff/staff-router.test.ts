@@ -31,11 +31,10 @@ const TESTER_PROFILE = {
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 0,
-    rafflePoints: 0,
+
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
-    streak: 0,
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {
@@ -57,7 +56,7 @@ const TEST_EVENT = {
     mapImageUrl: "",
     sponsor: "",
     points: 100,
-    rafflePoints: 0,
+
     isPrivate: false,
     displayOnStaffCheckIn: false,
     isPro: false,
