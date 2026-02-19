@@ -41,7 +41,6 @@ const TESTER_PROFILE = {
     discordTag: "TestTag",
     points: 0,
     pointsAccumulated: 1000,
-
     foodWave: 0,
     dietaryRestrictions: [],
     shirtSize: "M",
