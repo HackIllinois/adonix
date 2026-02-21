@@ -58,9 +58,10 @@ export const RESUME_BOOK_ENTRY_FIELDS = {
     education: true,
     major: true,
     graduate: true,
+    pro: true,
 } satisfies Partial<Record<keyof RegistrationApplicationSubmitted, boolean | undefined>>;
 export const ResumeBookEntrySchema = RegistrationApplicationSubmittedSchema.pick(RESUME_BOOK_ENTRY_FIELDS)
-    .extend({ title: z.string().optional() })
+    .extend({ title: z.string().optional(), pro: z.boolean().optional() })
     .openapi("ResumeBookEntry");
 
 export const [SponsorNotFoundError, SponsorNotFoundErrorSchema] = CreateErrorAndSchema({
