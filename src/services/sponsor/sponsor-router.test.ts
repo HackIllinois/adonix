@@ -27,6 +27,7 @@ const ACCEPTED_USER_1 = {
     application3: "Answer 3",
     requestTravelReimbursement: false,
     mlhNewsletter: true,
+    pro: true,
 };
 
 const ACCEPTED_USER_2 = {
@@ -51,6 +52,7 @@ const ACCEPTED_USER_2 = {
     application3: "Answer 3",
     requestTravelReimbursement: true,
     mlhNewsletter: false,
+    pro: false,
 };
 
 const ACCEPTED_USER_3 = {
@@ -75,6 +77,7 @@ const ACCEPTED_USER_3 = {
     application3: "Answer 3",
     requestTravelReimbursement: false,
     mlhNewsletter: true,
+    pro: false,
 };
 
 const REJECTED_USER = {
@@ -193,6 +196,7 @@ describe("GET /sponsor/resumebook/all", () => {
         expect(data[0]).toHaveProperty("school");
         expect(data[0]).toHaveProperty("education");
         expect(data[0]).toHaveProperty("major");
+        expect(data[0]).toHaveProperty("pro");
         expect(data[0]).not.toHaveProperty("_id");
     });
 
@@ -212,6 +216,7 @@ describe("GET /sponsor/resumebook/all", () => {
         expect(staffEntry).toHaveProperty("education", ACTIVE_STAFF.education);
         expect(staffEntry).toHaveProperty("major", ACTIVE_STAFF.major);
         expect(staffEntry).toHaveProperty("title", ACTIVE_STAFF.title);
+        expect(staffEntry).not.toHaveProperty("pro");
         expect(staffEntry).not.toHaveProperty("_id");
     });
 
