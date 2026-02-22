@@ -1,17 +1,43 @@
 import { AttendeeProfile } from "./profile-schemas";
-import { UpdateQuery } from "mongoose";
 import Models from "../../common/models";
 
-export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
-    const updateQuery: UpdateQuery<AttendeeProfile> = {
-        $inc: {
-            points: amount,
-            // Only accumulate positive additions, don't decrement on negative
-            pointsAccumulated: Math.max(0, amount),
-        },
-    };
+export const BRONZE_PTS = 600;
+export const SILVER_PTS = 800;
+export const GOLD_PTS = 1000;
 
-    return Models.AttendeeProfile.findOneAndUpdate({ userId: userId }, updateQuery, { new: true });
+export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
+    const updated = await Models.AttendeeProfile.findOneAndUpdate(
+        { userId },
+        [
+            {
+                $set: {
+                    points: { $add: ["$points", amount] },
+                    pointsAccumulated: {
+                        // Only accumulate positive additions, don't decrement on negative
+                        $add: ["$pointsAccumulated", Math.max(0, amount)],
+                    },
+                },
+            },
+            {
+                // Atomically updates tier based on new points accumulated
+                $set: {
+                    tier: {
+                        $switch: {
+                            branches: [
+                                { case: { $gte: ["$pointsAccumulated", GOLD_PTS] }, then: "Gold" },
+                                { case: { $gte: ["$pointsAccumulated", SILVER_PTS] }, then: "Silver" },
+                                { case: { $gte: ["$pointsAccumulated", BRONZE_PTS] }, then: "Bronze" },
+                            ],
+                            default: "$tier",
+                        },
+                    },
+                },
+            },
+        ],
+        { new: true },
+    );
+
+    return updated;
 }
 
 export function getAvatarUrlForId(avatarId: string): string {
