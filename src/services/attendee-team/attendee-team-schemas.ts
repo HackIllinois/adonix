@@ -5,6 +5,9 @@ export class AttendeeTeam {
     @prop({ required: true, unique: true })
     public name: string;
 
+    @prop({ required: true })
+    public badge: string;
+
     @prop({ required: true, default: 0 })
     public points: number;
 
@@ -16,6 +19,7 @@ export const AttendeeTeamSchema = z
     .object({
         id: z.string().optional(),
         name: z.string(),
+        badge: z.string(),
         points: z.number(),
         members: z.number(),
     })
@@ -23,6 +27,7 @@ export const AttendeeTeamSchema = z
         example: {
             id: "6717efb83b5d4c1a2e47a7e1",
             name: "Team 1",
+            badge: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/teamBadges/team1.png",
             points: 6700,
             members: 67,
         },
@@ -33,6 +38,7 @@ export const CreateAttendeeTeamRequestSchema = AttendeeTeamSchema.omit({ id: tru
     {
         example: {
             name: "Team 1",
+            badge: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/teamBadges/team1.png",
         },
     },
 );
