@@ -19,6 +19,7 @@ export async function assignAttendeeTeams(): Promise<AttendeeTeam[]> {
     // Track how many get assigned to each team
     const teamCounts = teams.map((t) => ({
         name: t.name,
+        badge: t.badge,
         members: 0,
     }));
 
@@ -29,7 +30,7 @@ export async function assignAttendeeTeams(): Promise<AttendeeTeam[]> {
         return {
             updateOne: {
                 filter: { userId: profile.userId },
-                update: { $set: { team: assignedTeam.name } },
+                update: { $set: { team: assignedTeam.name, teamBadge: assignedTeam.badge } },
             },
         };
     });

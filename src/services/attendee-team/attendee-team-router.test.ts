@@ -10,24 +10,28 @@ import { generateQRCode } from "../user/user-lib";
 
 const TEST_TEAM = {
     name: "Team 1",
+    badge: "https://HackIllinois/team1.png",
     points: 100,
     members: 10,
 } satisfies AttendeeTeam;
 
 const TEST_EMPTY_TEAM_1 = {
     name: "A",
+    badge: "https://HackIllinois/team1.png",
     points: 0,
     members: 0,
 } satisfies AttendeeTeam;
 
 const TEST_EMPTY_TEAM_2 = {
     name: "B",
+    badge: "https://HackIllinois/team2.png",
     points: 0,
     members: 0,
 } satisfies AttendeeTeam;
 
 const TEST_TEAM_REQUEST = {
     name: "Team 2",
+    badge: "https://HackIllinois/team2.png",
 } satisfies CreateAttendeeTeamRequest;
 
 const TESTER_PROFILE = {
@@ -41,6 +45,7 @@ const TESTER_PROFILE = {
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
     team: "Team 1",
+    teamBadge: "https://HackIllinois/team1.png",
 } satisfies AttendeeProfile;
 
 const TEST_ASSIGN_1 = {

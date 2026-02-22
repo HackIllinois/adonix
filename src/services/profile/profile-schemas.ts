@@ -53,6 +53,9 @@ export class AttendeeProfile {
     public team?: string;
 
     @prop({ required: false })
+    public teamBadge?: string;
+
+    @prop({ required: false })
     public tier?: string;
 
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
@@ -71,6 +74,7 @@ export const AttendeeProfileSchema = z
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
         team: z.string().optional(),
+        teamBadge: z.string().optional(),
         tier: z.string().optional(),
         duelStats: DuelStatsSchema.optional(),
     })
@@ -86,6 +90,7 @@ export const AttendeeProfileSchema = z
             dietaryRestrictions: ["Peanut Allergy"],
             shirtSize: "M",
             team: "Alpha",
+            teamBadge: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/teamBadges/alpha.png",
             tier: "Gold",
         },
     });
