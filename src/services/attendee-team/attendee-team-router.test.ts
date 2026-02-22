@@ -30,7 +30,7 @@ const TEST_EMPTY_TEAM_2 = {
 } satisfies AttendeeTeam;
 
 const TEST_TEAM_REQUEST = {
-    name: "Team 2",
+    name: "B",
     badge: "https://HackIllinois/team2.png",
 } satisfies CreateAttendeeTeamRequest;
 
@@ -129,17 +129,10 @@ describe("POST /attendee-team/", () => {
     it("successfully creates new team", async () => {
         const response = await postAsStaff("/attendee-team/").send(TEST_TEAM_REQUEST).expect(StatusCode.SuccessCreated);
         const data = JSON.parse(response.text);
-
-        expect(data).toHaveProperty("name", TEST_TEAM_REQUEST.name);
-        expect(data).toHaveProperty("points", 0);
-        expect(data).toHaveProperty("members", 0);
+        expect(data).toMatchObject(TEST_EMPTY_TEAM_2);
 
         const stored = await Models.AttendeeTeam.findById(data._id);
-        expect(stored?.toObject()).toMatchObject({
-            name: TEST_TEAM_REQUEST.name,
-            points: 0,
-            members: 0,
-        });
+        expect(stored?.toObject()).toMatchObject(TEST_EMPTY_TEAM_2);
     });
 });
 
@@ -150,25 +143,20 @@ describe("GET /attendee-team/", () => {
     });
 
     it("returns all existing teams", async () => {
-        const createdTeam = await Models.AttendeeTeam.create(TEST_TEAM);
+        await Models.AttendeeTeam.create(TEST_TEAM);
 
         const response = await getAsAttendee("/attendee-team/").expect(StatusCode.SuccessOK);
         const data = JSON.parse(response.text);
 
         expect(Array.isArray(data)).toBe(true);
-        expect(data[0]).toMatchObject({
-            _id: createdTeam.id,
-            name: TEST_TEAM.name,
-            points: TEST_TEAM.points,
-            members: TEST_TEAM.members,
-        });
+        expect(data[0]).toMatchObject(TEST_TEAM);
     });
 
     it("updates team points when attendee completes event", async () => {
         const validAttendeeQRCodeURL = generateQRCode(TESTER_PROFILE.userId, Math.floor(Date.now() / 1000) + 300);
         const validAttendeeQRCode = new URL(validAttendeeQRCodeURL).searchParams.get("qr")!;
 
-        const createdTeam = await Models.AttendeeTeam.create(TEST_TEAM);
+        await Models.AttendeeTeam.create(TEST_TEAM);
 
         // Check in attendee to redeem event points
         await putAsStaff("/staff/scan-attendee/")
@@ -179,11 +167,7 @@ describe("GET /attendee-team/", () => {
         const data = JSON.parse(response.text);
 
         expect(Array.isArray(data)).toBe(true);
-        expect(data[0]).toMatchObject({
-            _id: createdTeam.id,
-            name: TEST_TEAM.name,
-            points: TEST_TEAM.points + TEST_EVENT.points,
-        });
+        expect(data[0].points).toEqual(TEST_TEAM.points + TEST_EVENT.points);
     });
 });
 
@@ -223,12 +207,13 @@ describe("POST /attendee-team/assign", () => {
         expect(Array.isArray(data)).toBe(true);
         expect(data.length).toBe(2);
 
-        const updatedAttendees = await Models.AttendeeProfile.find({ team: { $exists: true } });
+        const updatedAttendees = await Models.AttendeeProfile.find({ team: { $exists: true }, teamBadge: { $exists: true } });
         expect(updatedAttendees.length).toBe(4);
 
         // Check that attendee teams are updated correctly
         for (const attendee of updatedAttendees) {
             expect([TEST_EMPTY_TEAM_1.name, TEST_EMPTY_TEAM_2.name]).toContain(attendee.team);
+            expect([TEST_EMPTY_TEAM_1.badge, TEST_EMPTY_TEAM_2.badge]).toContain(attendee.teamBadge);
         }
 
         const updatedTeams = await Models.AttendeeTeam.find();

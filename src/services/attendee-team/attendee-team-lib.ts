@@ -6,7 +6,7 @@ export async function updateTeamPoints(team: string, amount: number): Promise<At
 }
 
 export async function assignAttendeeTeams(): Promise<AttendeeTeam[]> {
-    const teams = await Models.AttendeeTeam.find({}, { name: 1 });
+    const teams = await Models.AttendeeTeam.find({}, { name: 1, badge: 1 }).lean();
     if (teams.length === 0) {
         throw new Error("No teams available to assign");
     }
