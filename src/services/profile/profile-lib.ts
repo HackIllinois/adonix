@@ -1,9 +1,9 @@
 import { AttendeeProfile } from "./profile-schemas";
 import Models from "../../common/models";
 
-export const BRONZE_PTS = 600;
-export const SILVER_PTS = 800;
-export const GOLD_PTS = 1000;
+export const TIER_3_PTS = 10;
+export const TIER_2_PTS = 300;
+export const TIER_1_PTS = 700;
 
 export async function updatePoints(userId: string, amount: number): Promise<AttendeeProfile | null> {
     const updated = await Models.AttendeeProfile.findOneAndUpdate(
@@ -24,9 +24,9 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
                     tier: {
                         $switch: {
                             branches: [
-                                { case: { $gte: ["$pointsAccumulated", GOLD_PTS] }, then: "Gold" },
-                                { case: { $gte: ["$pointsAccumulated", SILVER_PTS] }, then: "Silver" },
-                                { case: { $gte: ["$pointsAccumulated", BRONZE_PTS] }, then: "Bronze" },
+                                { case: { $gte: ["$pointsAccumulated", TIER_1_PTS] }, then: 1 },
+                                { case: { $gte: ["$pointsAccumulated", TIER_2_PTS] }, then: 2 },
+                                { case: { $gte: ["$pointsAccumulated", TIER_3_PTS] }, then: 3 },
                             ],
                             default: "$tier",
                         },

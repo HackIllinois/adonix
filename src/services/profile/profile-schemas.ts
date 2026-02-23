@@ -56,7 +56,7 @@ export class AttendeeProfile {
     public teamBadge?: string;
 
     @prop({ required: false })
-    public tier?: string;
+    public tier?: number;
 
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
     public duelStats?: DuelStats;
@@ -75,7 +75,7 @@ export const AttendeeProfileSchema = z
         shirtSize: z.string(),
         team: z.string().optional(),
         teamBadge: z.string().optional(),
-        tier: z.string().optional(),
+        tier: z.number().optional(),
         duelStats: DuelStatsSchema.optional(),
     })
     .openapi("AttendeeProfile", {
@@ -91,7 +91,7 @@ export const AttendeeProfileSchema = z
             shirtSize: "M",
             team: "Alpha",
             teamBadge: "https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/teamBadges/alpha.png",
-            tier: "Gold",
+            tier: 3,
         },
     });
 

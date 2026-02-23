@@ -4,7 +4,7 @@ import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
-import { updatePoints, GOLD_PTS, BRONZE_PTS } from "./profile-lib";
+import { updatePoints, TIER_1_PTS, TIER_3_PTS } from "./profile-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -169,21 +169,21 @@ describe("GET /profile", () => {
 
     it("correctly updates tiers", async () => {
         await getAsAttendee("/profile/").expect(StatusCode.SuccessOK);
-        const updatedBronze = await updatePoints(TESTER_USER.userId, BRONZE_PTS);
-        expect(updatedBronze!.pointsAccumulated).toEqual(BRONZE_PTS);
-        expect(updatedBronze!.tier).toEqual("Bronze");
+        const updatedBronze = await updatePoints(TESTER_USER.userId, TIER_3_PTS);
+        expect(updatedBronze!.pointsAccumulated).toEqual(TIER_3_PTS);
+        expect(updatedBronze!.tier).toEqual(3);
 
         const updatedBronzeProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
-        expect(updatedBronzeProfile!.pointsAccumulated).toEqual(BRONZE_PTS);
-        expect(updatedBronzeProfile!.tier).toEqual("Bronze");
+        expect(updatedBronzeProfile!.pointsAccumulated).toEqual(TIER_3_PTS);
+        expect(updatedBronzeProfile!.tier).toEqual(3);
 
-        const updatedGold = await updatePoints(TESTER_USER.userId, GOLD_PTS);
-        expect(updatedGold!.pointsAccumulated).toEqual(BRONZE_PTS + GOLD_PTS);
-        expect(updatedGold!.tier).toEqual("Gold");
+        const updatedGold = await updatePoints(TESTER_USER.userId, TIER_1_PTS);
+        expect(updatedGold!.pointsAccumulated).toEqual(TIER_3_PTS + TIER_1_PTS);
+        expect(updatedGold!.tier).toEqual(1);
 
         const updatedGoldProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
-        expect(updatedGoldProfile!.pointsAccumulated).toEqual(BRONZE_PTS + GOLD_PTS);
-        expect(updatedGoldProfile!.tier).toEqual("Gold");
+        expect(updatedGoldProfile!.pointsAccumulated).toEqual(TIER_3_PTS + TIER_1_PTS);
+        expect(updatedGoldProfile!.tier).toEqual(1);
     });
 });
 
