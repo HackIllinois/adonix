@@ -25,6 +25,7 @@ import Config from "./config";
 import { RuntimeConfigModel } from "./runtimeConfig";
 import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
 import { Duel } from "../services/duel/duel-schemas";
+import { Flag, FlagsClaimed } from "../services/ctf/ctf-schemas";
 
 // Groups for collections
 export enum Group {
@@ -46,6 +47,7 @@ export enum Group {
     ATTENDEETEAM = "attendeeteam",
     USER = "user",
     DUEL = "duel",
+    CTF = "ctf",
 }
 
 // Collections for each database, where models will be stored
@@ -131,6 +133,11 @@ enum UserCollection {
 
 enum DuelCollection {
     DUELS = "duels",
+}
+
+enum CTFCollection {
+    FLAGS = "flags",
+    CLAIMS = "claims",
 }
 
 export function generateConfig(collection: string): IModelOptions {
@@ -241,6 +248,10 @@ export default class Models {
 
     // Duel
     static Duel: Model<Duel> = getModel(Duel, Group.DUEL, DuelCollection.DUELS);
+
+    // CTF
+    static Flag: Model<Flag> = getModel(Flag, Group.CTF, CTFCollection.FLAGS);
+    static FlagsClaimed: Model<FlagsClaimed> = getModel(FlagsClaimed, Group.CTF, CTFCollection.CLAIMS);
 }
 
 let initialized = false;

@@ -24,6 +24,7 @@ import statisticRouter from "./services/statistic/statistic-router";
 import staffTeamRouter from "./services/staff-team/staff-team-router";
 import attendeeTeamRouter from "./services/attendee-team/attendee-team-router";
 import duelRouter from "./services/duel/duel-router";
+import CTFRouter from "./services/ctf/ctf-router";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -88,6 +89,7 @@ app.use("/attendee-team/", attendeeTeamRouter);
 app.use("/version/", versionRouter);
 app.use("/user/", userRouter);
 app.use("/duel/", duelRouter);
+app.use("/ctf/", CTFRouter);
 
 // Docs
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
