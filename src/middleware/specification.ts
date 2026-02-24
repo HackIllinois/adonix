@@ -28,6 +28,7 @@ export enum Tag {
     VERSION = "Version",
     SPONSOR = "Sponsor",
     DUEL = "Duel",
+    CTF = "CTF",
 }
 
 export interface ResponseObject {
