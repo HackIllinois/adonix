@@ -13,6 +13,7 @@ import {
     ProfileLeaderboardEntriesSchema,
     ProfileLeaderboardEntry,
     ProfileLeaderboardQueryLimitSchema,
+    RecalculateTiersRequestSchema,
 } from "./profile-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
@@ -21,7 +22,7 @@ import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { getAvatarUrlForId } from "./profile-lib";
+import { getAvatarUrlForId, recalculateTiers } from "./profile-lib";
 
 const profileRouter = Router();
 
@@ -257,6 +258,29 @@ profileRouter.put(
         }
 
         return res.status(StatusCode.SuccessOK).send(newProfile);
+    },
+);
+
+profileRouter.put(
+    "/update-tiers/",
+    specification({
+        method: "put",
+        path: "/profile/update-tiers/",
+        tag: Tag.PROFILE,
+        role: Role.STAFF,
+        summary: "Update tiers for all attendees based on new thresholds",
+        body: RecalculateTiersRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Number of profiles updated",
+                schema: z.number(),
+            },
+        },
+    }),
+    async (req, res) => {
+        const { tier1Pts, tier2Pts, tier3Pts } = req.body;
+        const modifiedCount = await recalculateTiers(tier1Pts, tier2Pts, tier3Pts);
+        return res.status(StatusCode.SuccessOK).send(modifiedCount);
     },
 );
 

@@ -40,6 +40,26 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
     return updated;
 }
 
+export async function recalculateTiers(tier1Pts: number, tier2Pts: number, tier3Pts: number): Promise<number> {
+    const result = await Models.AttendeeProfile.updateMany({}, [
+        {
+            $set: {
+                tier: {
+                    $switch: {
+                        branches: [
+                            { case: { $gte: ["$pointsAccumulated", tier1Pts] }, then: 1 },
+                            { case: { $gte: ["$pointsAccumulated", tier2Pts] }, then: 2 },
+                            { case: { $gte: ["$pointsAccumulated", tier3Pts] }, then: 3 },
+                        ],
+                        default: "$$REMOVE",
+                    },
+                },
+            },
+        },
+    ]);
+    return result.modifiedCount;
+}
+
 export function getAvatarUrlForId(avatarId: string): string {
     return `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
 }
