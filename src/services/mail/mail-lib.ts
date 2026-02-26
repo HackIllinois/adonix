@@ -1,12 +1,30 @@
 import Config from "../../common/config";
-import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { SESv2Client, SendEmailCommand, TooManyRequestsException } from "@aws-sdk/client-sesv2";
 import { MailBulkSendResult } from "./mail-schemas";
+import { setTimeout } from "timers/promises";
 
 let ses: SESv2Client | undefined = undefined;
 
 function getSESClient(): SESv2Client {
     ses ??= new SESv2Client({ region: Config.SES_REGION });
     return ses;
+}
+
+function getBackoffDuration(attempt: number): number {
+    const duration = Config.MIN_MAIL_BACKOFF_MS * Math.pow(2, attempt);
+    return Math.min(duration, Config.MAX_MAIL_BACKOFF_MS);
+}
+
+function isThrottlingError(error: unknown): boolean {
+    if (error instanceof TooManyRequestsException) {
+        return true;
+    }
+
+    if (error instanceof Error && error.name === "Throttling") {
+        return true;
+    }
+
+    return false;
 }
 
 export async function sendMail(templateId: string, recipient: string, templateData?: Record<string, unknown>): Promise<string> {
@@ -23,8 +41,20 @@ export async function sendMail(templateId: string, recipient: string, templateDa
         },
     });
 
-    const response = await getSESClient().send(command);
-    return response.MessageId || "";
+    for (let attempt = 0; attempt < Config.MAX_MAIL_SEND_RETRIES; attempt++) {
+        try {
+            const response = await getSESClient().send(command);
+            return response.MessageId || "";
+        } catch (error) {
+            if (isThrottlingError(error) && attempt < Config.MAX_MAIL_SEND_RETRIES - 1) {
+                await setTimeout(getBackoffDuration(attempt));
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    throw new Error("Max retries exceeded");
 }
 
 export async function sendBulkMail(
@@ -35,17 +65,15 @@ export async function sendBulkMail(
     const errors: string[] = [];
     let successCount = 0;
 
-    await Promise.allSettled(
-        recipients.map(async ({ email, data }) => {
-            try {
-                await sendMail(templateId, email, { ...defaultTemplateData, ...data });
-                successCount++;
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                errors.push(`${email}: ${message}`);
-            }
-        }),
-    );
+    for (const { email, data } of recipients) {
+        try {
+            await sendMail(templateId, email, { ...defaultTemplateData, ...data });
+            successCount++;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            errors.push(`${email}: ${message}`);
+        }
+    }
 
     return {
         success: errors.length === 0,
