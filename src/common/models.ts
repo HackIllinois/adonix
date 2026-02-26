@@ -256,7 +256,11 @@ export default class Models {
 
 let initialized = false;
 export async function initializeDatabase(): Promise<void> {
-    if (!initialized || Config.TEST) {
+    if (Config.TEST) {
+        return;
+    }
+
+    if (!initialized) {
         initialized = true;
         const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
         await mongoose.connect(uri).catch((e) => {

@@ -5,7 +5,11 @@ import mongoose from "mongoose";
 let initialized = false;
 
 export default async function (_req: Request, _res: Response, next: NextFunction): Promise<void> {
-    if (!initialized || Config.TEST) {
+    if (Config.TEST) {
+        return next();
+    }
+
+    if (!initialized) {
         initialized = true;
         const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
         await mongoose.connect(uri).catch((e) => {
@@ -13,5 +17,6 @@ export default async function (_req: Request, _res: Response, next: NextFunction
             throw e;
         });
     }
-    next();
+
+    return next();
 }

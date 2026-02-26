@@ -1,28 +1,10 @@
 // Runs INDIVIDUALLY for each test suite (each FILE, not test) before tests run
 
-import { beforeEach, afterAll, expect, jest } from "@jest/globals";
+import { beforeEach, afterAll, expect } from "@jest/globals";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import * as Config from "./src/common/config.js";
+import Config from "./src/common/config.js";
 import mongoose from "mongoose";
 import { MatcherState } from "expect";
-
-function mockConfig(dbUrl: string) {
-    jest.mock("./src/common/config.js", () => {
-        const actual = jest.requireActual("./src/common/config.js") as typeof Config;
-
-        const newConfig: typeof Config.default = {
-            ...actual.default,
-            TEST: true,
-            DB_URL: dbUrl,
-        };
-
-        return {
-            ...actual,
-            default: newConfig,
-            __esModule: true,
-        };
-    });
-}
 
 function getIdForState(state: MatcherState): string {
     return `${state.testPath}: ${state.currentTestName}`;
@@ -68,9 +50,7 @@ beforeEach(async () => {
     if (mongoose.connections.length > 0) {
         await mongoose.disconnect();
     }
-    await mongoose.connect(`${uri}${Config.default.DB_PARAMS}`);
-
-    mockConfig(uri);
+    await mongoose.connect(`${uri}${Config.DB_PARAMS}`);
 });
 
 afterAll(async () => {
