@@ -165,6 +165,15 @@ export const AttendeeProfileAddPointsRequestSchema = z
     })
     .openapi("AttendeeProfileAddPointsRequest");
 
+export const RecalculateTiersRequestSchema = z
+    .object({
+        tier1Pts: z.number().positive(),
+        tier2Pts: z.number().positive(),
+        tier3Pts: z.number().positive(),
+    })
+    .openapi("RecalculateTiersRequest");
+export type RecalculateTiersRequest = z.infer<typeof RecalculateTiersRequestSchema>;
+
 export const [AttendeeProfileNotFoundError, AttendeeProfileNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Couldn't find the profile",

@@ -3,7 +3,7 @@ import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
 import Models from "../../common/models";
-import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
+import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee, putAsStaff } from "../../common/testTools";
 import { updatePoints, TIER_1_PTS, TIER_3_PTS } from "./profile-lib";
 
 const TESTER_USER = {
@@ -247,5 +247,30 @@ describe("GET /profile/leaderboard", () => {
         const response = await getAsUser("/profile/leaderboard?limit=0").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+});
+
+describe("PUT /profile/update-tiers", () => {
+    it("updates tiers for all attendees", async () => {
+        await updatePoints(TESTER_USER.userId, 800);
+        await updatePoints(TESTER_USER_2.userId, 400);
+        await updatePoints(TESTER_USER_3.userId, 5);
+
+        const newRequestBody = {
+            tier1Pts: 900,
+            tier2Pts: 500,
+            tier3Pts: 100,
+        };
+
+        const response = await putAsStaff("/profile/update-tiers/").send(newRequestBody).expect(StatusCode.SuccessOK);
+        const modifiedCount = JSON.parse(response.text);
+        expect(modifiedCount).toBe(3);
+
+        const profile1After = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId });
+        expect(profile1After!.tier).toBe(2);
+        const profile2After = await Models.AttendeeProfile.findOne({ userId: TESTER_USER_2.userId });
+        expect(profile2After!.tier).toBe(3);
+        const profile3After = await Models.AttendeeProfile.findOne({ userId: TESTER_USER_3.userId });
+        expect(profile3After!.tier).toBeUndefined();
     });
 });
