@@ -1,34 +1,66 @@
 import { z } from "zod";
+import { CreateErrorAndSchema } from "../../common/schemas";
 
-export const MailInfoSchema = z
+export const MailSendSelfSchema = z
     .object({
-        templateId: z.string(),
-        recipient: z.string(),
-        templateData: z.optional(z.record(z.unknown())),
+        subject: z.string(),
+        body: z.string(),
     })
-    .openapi("MailInfo");
+    .openapi("MailSendSelf");
 
-export type MailInfo = z.infer<typeof MailInfoSchema>;
+export type MailSendSelf = z.infer<typeof MailSendSelfSchema>;
 
-export const MailSendResultsSchema = z
+export const MailSendSchema = z
     .object({
-        messageId: z.string(),
+        subject: z.string(),
+        body: z.string(),
+        emails: z.array(z.string().email()),
     })
-    .openapi("MailSendResults", {
+    .openapi("MailSend");
+
+export type MailSend = z.infer<typeof MailSendSchema>;
+
+export const MailSendAttendeesSchema = z
+    .object({
+        subject: z.string(),
+        body: z.string(),
+    })
+    .openapi("MailSendAttendees");
+
+export type MailSendAttendees = z.infer<typeof MailSendAttendeesSchema>;
+
+export const MailSendResultSchema = z
+    .object({
+        success: z.boolean(),
+        message: z.string().optional(),
+    })
+    .openapi("MailSendResult", {
         example: {
-            messageId: "11668787493850529",
+            success: true,
         },
     });
-export type MailSendResults = z.infer<typeof MailSendResultsSchema>;
 
-const RecipientSchema = z.object({
-    email: z.string().email(),
-    data: z.record(z.unknown()),
-});
+export type MailSendResult = z.infer<typeof MailSendResultSchema>;
 
-export const BulkMailInfoSchema = z.object({
-    templateId: z.string(),
-    defaultTemplateData: z.record(z.unknown()),
-    recipientIds: z.array(RecipientSchema),
+export const MailBulkSendResultSchema = z
+    .object({
+        success: z.boolean(),
+        successCount: z.number(),
+        failedCount: z.number(),
+        errors: z.array(z.string()),
+    })
+    .openapi("MailBulkSendResult", {
+        example: {
+            success: true,
+            successCount: 10,
+            failedCount: 0,
+            errors: [],
+        },
+    });
+
+export type MailBulkSendResult = z.infer<typeof MailBulkSendResultSchema>;
+
+export const [UserEmailNotFoundError, UserEmailNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "UserEmailNotFound",
+    message: "User email not found",
 });
-export type BulkMailInfo = z.infer<typeof BulkMailInfoSchema>;

@@ -11,7 +11,6 @@ import {
 } from "./registration-schemas";
 import type * as MailLib from "../../services/mail/mail-lib";
 import type * as ChallengeLib from "./challenge-lib";
-import { MailInfo } from "../mail/mail-schemas";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../../middleware/upload", () => ({
@@ -203,19 +202,16 @@ describe("POST /registration/submit/", () => {
 
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({
-            messageId: "test-message-id",
-        }));
+        sendMail.mockImplementation(async () => "");
     });
 
     it("should submit registration with body data", async () => {
         const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.REGISTRATION_SUBMISSION,
-            recipient: APPLICATION.email,
-            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.REGISTRATION_SUBMISSION, APPLICATION.email, {
+            name: APPLICATION.firstName,
+            pro: APPLICATION.pro,
+        });
 
         // Should be stored in submissions collection
         const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
@@ -235,11 +231,10 @@ describe("POST /registration/submit/", () => {
 
         const response = await postAsUser("/registration/submit/").send(APPLICATION).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.REGISTRATION_SUBMISSION,
-            recipient: APPLICATION.email,
-            templateData: { name: APPLICATION.firstName, pro: APPLICATION.pro },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.REGISTRATION_SUBMISSION, APPLICATION.email, {
+            name: APPLICATION.firstName,
+            pro: APPLICATION.pro,
+        });
 
         // Should be stored in submissions collection
         const storedSubmission: RegistrationApplicationSubmitted | null = await Models.RegistrationApplicationSubmitted.findOne({
@@ -317,9 +312,7 @@ describe("POST /registration/challenge/", () => {
 
         // Mock email send
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({
-            messageId: "test-message-id",
-        }));
+        sendMail.mockImplementation(async () => "");
     });
 
     afterEach((): void => {
@@ -348,11 +341,7 @@ describe("POST /registration/challenge/", () => {
         expect(compareImages).toHaveBeenCalledWith(mockImageBuffer, CHALLENGE.inputFileId);
 
         // Verify email sent
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.CHALLENGE_COMPLETION,
-            recipient: APPLICATION.email,
-            templateData: { name: APPLICATION.firstName },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.CHALLENGE_COMPLETION, APPLICATION.email, { name: APPLICATION.firstName });
 
         // Verify in database
         const storedChallenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({
