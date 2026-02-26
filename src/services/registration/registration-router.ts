@@ -32,7 +32,6 @@ import { getAuthenticatedUser } from "../../common/auth";
 import { Role } from "../auth/auth-schemas";
 
 import { sendMail } from "../mail/mail-lib";
-import { MailInfo } from "../mail/mail-schemas";
 import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
@@ -289,12 +288,10 @@ registrationRouter.post(
         }
 
         // SEND SUCCESSFUL REGISTRATION EMAIL
-        const mailInfo: MailInfo = {
-            templateId: Templates.REGISTRATION_SUBMISSION,
-            recipient: newSubmissionInfo.email,
-            templateData: { name: newSubmissionInfo.firstName, pro: newSubmissionInfo.pro ?? false },
-        };
-        await sendMail(mailInfo);
+        await sendMail(Templates.REGISTRATION_SUBMISSION, newSubmissionInfo.email, {
+            name: newSubmissionInfo.firstName,
+            pro: newSubmissionInfo.pro ?? false,
+        });
 
         return res.status(StatusCode.SuccessOK).send(newSubmissionInfo);
     },
@@ -456,12 +453,9 @@ registrationRouter.post(
         }
 
         // SEND CHALLENGE COMPLETION EMAIL
-        const mailInfo: MailInfo = {
-            templateId: Templates.CHALLENGE_COMPLETION,
-            recipient: registration.email,
-            templateData: { name: registration.firstName },
-        };
-        await sendMail(mailInfo);
+        await sendMail(Templates.CHALLENGE_COMPLETION, registration.email, {
+            name: registration.firstName,
+        });
 
         return res.status(StatusCode.SuccessOK).send({
             inputFileId: challengeResult.inputFileId,

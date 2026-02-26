@@ -176,12 +176,8 @@ authRouter.post(
             { upsert: true },
         );
 
-        await sendMail({
-            templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            recipient: email,
-            templateData: {
-                code: GENERATED_CODE,
-            },
+        await sendMail(Templates.SPONSOR_VERIFICATION_CODE, email, {
+            code: GENERATED_CODE,
         });
 
         return res.status(StatusCode.SuccessOK).send({ success: true });

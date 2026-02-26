@@ -15,6 +15,7 @@ export enum Templates {
     RSVP_ACCEPTED = "2026_rsvp_accepted",
     RSVP_DECLINED = "2026_rsvp_declined",
     SPONSOR_VERIFICATION_CODE = "sponsor_verification_code",
+    GENERIC = "generic",
 }
 
 function requireEnv(name: string): string {
@@ -89,9 +90,6 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
-
-    SQS_REGION: requireEnv("SQS_REGION"),
-    EMAIL_QUEUE_URL: requireEnv("EMAIL_QUEUE_URL"),
 
     // Runes and Riddles
     PUZZLE_EVENT_END_TIME: 1708812000,

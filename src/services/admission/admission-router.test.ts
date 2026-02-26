@@ -6,7 +6,6 @@ import { RegistrationApplicationSubmitted } from "../registration/registration-s
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
-import { BulkMailInfo, MailInfo } from "../mail/mail-schemas";
 import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
 
 const TESTER_DECISION = {
@@ -110,12 +109,10 @@ describe("PUT /admission/update/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({
-            messageId: "test-message-id",
-        }));
+        sendMail.mockImplementation(async () => "");
 
         sendBulkMail = mockSendBulkMail();
-        sendBulkMail.mockImplementation(async (_) => {});
+        sendBulkMail.mockImplementation(async () => ({ success: true, successCount: 0, failedCount: 0, errors: [] }));
     });
 
     it("gives forbidden error for user without elevated perms", async () => {
@@ -132,16 +129,16 @@ describe("PUT /admission/update/", () => {
         const ops = updateRequest.map((entry) => Models.AdmissionDecision.findOne({ userId: entry.userId }));
         const retrievedEntries = await Promise.all(ops);
 
-        expect(sendBulkMail).toBeCalledWith({
-            templateId: Templates.STATUS_UPDATE,
-            defaultTemplateData: { name: "", isAccepted: false, reimbursementValue: false, pro: false },
-            recipientIds: [
+        expect(sendBulkMail).toBeCalledWith(
+            Templates.STATUS_UPDATE,
+            [
                 {
                     email: TESTER_APPLICATION.email,
                     data: { name: TESTER_APPLICATION.firstName, isAccepted: true, reimbursementValue: 12, pro: true },
                 },
             ],
-        } satisfies BulkMailInfo);
+            { name: "", isAccepted: false, reimbursementValue: false, pro: false },
+        );
 
         expect(retrievedEntries).toMatchObject(
             expect.arrayContaining(
@@ -226,9 +223,7 @@ describe("PUT /admission/accept/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({
-            messageId: "test-message-id",
-        }));
+        sendMail.mockImplementation(async () => "");
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -245,11 +240,9 @@ describe("PUT /admission/accept/", () => {
         await putAsApplicant("/admission/accept/").send(CREATE_REQUEST).expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.RSVP_ACCEPTED,
-            recipient: TESTER_APPLICATION.email,
-            templateData: { name: TESTER_APPLICATION.firstName },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.RSVP_ACCEPTED, TESTER_APPLICATION.email, {
+            name: TESTER_APPLICATION.firstName,
+        });
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
@@ -286,9 +279,7 @@ describe("PUT /admission/decline/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(async (_) => ({
-            messageId: "test-message-id",
-        }));
+        sendMail.mockImplementation(async () => "");
     });
 
     it("returns DecisionNotFound for nonexistent user", async () => {
@@ -305,10 +296,7 @@ describe("PUT /admission/decline/", () => {
         await putAsApplicant("/admission/decline/").expect(StatusCode.SuccessOK);
         const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
 
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.RSVP_DECLINED,
-            recipient: TESTER_APPLICATION.email,
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.RSVP_DECLINED, TESTER_APPLICATION.email);
 
         expect(stored).toMatchObject({
             ...TESTER_DECISION,
