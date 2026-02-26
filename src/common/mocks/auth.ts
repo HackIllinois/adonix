@@ -4,14 +4,10 @@ import * as authLib from "../auth";
 
 /*
  * Mocks generateJwtToken with a wrapper so calls and returns can be examined. Does not change behavior.
+ * jest.spyOn calls through to the original by default.
  */
 export function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.generateJwtToken> {
-    const mockedAuthLib = require("../auth") as typeof authLib;
-    const mockedGenerateJwtToken = jest.spyOn(mockedAuthLib, "generateJwtToken");
-    mockedGenerateJwtToken.mockImplementation((payload, shouldNotExpire, expiration) =>
-        authLib.generateJwtToken(payload, shouldNotExpire, expiration),
-    );
-    return mockedGenerateJwtToken;
+    return jest.spyOn(authLib, "generateJwtToken");
 }
 
 /*
@@ -19,6 +15,5 @@ export function mockGenerateJwtTokenWithWrapper(): SpiedFunction<typeof authLib.
  * Note: You must actually mock the implementation, this method just returns a Spy to mock!
  */
 export function mockGetJwtPayloadFromProfile(): SpiedFunction<typeof authLib.getJwtPayloadFromProfile> {
-    const mockedAuthLib = require("../auth") as typeof authLib;
-    return jest.spyOn(mockedAuthLib, "getJwtPayloadFromProfile");
+    return jest.spyOn(authLib, "getJwtPayloadFromProfile");
 }

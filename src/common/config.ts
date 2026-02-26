@@ -46,7 +46,7 @@ const ROOT_URL = ((): string => {
 
 const Config = {
     /* Environments */
-    TEST: false, // False by default, will be mocked over
+    TEST: !!process.env.JEST_WORKER_ID, // Auto-detect Jest test environment
     PROD,
     VERSION: getVersion(),
 
