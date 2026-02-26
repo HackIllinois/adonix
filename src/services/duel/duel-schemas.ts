@@ -3,10 +3,10 @@ import { z } from "zod";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
 class PendingUpdates {
-    @prop({ default: [] })
+    @prop({ default: [], type: () => String })
     host: string[];
 
-    @prop({ default: [] })
+    @prop({ default: [], type: () => String })
     guest: string[];
 }
 

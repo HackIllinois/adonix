@@ -86,7 +86,7 @@ export class Event {
     @prop({ default: false })
     isPro: boolean;
 
-    @prop({ required: false })
+    @prop({ required: false, type: () => String })
     menu?: string[];
 }
 

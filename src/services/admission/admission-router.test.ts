@@ -7,6 +7,7 @@ import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsAppli
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
+import { AttendeeTeam } from "../attendee-team/attendee-team-schemas";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -65,6 +66,13 @@ const CREATE_REQUEST = {
     shirtSize: "M",
 } satisfies AttendeeProfileCreateRequest;
 
+const TEST_TEAM = {
+    name: "TestTeam",
+    badge: "https://test-badge.png",
+    points: 0,
+    members: 0,
+} satisfies AttendeeTeam;
+
 const updateRequest = [
     {
         userId: TESTER.id,
@@ -79,6 +87,7 @@ beforeEach(async () => {
     await Models.AdmissionDecision.create(TESTER_DECISION);
     await Models.AdmissionDecision.create(OTHER_DECISION);
     await Models.RegistrationApplicationSubmitted.create(TESTER_APPLICATION);
+    await Models.AttendeeTeam.create(TEST_TEAM);
 });
 
 describe("GET /admission/notsent/", () => {
@@ -248,6 +257,16 @@ describe("PUT /admission/accept/", () => {
             ...TESTER_DECISION,
             response: DecisionResponse.ACCEPTED,
         } satisfies AdmissionDecision);
+
+        const profile = await Models.AttendeeProfile.findOne({ userId: TESTER.id });
+        expect(profile).toMatchObject({
+            userId: TESTER.id,
+            team: TEST_TEAM.name,
+            teamBadge: TEST_TEAM.badge,
+        });
+
+        const team = await Models.AttendeeTeam.findOne({ name: TEST_TEAM.name });
+        expect(team!.members).toBe(1);
     });
 
     it("doesn't let applicant accept rejected decision", async () => {

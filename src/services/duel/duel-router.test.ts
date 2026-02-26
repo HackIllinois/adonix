@@ -17,6 +17,7 @@ const TESTER_PROFILE = {
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
     team: "Team 1",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 const TEST_PROFILE_2 = {
@@ -29,6 +30,8 @@ const TEST_PROFILE_2 = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
+    team: "Team 1",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 const TEST_DUEL = {
