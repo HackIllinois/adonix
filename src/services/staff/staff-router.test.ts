@@ -35,6 +35,8 @@ const TESTER_PROFILE = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
+    team: "Team 1",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {

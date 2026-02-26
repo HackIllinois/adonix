@@ -8,7 +8,6 @@ import Models from "../../common/models";
 
 import { TeamNotFoundError, TeamNotFoundErrorSchema } from "../staff-team/staff-team-schemas";
 import { AttendeeTeamSchema, CreateAttendeeTeamRequestSchema } from "./attendee-team-schemas";
-import { assignAttendeeTeams } from "./attendee-team-lib";
 
 const attendeeTeamRouter = Router();
 
@@ -84,27 +83,6 @@ attendeeTeamRouter.delete(
             return res.status(StatusCode.ClientErrorNotFound).json(TeamNotFoundError);
         }
         return res.status(StatusCode.SuccessNoContent).send();
-    },
-);
-
-attendeeTeamRouter.post(
-    "/assign/",
-    specification({
-        method: "post",
-        path: "/attendee-team/assign/",
-        tag: Tag.ATTENDEETEAM,
-        role: Role.STAFF,
-        summary: "Assigns all attendees to random teams evenly",
-        responses: {
-            [StatusCode.SuccessOK]: {
-                description: "List of all teams",
-                schema: z.array(AttendeeTeamSchema),
-            },
-        },
-    }),
-    async (_req, res) => {
-        const teams = await assignAttendeeTeams();
-        return res.status(StatusCode.SuccessOK).json(teams);
     },
 );
 

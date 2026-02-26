@@ -35,6 +35,8 @@ const TESTER_PROFILE = {
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: "M",
+    team: "Team 1",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 // Initialize test data before each test

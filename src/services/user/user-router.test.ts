@@ -44,6 +44,8 @@ const TESTER_PROFILE = {
     foodWave: 0,
     dietaryRestrictions: [],
     shirtSize: "M",
+    team: "Team 1",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 const TESTER_ATTENDANCE = {

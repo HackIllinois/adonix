@@ -34,6 +34,8 @@ const TESTER_PROFILE = {
     foodWave: 0,
     dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
     shirtSize: "M",
+    team: "TestTeam",
+    teamBadge: "https://test-badge.png",
 } satisfies AttendeeProfile;
 
 describe("POST /ctf/", () => {

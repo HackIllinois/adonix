@@ -2,9 +2,17 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Config from "../../common/config";
 import { AttendeeProfile, AttendeeProfileCreateRequest, AttendeeProfileUpdateRequest } from "./profile-schemas";
+import { AttendeeTeam } from "../attendee-team/attendee-team-schemas";
 import Models from "../../common/models";
 import { TESTER, getAsAdmin, getAsAttendee, getAsUser, postAsAttendee, putAsAttendee } from "../../common/testTools";
 import { updatePoints, TIER_1_PTS, TIER_3_PTS } from "./profile-lib";
+
+const TEST_TEAM = {
+    name: "TestTeam",
+    badge: "https://test-badge.png",
+    points: 0,
+    members: 0,
+} satisfies AttendeeTeam;
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -16,6 +24,8 @@ const TESTER_USER = {
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: "M",
+    team: TEST_TEAM.name,
+    teamBadge: TEST_TEAM.badge,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_2 = {
@@ -29,6 +39,8 @@ const TESTER_USER_2 = {
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "L",
+    team: TEST_TEAM.name,
+    teamBadge: TEST_TEAM.badge,
 } satisfies AttendeeProfile;
 
 const TESTER_USER_3 = {
@@ -42,6 +54,8 @@ const TESTER_USER_3 = {
     foodWave: 2,
     dietaryRestrictions: [],
     shirtSize: "S",
+    team: TEST_TEAM.name,
+    teamBadge: TEST_TEAM.badge,
 } satisfies AttendeeProfile;
 
 const CREATE_REQUEST = {
@@ -70,6 +84,8 @@ const PROFILE = {
     foodWave: 1,
     dietaryRestrictions: ["Peanut Allergy"],
     shirtSize: CREATE_REQUEST.shirtSize,
+    team: TEST_TEAM.name,
+    teamBadge: TEST_TEAM.badge,
 } satisfies AttendeeProfile;
 
 const UPDATED_PROFILE = {
@@ -81,6 +97,7 @@ const UPDATED_PROFILE = {
 } satisfies AttendeeProfile;
 
 beforeEach(async () => {
+    await Models.AttendeeTeam.create(TEST_TEAM);
     await Models.AttendeeProfile.create(TESTER_USER);
     await Models.AttendeeProfile.create(TESTER_USER_2);
     await Models.AttendeeProfile.create(TESTER_USER_3);
@@ -234,6 +251,8 @@ describe("GET /profile/leaderboard", () => {
                 foodWave: 1,
                 dietaryRestrictions: [],
                 shirtSize: "M",
+                team: TEST_TEAM.name,
+                teamBadge: TEST_TEAM.badge,
             } satisfies AttendeeProfile);
         }
 

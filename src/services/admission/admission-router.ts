@@ -30,7 +30,7 @@ import {
     AttendeeProfileAlreadyExistsError,
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
-import { getAvatarUrlForId } from "../profile/profile-lib";
+import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
 
 const admissionRouter = Router();
 
@@ -134,6 +134,8 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
         }
 
+        const { team, teamBadge } = await assignTeamByUserId(userId);
+
         const profile = {
             userId,
             discordTag,
@@ -144,6 +146,8 @@ admissionRouter.put(
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
+            team,
+            teamBadge,
         };
 
         await Models.AttendeeProfile.create(profile);

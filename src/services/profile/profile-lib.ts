@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { AttendeeProfile } from "./profile-schemas";
 import Models from "../../common/models";
 
@@ -42,4 +43,19 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
 
 export function getAvatarUrlForId(avatarId: string): string {
     return `https://raw.githubusercontent.com/HackIllinois/adonix-metadata/main/avatars/${avatarId}.png`;
+}
+
+export async function assignTeamByUserId(userId: string): Promise<{ team: string; teamBadge: string }> {
+    const teams = await Models.AttendeeTeam.find({}, { name: 1, badge: 1 });
+    if (teams.length === 0) {
+        throw new Error("No teams available to assign");
+    }
+
+    const hash = createHash("sha256").update(userId).digest();
+    const index = hash.readUInt32BE(0) % teams.length;
+    const assignedTeam = teams[index]!;
+
+    await Models.AttendeeTeam.updateOne({ name: assignedTeam.name }, { $inc: { members: 1 } });
+
+    return { team: assignedTeam.name, teamBadge: assignedTeam.badge };
 }
