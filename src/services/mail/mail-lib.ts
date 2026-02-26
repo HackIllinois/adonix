@@ -1,5 +1,5 @@
 import Config from "../../common/config";
-import { SESv2Client, SendEmailCommand, TooManyRequestsException } from "@aws-sdk/client-sesv2";
+import { SESv2Client, SendEmailCommand, SendBulkEmailCommand, TooManyRequestsException } from "@aws-sdk/client-sesv2";
 import { MailBulkSendResult } from "./mail-schemas";
 import { setTimeout } from "timers/promises";
 
@@ -65,13 +65,55 @@ export async function sendBulkMail(
     const errors: string[] = [];
     let successCount = 0;
 
-    for (const { email, data } of recipients) {
-        try {
-            await sendMail(templateId, email, { ...defaultTemplateData, ...data });
-            successCount++;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            errors.push(`${email}: ${message}`);
+    for (let i = 0; i < recipients.length; i += Config.SES_BULK_BATCH_SIZE) {
+        const batchEnd = i + Config.SES_BULK_BATCH_SIZE;
+        const batch = recipients.slice(i, batchEnd);
+
+        const command = new SendBulkEmailCommand({
+            FromEmailAddress: Config.SES_FROM_EMAIL,
+            DefaultContent: {
+                Template: {
+                    TemplateName: templateId,
+                    TemplateData: JSON.stringify(defaultTemplateData || {}),
+                },
+            },
+            BulkEmailEntries: batch.map(({ email, data }) => ({
+                Destination: {
+                    ToAddresses: [email],
+                },
+                ReplacementEmailContent: {
+                    ReplacementTemplate: {
+                        ReplacementTemplateData: JSON.stringify({ ...defaultTemplateData, ...data }),
+                    },
+                },
+            })),
+        });
+
+        for (let attempt = 0; attempt < Config.MAX_MAIL_SEND_RETRIES; attempt++) {
+            try {
+                const response = await getSESClient().send(command);
+
+                response.BulkEmailEntryResults?.forEach((result, index) => {
+                    if (result.Status === "SUCCESS") {
+                        successCount++;
+                    } else {
+                        const email = batch[index]!.email;
+                        errors.push(`${email}: ${result.Error ?? "Unknown error"}`);
+                    }
+                });
+
+                break;
+            } catch (error) {
+                if (isThrottlingError(error) && attempt < Config.MAX_MAIL_SEND_RETRIES - 1) {
+                    await setTimeout(getBackoffDuration(attempt));
+                } else {
+                    for (const { email } of batch) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        errors.push(`${email}: ${message}`);
+                    }
+                    break;
+                }
+            }
         }
     }
 
