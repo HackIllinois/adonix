@@ -21,7 +21,7 @@ import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { getAvatarUrlForId } from "./profile-lib";
+import { getAvatarUrlForId, assignTeamByUserId } from "./profile-lib";
 
 const profileRouter = Router();
 
@@ -190,6 +190,8 @@ profileRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
         }
 
+        const { team, teamBadge } = await assignTeamByUserId(userId);
+
         const profile: AttendeeProfile = {
             userId,
             discordTag,
@@ -201,6 +203,8 @@ profileRouter.post(
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
+            team,
+            teamBadge,
         };
 
         const newProfile = await Models.AttendeeProfile.create(profile);
