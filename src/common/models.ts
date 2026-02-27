@@ -26,11 +26,13 @@ import { RuntimeConfigModel } from "./runtimeConfig";
 import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
 import { Duel } from "../services/duel/duel-schemas";
 import { Flag, FlagsClaimed } from "../services/ctf/ctf-schemas";
+import { JudgeProfile } from "../services/judge/judge-schemas";
 
 // Groups for collections
 export enum Group {
     AUTH = "auth",
     EVENT = "event",
+    JUDGE = "judge",
     ADMISSION = "admission",
     ATTENDEE = "attendee",
     MENTOR = "mentor",
@@ -72,6 +74,10 @@ enum EventCollection {
 
 enum MentorCollection {
     OFFICE_HOURS = "officehours",
+    PROFILES = "profiles",
+}
+
+enum JudgeCollection {
     PROFILES = "profiles",
 }
 
@@ -177,6 +183,9 @@ export default class Models {
     // Mentor
     static MentorOfficeHours: Model<MentorOfficeHours> = getModel(MentorOfficeHours, Group.MENTOR, MentorCollection.OFFICE_HOURS);
     static MentorProfile: Model<MentorProfile> = getModel(MentorProfile, Group.MENTOR, MentorCollection.PROFILES);
+
+    // Judge
+    static JudgeProfile: Model<JudgeProfile> = getModel(JudgeProfile, Group.JUDGE, JudgeCollection.PROFILES);
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(
