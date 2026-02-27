@@ -7,6 +7,9 @@ import {
     CodeExpiredErrorSchema,
     ScanAttendeeRequestSchema,
     ScanAttendeeSchema,
+    ShiftAssignmentsSchema,
+    ShiftCandidatesSchema,
+    ShiftAssignmentUpdateRequestSchema,
     ShiftsAddRequestSchema,
     ShiftsSchema,
     StaffAttendanceRequestSchema,
@@ -358,6 +361,102 @@ staffRouter.post(
             },
             { upsert: true, new: true },
         );
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.get(
+    "/shift/candidates/",
+    specification({
+        method: "get",
+        path: "/staff/shift/candidates/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Gets staff shift assignment candidates from user_users (Google users)",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Google users eligible for staff shift assignment",
+                schema: ShiftCandidatesSchema,
+            },
+        },
+    }),
+    async (_req, res) => {
+        const users = await Models.UserInfo.find({
+            userId: { $regex: /^google/ },
+            email: { $regex: /@hackillinois\.org$/i },
+        }).sort({ name: 1 });
+
+        return res.status(StatusCode.SuccessOK).json({ users });
+    },
+);
+
+staffRouter.get(
+    "/shift/all/",
+    specification({
+        method: "get",
+        path: "/staff/shift/all/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Gets all staff shift assignments",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "All staff shift assignments",
+                schema: ShiftAssignmentsSchema,
+            },
+        },
+    }),
+    async (_req, res) => {
+        const assignments = await Models.StaffShift.find({}, { userId: 1, shifts: 1, _id: 0 });
+        return res.status(StatusCode.SuccessOK).json({ assignments });
+    },
+);
+
+staffRouter.post(
+    "/shift/add/",
+    specification({
+        method: "post",
+        path: "/staff/shift/add/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Adds a shift assignment for a specific user",
+        body: ShiftAssignmentUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully added shift assignment",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { userId, shiftId } = req.body;
+
+        await Models.StaffShift.updateOne({ userId }, { $addToSet: { shifts: shiftId } }, { upsert: true, new: true });
+
+        return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+staffRouter.post(
+    "/shift/remove/",
+    specification({
+        method: "post",
+        path: "/staff/shift/remove/",
+        tag: Tag.STAFF,
+        role: Role.ADMIN,
+        summary: "Removes a shift assignment for a specific user",
+        body: ShiftAssignmentUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully removed shift assignment",
+                schema: SuccessResponseSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { userId, shiftId } = req.body;
+
+        await Models.StaffShift.updateOne({ userId }, { $pull: { shifts: shiftId } }, { upsert: true, new: true });
 
         return res.status(StatusCode.SuccessOK).json({ success: true });
     },

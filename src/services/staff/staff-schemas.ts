@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CreateErrorAndSchema, SuccessResponseSchema } from "../../common/schemas";
 import { EventSchema } from "../event/event-schemas";
 import { StaffTeam } from "../staff-team/staff-team-schemas";
+import { UserInfoSchema } from "../user/user-schemas";
 
 export class StaffInfo {
     @prop({ required: true })
@@ -91,6 +92,24 @@ export const ShiftsSchema = z
 export const ShiftsAddRequestSchema = z.object({
     userId: UserIdSchema,
     shifts: z.array(EventIdSchema),
+});
+
+export const ShiftAssignmentSchema = z.object({
+    userId: UserIdSchema,
+    shifts: z.array(EventIdSchema),
+});
+
+export const ShiftAssignmentsSchema = z.object({
+    assignments: z.array(ShiftAssignmentSchema),
+});
+
+export const ShiftAssignmentUpdateRequestSchema = z.object({
+    userId: UserIdSchema,
+    shiftId: EventIdSchema,
+});
+
+export const ShiftCandidatesSchema = z.object({
+    users: z.array(UserInfoSchema),
 });
 
 export const StaffInfoRequestSchema = z.object({
