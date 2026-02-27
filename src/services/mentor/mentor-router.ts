@@ -63,7 +63,7 @@ mentorRouter.get(
         method: "get",
         path: "/mentor/info/",
         tag: Tag.MENTOR,
-        role: Role.USER,
+        role: null,
         summary: "Gets all mentor profiles",
         responses: {
             [StatusCode.SuccessOK]: {
