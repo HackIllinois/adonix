@@ -25,6 +25,17 @@ export class MentorOfficeHours {
     public attendees?: string[];
 }
 
+export class MentorProfile {
+    @prop({ required: true, unique: true })
+    public mentorId: string;
+
+    @prop({ required: true })
+    public name: string;
+
+    @prop({ required: true })
+    public description: string;
+}
+
 export const MentorIdSchema = z.string().openapi("MentorId", { example: "a1f25" });
 
 export const MentorCreateOfficeHoursRequest = z
@@ -52,6 +63,17 @@ export const MentorAttendanceSchema = z.object({
 export const MentorOfficeHoursSchema = MentorCreateOfficeHoursRequest.extend({
     mentorId: MentorIdSchema,
 }).openapi("MentorOfficeHours");
+
+export const MentorProfileCreateRequestSchema = z
+    .object({
+        name: z.string().openapi({ example: "Bob the Mentor" }),
+        description: z.string().openapi({ example: "I can help with React, Node.js, and product ideation." }),
+    })
+    .openapi("MentorProfileCreateRequest");
+
+export const MentorProfileSchema = MentorProfileCreateRequestSchema.extend({
+    mentorId: MentorIdSchema,
+}).openapi("MentorProfile");
 
 export const [MentorNotFoundError, MentorNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
