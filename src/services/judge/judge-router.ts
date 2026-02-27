@@ -15,7 +15,12 @@ import { SuccessResponseSchema } from "../../common/schemas";
 
 const judgeRouter = Router();
 
-function serializeJudgeProfile(profile: { _id: unknown; name: string; description: string; imageUrl: string }) {
+function serializeJudgeProfile(profile: { _id: unknown; name: string; description: string; imageUrl: string }): {
+    _id: string;
+    name: string;
+    description: string;
+    imageUrl: string;
+} {
     return {
         _id: String(profile._id),
         name: profile.name,
@@ -59,7 +64,7 @@ judgeRouter.get(
         method: "get",
         path: "/judge/info/",
         tag: Tag.JUDGE,
-        role: Role.USER,
+        role: null,
         summary: "Gets all judge profiles",
         responses: {
             [StatusCode.SuccessOK]: {
