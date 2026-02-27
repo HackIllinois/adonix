@@ -279,6 +279,9 @@ shopRouter.post(
             throw new Error("nonexistent profile");
         }
 
+        // Clear the user's order from the cart
+        await Models.ShopOrder.deleteOne({ userId });
+
         // Gather all item IDs from the order
         const itemIds = Array.from(order.items.keys());
 
@@ -325,9 +328,6 @@ shopRouter.post(
             totalPrice = totalPrice + quantity * item.price;
         }
         await updatePoints(order.userId, -totalPrice);
-
-        // Clear the user's order from the cart
-        await Models.ShopOrder.deleteOne({ userId });
 
         // Add order to history
         await Models.ShopHistory.create({
