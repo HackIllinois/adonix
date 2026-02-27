@@ -34,12 +34,16 @@ const TESTER_MENTOR_1 = {
     mentorId: "mentor-a",
     name: "Ada Lovelace",
     description: "Can help with algorithms and systems design.",
+    imageUrl:
+        "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character1.svg",
 };
 
 const TESTER_MENTOR_2 = {
     mentorId: "mentor-b",
     name: "Grace Hopper",
     description: "Can help with compilers and debugging.",
+    imageUrl:
+        "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character2.svg",
 };
 
 describe("POST /mentor/info", () => {
@@ -59,6 +63,8 @@ describe("POST /mentor/info", () => {
             .send({
                 name: "John Sanson",
                 description: "I can help with React and TypeScript.",
+                imageUrl:
+                    "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character3.svg",
             })
             .expect(StatusCode.SuccessCreated);
 
@@ -66,6 +72,10 @@ describe("POST /mentor/info", () => {
         expect(body).toHaveProperty("mentorId");
         expect(body).toHaveProperty("name", "John Sanson");
         expect(body).toHaveProperty("description", "I can help with React and TypeScript.");
+        expect(body).toHaveProperty(
+            "imageUrl",
+            "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character3.svg",
+        );
     });
 });
 
@@ -98,6 +108,8 @@ describe("PUT /mentor/info/id/", () => {
             .send({
                 name: "Ada",
                 description: "Updated bio",
+                imageUrl:
+                    "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character4.svg",
             })
             .expect(StatusCode.SuccessOK);
 
@@ -105,6 +117,8 @@ describe("PUT /mentor/info/id/", () => {
             mentorId: TESTER_MENTOR_1.mentorId,
             name: "Ada",
             description: "Updated bio",
+            imageUrl:
+                "https://raw.githubusercontent.com/HackIllinois/hackillinois/main/mobile/assets/profile/avatar-screen/avatars/character4.svg",
         });
     });
 });

@@ -43,12 +43,13 @@ mentorRouter.post(
         },
     }),
     async (req, res) => {
-        const { name, description } = req.body;
+        const { name, description, imageUrl } = req.body;
         const mentorId = crypto.randomBytes(Config.MENTOR_BYTES_GEN).toString("hex");
         const mentorProfile: MentorProfile = {
             mentorId,
             name,
             description,
+            imageUrl,
         };
 
         const created = await Models.MentorProfile.create(mentorProfile);
@@ -102,9 +103,9 @@ mentorRouter.put(
     }),
     async (req, res) => {
         const { id: mentorId } = req.params;
-        const { name, description } = req.body;
+        const { name, description, imageUrl } = req.body;
 
-        const updated = await Models.MentorProfile.findOneAndUpdate({ mentorId }, { name, description }, { new: true });
+        const updated = await Models.MentorProfile.findOneAndUpdate({ mentorId }, { name, description, imageUrl }, { new: true });
         if (!updated) {
             return res.status(StatusCode.ClientErrorNotFound).send(MentorNotFoundError);
         }
