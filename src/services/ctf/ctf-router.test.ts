@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "@jest/globals";
+import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { postAsAdmin, getAsStaff, delAsAdmin, postAsUser } from "../../common/testTools";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
@@ -105,16 +105,6 @@ describe("POST /ctf/submit/:id/", () => {
         });
     });
 
-    it("logs correct flag submission and awards points", async () => {
-        await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`).send({ answer: TEST_FLAG_1.flag }).expect(StatusCode.SuccessOK);
-
-        const updatedProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
-        expect(updatedProfile!.points).toEqual(TESTER_PROFILE.points + TEST_FLAG_1.points);
-
-        const claim = await Models.FlagsClaimed.findOne({ userId: TESTER_PROFILE.userId, flagId: TEST_FLAG_1.flagId });
-        expect(claim).not.toBeNull();
-    });
-
     it("errors for already claimed flag", async () => {
         await Models.FlagsClaimed.create({ userId: TESTER_PROFILE.userId, flagId: TEST_FLAG_1.flagId });
         await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`)
@@ -123,5 +113,60 @@ describe("POST /ctf/submit/:id/", () => {
 
         const profile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
         expect(profile!.points).toEqual(TESTER_PROFILE.points);
+    });
+
+    it("logs correct flag submission and awards points", async () => {
+        jest.useFakeTimers({ advanceTimers: true }).setSystemTime(new Date("2026-02-28T13:30:00-06:00"));
+
+        await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`).send({ answer: TEST_FLAG_1.flag }).expect(StatusCode.SuccessOK);
+
+        const updatedProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedProfile!.points).toEqual(TESTER_PROFILE.points + TEST_FLAG_1.points);
+
+        const claim = await Models.FlagsClaimed.findOne({ userId: TESTER_PROFILE.userId, flagId: TEST_FLAG_1.flagId });
+        expect(claim).not.toBeNull();
+
+        jest.useRealTimers();
+    });
+
+    it("errors when CTF has not started yet", async () => {
+        jest.useFakeTimers({ advanceTimers: true }).setSystemTime(new Date("2026-02-28T12:59:59-06:00"));
+
+        const response = await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`)
+            .send({ answer: TEST_FLAG_1.flag })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "CTFNotActive",
+            message: "CTF is not currently active",
+        });
+
+        jest.useRealTimers();
+    });
+
+    it("errors when CTF has already ended", async () => {
+        jest.useFakeTimers({ advanceTimers: true }).setSystemTime(new Date("2026-02-28T14:00:01-06:00"));
+
+        const response = await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`)
+            .send({ answer: TEST_FLAG_1.flag })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toMatchObject({
+            error: "CTFNotActive",
+            message: "CTF is not currently active",
+        });
+
+        jest.useRealTimers();
+    });
+
+    it("awards points when submitted during the active window", async () => {
+        jest.useFakeTimers({ advanceTimers: true }).setSystemTime(new Date("2026-02-28T13:30:00-06:00"));
+
+        await postAsUser(`/ctf/submit/${TEST_FLAG_1.flagId}/`).send({ answer: TEST_FLAG_1.flag }).expect(StatusCode.SuccessOK);
+
+        const updatedProfile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
+        expect(updatedProfile!.points).toEqual(TESTER_PROFILE.points + TEST_FLAG_1.points);
+
+        jest.useRealTimers();
     });
 });

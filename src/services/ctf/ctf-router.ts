@@ -13,6 +13,10 @@ import {
     FlagNotFoundError,
     FlagNotFoundErrorSchema,
     FlagSchema,
+    CTFNotActiveError,
+    CTFNotActiveErrorSchema,
+    CTF_START_TIME,
+    CTF_END_TIME,
 } from "./ctf-schemas";
 import { getAuthenticatedUser } from "../../common/auth";
 import { updatePoints } from "../profile/profile-lib";
@@ -127,6 +131,11 @@ CTFRouter.post(
                     description: "The flag has already been claimed",
                     schema: CTFAlreadyClaimedErrorSchema,
                 },
+                {
+                    id: CTFNotActiveError.error,
+                    description: "CTF is not currently active",
+                    schema: CTFNotActiveErrorSchema,
+                },
             ],
         },
     }),
@@ -149,6 +158,10 @@ CTFRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(CTFAlreadyClaimedError);
         }
         await Models.FlagsClaimed.create({ userId: user, flagId: flag.flagId });
+        const now = new Date();
+        if (now < CTF_START_TIME || now > CTF_END_TIME) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(CTFNotActiveError);
+        }
         await updatePoints(user, flag.points);
         return res.status(StatusCode.SuccessOK).json(flag);
     },

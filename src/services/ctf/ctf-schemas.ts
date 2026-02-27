@@ -2,6 +2,9 @@ import { prop, index } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema } from "../../common/schemas";
 
+export const CTF_START_TIME = new Date("2026-02-28T13:00:00-06:00"); // Saturday 2/28 1:00 PM CT
+export const CTF_END_TIME = new Date("2026-02-28T14:00:00-06:00"); // Saturday 2/28 2:00 PM CT
+
 export class Flag {
     @prop({ required: true, unique: true })
     public flagId: string;
@@ -62,4 +65,9 @@ export const [CTFSolveFailedError, CTFSolveFailedErrorSchema] = CreateErrorAndSc
 export const [CTFAlreadyClaimedError, CTFAlreadyClaimedErrorSchema] = CreateErrorAndSchema({
     error: "AlreadyClaimed",
     message: "You've already claimed this flag",
+});
+
+export const [CTFNotActiveError, CTFNotActiveErrorSchema] = CreateErrorAndSchema({
+    error: "CTFNotActive",
+    message: "CTF is not currently active",
 });
