@@ -176,6 +176,8 @@ export const EventSchema = z
         },
     });
 
+export const PublicEventSchema = EventSchema.omit({ eventId: true }).openapi("PublicEvent");
+
 export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).openapi("CreateEventRequest", {
     example: {
         name: "Awesome Event",
@@ -240,6 +242,12 @@ export const EventsSchema = z
         events: z.array(EventSchema),
     })
     .openapi("Events");
+
+export const PublicEventsSchema = z
+    .object({
+        events: z.array(PublicEventSchema),
+    })
+    .openapi("PublicEvents");
 
 export const EventAttendanceSchema = z
     .object({

@@ -16,6 +16,8 @@ import {
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
+    PublicEventSchema,
+    PublicEventsSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
@@ -259,7 +261,7 @@ eventsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The events",
-                schema: EventsSchema,
+                schema: PublicEventsSchema,
             },
         },
     }),
@@ -268,7 +270,7 @@ eventsRouter.get(
         const events = await Models.Event.find({
             eventType: { $ne: EventType.STAFF_SHIFT },
             ...restrictEventsByRoles(roles),
-        });
+        }).select("-eventId -_id"); // Excludes eventId
 
         return res.status(StatusCode.SuccessOK).send({ events });
     },
