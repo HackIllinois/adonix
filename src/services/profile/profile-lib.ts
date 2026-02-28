@@ -1,5 +1,6 @@
 import { AttendeeProfile } from "./profile-schemas";
 import Models from "../../common/models";
+import { updateTeamPoints } from "../attendee-team/attendee-team-lib";
 
 export const TIER_3_PTS = 10;
 export const TIER_2_PTS = 300;
@@ -36,6 +37,10 @@ export async function updatePoints(userId: string, amount: number): Promise<Atte
         ],
         { new: true },
     );
+
+    if (updated && updated.team) {
+        await updateTeamPoints(updated.team, amount);
+    }
 
     return updated;
 }

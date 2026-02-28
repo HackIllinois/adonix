@@ -127,12 +127,15 @@ duelRouter.put(
     async (req, res) => {
         const { id: duelId } = req.params;
         const sender = getAuthenticatedUser(req).id;
-        const updatePayload = JSON.stringify(req.body);
 
         const duel = await Models.Duel.findById(duelId);
+
         if (!duel) {
             return res.status(StatusCode.ClientErrorNotFound).send(DuelNotFoundError);
         }
+
+        req.body.hasFinished = duel.hasFinished;
+        const updatePayload = JSON.stringify(req.body);
 
         if (sender !== duel.hostId && sender !== duel.guestId) {
             return res.status(StatusCode.ClientErrorForbidden).send(DuelForbiddenError);
