@@ -129,6 +129,7 @@ duelRouter.put(
         const sender = getAuthenticatedUser(req).id;
 
         const duel = await Models.Duel.findById(duelId);
+
         if (!duel) {
             return res.status(StatusCode.ClientErrorNotFound).send(DuelNotFoundError);
         }
