@@ -243,12 +243,6 @@ export const EventsSchema = z
     })
     .openapi("Events");
 
-export const PublicEventsSchema = z
-    .object({
-        events: z.array(PublicEventSchema),
-    })
-    .openapi("PublicEvents");
-
 export const EventAttendanceSchema = z
     .object({
         present: z.array(z.tuple([z.string(), z.number(), z.number()])),
