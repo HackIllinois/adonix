@@ -84,6 +84,7 @@ const Config = {
     GOOGLE_OAUTH_SECRET: requireEnv("GOOGLE_OAUTH_SECRET"),
 
     JWT_SECRET: requireEnv("JWT_SECRET"),
+    EVENT_SECRET: requireEnv("EVENT_SECRET"),
 
     SYSTEM_ADMIN_LIST: requireEnv("SYSTEM_ADMINS").split(","),
 
