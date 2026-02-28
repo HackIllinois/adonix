@@ -16,7 +16,6 @@ import {
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
-    PublicEventSchema,
     PublicEventsSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";

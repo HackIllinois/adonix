@@ -176,7 +176,7 @@ export const EventSchema = z
         },
     });
 
-export const PublicEventSchema = EventSchema.omit({ eventId: true }).openapi("PublicEvent");
+export const PublicEventsSchema = EventSchema.omit({ eventId: true }).openapi("PublicEvent");
 
 export const CreateEventRequestSchema = EventSchema.omit({ eventId: true }).openapi("CreateEventRequest", {
     example: {
