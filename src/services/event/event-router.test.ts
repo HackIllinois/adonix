@@ -116,8 +116,12 @@ describe("GET /event/", () => {
         const attendeeResponse = await getAsAttendee(`/event/`).expect(StatusCode.SuccessOK);
         const staffResponse = await getAsStaff(`/event/`).expect(StatusCode.SuccessOK);
 
-        const { eventId: _, ...eventWithoutId } = PUBLIC_EVENT;
-        expect(JSON.parse(attendeeResponse.text).events).toMatchObject([eventWithoutId]);
+        expect(JSON.parse(attendeeResponse.text).events).toEqual([
+            expect.objectContaining({
+                ...PUBLIC_EVENT,
+                eventId: undefined,
+            }),
+        ]);
         expect(JSON.parse(staffResponse.text).events).toMatchObject([PUBLIC_EVENT]);
     });
 });
