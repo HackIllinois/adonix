@@ -116,7 +116,7 @@ describe("GET /event/", () => {
         const attendeeResponse = await getAsAttendee(`/event/`).expect(StatusCode.SuccessOK);
         const staffResponse = await getAsStaff(`/event/`).expect(StatusCode.SuccessOK);
 
-        const { eventId, ...eventWithoutId } = PUBLIC_EVENT;
+        const { eventId: _, ...eventWithoutId } = PUBLIC_EVENT;
         expect(JSON.parse(attendeeResponse.text).events).toMatchObject([eventWithoutId]);
         expect(JSON.parse(staffResponse.text).events).toMatchObject([PUBLIC_EVENT]);
     });
