@@ -10,6 +10,7 @@ import { UserAttendance, UserFollowing, UserInfo } from "./user-schemas";
 import { Role } from "../auth/auth-schemas";
 import { decryptQRCode } from "./user-lib";
 import { fail } from "assert";
+import { getEventQRCode } from "../event/event-lib";
 
 const TESTER_USER = {
     userId: TESTER.id,
@@ -342,7 +343,7 @@ describe("PUT /user/scan-event/", () => {
     it("works for an attendee without existing attendance", async () => {
         await Models.UserAttendance.deleteOne({ userId: TESTER.id });
         const response = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: TEST_EVENT.eventId })
+            .send({ eventId: getEventQRCode(TEST_EVENT.eventId) })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -365,7 +366,7 @@ describe("PUT /user/scan-event/", () => {
         });
 
         const duplicateResponse = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: TEST_EVENT.eventId })
+            .send({ eventId: getEventQRCode(TEST_EVENT.eventId) })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(duplicateResponse.text)).toHaveProperty("error", "AlreadyCheckedIn");
@@ -373,7 +374,7 @@ describe("PUT /user/scan-event/", () => {
 
     it("works for an attendee and returns already checked in if already checked in", async () => {
         const response = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: TEST_EVENT.eventId })
+            .send({ eventId: getEventQRCode(TEST_EVENT.eventId) })
             .expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -396,7 +397,7 @@ describe("PUT /user/scan-event/", () => {
         });
 
         const duplicateResponse = await putAsAttendee("/user/scan-event/")
-            .send({ eventId: TEST_EVENT.eventId })
+            .send({ eventId: getEventQRCode(TEST_EVENT.eventId) })
             .expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(duplicateResponse.text)).toHaveProperty("error", "AlreadyCheckedIn");

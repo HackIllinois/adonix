@@ -16,12 +16,13 @@ import {
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
+    EventQRCodeResponseSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
-import { restrictEventsByRoles } from "./event-lib";
+import { getEventQRCode, restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
 
@@ -477,6 +478,43 @@ eventsRouter.put(
         }
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+eventsRouter.get(
+    "/:id/qr",
+    specification({
+        method: "get",
+        path: "/event/{id}/qr",
+        tag: Tag.EVENT,
+        role: Role.STAFF,
+        summary: "Gets qr code of an event",
+        parameters: z.object({
+            id: EventIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The QR code",
+                schema: EventQRCodeResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the event specified.",
+                schema: EventNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: eventId } = req.params;
+
+        const event = await Models.Event.findOne({ eventId });
+
+        if (!event) {
+            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({
+            qrCode: getEventQRCode(eventId),
+        });
     },
 );
 

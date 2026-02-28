@@ -126,6 +126,11 @@ export const LocationSchema = z
     })
     .openapi("Location");
 
+export const EventQRCodeSchema = z.string().openapi("EventQRCode");
+export const EventQRCodeResponseSchema = z.object({
+    qrCode: EventQRCodeSchema,
+});
+
 export const EventSchema = z
     .object({
         eventId: EventIdSchema,

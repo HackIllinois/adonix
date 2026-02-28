@@ -21,6 +21,7 @@ import Models from "../../common/models";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { generateQRCode } from "./user-lib";
+import { getEventQRCode } from "../event/event-lib";
 
 const userRouter = Router();
 
@@ -292,8 +293,15 @@ userRouter.put(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const eventId = req.body.eventId;
 
+        // Ensure QR Code is valid & extract event id from it
+        const qrCode = req.body.eventId;
+        const eventId = qrCode.split(":")[0];
+        if (!eventId || getEventQRCode(eventId) != qrCode) {
+            return res.status(StatusCode.ClientErrorNotFound).json(EventNotFoundError);
+        }
+
+        // Then, check in
         const result = await performCheckIn(eventId, userId);
 
         if (!result.success) {

@@ -6,6 +6,7 @@ import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "..
 import { UserFollowing, UserInfo } from "../user/user-schemas";
 import { EventSchema } from "./event-schemas";
 import { z } from "zod";
+import { getEventQRCode } from "./event-lib";
 
 const TESTER_EVENT_FOLLOWERS = {
     eventId: "other-event",
@@ -372,5 +373,22 @@ describe("PUT /event/update-attendance/:id/", () => {
         });
         const count = updatedAttendance?.attendees?.filter((id) => id === "user3").length;
         expect(count).toBe(1);
+    });
+});
+
+describe("GET /event/:id/qr/", () => {
+    it("returns qr code for an event", async () => {
+        const response = await getAsStaff(`/event/${TESTER_EVENT_1.eventId}/qr/`).expect(StatusCode.SuccessOK);
+
+        const data = JSON.parse(response.text);
+        expect(data).toMatchObject({
+            qrCode: getEventQRCode(TESTER_EVENT_1.eventId),
+        });
+    });
+
+    it("fails for an attendee", async () => {
+        const response = await getAsAttendee(`/event/${TESTER_EVENT_1.eventId}/qr/`).expect(StatusCode.ClientErrorForbidden);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
     });
 });
