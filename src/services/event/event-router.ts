@@ -16,6 +16,7 @@ import {
     EventAttendeesSchema,
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
+    PublicEventsSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
@@ -259,16 +260,17 @@ eventsRouter.get(
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The events",
-                schema: EventsSchema,
+                schema: z.union([PublicEventsSchema, EventsSchema]),
             },
         },
     }),
     async (req, res) => {
         const roles = tryGetAuthenticatedUser(req)?.roles || [];
+        const includeIds = roles.includes(Role.ADMIN) || roles.includes(Role.STAFF);
         const events = await Models.Event.find({
             eventType: { $ne: EventType.STAFF_SHIFT },
             ...restrictEventsByRoles(roles),
-        });
+        }).select(includeIds ? "-_id" : "-eventId -_id"); // Excludes eventId for attendees
 
         return res.status(StatusCode.SuccessOK).send({ events });
     },

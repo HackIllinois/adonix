@@ -79,6 +79,23 @@ const TESTER_EVENT_2 = {
     isPro: false,
 } satisfies Event;
 
+const PUBLIC_EVENT = {
+    eventId: "test-public-event",
+    isStaff: false,
+    name: "meeting",
+    description: "meeting",
+    startTime: 9,
+    endTime: 10,
+    eventType: EventType.MEETING,
+    locations: [],
+    isAsync: false,
+    points: 0,
+    isPrivate: false,
+    isMandatory: true,
+    isPro: false,
+    menu: [],
+} satisfies Event;
+
 // Before each test, initialize database with tester & other users
 beforeEach(async () => {
     await Models.EventFollowers.create(TESTER_EVENT_FOLLOWERS);
@@ -90,6 +107,19 @@ beforeEach(async () => {
     await Models.UserInfo.create(TESTER_USER_INFO_3);
     await Models.Event.create(TESTER_EVENT_1);
     await Models.Event.create(TESTER_EVENT_2);
+});
+
+describe("GET /event/", () => {
+    it("returns events with correct eventId visibility", async () => {
+        await Models.Event.deleteMany({});
+        await Models.Event.create(PUBLIC_EVENT);
+        const attendeeResponse = await getAsAttendee(`/event/`).expect(StatusCode.SuccessOK);
+        const staffResponse = await getAsStaff(`/event/`).expect(StatusCode.SuccessOK);
+
+        const { eventId, ...eventWithoutId } = PUBLIC_EVENT;
+        expect(JSON.parse(attendeeResponse.text).events).toMatchObject([eventWithoutId]);
+        expect(JSON.parse(staffResponse.text).events).toMatchObject([PUBLIC_EVENT]);
+    });
 });
 
 describe("GET /event/followers/", () => {
