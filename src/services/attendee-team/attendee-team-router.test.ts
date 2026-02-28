@@ -15,13 +15,6 @@ const TEST_TEAM = {
     members: 10,
 } satisfies AttendeeTeam;
 
-const TEST_EMPTY_TEAM_1 = {
-    name: "A",
-    badge: "https://HackIllinois/team1.png",
-    points: 0,
-    members: 0,
-} satisfies AttendeeTeam;
-
 const TEST_EMPTY_TEAM_2 = {
     name: "B",
     badge: "https://HackIllinois/team2.png",
@@ -46,54 +39,6 @@ const TESTER_PROFILE = {
     shirtSize: "M",
     team: "Team 1",
     teamBadge: "https://HackIllinois/team1.png",
-} satisfies AttendeeProfile;
-
-const TEST_ASSIGN_1 = {
-    userId: "attendee1",
-    displayName: "TestDisplayName",
-    avatarUrl: "TestAvatarUrl",
-    discordTag: "TestTag",
-    points: 0,
-    pointsAccumulated: 0,
-    foodWave: 0,
-    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
-    shirtSize: "M",
-} satisfies AttendeeProfile;
-
-const TEST_ASSIGN_2 = {
-    userId: "attendee2",
-    displayName: "TestDisplayName",
-    avatarUrl: "TestAvatarUrl",
-    discordTag: "TestTag",
-    points: 0,
-    pointsAccumulated: 0,
-    foodWave: 0,
-    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
-    shirtSize: "M",
-} satisfies AttendeeProfile;
-
-const TEST_ASSIGN_3 = {
-    userId: "attendee3",
-    displayName: "TestDisplayName",
-    avatarUrl: "TestAvatarUrl",
-    discordTag: "TestTag",
-    points: 0,
-    pointsAccumulated: 0,
-    foodWave: 0,
-    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
-    shirtSize: "M",
-} satisfies AttendeeProfile;
-
-const TEST_ASSIGN_4 = {
-    userId: "attendee4",
-    displayName: "TestDisplayName",
-    avatarUrl: "TestAvatarUrl",
-    discordTag: "TestTag",
-    points: 0,
-    pointsAccumulated: 0,
-    foodWave: 0,
-    dietaryRestrictions: ["Vegetarian", "Peanut Allergy"],
-    shirtSize: "M",
 } satisfies AttendeeProfile;
 
 const TEST_EVENT = {
@@ -186,41 +131,5 @@ describe("DELETE /attendee-team/:id/", () => {
 
         const deleted = await Models.AttendeeTeam.findById(createdTeam.id);
         expect(deleted).toBeNull();
-    });
-});
-
-describe("POST /attendee-team/assign", () => {
-    beforeEach(async () => {
-        await Models.AttendeeProfile.deleteMany({});
-        await Models.AttendeeTeam.create(TEST_EMPTY_TEAM_1);
-        await Models.AttendeeTeam.create(TEST_EMPTY_TEAM_2);
-        await Models.AttendeeProfile.create(TEST_ASSIGN_1);
-        await Models.AttendeeProfile.create(TEST_ASSIGN_2);
-        await Models.AttendeeProfile.create(TEST_ASSIGN_3);
-        await Models.AttendeeProfile.create(TEST_ASSIGN_4);
-    });
-
-    it("successfully assigns attendees to teams", async () => {
-        const results = await postAsStaff("/attendee-team/assign").expect(StatusCode.SuccessOK);
-        const data = JSON.parse(results.text);
-
-        expect(Array.isArray(data)).toBe(true);
-        expect(data.length).toBe(2);
-
-        const updatedAttendees = await Models.AttendeeProfile.find({ team: { $exists: true }, teamBadge: { $exists: true } });
-        expect(updatedAttendees.length).toBe(4);
-
-        // Check that attendee teams are updated correctly
-        for (const attendee of updatedAttendees) {
-            expect([TEST_EMPTY_TEAM_1.name, TEST_EMPTY_TEAM_2.name]).toContain(attendee.team);
-            expect([TEST_EMPTY_TEAM_1.badge, TEST_EMPTY_TEAM_2.badge]).toContain(attendee.teamBadge);
-        }
-
-        const updatedTeams = await Models.AttendeeTeam.find();
-
-        // Check that teams are even and member counts are updated correctly
-        for (const team of updatedTeams) {
-            expect(team.members).toBe(2);
-        }
     });
 });

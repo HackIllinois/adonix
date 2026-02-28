@@ -1,6 +1,6 @@
 {
     "name": "adonix",
-    "version": "16.17.0",
+    "version": "16.22.1",
     "description": "HackIllinois' backend API",
     "keywords": [],
     "author": "Aydan Pirani <aydanpirani@gmail.com>",
@@ -26,7 +26,6 @@
         "@asteasolutions/zod-to-openapi": "^7.1.1",
         "@aws-sdk/client-s3": "3.984.0",
         "@aws-sdk/client-sesv2": "3.984.0",
-        "@aws-sdk/client-sqs": "3.984.0",
         "@aws-sdk/s3-presigned-post": "3.984.0",
         "@aws-sdk/s3-request-presigner": "3.984.0",
         "@typegoose/typegoose": "^11.8.0",

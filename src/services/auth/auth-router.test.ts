@@ -24,7 +24,6 @@ import { UserInfo } from "../user/user-schemas";
 import type * as MailLib from "../mail/mail-lib";
 import { Sponsor } from "../sponsor/sponsor-schemas";
 import { decodeJwtToken, generateJwtToken } from "../../common/auth";
-import { MailInfo, MailSendResults } from "../mail/mail-schemas";
 
 const USER = {
     userId: "user",
@@ -310,12 +309,7 @@ describe("POST /auth/sponsor/verify/", () => {
     beforeEach(async () => {
         // Mock successful send by default
         sendMail = mockSendMail();
-        sendMail.mockImplementation(
-            async (_) =>
-                ({
-                    messageId: "test-message-id",
-                }) satisfies MailSendResults,
-        );
+        sendMail.mockImplementation(async () => "");
     });
 
     it("sends an email with code", async () => {
@@ -333,13 +327,7 @@ describe("POST /auth/sponsor/verify/", () => {
         );
         expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
 
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            recipient: SPONSOR.email,
-            templateData: {
-                code: authCode?.code,
-            },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.SPONSOR_VERIFICATION_CODE, SPONSOR.email, { code: authCode?.code });
     });
 
     it("sends an email with code and updated existing", async () => {
@@ -358,13 +346,7 @@ describe("POST /auth/sponsor/verify/", () => {
         );
         expect(authCode?.expiry).toBeGreaterThan(Math.floor(Date.now() / 1000) + 60);
 
-        expect(sendMail).toBeCalledWith({
-            templateId: Templates.SPONSOR_VERIFICATION_CODE,
-            recipient: SPONSOR.email,
-            templateData: {
-                code: authCode?.code,
-            },
-        } satisfies MailInfo);
+        expect(sendMail).toBeCalledWith(Templates.SPONSOR_VERIFICATION_CODE, SPONSOR.email, { code: authCode?.code });
     });
 
     it("ignores an invalid email", async () => {

@@ -19,7 +19,6 @@ import {
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
 import { StatusCode } from "status-code-enum";
-import { MailInfo } from "../mail/mail-schemas";
 import Config, { Templates } from "../../common/config";
 import { sendBulkMail, sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
@@ -31,7 +30,7 @@ import {
     AttendeeProfileAlreadyExistsError,
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
-import { getAvatarUrlForId } from "../profile/profile-lib";
+import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
 
 const admissionRouter = Router();
 
@@ -135,6 +134,8 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
         }
 
+        const { team, teamBadge } = await assignTeamByUserId(userId);
+
         const profile = {
             userId,
             discordTag,
@@ -145,6 +146,8 @@ admissionRouter.put(
             foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
             dietaryRestrictions,
             shirtSize,
+            team,
+            teamBadge,
         };
 
         await Models.AttendeeProfile.create(profile);
@@ -166,13 +169,9 @@ admissionRouter.put(
         }
 
         // Send email
-        const mailInfo: MailInfo = {
-            templateId: Templates.RSVP_ACCEPTED,
-            recipient: application.email,
-            templateData: { name: application.preferredName || application.firstName },
-        };
-
-        await sendMail(mailInfo);
+        await sendMail(Templates.RSVP_ACCEPTED, application.email, {
+            name: application.preferredName || application.firstName,
+        });
 
         // We did it!
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
@@ -250,12 +249,7 @@ admissionRouter.put(
         }
 
         // Send email
-        const mailInfo: MailInfo = {
-            templateId: Templates.RSVP_DECLINED,
-            recipient: application.email,
-        };
-
-        await sendMail(mailInfo);
+        await sendMail(Templates.RSVP_DECLINED, application.email);
 
         // We did it!
         return res.status(StatusCode.SuccessOK).send(updatedDecision);
@@ -347,11 +341,11 @@ admissionRouter.put(
         await Models.AdmissionDecision.bulkWrite(operations.map((operation) => operation.update));
 
         // Send mail
-        await sendBulkMail({
-            templateId: Templates.STATUS_UPDATE,
-            defaultTemplateData: { name: "", isAccepted: false, reimbursementValue: false, pro: false },
-            recipientIds: operations.map((operation) => operation.recipient),
-        });
+        await sendBulkMail(
+            Templates.STATUS_UPDATE,
+            operations.map((operation) => operation.recipient),
+            { name: "", isAccepted: false, reimbursementValue: false, pro: false },
+        );
 
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },

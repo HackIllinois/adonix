@@ -15,12 +15,12 @@ const config: Config = {
         "^(\\.{1,2}/.*)\\.js$": "$1", // Transforms requires of ./src/x.js -> ./src/x
     },
 
-    resetModules: true,
-
     rootDir: "src",
 
     setupFiles: ["../jest.presetup.ts"],
     setupFilesAfterEnv: ["../jest.setup.ts"],
+
+    restoreMocks: true,
 
     testEnvironment: "node",
     testTimeout: 15 * 1000, // 15 second timeout per test

@@ -15,6 +15,7 @@ export enum Templates {
     RSVP_ACCEPTED = "2026_rsvp_accepted",
     RSVP_DECLINED = "2026_rsvp_declined",
     SPONSOR_VERIFICATION_CODE = "sponsor_verification_code",
+    GENERIC = "generic",
 }
 
 function requireEnv(name: string): string {
@@ -45,7 +46,7 @@ const ROOT_URL = ((): string => {
 
 const Config = {
     /* Environments */
-    TEST: false, // False by default, will be mocked over
+    TEST: !!process.env.JEST_WORKER_ID, // Auto-detect Jest test environment
     PROD,
     VERSION: getVersion(),
 
@@ -90,9 +91,6 @@ const Config = {
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
 
-    SQS_REGION: requireEnv("SQS_REGION"),
-    EMAIL_QUEUE_URL: requireEnv("EMAIL_QUEUE_URL"),
-
     // Runes and Riddles
     PUZZLE_EVENT_END_TIME: 1708812000,
     TRUE_VALUE: 1,
@@ -121,6 +119,10 @@ const Config = {
     MENTOR_OFFICE_HOURS_POINT_REWARD: 50,
 
     /* Limits */
+    MAX_MAIL_SEND_RETRIES: 10,
+    MIN_MAIL_BACKOFF_MS: 10,
+    MAX_MAIL_BACKOFF_MS: 5000,
+    SES_BULK_BATCH_SIZE: 50,
     LEADERBOARD_QUERY_LIMIT: 25,
     STATISTIC_LOG_FILTER_LIMIT: 25,
     MAX_RESUME_SIZE_BYTES: 2 * 1024 * 1024,

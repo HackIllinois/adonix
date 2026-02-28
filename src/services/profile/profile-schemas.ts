@@ -49,11 +49,11 @@ export class AttendeeProfile {
     @prop({ required: true })
     public shirtSize: string;
 
-    @prop({ required: false })
-    public team?: string;
+    @prop({ required: true })
+    public team: string;
 
-    @prop({ required: false })
-    public teamBadge?: string;
+    @prop({ required: true })
+    public teamBadge: string;
 
     @prop({ required: false })
     public tier?: number;
@@ -73,8 +73,8 @@ export const AttendeeProfileSchema = z
         foodWave: z.number(),
         dietaryRestrictions: z.array(z.string()),
         shirtSize: z.string(),
-        team: z.string().optional(),
-        teamBadge: z.string().optional(),
+        team: z.string(),
+        teamBadge: z.string(),
         tier: z.number().optional(),
         duelStats: DuelStatsSchema.optional(),
     })

@@ -4,7 +4,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 import { AuthCode, AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeProfile } from "../services/profile/profile-schemas";
 import { AdmissionDecision } from "../services/admission/admission-schemas";
-import { MentorOfficeHours } from "../services/mentor/mentor-schemas";
+import { MentorOfficeHours, MentorProfile } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
 import {
@@ -26,11 +26,13 @@ import { RuntimeConfigModel } from "./runtimeConfig";
 import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
 import { Duel } from "../services/duel/duel-schemas";
 import { Flag, FlagsClaimed } from "../services/ctf/ctf-schemas";
+import { JudgeProfile } from "../services/judge/judge-schemas";
 
 // Groups for collections
 export enum Group {
     AUTH = "auth",
     EVENT = "event",
+    JUDGE = "judge",
     ADMISSION = "admission",
     ATTENDEE = "attendee",
     MENTOR = "mentor",
@@ -72,6 +74,11 @@ enum EventCollection {
 
 enum MentorCollection {
     OFFICE_HOURS = "officehours",
+    PROFILES = "profiles",
+}
+
+enum JudgeCollection {
+    PROFILES = "profiles",
 }
 
 enum NewsletterCollection {
@@ -175,6 +182,10 @@ export default class Models {
 
     // Mentor
     static MentorOfficeHours: Model<MentorOfficeHours> = getModel(MentorOfficeHours, Group.MENTOR, MentorCollection.OFFICE_HOURS);
+    static MentorProfile: Model<MentorProfile> = getModel(MentorProfile, Group.MENTOR, MentorCollection.PROFILES);
+
+    // Judge
+    static JudgeProfile: Model<JudgeProfile> = getModel(JudgeProfile, Group.JUDGE, JudgeCollection.PROFILES);
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(
@@ -256,7 +267,11 @@ export default class Models {
 
 let initialized = false;
 export async function initializeDatabase(): Promise<void> {
-    if (!initialized || Config.TEST) {
+    if (Config.TEST) {
+        return;
+    }
+
+    if (!initialized) {
         initialized = true;
         const uri = `${Config.DB_URL}${Config.DB_PARAMS}`;
         await mongoose.connect(uri).catch((e) => {
