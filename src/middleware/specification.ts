@@ -12,6 +12,7 @@ export enum Tag {
     AUTH = "Auth",
     EVENT = "Event",
     JUDGE = "Judge",
+    JOB = "Job",
     MAIL = "Mail",
     MENTOR = "Mentor",
     NEWSLETTER = "Newsletter",

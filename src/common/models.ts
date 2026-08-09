@@ -27,12 +27,14 @@ import { AttendeeTeam } from "../services/attendee-team/attendee-team-schemas";
 import { Duel } from "../services/duel/duel-schemas";
 import { Flag, FlagsClaimed } from "../services/ctf/ctf-schemas";
 import { JudgeProfile } from "../services/judge/judge-schemas";
+import { JobPosting } from "../services/job/job-schemas";
 
 // Groups for collections
 export enum Group {
     AUTH = "auth",
     EVENT = "event",
     JUDGE = "judge",
+    JOB = "job",
     ADMISSION = "admission",
     ATTENDEE = "attendee",
     MENTOR = "mentor",
@@ -79,6 +81,10 @@ enum MentorCollection {
 
 enum JudgeCollection {
     PROFILES = "profiles",
+}
+
+enum JobCollection {
+    POSTINGS = "postings",
 }
 
 enum NewsletterCollection {
@@ -186,6 +192,9 @@ export default class Models {
 
     // Judge
     static JudgeProfile: Model<JudgeProfile> = getModel(JudgeProfile, Group.JUDGE, JudgeCollection.PROFILES);
+
+    // Job postings
+    static JobPosting: Model<JobPosting> = getModel(JobPosting, Group.JOB, JobCollection.POSTINGS);
 
     // Newsletter
     static NewsletterSubscription: Model<NewsletterSubscription> = getModel(

@@ -7,7 +7,6 @@ services:
       - ./package.json:/adonix/package.json:ro
       - ./tsconfig.json:/adonix/tsconfig.json:ro
       - ./jest.config.ts:/adonix/jest.config.ts:ro
-      - /adonix/node_modules
     env_file:
       - .env
     environment:
