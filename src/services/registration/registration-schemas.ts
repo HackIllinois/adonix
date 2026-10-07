@@ -1,8 +1,19 @@
-import { prop } from "@typegoose/typegoose";
+import { index, prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 import Config from "../../common/config";
 
+export class ApplicationReview {
+    @prop({ required: true })
+    public reviewerId: string;
+
+    // null = assigned to the reviewer but not yet scored
+    @prop({ type: Number, default: null })
+    public score: number | null;
+}
+
+@index({ reviewCount: 1 })
+@index({ "reviews.reviewerId": 1, "reviews.score": 1 })
 export class RegistrationApplicationSubmitted {
     @prop({ required: true, index: true })
     public userId: string;
@@ -90,6 +101,14 @@ export class RegistrationApplicationSubmitted {
 
     @prop({ required: true })
     mlhNewsletter: boolean;
+
+    // Staff reviews - hidden by default so they are never sent to applicants
+    @prop({ type: () => [ApplicationReview], _id: false, default: [], select: false })
+    public reviews?: ApplicationReview[];
+
+    // Always equal to reviews.length, kept so we can sort by it atomically
+    @prop({ default: 0, select: false })
+    public reviewCount?: number;
 }
 
 export class RegistrationApplicationDraft {
@@ -304,6 +323,19 @@ export const RegistrationApplicationSubmittedSchema = RegistrationApplicationSub
     },
 });
 
+const MIN_REVIEW_SCORE = 1;
+const MAX_REVIEW_SCORE = 5;
+
+export const ApplicationReviewRequestSchema = z
+    .object({
+        score: z.number().int().min(MIN_REVIEW_SCORE).max(MAX_REVIEW_SCORE),
+    })
+    .openapi("ApplicationReviewRequest", {
+        example: {
+            score: 4,
+        },
+    });
+
 export const RegistrationChallengeStatusSchema = z
     .object({
         inputFileId: z.string(),
@@ -327,6 +359,11 @@ export const RegistrationChallengeSolveSchema = z
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
     message: "Couldn't find your registration",
+});
+
+export const [NoApplicationsToReviewError, NoApplicationsToReviewErrorSchema] = CreateErrorAndSchema({
+    error: "NoApplicationsToReview",
+    message: "There are no applications left for you to review",
 });
 
 export const [RegistrationMissingProError, RegistrationMissingProErrorSchema] = CreateErrorAndSchema({

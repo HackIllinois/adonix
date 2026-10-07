@@ -341,3 +341,175 @@ describe("PUT /admission/decline/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyRSVPed");
     });
 });
+
+// An application that other staff have already reviewed twice
+const REVIEWED_APPLICATION = {
+    ...TESTER_APPLICATION,
+    userId: "reviewed-applicant",
+    reviews: [
+        { reviewerId: "other-staff-1", score: 3 },
+        { reviewerId: "other-staff-2", score: 4 },
+    ],
+    reviewCount: 2,
+} satisfies RegistrationApplicationSubmitted;
+
+async function getReviews(userId: string): Promise<Pick<RegistrationApplicationSubmitted, "reviews" | "reviewCount">> {
+    const application = await Models.RegistrationApplicationSubmitted.findOne({ userId })
+        .select("+reviews +reviewCount")
+        .lean();
+    return { reviews: application?.reviews, reviewCount: application?.reviewCount };
+}
+
+describe("GET /admission/review/next/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.create(REVIEWED_APPLICATION);
+    });
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await getAsUser("/admission/review/next/").expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("assigns the least reviewed application", async () => {
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject(TESTER_APPLICATION);
+
+        expect(await getReviews(TESTER.id)).toMatchObject({
+            reviews: [{ reviewerId: TESTER.id, score: null }],
+            reviewCount: 1,
+        });
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 2 });
+    });
+
+    it("does not include reviews in the response", async () => {
+        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: TESTER.id });
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        const body = JSON.parse(response.text);
+        expect(body).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+        expect(body).not.toHaveProperty("reviews");
+        expect(body).not.toHaveProperty("reviewCount");
+    });
+
+    it("returns the same application until it is scored", async () => {
+        const first = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        const second = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(second.text)).toHaveProperty("userId", JSON.parse(first.text).userId);
+        expect(await getReviews(TESTER.id)).toMatchObject({ reviewCount: 1 });
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 2 });
+    });
+
+    it("skips applications the reviewer has already scored", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: TESTER.id },
+            { reviews: [{ reviewerId: TESTER.id, score: 5 }], reviewCount: 1 },
+        );
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 3 });
+    });
+
+    it("moves on to the next application after scoring", async () => {
+        const first = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${JSON.parse(first.text).userId}/`).send({ score: 2 }).expect(StatusCode.SuccessOK);
+
+        const second = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(second.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+    });
+
+    it("gives not found when the reviewer has scored every application", async () => {
+        await Models.RegistrationApplicationSubmitted.updateMany(
+            {},
+            { $push: { reviews: { reviewerId: TESTER.id, score: 5 } }, $inc: { reviewCount: 1 } },
+        );
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NoApplicationsToReview");
+    });
+});
+
+describe("PUT /admission/review/:id/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.create(REVIEWED_APPLICATION);
+    });
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await putAsUser(`/admission/review/${TESTER.id}/`)
+            .send({ score: 3 })
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("scores an assigned application", async () => {
+        await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4 }).expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(TESTER.id)).toMatchObject({
+            reviews: [{ reviewerId: TESTER.id, score: 4 }],
+            reviewCount: 1,
+        });
+    });
+
+    it("adds a review to an application that was not assigned", async () => {
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 5 }).expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({
+            reviews: [...REVIEWED_APPLICATION.reviews, { reviewerId: TESTER.id, score: 5 }],
+            reviewCount: 3,
+        });
+    });
+
+    it("replaces the score instead of adding another review when submitted again", async () => {
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 5 }).expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 1 }).expect(StatusCode.SuccessOK);
+
+        const { reviews, reviewCount } = await getReviews(REVIEWED_APPLICATION.userId);
+        expect(reviews).toHaveLength(3);
+        expect(reviewCount).toBe(3);
+        expect(reviews).toMatchObject([...REVIEWED_APPLICATION.reviews, { reviewerId: TESTER.id, score: 1 }]);
+    });
+
+    it.each([0, 6, 2.5, "3"])("rejects an invalid score of %p", async (score) => {
+        const response = await putAsStaff(`/admission/review/${TESTER.id}/`)
+            .send({ score })
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+        expect(await getReviews(TESTER.id)).toMatchObject({ reviews: [], reviewCount: 0 });
+    });
+
+    it("gives not found for an application that does not exist", async () => {
+        const response = await putAsStaff("/admission/review/nonexistent-user/")
+            .send({ score: 3 })
+            .expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+});
+
+describe("GET /admission/review/", () => {
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await getAsUser("/admission/review/").expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns the count and average of scored reviews for each application", async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            reviews: [...REVIEWED_APPLICATION.reviews, { reviewerId: "other-staff-3", score: null }],
+            reviewCount: 3,
+        });
+
+        const response = await getAsStaff("/admission/review/").expect(StatusCode.SuccessOK);
+        const summaries = JSON.parse(response.text);
+
+        expect(summaries).toHaveLength(2);
+        expect(summaries).toEqual(
+            expect.arrayContaining([
+                { userId: REVIEWED_APPLICATION.userId, reviewCount: 2, averageScore: 3.5 },
+                { userId: TESTER.id, reviewCount: 0, averageScore: null },
+            ]),
+        );
+    });
+});

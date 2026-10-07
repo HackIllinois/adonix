@@ -15,6 +15,8 @@ import {
     AdmissionDecisionUpdatesSchema,
     ProfileDataRequiredError,
     ProfileDataRequiredErrorSchema,
+    ApplicationReviewSummariesSchema,
+    ApplicationReviewSummary,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -24,7 +26,14 @@ import { sendBulkMail, sendMail } from "../mail/mail-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
-import { RegistrationNotFoundError, RegistrationNotFoundErrorSchema } from "../registration/registration-schemas";
+import {
+    ApplicationReviewRequestSchema,
+    NoApplicationsToReviewError,
+    NoApplicationsToReviewErrorSchema,
+    RegistrationApplicationSubmittedSchema,
+    RegistrationNotFoundError,
+    RegistrationNotFoundErrorSchema,
+} from "../registration/registration-schemas";
 import {
     AttendeeProfileCreateRequestSchema,
     AttendeeProfileAlreadyExistsError,
@@ -434,6 +443,155 @@ admissionRouter.get(
         }
 
         return res.status(StatusCode.SuccessOK).send(admissionDecision);
+    },
+);
+
+admissionRouter.get(
+    "/review/",
+    specification({
+        method: "get",
+        path: "/admission/review/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Gets the number of reviews and average score for every submitted application",
+        description: "Only scored reviews are counted - applications assigned to a reviewer but not yet scored are excluded.",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The review summaries",
+                schema: ApplicationReviewSummariesSchema,
+            },
+        },
+    }),
+    async (_req, res) => {
+        const summaries = await Models.RegistrationApplicationSubmitted.aggregate<ApplicationReviewSummary>([
+            {
+                $project: {
+                    _id: 0,
+                    userId: 1,
+                    scores: {
+                        $filter: {
+                            input: { $ifNull: ["$reviews.score", []] },
+                            cond: { $isNumber: "$$this" },
+                        },
+                    },
+                },
+            },
+            {
+                $project: {
+                    userId: 1,
+                    reviewCount: { $size: "$scores" },
+                    averageScore: { $avg: "$scores" },
+                },
+            },
+        ]);
+        return res.status(StatusCode.SuccessOK).send(summaries);
+    },
+);
+
+admissionRouter.get(
+    "/review/next/",
+    specification({
+        method: "get",
+        path: "/admission/review/next/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Gets the next application for the currently authenticated staff member to review",
+        description:
+            "If you were already assigned an application and haven't scored it yet, that application is returned again.\n" +
+            "Otherwise, you are assigned the application with the fewest reviews that you haven't reviewed.",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The application to review",
+                schema: RegistrationApplicationSubmittedSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "No applications left to review",
+                schema: NoApplicationsToReviewErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: reviewerId } = getAuthenticatedUser(req);
+
+        // Resume the application they were already assigned, if any
+        const pending = await Models.RegistrationApplicationSubmitted.findOne({
+            reviews: { $elemMatch: { reviewerId, score: null } },
+        }).lean();
+        if (pending) {
+            return res.status(StatusCode.SuccessOK).send(pending);
+        }
+
+        // Otherwise, atomically assign the least reviewed application they haven't reviewed
+        const assigned = await Models.RegistrationApplicationSubmitted.findOneAndUpdate(
+            { "reviews.reviewerId": { $ne: reviewerId } },
+            { $push: { reviews: { reviewerId, score: null } }, $inc: { reviewCount: 1 } },
+            { sort: { reviewCount: 1 }, new: true, lean: true },
+        );
+        if (!assigned) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NoApplicationsToReviewError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send(assigned);
+    },
+);
+
+admissionRouter.put(
+    "/review/:id/",
+    specification({
+        method: "put",
+        path: "/admission/review/{id}/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Submits the currently authenticated staff member's score for the specified user's application",
+        description: "Submitting again for the same application replaces your previous score.",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        body: ApplicationReviewRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "Successfully submitted",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: reviewerId } = getAuthenticatedUser(req);
+        const { id: userId } = req.params;
+        const { score } = req.body;
+
+        // Update their existing review (assigned or already scored)
+        const updated = await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId, "reviews.reviewerId": reviewerId },
+            { $set: { "reviews.$.score": score } },
+        );
+        if (updated.matchedCount > 0) {
+            return res.status(StatusCode.SuccessOK).send({ success: true });
+        }
+
+        // Otherwise add a new review, guarded so a concurrent request can't add a second one
+        const added = await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId, "reviews.reviewerId": { $ne: reviewerId } },
+            { $push: { reviews: { reviewerId, score } }, $inc: { reviewCount: 1 } },
+        );
+        if (added.matchedCount > 0) {
+            return res.status(StatusCode.SuccessOK).send({ success: true });
+        }
+
+        // Neither matched: either there is no application, or a concurrent request just added the review
+        const exists = await Models.RegistrationApplicationSubmitted.exists({ userId });
+        if (!exists) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId, "reviews.reviewerId": reviewerId },
+            { $set: { "reviews.$.score": score } },
+        );
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
 

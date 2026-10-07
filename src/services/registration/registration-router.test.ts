@@ -85,6 +85,19 @@ describe("GET /registration/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
+    it("should not include staff reviews", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: TESTER.id },
+            { reviews: [{ reviewerId: "some-staff", score: 1 }], reviewCount: 1 },
+        );
+
+        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
+        const body = JSON.parse(response.text);
+        expect(body).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(body).not.toHaveProperty("reviews");
+        expect(body).not.toHaveProperty("reviewCount");
+    });
+
     it("should not retrieve draft registration even when draft exists", async () => {
         await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
 
