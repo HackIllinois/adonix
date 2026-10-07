@@ -164,6 +164,35 @@ registrationRouter.get(
     },
 );
 
+registrationRouter.get(
+    "/all/:type/",
+    specification({
+        method: "get",
+        path: "/registration/all/{type}",
+        tag: Tag.REGISTRATION,
+        role: Role.STAFF,
+        summary: "Gets all submitted or draft registrations",
+        parameters: z.object({
+            type: z.enum(["submitted", "draft"]),
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "All registrations of the specified type",
+                schema: z.array(RegistrationApplicationDraftSchema),
+            },
+        },
+    }),
+    async (req, res) => {
+        const { type } = req.params;
+
+        const registrations = type === "submitted"
+        ? await Models.RegistrationApplicationSubmitted.find()
+        : await Models.RegistrationApplicationDraft.find();
+
+        return res.status(StatusCode.SuccessOK).send(registrations);
+    },
+);
+
 registrationRouter.put(
     "/draft/",
     specification({
