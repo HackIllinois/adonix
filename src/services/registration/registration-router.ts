@@ -185,9 +185,10 @@ registrationRouter.get(
     async (req, res) => {
         const { type } = req.params;
 
-        const registrations = type === "submitted"
-        ? await Models.RegistrationApplicationSubmitted.find()
-        : await Models.RegistrationApplicationDraft.find();
+        const registrations =
+            type === "submitted"
+                ? await Models.RegistrationApplicationSubmitted.find()
+                : await Models.RegistrationApplicationDraft.find();
 
         return res.status(StatusCode.SuccessOK).send(registrations);
     },
