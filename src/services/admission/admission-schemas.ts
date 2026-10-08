@@ -67,6 +67,18 @@ export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
     });
 export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
 
+export const ApplicationReviewSummarySchema = z
+    .object({
+        userId: UserIdSchema,
+        reviewCount: z.number().openapi({ example: 3 }),
+        averageScore: z.number().nullable().openapi({ example: 4.33 }),
+    })
+    .openapi("ApplicationReviewSummary");
+
+export type ApplicationReviewSummary = z.infer<typeof ApplicationReviewSummarySchema>;
+
+export const ApplicationReviewSummariesSchema = z.array(ApplicationReviewSummarySchema);
+
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",
     message: "You weren't accepted, you cannot accept/decline this decision",
