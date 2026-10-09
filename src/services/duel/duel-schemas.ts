@@ -83,11 +83,11 @@ export const DuelCreateRequestSchema = DuelSchema.pick({
 
 export type DuelCreateRequest = z.infer<typeof DuelCreateRequestSchema>;
 
-export const DuelUpdateRequestSchema = DuelSchema.omit({
-    hostId: true,
-    guestId: true,
-    pendingUpdates: true,
-    isScoringDuel: true,
+export const DuelUpdateRequestSchema = DuelSchema.pick({
+    hostScore: true,
+    guestScore: true,
+    hostHasDisconnected: true,
+    guestHasDisconnected: true,
 })
     .partial()
     .openapi("DuelUpdateRequest", {
@@ -96,7 +96,6 @@ export const DuelUpdateRequestSchema = DuelSchema.omit({
             guestScore: 1,
             hostHasDisconnected: false,
             guestHasDisconnected: false,
-            hasFinished: false,
         },
     });
 

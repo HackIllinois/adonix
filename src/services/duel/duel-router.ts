@@ -134,10 +134,6 @@ duelRouter.put(
             return res.status(StatusCode.ClientErrorNotFound).send(DuelNotFoundError);
         }
 
-        if (req.body.hasFinished) {
-            req.body.hasFinished = duel.hasFinished;
-        }
-
         const updatePayload = JSON.stringify(req.body);
 
         if (sender !== duel.hostId && sender !== duel.guestId) {
