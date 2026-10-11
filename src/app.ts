@@ -28,6 +28,7 @@ import attendeeTeamRouter from "./services/attendee-team/attendee-team-router";
 import duelRouter from "./services/duel/duel-router";
 import CTFRouter from "./services/ctf/ctf-router";
 import devRouter from "./services/dev/dev-router";
+import { ensureSeedUsers } from "./services/dev/dev-lib";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -144,6 +145,12 @@ export async function startServer(): Promise<Express.Application> {
 
     // Connect database
     await initializeDatabase();
+
+    // Seed a few test users on first boot in dev. Skips existing users without
+    // touching their data. Never runs in production or tests.
+    if (!Config.PROD && !Config.TEST) {
+        await ensureSeedUsers();
+    }
 
     // Start logging
     initializeStatisticLogging();

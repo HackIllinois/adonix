@@ -7,6 +7,8 @@ export const DEFAULT_SEED_PREFIX = "githubseed";
 export const DEFAULT_SEED_COUNT = 1;
 // eslint-disable-next-line no-magic-numbers
 export const MAX_SEED_COUNT = 20;
+// eslint-disable-next-line no-magic-numbers
+export const BOOT_SEED_COUNT = 3;
 
 export const SeedPrefixSchema = z
     .string()
