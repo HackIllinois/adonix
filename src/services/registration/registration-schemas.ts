@@ -10,6 +10,9 @@ export class ApplicationReview {
     // null = assigned to the reviewer but not yet scored
     @prop({ type: Number, default: null })
     public score: number | null;
+
+    @prop({ required: false })
+    public comment?: string;
 }
 
 @index({ reviewCount: 1 })
@@ -329,12 +332,26 @@ const MAX_REVIEW_SCORE = 5;
 export const ApplicationReviewRequestSchema = z
     .object({
         score: z.number().int().min(MIN_REVIEW_SCORE).max(MAX_REVIEW_SCORE),
+        comment: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
     })
     .openapi("ApplicationReviewRequest", {
         example: {
             score: 4,
+            comment: "Strong essays, clear interest in the event",
         },
     });
+
+export const ApplicationReviewSchema = ApplicationReviewRequestSchema.extend({
+    reviewerId: UserIdSchema,
+}).openapi("ApplicationReview", {
+    example: {
+        reviewerId: "google1234",
+        score: 4,
+        comment: "Strong essays, clear interest in the event",
+    },
+});
+
+export const ApplicationReviewsSchema = z.array(ApplicationReviewSchema);
 
 export const RegistrationChallengeStatusSchema = z
     .object({

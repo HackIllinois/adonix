@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
-import { Templates } from "../../common/config";
+import Config, { Templates } from "../../common/config";
 import { RegistrationApplicationSubmitted } from "../registration/registration-schemas";
 import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
@@ -484,6 +484,92 @@ describe("PUT /admission/review/:id/", () => {
         const response = await putAsStaff("/admission/review/nonexistent-user/")
             .send({ score: 3 })
             .expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+
+    it("stores an optional comment with the review", async () => {
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4, comment: "Great essays" }).expect(StatusCode.SuccessOK);
+
+        const { reviews } = await getReviews(TESTER.id);
+        expect(reviews).toEqual([{ reviewerId: TESTER.id, score: 4, comment: "Great essays" }]);
+    });
+
+    it("stores no comment when none is given", async () => {
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4 }).expect(StatusCode.SuccessOK);
+
+        const { reviews } = await getReviews(TESTER.id);
+        expect(reviews).toEqual([{ reviewerId: TESTER.id, score: 4 }]);
+    });
+
+    it("stores a comment on an assigned application", async () => {
+        await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 2, comment: "Too short" }).expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(TESTER.id)).toEqual({
+            reviews: [{ reviewerId: TESTER.id, score: 2, comment: "Too short" }],
+            reviewCount: 1,
+        });
+    });
+
+    it("replaces the comment when submitted again", async () => {
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4, comment: "First" }).expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 5, comment: "Second" }).expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(TESTER.id)).toEqual({
+            reviews: [{ reviewerId: TESTER.id, score: 5, comment: "Second" }],
+            reviewCount: 1,
+        });
+    });
+
+    it("removes the comment when submitted again without one", async () => {
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4, comment: "First" }).expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4 }).expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(TESTER.id)).toEqual({
+            reviews: [{ reviewerId: TESTER.id, score: 4 }],
+            reviewCount: 1,
+        });
+    });
+
+    it("rejects a comment that is too long", async () => {
+        const response = await putAsStaff(`/admission/review/${TESTER.id}/`)
+            .send({ score: 4, comment: "a".repeat(Config.MAX_ESSAY_LENGTH + 1) })
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+});
+
+describe("GET /admission/review/:id/", () => {
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await getAsUser(`/admission/review/${TESTER.id}/`).expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns scored reviews with their comments and leaves out pending ones", async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            reviews: [
+                { reviewerId: "other-staff-1", score: 3, comment: "Decent" },
+                { reviewerId: "other-staff-2", score: 4 },
+                { reviewerId: "other-staff-3", score: null },
+            ],
+            reviewCount: 3,
+        });
+
+        const response = await getAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toEqual([
+            { reviewerId: "other-staff-1", score: 3, comment: "Decent" },
+            { reviewerId: "other-staff-2", score: 4 },
+        ]);
+    });
+
+    it("returns an empty list for an application with no reviews", async () => {
+        const response = await getAsStaff(`/admission/review/${TESTER.id}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toEqual([]);
+    });
+
+    it("gives not found for an application that does not exist", async () => {
+        const response = await getAsStaff("/admission/review/nonexistent-user/").expect(StatusCode.ClientErrorNotFound);
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });

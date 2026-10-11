@@ -28,6 +28,7 @@ import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import {
     ApplicationReviewRequestSchema,
+    ApplicationReviewsSchema,
     NoApplicationsToReviewError,
     NoApplicationsToReviewErrorSchema,
     RegistrationApplicationSubmittedSchema,
@@ -542,8 +543,10 @@ admissionRouter.put(
         path: "/admission/review/{id}/",
         tag: Tag.ADMISSION,
         role: Role.STAFF,
-        summary: "Submits the currently authenticated staff member's score for the specified user's application",
-        description: "Submitting again for the same application replaces your previous score.",
+        summary: "Submits the currently authenticated staff member's review for the specified user's application",
+        description:
+            "Submitting again for the same application replaces your previous review, " +
+            "so leaving out the comment removes any comment you previously made.",
         parameters: z.object({
             id: UserIdSchema,
         }),
@@ -563,11 +566,17 @@ admissionRouter.put(
         const { id: reviewerId } = getAuthenticatedUser(req);
         const { id: userId } = req.params;
         const { score } = req.body;
+        const comment = req.body.comment || undefined;
+
+        // The request replaces the whole review, so no comment means remove the old one
+        const replaceReview = comment
+            ? { $set: { "reviews.$.score": score, "reviews.$.comment": comment } }
+            : { $set: { "reviews.$.score": score }, $unset: { "reviews.$.comment": "" } };
 
         // Update their existing review (assigned or already scored)
         const updated = await Models.RegistrationApplicationSubmitted.updateOne(
             { userId, "reviews.reviewerId": reviewerId },
-            { $set: { "reviews.$.score": score } },
+            replaceReview,
         );
         if (updated.matchedCount > 0) {
             return res.status(StatusCode.SuccessOK).send({ success: true });
@@ -576,7 +585,7 @@ admissionRouter.put(
         // Otherwise add a new review, guarded so a concurrent request can't add a second one
         const added = await Models.RegistrationApplicationSubmitted.updateOne(
             { userId, "reviews.reviewerId": { $ne: reviewerId } },
-            { $push: { reviews: { reviewerId, score } }, $inc: { reviewCount: 1 } },
+            { $push: { reviews: { reviewerId, score, comment } }, $inc: { reviewCount: 1 } },
         );
         if (added.matchedCount > 0) {
             return res.status(StatusCode.SuccessOK).send({ success: true });
@@ -587,11 +596,46 @@ admissionRouter.put(
         if (!exists) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
-        await Models.RegistrationApplicationSubmitted.updateOne(
-            { userId, "reviews.reviewerId": reviewerId },
-            { $set: { "reviews.$.score": score } },
-        );
+        await Models.RegistrationApplicationSubmitted.updateOne({ userId, "reviews.reviewerId": reviewerId }, replaceReview);
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+admissionRouter.get(
+    "/review/:id/",
+    specification({
+        method: "get",
+        path: "/admission/review/{id}/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Gets every staff member's review of the specified user's application",
+        description: "Only scored reviews are returned - reviewers who were assigned but haven't scored yet are excluded.",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The reviews",
+                schema: ApplicationReviewsSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = req.params;
+
+        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("+reviews").lean();
+        if (!application) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+
+        const reviews = (application.reviews ?? []).flatMap(({ reviewerId, score, comment }) =>
+            score === null ? [] : [{ reviewerId, score, comment }],
+        );
+        return res.status(StatusCode.SuccessOK).send(reviews);
     },
 );
 
