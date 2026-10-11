@@ -354,9 +354,7 @@ const REVIEWED_APPLICATION = {
 } satisfies RegistrationApplicationSubmitted;
 
 async function getReviews(userId: string): Promise<Pick<RegistrationApplicationSubmitted, "reviews" | "reviewCount">> {
-    const application = await Models.RegistrationApplicationSubmitted.findOne({ userId })
-        .select("+reviews +reviewCount")
-        .lean();
+    const application = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("+reviews +reviewCount").lean();
     return { reviews: application?.reviews, reviewCount: application?.reviewCount };
 }
 
@@ -413,7 +411,9 @@ describe("GET /admission/review/next/", () => {
 
     it("moves on to the next application after scoring", async () => {
         const first = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
-        await putAsStaff(`/admission/review/${JSON.parse(first.text).userId}/`).send({ score: 2 }).expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${JSON.parse(first.text).userId}/`)
+            .send({ score: 2 })
+            .expect(StatusCode.SuccessOK);
 
         const second = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
         expect(JSON.parse(second.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
@@ -488,7 +488,9 @@ describe("PUT /admission/review/:id/", () => {
     });
 
     it("stores an optional comment with the review", async () => {
-        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4, comment: "Great essays" }).expect(StatusCode.SuccessOK);
+        await putAsStaff(`/admission/review/${TESTER.id}/`)
+            .send({ score: 4, comment: "Great essays" })
+            .expect(StatusCode.SuccessOK);
 
         const { reviews } = await getReviews(TESTER.id);
         expect(reviews).toEqual([{ reviewerId: TESTER.id, score: 4, comment: "Great essays" }]);
