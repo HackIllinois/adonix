@@ -464,6 +464,8 @@ admissionRouter.get(
         },
     }),
     async (_req, res) => {
+        const MIN_REVIEW_SCORE = 1;
+        const MAX_REVIEW_SCORE = 5;
         const summaries = await Models.RegistrationApplicationSubmitted.aggregate<ApplicationReviewSummary>([
             {
                 $project: {
@@ -472,7 +474,13 @@ admissionRouter.get(
                     scores: {
                         $filter: {
                             input: { $ifNull: ["$reviews.score", []] },
-                            cond: { $isNumber: "$$this" },
+                            cond: {
+                                $and: [
+                                    { $isNumber: "$$this" },
+                                    { $gte: ["$$this", MIN_REVIEW_SCORE] },
+                                    { $lte: ["$$this", MAX_REVIEW_SCORE] },
+                                ],
+                            },
                         },
                     },
                 },
@@ -625,6 +633,8 @@ admissionRouter.get(
         },
     }),
     async (req, res) => {
+        const MIN_REVIEW_SCORE = 1;
+        const MAX_REVIEW_SCORE = 5;
         const { id: userId } = req.params;
 
         const application = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("+reviews").lean();
@@ -632,9 +642,14 @@ admissionRouter.get(
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
 
-        const reviews = (application.reviews ?? []).flatMap(({ reviewerId, score, comment }) =>
-            score === null ? [] : [{ reviewerId, score, comment }],
-        );
+        const reviews = (application.reviews ?? []).flatMap(({ reviewerId, score, comment }) => {
+            const isScoredReview =
+                typeof score === "number" &&
+                Number.isInteger(score) &&
+                score >= MIN_REVIEW_SCORE &&
+                score <= MAX_REVIEW_SCORE;
+            return isScoredReview ? [{ reviewerId, score, comment }] : [];
+        });
         return res.status(StatusCode.SuccessOK).send(reviews);
     },
 );

@@ -565,6 +565,22 @@ describe("GET /admission/review/:id/", () => {
         ]);
     });
 
+    it("ignores malformed review scores", async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            reviews: [
+                { reviewerId: "other-staff-1", score: 3, comment: "Decent" },
+                { reviewerId: "other-staff-2", score: 0 },
+                { reviewerId: "other-staff-3", score: 6 },
+                { reviewerId: "other-staff-4", score: "4" },
+            ],
+            reviewCount: 4,
+        });
+
+        const response = await getAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toEqual([{ reviewerId: "other-staff-1", score: 3, comment: "Decent" }]);
+    });
+
     it("returns an empty list for an application with no reviews", async () => {
         const response = await getAsStaff(`/admission/review/${TESTER.id}/`).expect(StatusCode.SuccessOK);
         expect(JSON.parse(response.text)).toEqual([]);
@@ -596,6 +612,28 @@ describe("GET /admission/review/", () => {
         expect(summaries).toEqual(
             expect.arrayContaining([
                 { userId: REVIEWED_APPLICATION.userId, reviewCount: 2, averageScore: 3.5 },
+                { userId: TESTER.id, reviewCount: 0, averageScore: null },
+            ]),
+        );
+    });
+
+    it("ignores malformed review scores in summary calculations", async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            reviews: [
+                { reviewerId: "other-staff-1", score: 3 },
+                { reviewerId: "other-staff-2", score: 0 },
+                { reviewerId: "other-staff-3", score: 6 },
+                { reviewerId: "other-staff-4", score: "4" },
+            ],
+            reviewCount: 4,
+        });
+
+        const response = await getAsStaff("/admission/review/").expect(StatusCode.SuccessOK);
+        const summaries = JSON.parse(response.text);
+        expect(summaries).toEqual(
+            expect.arrayContaining([
+                { userId: REVIEWED_APPLICATION.userId, reviewCount: 1, averageScore: 3 },
                 { userId: TESTER.id, reviewCount: 0, averageScore: null },
             ]),
         );
