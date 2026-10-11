@@ -146,8 +146,7 @@ export async function startServer(): Promise<Express.Application> {
     // Connect database
     await initializeDatabase();
 
-    // Seed a few test users on first boot in dev. Skips existing users without
-    // touching their data. Never runs in production or tests.
+    // Seed a few test users on first boot only in dev.
     if (!Config.PROD && !Config.TEST) {
         await ensureSeedUsers();
     }
