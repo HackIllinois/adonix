@@ -10,6 +10,7 @@ export type Method = RouteConfig["method"];
 export enum Tag {
     ADMISSION = "Admission",
     AUTH = "Auth",
+    DEV = "Dev",
     EVENT = "Event",
     JUDGE = "Judge",
     JOB = "Job",
