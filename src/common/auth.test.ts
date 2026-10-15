@@ -25,6 +25,13 @@ const ADMIN_PAYLOAD = {
     roles: [Role.USER, Role.ATTENDEE, Role.STAFF, Role.ADMIN],
 } satisfies JwtPayload;
 
+const NON_HACK_GOOGLE_PAYLOAD = {
+    id: "googler",
+    email: "googler@gmail.com",
+    provider: Provider.GOOGLE,
+    roles: [Role.USER],
+} satisfies JwtPayload;
+
 // NOTE: This test suite will only test functions not well covered elsewhere.
 
 describe("getJwtPayloadFromProfile", () => {
@@ -32,6 +39,7 @@ describe("getJwtPayloadFromProfile", () => {
         ["user", USER_PAYLOAD],
         ["staff", STAFF_PAYLOAD],
         ["admin", ADMIN_PAYLOAD],
+        ["non-hack-google", NON_HACK_GOOGLE_PAYLOAD],
     ])("creates auth info for a new %s", async (_name, payload) => {
         const newPayload = await getJwtPayloadFromProfile(
             payload.provider,
@@ -61,6 +69,7 @@ describe("getJwtPayloadFromProfile", () => {
         ["user", USER_PAYLOAD],
         ["staff", STAFF_PAYLOAD],
         ["admin", ADMIN_PAYLOAD],
+        ["non-hack-google", NON_HACK_GOOGLE_PAYLOAD],
     ])("updates auth info for a existing %s", async (_name, payload) => {
         await Models.AuthInfo.create({
             userId: `${payload.provider}${payload.id}`,
