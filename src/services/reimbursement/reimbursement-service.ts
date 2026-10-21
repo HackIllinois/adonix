@@ -66,8 +66,10 @@ export async function deleteReceiptFile(s3Key: string): Promise<void> {
     await getClient().send(new DeleteObjectCommand({ Bucket: Config.S3_RECEIPT_BUCKET_NAME, Key: s3Key }));
 }
 
+// reviewerNotes are internal to staff, so they're only included for admins
 export function toReceiptSubmission(
     receipt: ReceiptSubmission & { _id: Types.ObjectId | string },
+    isAdmin: boolean,
 ): z.infer<typeof ReceiptSubmissionSchema> {
     return {
         id: receipt._id.toString(),
@@ -83,7 +85,7 @@ export function toReceiptSubmission(
         reviewedAt: receipt.reviewedAt ?? null,
         reviewedBy: receipt.reviewedBy ?? null,
         rejectionReason: receipt.rejectionReason ?? null,
-        reviewerNotes: receipt.reviewerNotes ?? null,
+        reviewerNotes: isAdmin ? receipt.reviewerNotes ?? null : null,
         createdAt: receipt.createdAt,
         updatedAt: receipt.updatedAt,
     };

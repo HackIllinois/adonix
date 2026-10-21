@@ -173,6 +173,19 @@ describe("GET /reimbursement/receipts/:id/", () => {
         expect(JSON.parse(response.text)).toMatchObject({ id, userId: TESTER.id, status: ReceiptStatus.PENDING });
     });
 
+    it("hides internal reviewer notes from the owner", async () => {
+        const id = await createCompletedReceipt({ status: ReceiptStatus.APPROVED, reviewerNotes: "Paid via Venmo" });
+
+        const own = await getAsUser(`/reimbursement/receipts/${id}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(own.text)).toHaveProperty("reviewerNotes", null);
+
+        const list = await getAsUser("/reimbursement/receipts/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(list.text).submissions[0]).toHaveProperty("reviewerNotes", null);
+
+        const admin = await getAsAdmin(`/reimbursement/receipts/${id}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(admin.text)).toHaveProperty("reviewerNotes", "Paid via Venmo");
+    });
+
     it("lets admins view anyone's submission", async () => {
         const id = await createReceipt({ userId: OTHER_USER_ID });
         await getAsAdmin(`/reimbursement/receipts/${id}/`).expect(StatusCode.SuccessOK);

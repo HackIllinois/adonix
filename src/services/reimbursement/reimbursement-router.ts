@@ -118,7 +118,9 @@ reimbursementRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
         const receipts = await Models.ReceiptSubmission.find({ userId }).sort({ createdAt: -1 }).lean();
-        return res.status(StatusCode.SuccessOK).send({ submissions: receipts.map(toReceiptSubmission) });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ submissions: receipts.map((receipt) => toReceiptSubmission(receipt, false)) });
     },
 );
 
@@ -150,7 +152,9 @@ reimbursementRouter.get(
             ...(userId && { userId }),
         };
         const receipts = await Models.ReceiptSubmission.find(filter).sort({ createdAt: 1 }).lean();
-        return res.status(StatusCode.SuccessOK).send({ submissions: receipts.map(toReceiptSubmission) });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ submissions: receipts.map((receipt) => toReceiptSubmission(receipt, true)) });
     },
 );
 
@@ -184,7 +188,7 @@ reimbursementRouter.get(
             return res.status(StatusCode.ClientErrorForbidden).send(ReceiptForbiddenError);
         }
 
-        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt));
+        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt, roles.includes(Role.ADMIN)));
     },
 );
 
@@ -229,7 +233,7 @@ reimbursementRouter.delete(
         // The record is gone either way, so a leftover file is harmless
         await deleteReceiptFile(receipt.s3Key).catch(() => undefined);
 
-        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt));
+        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt, roles.includes(Role.ADMIN)));
     },
 );
 
@@ -269,7 +273,7 @@ reimbursementRouter.post(
             return res.status(StatusCode.ClientErrorForbidden).send(ReceiptForbiddenError);
         }
         if (receipt.uploadCompletedAt) {
-            return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt));
+            return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(receipt, false));
         }
         if (!(await receiptFileExists(receipt.s3Key))) {
             return res.status(StatusCode.ClientErrorBadRequest).send(ReceiptFileMissingError);
@@ -281,7 +285,7 @@ reimbursementRouter.post(
             { new: true },
         ).lean();
 
-        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(updated!));
+        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(updated!, false));
     },
 );
 
@@ -336,7 +340,7 @@ reimbursementRouter.patch(
         role: Role.ADMIN,
         summary: "Approves or rejects a receipt submission",
         description:
-            "A rejection needs a `rejectionReason`, which the attendee can see. `reviewerNotes` are visible to the attendee too. " +
+            "A rejection needs a `rejectionReason`, which the attendee can see. `reviewerNotes` are internal and only returned to admins. " +
             "Setting the status back to `pending` clears the previous decision.",
         parameters: ReceiptIdParameters,
         body: ReceiptReviewRequestSchema,
@@ -380,7 +384,7 @@ reimbursementRouter.patch(
             { new: true },
         ).lean();
 
-        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(updated!));
+        return res.status(StatusCode.SuccessOK).send(toReceiptSubmission(updated!, true));
     },
 );
 
