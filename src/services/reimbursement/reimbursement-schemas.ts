@@ -1,4 +1,6 @@
+import { modelOptions, prop } from "@typegoose/typegoose";
 import { z } from "zod";
+import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export const RECEIPT_CONTENT_TYPES = [
@@ -10,22 +12,82 @@ export const RECEIPT_CONTENT_TYPES = [
     "image/heif",
 ] as const;
 
+export type ReceiptContentType = (typeof RECEIPT_CONTENT_TYPES)[number];
+
 export const ReceiptContentTypeSchema = z.enum(RECEIPT_CONTENT_TYPES).openapi("ReceiptContentType", {
     example: "image/heic",
 });
 
-export const ReceiptIdSchema = z.string().openapi("ReceiptId", {
-    example: "6612a3f4c2b1e5d7a8f90123",
+export enum ReceiptStatus {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected",
+}
+
+export const ReceiptStatusSchema = z.nativeEnum(ReceiptStatus).openapi("ReceiptStatus", {
+    example: ReceiptStatus.PENDING,
 });
+
+export const ReceiptIdSchema = z
+    .string()
+    .regex(/^[a-fA-F0-9]{24}$/)
+    .openapi("ReceiptId", {
+        example: "6612a3f4c2b1e5d7a8f90123",
+    });
+
+@modelOptions({ schemaOptions: { timestamps: true } })
+export class ReceiptSubmission {
+    @prop({ required: true, index: true })
+    public userId: string;
+
+    @prop({ required: true })
+    public expenseDate: string;
+
+    @prop({ required: true })
+    public requestedAmountCents: number;
+
+    @prop({ required: true })
+    public currency: string;
+
+    @prop({ required: true, type: String, enum: RECEIPT_CONTENT_TYPES })
+    public contentType: ReceiptContentType;
+
+    @prop({ required: false })
+    public originalFileName?: string;
+
+    @prop({ required: true })
+    public s3Key: string;
+
+    @prop({ required: false, type: Date, default: null })
+    public uploadCompletedAt: Date | null;
+
+    @prop({ required: true, type: String, enum: ReceiptStatus, default: ReceiptStatus.PENDING })
+    public status: ReceiptStatus;
+
+    @prop({ required: false, type: Date, default: null })
+    public reviewedAt: Date | null;
+
+    @prop({ required: false, type: String, default: null })
+    public reviewedBy: string | null;
+
+    @prop({ required: false, type: String, default: null })
+    public rejectionReason: string | null;
+
+    @prop({ required: false, type: String, default: null })
+    public reviewerNotes: string | null;
+
+    public createdAt: Date;
+    public updatedAt: Date;
+}
 
 export const ReceiptSubmissionCreateRequestSchema = z
     .object({
         expenseDate: z.string().date(),
         // Users may request less than the receipt total (e.g. a shared team bus ticket)
         requestedAmountCents: z.number().int().positive(),
-        currency: z.string().default("USD"),
+        currency: z.literal("USD").default("USD"),
         contentType: ReceiptContentTypeSchema,
-        fileName: z.string().optional(),
+        fileName: z.string().max(Config.MAX_STRING_LENGTH).optional(),
     })
     .openapi("ReceiptSubmissionCreateRequest", {
         example: {
@@ -48,6 +110,11 @@ export const ReceiptSubmissionSchema = z
         originalFileName: z.string().optional(),
         s3Key: z.string(),
         uploadCompletedAt: z.coerce.date().nullable(),
+        status: ReceiptStatusSchema,
+        reviewedAt: z.coerce.date().nullable(),
+        reviewedBy: UserIdSchema.nullable(),
+        rejectionReason: z.string().nullable(),
+        reviewerNotes: z.string().nullable(),
         createdAt: z.coerce.date(),
         updatedAt: z.coerce.date(),
     })
@@ -62,6 +129,11 @@ export const ReceiptSubmissionSchema = z
             originalFileName: "bus-ticket.heic",
             s3Key: "github1234/6612a3f4c2b1e5d7a8f90123.heic",
             uploadCompletedAt: null,
+            status: ReceiptStatus.PENDING,
+            reviewedAt: null,
+            reviewedBy: null,
+            rejectionReason: null,
+            reviewerNotes: null,
             createdAt: new Date("2026-04-12T18:00:00.000Z"),
             updatedAt: new Date("2026-04-12T18:00:00.000Z"),
         },
@@ -101,7 +173,54 @@ export const ReceiptDownloadURLSchema = z
         example: { url: "https://receipt-bucket-dev.s3.us-east-2.amazonaws.com/github1234/abcd.heic" },
     });
 
-export const [ReimbursementNotImplementedError, ReimbursementNotImplementedErrorSchema] = CreateErrorAndSchema({
-    error: "NotImplemented",
-    message: "Receipt reimbursement is not implemented yet",
+const ReviewTextSchema = z.string().trim().min(1).max(Config.MAX_REVIEW_TEXT_LENGTH);
+
+export const ReceiptReviewRequestSchema = z
+    .discriminatedUnion("status", [
+        z.object({
+            status: z.literal(ReceiptStatus.APPROVED),
+            reviewerNotes: ReviewTextSchema.optional(),
+        }),
+        z.object({
+            status: z.literal(ReceiptStatus.REJECTED),
+            // Shown to the attendee, so it's required when rejecting
+            rejectionReason: ReviewTextSchema,
+            reviewerNotes: ReviewTextSchema.optional(),
+        }),
+        // Undo a previous decision and put the receipt back in the review queue
+        z.object({
+            status: z.literal(ReceiptStatus.PENDING),
+        }),
+    ])
+    .openapi("ReceiptReviewRequest", {
+        example: {
+            status: ReceiptStatus.REJECTED,
+            rejectionReason: "The receipt total is not readable",
+            reviewerNotes: "Asked them to re-upload on Discord",
+        },
+    });
+
+export const [ReceiptNotFoundError, ReceiptNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NotFound",
+    message: "Failed to find receipt submission",
+});
+
+export const [ReceiptForbiddenError, ReceiptForbiddenErrorSchema] = CreateErrorAndSchema({
+    error: "Forbidden",
+    message: "You do not have access to this receipt submission",
+});
+
+export const [ReceiptUploadIncompleteError, ReceiptUploadIncompleteErrorSchema] = CreateErrorAndSchema({
+    error: "UploadIncomplete",
+    message: "The receipt file has not finished uploading",
+});
+
+export const [ReceiptAlreadyReviewedError, ReceiptAlreadyReviewedErrorSchema] = CreateErrorAndSchema({
+    error: "AlreadyReviewed",
+    message: "This receipt submission has already been reviewed",
+});
+
+export const [ReceiptFileMissingError, ReceiptFileMissingErrorSchema] = CreateErrorAndSchema({
+    error: "FileMissing",
+    message: "No receipt file was found for this submission, upload it before completing",
 });
