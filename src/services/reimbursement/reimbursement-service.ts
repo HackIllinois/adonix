@@ -23,12 +23,12 @@ const EXTENSIONS: Record<ReceiptContentType, string> = {
 };
 
 export function receiptS3Key(userId: string, receiptId: string, contentType: ReceiptContentType): string {
-    return `${userId}/${receiptId}.${EXTENSIONS[contentType]}`;
+    return `receipts/${userId}/${receiptId}.${EXTENSIONS[contentType]}`;
 }
 
 export function createSignedReceiptPostUrl(s3Key: string, contentType: ReceiptContentType): Promise<PresignedPost> {
     return createPresignedPost(getClient(), {
-        Bucket: Config.S3_RECEIPT_BUCKET_NAME,
+        Bucket: Config.S3_RESUME_BUCKET_NAME,
         Key: s3Key,
         Conditions: [
             ["content-length-range", 0, Config.MAX_RECEIPT_SIZE_BYTES],
@@ -44,7 +44,7 @@ export function createSignedReceiptPostUrl(s3Key: string, contentType: ReceiptCo
 
 export function getSignedReceiptDownloadUrl(s3Key: string): Promise<string> {
     const command = new GetObjectCommand({
-        Bucket: Config.S3_RECEIPT_BUCKET_NAME,
+        Bucket: Config.S3_RESUME_BUCKET_NAME,
         Key: s3Key,
     });
 
@@ -55,7 +55,7 @@ export function getSignedReceiptDownloadUrl(s3Key: string): Promise<string> {
 
 export async function receiptFileExists(s3Key: string): Promise<boolean> {
     try {
-        await getClient().send(new HeadObjectCommand({ Bucket: Config.S3_RECEIPT_BUCKET_NAME, Key: s3Key }));
+        await getClient().send(new HeadObjectCommand({ Bucket: Config.S3_RESUME_BUCKET_NAME, Key: s3Key }));
         return true;
     } catch {
         return false;
@@ -63,7 +63,7 @@ export async function receiptFileExists(s3Key: string): Promise<boolean> {
 }
 
 export async function deleteReceiptFile(s3Key: string): Promise<void> {
-    await getClient().send(new DeleteObjectCommand({ Bucket: Config.S3_RECEIPT_BUCKET_NAME, Key: s3Key }));
+    await getClient().send(new DeleteObjectCommand({ Bucket: Config.S3_RESUME_BUCKET_NAME, Key: s3Key }));
 }
 
 // reviewerNotes are internal to staff, so they're only included for admins

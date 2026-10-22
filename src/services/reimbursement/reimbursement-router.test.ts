@@ -18,8 +18,8 @@ import {
 import { ReceiptStatus } from "./reimbursement-schemas";
 import type * as ReimbursementService from "./reimbursement-service";
 
-const MOCK_UPLOAD_URL = "https://receipt-bucket-dev.s3.us-east-2.amazonaws.com/";
-const MOCK_DOWNLOAD_URL = "https://receipt-bucket-dev.s3.us-east-2.amazonaws.com/receipt.heic";
+const MOCK_UPLOAD_URL = "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/";
+const MOCK_DOWNLOAD_URL = "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/receipt.heic";
 
 const OTHER_USER_ID = "github9999";
 const MISSING_ID = "6612a3f4c2b1e5d7a8f90123";
@@ -39,7 +39,7 @@ const RECEIPT = {
     currency: "USD",
     contentType: "image/heic",
     originalFileName: "bus-ticket.heic",
-    s3Key: `${TESTER.id}/receipt.heic`,
+    s3Key: `receipts/${TESTER.id}/receipt.heic`,
 };
 
 function mockReimbursementService(): {
@@ -87,7 +87,7 @@ describe("POST /reimbursement/receipts/", () => {
         const response = await postAsUser("/reimbursement/receipts/").send(CREATE_REQUEST).expect(StatusCode.SuccessCreated);
         const json = JSON.parse(response.text);
 
-        expect(json).toMatchObject({ url: MOCK_UPLOAD_URL, s3Key: `${TESTER.id}/${json.id}.heic` });
+        expect(json).toMatchObject({ url: MOCK_UPLOAD_URL, s3Key: `receipts/${TESTER.id}/${json.id}.heic` });
         expect(json.fields).toMatchObject({ "Content-Type": "image/heic", key: json.s3Key });
 
         const stored = await Models.ReceiptSubmission.findById(json.id).lean();

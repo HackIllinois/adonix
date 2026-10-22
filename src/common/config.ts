@@ -90,7 +90,6 @@ const Config = {
 
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
-    S3_RECEIPT_BUCKET_NAME: requireEnv("S3_RECEIPT_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
 
     // Runes and Riddles

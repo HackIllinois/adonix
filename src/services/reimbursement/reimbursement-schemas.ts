@@ -155,7 +155,7 @@ export const ReceiptSubmissionCreateResponseSchema = z
     .openapi("ReceiptSubmissionCreateResponse", {
         example: {
             id: "6612a3f4c2b1e5d7a8f90123",
-            url: "https://receipt-bucket-dev.s3.us-east-2.amazonaws.com/",
+            url: "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/",
             fields: {
                 success_action_status: "201",
                 "Content-Type": "image/heic",
@@ -170,7 +170,7 @@ export const ReceiptDownloadURLSchema = z
         url: z.string(),
     })
     .openapi("ReceiptDownloadURL", {
-        example: { url: "https://receipt-bucket-dev.s3.us-east-2.amazonaws.com/github1234/abcd.heic" },
+        example: { url: "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/receipts/github1234/abcd.heic" },
     });
 
 const ReviewTextSchema = z.string().trim().min(1).max(Config.MAX_REVIEW_TEXT_LENGTH);
