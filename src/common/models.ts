@@ -28,6 +28,7 @@ import { Duel } from "../services/duel/duel-schemas";
 import { Flag, FlagsClaimed } from "../services/ctf/ctf-schemas";
 import { JudgeProfile } from "../services/judge/judge-schemas";
 import { JobPosting } from "../services/job/job-schemas";
+import { ReceiptSubmission } from "../services/reimbursement/reimbursement-schemas";
 
 // Groups for collections
 export enum Group {
@@ -42,6 +43,7 @@ export enum Group {
     NOTIFICATION = "notification",
     PUZZLE = "puzzle",
     REGISTRATION = "registration",
+    REIMBURSEMENT = "reimbursement",
     RUNTIME = "runtime",
     SHOP = "shop",
     SPONSOR = "sponsor",
@@ -144,6 +146,10 @@ enum UserCollection {
     FOLLOWING = "following",
 }
 
+enum ReimbursementCollection {
+    RECEIPTS = "receipts",
+}
+
 enum DuelCollection {
     DUELS = "duels",
 }
@@ -235,6 +241,13 @@ export default class Models {
         RegistrationChallenge,
         Group.REGISTRATION,
         RegistrationCollection.CHALLENGES,
+    );
+
+    // Reimbursement
+    static ReceiptSubmission: Model<ReceiptSubmission> = getModel(
+        ReceiptSubmission,
+        Group.REIMBURSEMENT,
+        ReimbursementCollection.RECEIPTS,
     );
 
     // Runtime
