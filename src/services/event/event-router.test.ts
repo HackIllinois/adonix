@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "@jest/globals";
 import { EventFollowers, EventAttendance, EventType, Event } from "./event-schemas";
 import Models from "../../common/models";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsAttendee, getAsStaff, putAsAttendee, putAsStaff } from "../../common/testTools";
+import { TESTER, getAsAttendee, getAsStaff, postAsAdmin, putAsAdmin, putAsAttendee, putAsStaff } from "../../common/testTools";
 import { UserFollowing, UserInfo } from "../user/user-schemas";
 import { EventSchema } from "./event-schemas";
 import { z } from "zod";
@@ -390,5 +390,83 @@ describe("GET /event/:id/qr/", () => {
         const response = await getAsAttendee(`/event/${TESTER_EVENT_1.eventId}/qr/`).expect(StatusCode.ClientErrorForbidden);
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+});
+
+describe("POST /event/", () => {
+    const NEW_EVENT = { ...TESTER_EVENT_1, eventId: undefined };
+
+    it("creates an event that expires after it starts", async () => {
+        const response = await postAsAdmin("/event/")
+            .send({ ...NEW_EVENT, exp: NEW_EVENT.endTime })
+            .expect(StatusCode.SuccessCreated);
+
+        const { eventId } = JSON.parse(response.text);
+        const stored = await Models.Event.findOne({ eventId });
+        expect(stored?.exp).toBe(NEW_EVENT.endTime);
+    });
+
+    it("creates an event with no expiration", async () => {
+        await postAsAdmin("/event/")
+            .send({ ...NEW_EVENT, exp: 0 })
+            .expect(StatusCode.SuccessCreated);
+    });
+
+    it("fails when the event expires before it starts", async () => {
+        const response = await postAsAdmin("/event/")
+            .send({ ...NEW_EVENT, exp: NEW_EVENT.startTime - 1 })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "ExpiresBeforeStart");
+        expect(await Models.Event.countDocuments({ description: NEW_EVENT.description })).toBe(1);
+    });
+});
+
+describe("PUT /event/", () => {
+    it("updates the expiration of an event", async () => {
+        await putAsAdmin("/event/")
+            .send({ eventId: TESTER_EVENT_1.eventId, exp: TESTER_EVENT_1.endTime })
+            .expect(StatusCode.SuccessOK);
+
+        const stored = await Models.Event.findOne({ eventId: TESTER_EVENT_1.eventId });
+        expect(stored?.exp).toBe(TESTER_EVENT_1.endTime);
+    });
+
+    it("fails when the new expiration is before the stored start time", async () => {
+        const response = await putAsAdmin("/event/")
+            .send({ eventId: TESTER_EVENT_1.eventId, exp: TESTER_EVENT_1.startTime - 1 })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "ExpiresBeforeStart");
+        const stored = await Models.Event.findOne({ eventId: TESTER_EVENT_1.eventId });
+        expect(stored?.exp).toBeUndefined();
+    });
+
+    it("fails when the event is moved to start after its stored expiration", async () => {
+        await Models.Event.updateOne({ eventId: TESTER_EVENT_1.eventId }, { exp: TESTER_EVENT_1.endTime });
+
+        const response = await putAsAdmin("/event/")
+            .send({ eventId: TESTER_EVENT_1.eventId, startTime: 100, endTime: 200 })
+            .expect(StatusCode.ClientErrorBadRequest);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "ExpiresBeforeStart");
+        const stored = await Models.Event.findOne({ eventId: TESTER_EVENT_1.eventId });
+        expect(stored?.startTime).toBe(TESTER_EVENT_1.startTime);
+    });
+
+    it("moves an event when its expiration is cleared", async () => {
+        await Models.Event.updateOne({ eventId: TESTER_EVENT_1.eventId }, { exp: TESTER_EVENT_1.endTime });
+
+        await putAsAdmin("/event/")
+            .send({ eventId: TESTER_EVENT_1.eventId, startTime: 100, endTime: 200, exp: 0 })
+            .expect(StatusCode.SuccessOK);
+    });
+
+    it("fails for an event that does not exist", async () => {
+        const response = await putAsAdmin("/event/")
+            .send({ eventId: "missing-event", name: "New Name" })
+            .expect(StatusCode.ClientErrorNotFound);
+
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });
