@@ -100,6 +100,15 @@ describe("POST /reimbursement/receipts/", () => {
         });
     });
 
+    it("defaults the currency to USD when omitted", async () => {
+        const request: Partial<typeof CREATE_REQUEST> = { ...CREATE_REQUEST };
+        delete request.currency;
+        const response = await postAsUser("/reimbursement/receipts/").send(request).expect(StatusCode.SuccessCreated);
+
+        const stored = await Models.ReceiptSubmission.findById(JSON.parse(response.text).id).lean();
+        expect(stored?.currency).toBe("USD");
+    });
+
     it("rejects unsupported content types", async () => {
         await postAsUser("/reimbursement/receipts/")
             .send({ ...CREATE_REQUEST, contentType: "text/plain" })

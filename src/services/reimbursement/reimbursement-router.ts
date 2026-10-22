@@ -78,7 +78,8 @@ reimbursementRouter.post(
     }),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
-        const { expenseDate, requestedAmountCents, currency, contentType, fileName } = req.body;
+        // The validator doesn't apply zod defaults to req.body, so default the currency here
+        const { expenseDate, requestedAmountCents, currency = "USD", contentType, fileName } = req.body;
 
         const id = new Types.ObjectId();
         const s3Key = receiptS3Key(userId, id.toString(), contentType);
