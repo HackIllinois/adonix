@@ -37,6 +37,7 @@ export enum Tag {
 export interface ResponseObject {
     description: string;
     schema: ZodType;
+    contentType?: "application/json" | "text/html";
 }
 type ResponseObjectWithId = ResponseObject & { id: string };
 export type ResponseObjectsWithId = [ResponseObjectWithId, ResponseObjectWithId, ...ResponseObjectWithId[]];

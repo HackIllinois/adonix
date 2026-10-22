@@ -55,7 +55,8 @@ if (!Config.TEST) {
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :remote-addr :response-time ms :res[content-length] bytes"));
+    morgan.token("safe-url", (req) => (req.url?.startsWith("/newsletter/unsubscribe") ? req.url.split("?")[0] : req.url));
+    app.use(morgan(":status :method :safe-url :id :remote-addr :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json and limit request size

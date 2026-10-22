@@ -105,11 +105,11 @@ function getPathResponsesForSpecification<
         // response can be a single response or an array of responses for this status code
         // First, check for the easy singular case
         if (!Array.isArray(response)) {
-            const { description, schema } = response;
+            const { description, schema, contentType = "application/json" } = response;
             responses[statusCode] = {
                 description,
                 content: {
-                    "application/json": {
+                    [contentType]: {
                         schema,
                     },
                 },
