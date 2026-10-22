@@ -17,12 +17,14 @@ import {
     EventAttendeesInfoSchema,
     EventAttendanceSchema,
     EventQRCodeResponseSchema,
+    EventExpiresBeforeStartError,
+    EventExpiresBeforeStartErrorSchema,
 } from "./event-schemas";
 import { EventIdSchema, SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import { z } from "zod";
 import Models from "../../common/models";
 import { tryGetAuthenticatedUser } from "../../common/auth";
-import { getEventQRCode, restrictEventsByRoles } from "./event-lib";
+import { expiresBeforeStart, getEventQRCode, restrictEventsByRoles } from "./event-lib";
 import Config from "../../common/config";
 import crypto from "crypto";
 
@@ -289,10 +291,18 @@ eventsRouter.post(
                 description: "The new event",
                 schema: EventSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The event expires before it starts",
+                schema: EventExpiresBeforeStartErrorSchema,
+            },
         },
     }),
     async (req, res) => {
         const createRequest = req.body;
+        if (expiresBeforeStart(createRequest)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(EventExpiresBeforeStartError);
+        }
+
         const eventId = crypto.randomBytes(Config.EVENT_BYTES_GEN).toString("hex");
 
         const isPrivate = createRequest.isPrivate;
@@ -326,11 +336,27 @@ eventsRouter.put(
                 description: "Couldn't find the event to update",
                 schema: EventNotFoundErrorSchema,
             },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "The updated event expires before it starts",
+                schema: EventExpiresBeforeStartErrorSchema,
+            },
         },
     }),
     async (req, res) => {
         const event = req.body;
         const eventId = event.eventId;
+
+        const existingEvent = await Models.Event.findOne({ eventId: eventId });
+        if (!existingEvent) {
+            return res.status(StatusCode.ClientErrorNotFound).send(EventNotFoundError);
+        }
+
+        // An update can change only the start time or only the expiration, so check them together
+        const startTime = event.startTime ?? existingEvent.startTime;
+        const exp = event.exp ?? existingEvent.exp;
+        if (expiresBeforeStart({ startTime, exp })) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(EventExpiresBeforeStartError);
+        }
 
         const updatedEvent = await Models.Event.findOneAndUpdate({ eventId: eventId }, event, {
             new: true,
