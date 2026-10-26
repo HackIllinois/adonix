@@ -119,3 +119,52 @@ describe("GET /dev/users/", () => {
         }
     });
 });
+
+describe("POST /dev/login/", () => {
+    it("logs in an existing seed and sets the local HTTP-only JWT cookie", async () => {
+        await post("/dev/seed/fresh-user/").send({ count: 2 }).expect(StatusCode.SuccessOK);
+
+        const response = await post("/dev/login/")
+            .set("Origin", "http://localhost:3001")
+            .send({ userId: "githubseed0002" })
+            .expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+        expect(json.user).toMatchObject({ userId: "githubseed0002", email: "githubseed0002@example.com" });
+        expect(json.jwt).toEqual(expect.any(String));
+        const jwtCookie = response.headers["set-cookie"]?.[0];
+        expect(jwtCookie).toEqual(expect.any(String));
+        expect(jwtCookie).toContain("Path=/");
+        expect(jwtCookie).toContain("HttpOnly");
+        expect(jwtCookie).toContain("SameSite=Lax");
+        expect(jwtCookie).not.toMatch(/; Secure(?:;|$)/);
+        expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:3001");
+        expect(response.headers["access-control-allow-credentials"]).toBe("true");
+    });
+
+    it("creates exactly one fresh registrant when no user ID is supplied", async () => {
+        const response = await post("/dev/login/").send({}).expect(StatusCode.SuccessOK);
+        const json = JSON.parse(response.text);
+
+        expect(json.user).toMatchObject({ userId: "githubseed0001", email: "githubseed0001@example.com" });
+        expect(json.jwt).toEqual(expect.any(String));
+        expect(await Models.UserInfo.countDocuments({ userId: /^githubseed/ })).toBe(1);
+        expect(await Models.AuthInfo.countDocuments({ userId: /^githubseed/ })).toBe(1);
+    });
+
+    it.each(["githubseed9999", "github1234", "googleseed0001"])("rejects missing or non-seed ID %s", async (userId) => {
+        const response = await post("/dev/login/").send({ userId }).expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toMatchObject({ error: "NotFound", message: "Failed to find user" });
+    });
+
+    it("returns 403 when in production", async () => {
+        const original = Config.PROD;
+        (Config as unknown as { PROD: boolean }).PROD = true;
+
+        try {
+            const response = await post("/dev/login/").send({}).expect(StatusCode.ClientErrorForbidden);
+            expect(JSON.parse(response.text)).toHaveProperty("error", "DevDisabled");
+        } finally {
+            (Config as unknown as { PROD: boolean }).PROD = original;
+        }
+    });
+});
