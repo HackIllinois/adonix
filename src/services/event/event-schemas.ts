@@ -260,3 +260,8 @@ export const [EventNotFoundError, EventNotFoundErrorSchema] = CreateErrorAndSche
 });
 
 export type EventNotFoundError = typeof EventNotFoundError;
+
+export const [EventExpiresBeforeStartError, EventExpiresBeforeStartErrorSchema] = CreateErrorAndSchema({
+    error: "ExpiresBeforeStart",
+    message: "The event expiration (exp) must be after its start time, or 0 for no expiration",
+});
