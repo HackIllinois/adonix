@@ -572,4 +572,49 @@ authRouter.use("/:provider/callback", (err: unknown, _req: Request, res: Respons
     return res.status(StatusCode.ClientErrorUnauthorized).json(AuthenticationFailedError);
 });
 
+if (!Config.PROD) {
+    const DEV_USER_SEARCH_LIMIT = 20;
+    const DEV_ROLE_USER_LIMIT = 5;
+
+    authRouter.get("/dev/users/", async (req, res) => {
+        const query = (req.query.q as string) || "";
+
+        const users = await Models.UserInfo.find({
+            name: { $regex: query, $options: "i" },
+        }).limit(DEV_USER_SEARCH_LIMIT);
+
+        return res.status(StatusCode.SuccessOK).send(users);
+    });
+
+    authRouter.get("/dev/login/:userId/", async (req, res) => {
+        const { userId } = req.params;
+
+        const user = await Models.UserInfo.findOne({ userId });
+        if (!user) {
+            return res.status(StatusCode.ClientErrorNotFound).json(UserNotFoundError);
+        }
+
+        const payload = await getJwtPayloadFromDB(userId);
+        const token = generateJwtToken(payload, false);
+        res.cookie("jwt", token, getJwtCookieOptions());
+
+        return res.status(StatusCode.SuccessOK).send({ success: true, userId });
+    });
+
+    authRouter.get("/dev/users/role/:role/", async (req, res) => {
+        const { role } = req.params;
+        const excludeParam = (req.query.exclude as string) || "";
+        const excludeIds = excludeParam ? excludeParam.split(",") : [];
+
+        const authInfos = await Models.AuthInfo.find({
+            roles: { $in: [role] },
+            userId: { $nin: excludeIds },
+        }).limit(DEV_ROLE_USER_LIMIT);
+
+        const userIds = authInfos.map((a) => a.userId);
+        const users = await Models.UserInfo.find({ userId: { $in: userIds } });
+        return res.status(StatusCode.SuccessOK).send(users);
+    });
+}
+
 export default authRouter;
