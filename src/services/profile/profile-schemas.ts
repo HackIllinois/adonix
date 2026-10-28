@@ -1,7 +1,8 @@
-import { modelOptions, prop } from "@typegoose/typegoose";
+import { index, modelOptions, prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
+import { AuctionHold } from "../auction/auction-schemas";
 
 @modelOptions({ schemaOptions: { _id: false } })
 export class DuelStats {
@@ -20,6 +21,8 @@ export const DuelStatsSchema = z.object({
     uniqueDuelsPlayed: z.number().default(0),
     duelsWon: z.number().default(0),
 });
+// Lets the auction timer find old holds quickly
+@index({ "auctionHolds.at": 1 }, { sparse: true })
 export class AttendeeProfile {
     @prop({ required: true, index: true })
     public userId: string;
@@ -60,6 +63,14 @@ export class AttendeeProfile {
 
     @prop({ required: false, type: () => DuelStats, default: () => ({}) })
     public duelStats?: DuelStats;
+
+    // Points held while this user leads an auction item (one entry per item)
+    @prop({ required: false, type: () => [AuctionHold], default: undefined })
+    public auctionHolds?: AuctionHold[];
+
+    // Points spent on auction items this user won
+    @prop({ required: false, type: () => [AuctionHold], default: undefined })
+    public auctionWins?: AuctionHold[];
 }
 
 export const AttendeeProfileSchema = z
