@@ -258,9 +258,12 @@ registrationRouter.post(
             return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationAlreadySubmittedError);
         }
 
+        // Reviews are staff-only, so always start empty regardless of the request
         const submissionData: RegistrationApplicationSubmitted = {
             ...req.body,
             userId: userId,
+            reviews: [],
+            reviewCount: 0,
         } as RegistrationApplicationSubmitted;
 
         const [newSubmissionInfo] = await Promise.all([

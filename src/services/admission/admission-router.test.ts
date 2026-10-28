@@ -286,6 +286,32 @@ describe("PUT /admission/accept/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "AlreadyRSVPed");
     });
 
+    it("only accepts once when two requests race", async () => {
+        const responses = await Promise.all([
+            putAsApplicant("/admission/accept/").send(CREATE_REQUEST),
+            putAsApplicant("/admission/accept/").send(CREATE_REQUEST),
+        ]);
+
+        expect(responses.map((response) => response.status).sort()).toEqual([
+            StatusCode.SuccessOK,
+            StatusCode.ClientErrorConflict,
+        ]);
+        expect(await Models.AttendeeProfile.countDocuments({ userId: TESTER.id })).toBe(1);
+        expect((await Models.AttendeeTeam.findOne({ name: TEST_TEAM.name }))!.members).toBe(1);
+    });
+
+    it("does not decline after a racing accept", async () => {
+        const responses = await Promise.all([
+            putAsApplicant("/admission/accept/").send(CREATE_REQUEST),
+            putAsApplicant("/admission/decline/"),
+        ]);
+
+        expect(responses.filter((response) => response.status === StatusCode.SuccessOK)).toHaveLength(1);
+        const stored = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+        const profileCount = await Models.AttendeeProfile.countDocuments({ userId: TESTER.id });
+        expect(profileCount).toBe(stored!.response === DecisionResponse.ACCEPTED ? 1 : 0);
+    });
+
     it("does not let applicant accept with empty or incomplete profile data", async () => {
         await putAsApplicant("/admission/accept/").expect(StatusCode.ClientErrorBadRequest);
         await putAsApplicant("/admission/accept/").send({ displayName: "Bob" }).expect(StatusCode.ClientErrorBadRequest);

@@ -144,39 +144,42 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorBadRequest).send(AttendeeProfileAlreadyExistsError);
         }
 
-        const { team, teamBadge } = await assignTeamByUserId(userId);
-
-        const profile = {
-            userId,
-            discordTag,
-            displayName,
-            avatarUrl: getAvatarUrlForId(avatarId),
-            points: Config.DEFAULT_POINT_VALUE,
-            pointsAccumulated: Config.DEFAULT_POINT_VALUE,
-            foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
-            dietaryRestrictions,
-            shirtSize,
-            team,
-            teamBadge,
-        };
-
-        await Models.AttendeeProfile.create(profile);
-
+        // Claim the RSVP atomically so concurrent requests can't both act on it
         const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate(
-            { userId },
+            { userId, status: DecisionStatus.ACCEPTED, response: DecisionResponse.PENDING },
             { response: DecisionResponse.ACCEPTED },
             { new: true },
         );
-
         if (!updatedDecision) {
-            throw Error("Failed to update decision");
+            return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
         }
 
-        if (admissionDecision.admittedPro) {
-            await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.PRO, Role.ATTENDEE] } } });
-        } else {
-            await Models.AuthInfo.updateOne({ userId }, { $push: { roles: { $each: [Role.ATTENDEE] } } });
+        try {
+            const { team, teamBadge } = await assignTeamByUserId(userId);
+
+            const profile = {
+                userId,
+                discordTag,
+                displayName,
+                avatarUrl: getAvatarUrlForId(avatarId),
+                points: Config.DEFAULT_POINT_VALUE,
+                pointsAccumulated: Config.DEFAULT_POINT_VALUE,
+                foodWave: dietaryRestrictions.filter((res) => res.toLowerCase() != "none").length > 0 ? 1 : 2,
+                dietaryRestrictions,
+                shirtSize,
+                team,
+                teamBadge,
+            };
+
+            await Models.AttendeeProfile.create(profile);
+        } catch (error) {
+            // Release the claim so the applicant can try again
+            await Models.AdmissionDecision.updateOne({ userId }, { response: DecisionResponse.PENDING });
+            throw error;
         }
+
+        const roles = updatedDecision.admittedPro ? [Role.PRO, Role.ATTENDEE] : [Role.ATTENDEE];
+        await Models.AuthInfo.updateOne({ userId }, { $addToSet: { roles: { $each: roles } } });
 
         // Send email
         await sendMail(Templates.RSVP_ACCEPTED, application.email, {
@@ -248,14 +251,14 @@ admissionRouter.put(
             return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
         }
 
+        // Claim the RSVP atomically so concurrent requests can't both act on it
         const updatedDecision = await Models.AdmissionDecision.findOneAndUpdate(
-            { userId },
+            { userId, status: DecisionStatus.ACCEPTED, response: DecisionResponse.PENDING },
             { response: DecisionResponse.DECLINED },
             { new: true },
         );
-
         if (!updatedDecision) {
-            throw Error("Failed to update decision");
+            return res.status(StatusCode.ClientErrorConflict).send(DecisionAlreadyRSVPdError);
         }
 
         // Send email
@@ -644,10 +647,7 @@ admissionRouter.get(
 
         const reviews = (application.reviews ?? []).flatMap(({ reviewerId, score, comment }) => {
             const isScoredReview =
-                typeof score === "number" &&
-                Number.isInteger(score) &&
-                score >= MIN_REVIEW_SCORE &&
-                score <= MAX_REVIEW_SCORE;
+                typeof score === "number" && Number.isInteger(score) && score >= MIN_REVIEW_SCORE && score <= MAX_REVIEW_SCORE;
             return isScoredReview ? [{ reviewerId, score, comment }] : [];
         });
         return res.status(StatusCode.SuccessOK).send(reviews);
