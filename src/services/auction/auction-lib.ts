@@ -13,7 +13,8 @@ import { AuctionHold, AuctionItem, AuctionStatus } from "./auction-schemas";
  */
 
 export type Clock = () => Date;
-export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
+// `minimum` is set only with BidTooLow: the lowest bid the failed check would have accepted
+export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E; minimum?: number };
 
 export const EXTENSION_MS = 120_000;
 export const STALE_HOLD_MS = 60_000;
@@ -188,8 +189,9 @@ export async function prepareBid(userId: string, itemId: string, amount: number,
     if (!profile) {
         return fail("NoProfile");
     }
-    if (amount < nextMinimum(item)) {
-        return fail("BidTooLow");
+    const minimum = nextMinimum(item);
+    if (amount < minimum) {
+        return { ...fail("BidTooLow"), minimum };
     }
 
     const hold = findHold(profile.auctionHolds, itemId);
@@ -350,9 +352,12 @@ export async function placeBid(
 
     // Out of attempts: report the item's state if it changed, else ask to try again
     const final = await prepareBid(userId, itemId, amount, clock());
-    const error = !final.ok && final.error !== "BidConflict" ? final.error : "BidConflict";
-    console.log(`${LOG} bid gave up user=${userId} item=${itemId} error=${error}`);
-    return fail(error);
+    if (!final.ok && final.error !== "BidConflict") {
+        console.log(`${LOG} bid gave up user=${userId} item=${itemId} error=${final.error}`);
+        return final;
+    }
+    console.log(`${LOG} bid gave up user=${userId} item=${itemId} error=BidConflict`);
+    return fail("BidConflict");
 }
 
 // ---------- Cancel ----------

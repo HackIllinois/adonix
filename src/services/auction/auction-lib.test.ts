@@ -20,6 +20,7 @@ import {
     BASE_MS,
     HOUR_MS,
     expectFinalInvariants,
+    expectReview,
     getItem,
     getProfile,
     makeClock,
@@ -76,13 +77,13 @@ function bid(userId: string, amount: number): ReturnType<typeof placeBid> {
 
 describe("bid rules", () => {
     it("rejects a first bid below the start price and accepts exactly the start price", async () => {
-        await expect(bid(ANA, 49)).resolves.toEqual({ ok: false, error: "BidTooLow" });
+        await expect(bid(ANA, 49)).resolves.toEqual({ ok: false, error: "BidTooLow", minimum: 50 });
         await expect(bid(ANA, 50)).resolves.toMatchObject({ ok: true });
     });
 
     it("rejects a later bid below high bid + step and accepts exactly high bid + step", async () => {
         await bid(ANA, 60);
-        await expect(bid(BEN, 64)).resolves.toEqual({ ok: false, error: "BidTooLow" });
+        await expect(bid(BEN, 64)).resolves.toEqual({ ok: false, error: "BidTooLow", minimum: 65 });
         await expect(bid(BEN, 65)).resolves.toMatchObject({ ok: true });
     });
 
@@ -450,6 +451,19 @@ describe("timer repairs", () => {
         time.advance(61_000);
         await runAuctionTimer(time.clock);
         expect((await getItem()).needsReview).toBe(true);
+        expectReview("hoodie");
+    });
+
+    it("does not flag an old leader whose own raise is still in progress", async () => {
+        // The leader's hold briefly has the raise's new bid id while the item still shows the old bid
+        await bid(ANA, 60);
+        time.advance(61_000);
+        const plan = await mustPrepare(ANA, 70);
+        const bidId = await mustReserve(plan);
+        await runAuctionTimer(time.clock);
+        expect((await getItem()).needsReview).toBe(false);
+        expect(await commitBid(plan, bidId, time.clock)).not.toBeNull();
+        expect((await getItem()).highBid?.amount).toBe(70);
     });
 
     it("skips a run while one is still going, and starts again after the time limit", async () => {

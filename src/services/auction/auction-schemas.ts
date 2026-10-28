@@ -204,10 +204,18 @@ export const [AuctionCancelledError, AuctionCancelledErrorSchema] = CreateErrorA
     message: "This auction was cancelled",
 });
 
-export const [BidTooLowError, BidTooLowErrorSchema] = CreateErrorAndSchema({
+export const [BidTooLowError] = CreateErrorAndSchema({
     error: "BidTooLow",
-    message: "Your bid is below the minimum bid (see nextMinimum on the item)",
+    message: "Your bid is below the minimum bid",
 });
+// Like the other errors, plus the lowest bid that would be accepted now
+export const BidTooLowErrorSchema = z
+    .object({
+        error: z.literal(BidTooLowError.error),
+        message: z.literal(BidTooLowError.message),
+        minimum: z.number().int(),
+    })
+    .openapi({ example: { error: BidTooLowError.error, message: BidTooLowError.message, minimum: 65 } });
 
 export const [BidInsufficientFundsError, BidInsufficientFundsErrorSchema] = CreateErrorAndSchema({
     error: "InsufficientFunds",

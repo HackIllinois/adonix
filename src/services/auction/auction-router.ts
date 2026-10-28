@@ -423,6 +423,11 @@ auctionRouter.post(
         const { amount } = req.body;
         console.log(`${LOG} POST /auction/${itemId}/bid/ user=${userId} amount=${amount}`);
         const result = await placeBid(userId, itemId, amount, clock);
+        if (!result.ok && result.error === "BidTooLow" && result.minimum !== undefined) {
+            return res
+                .status(StatusCode.ClientErrorBadRequest)
+                .send({ error: BidTooLowError.error, message: BidTooLowError.message, minimum: result.minimum });
+        }
         if (!result.ok) {
             return sendError(res, result.error);
         }

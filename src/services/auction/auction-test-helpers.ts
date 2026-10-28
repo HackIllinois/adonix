@@ -90,14 +90,24 @@ export async function totalPoints(): Promise<number> {
     return total;
 }
 
+let reviewExpected = new Set<string>();
+
+// A test that means to leave an item flagged for staff review says so here
+export function expectReview(itemId: string): void {
+    reviewExpected = new Set([...reviewExpected, itemId]);
+}
+
 /*
  * Runs after each test. Runs the timer far in the future, two times, so every item closes and
  * every repair is done. Then checks:
  * - no points were made or lost
  * - no points are still held
- * - every closed item with a high bid has a paid winner (or is marked for review)
+ * - only the items the test named with expectReview are flagged for review
+ * - every closed item with a high bid has a paid winner (or is flagged for review)
  */
 export async function expectFinalInvariants(startingTotal: number): Promise<void> {
+    const expected = [...reviewExpected].sort();
+    reviewExpected = new Set();
     const farFuture = (): Date => new Date(Math.max(Date.now(), BASE_MS) + 365 * 24 * HOUR_MS);
     await runAuctionTimer(farFuture);
     await runAuctionTimer(farFuture);
@@ -110,6 +120,8 @@ export async function expectFinalInvariants(startingTotal: number): Promise<void
     }
 
     const items = await Models.AuctionItem.find().lean();
+    const flagged = items.filter((item) => item.needsReview).map((item) => item.itemId);
+    expect({ flaggedForReview: flagged.sort() }).toEqual({ flaggedForReview: expected });
     for (const item of items) {
         expect(item.status).not.toBe(AuctionStatus.OPEN);
         if (item.status !== AuctionStatus.CLOSED || !item.highBid || item.needsReview) {

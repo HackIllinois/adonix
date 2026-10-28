@@ -1,7 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
-import { getAsStaff, getAsUser, postAsStaff, postAsUser, putAsStaff, TESTER } from "../../common/testTools";
+import {
+    getAsAttendee,
+    getAsStaff,
+    getAsUser,
+    postAsAttendee,
+    postAsStaff,
+    postAsUser,
+    putAsAttendee,
+    putAsStaff,
+    putAsUser,
+    TESTER,
+} from "../../common/testTools";
 import * as notificationService from "../notification/notification-service";
 import { runAuctionTimer } from "./auction-timer";
 import { placeBid } from "./auction-lib";
@@ -68,6 +79,31 @@ describe("POST /auction/item/", () => {
         await postAsUser("/auction/item/")
             .send({ ...body, closeTime: inSeconds(Date.now() + HOUR_MS) })
             .expect(StatusCode.ClientErrorForbidden);
+    });
+});
+
+describe("staff-only routes", () => {
+    const staffRoutes: ["GET" | "POST" | "PUT", string][] = [
+        ["GET", "/auction/results/"],
+        ["POST", "/auction/item/"],
+        ["PUT", "/auction/item/hoodie/"],
+        ["POST", "/auction/item/hoodie/cancel/"],
+        ["POST", "/auction/item/hoodie/reopen/"],
+        ["GET", "/auction/item/hoodie/bids/"],
+        ["POST", "/auction/item/hoodie/pickup/"],
+    ];
+    const callers = {
+        user: { GET: getAsUser, POST: postAsUser, PUT: putAsUser },
+        attendee: { GET: getAsAttendee, POST: postAsAttendee, PUT: putAsAttendee },
+    };
+
+    it.each(staffRoutes)("refuses %s %s to users and attendees, and changes nothing", async (method, url) => {
+        const before = await getItem();
+        for (const caller of Object.values(callers)) {
+            await caller[method](url).send({}).expect(StatusCode.ClientErrorForbidden);
+        }
+        expect(await getItem()).toEqual(before);
+        expect(await Models.AuctionItem.countDocuments()).toBe(1);
     });
 });
 
@@ -145,7 +181,13 @@ describe("POST /auction/{id}/bid/", () => {
         await postAsUser("/auction/hoodie/bid/")
             .send({ amount: 49 })
             .expect(StatusCode.ClientErrorBadRequest)
-            .expect((res) => expect(res.body.error).toBe("BidTooLow"));
+            .expect((res) => expect(res.body).toMatchObject({ error: "BidTooLow", minimum: 50 }));
+        await Models.AuctionItem.updateOne({ itemId: "hoodie" }, { $set: { startPrice: 70 } });
+        await postAsUser("/auction/hoodie/bid/")
+            .send({ amount: 60 })
+            .expect(StatusCode.ClientErrorBadRequest)
+            .expect((res) => expect(res.body).toMatchObject({ error: "BidTooLow", minimum: 70 }));
+        await Models.AuctionItem.updateOne({ itemId: "hoodie" }, { $set: { startPrice: 50 } });
         await postAsUser("/auction/hoodie/bid/")
             .send({ amount: 201 })
             .expect(StatusCode.ClientErrorPaymentRequired)
