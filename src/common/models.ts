@@ -13,6 +13,7 @@ import {
     RegistrationChallenge,
 } from "../services/registration/registration-schemas";
 import { ShopHistory, ShopItem, ShopOrder } from "../services/shop/shop-schemas";
+import { AuctionItem } from "../services/auction/auction-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift, StaffInfo } from "../services/staff/staff-schemas";
@@ -44,6 +45,7 @@ export enum Group {
     REGISTRATION = "registration",
     RUNTIME = "runtime",
     SHOP = "shop",
+    AUCTION = "auction",
     SPONSOR = "sponsor",
     STAFF = "staff",
     STATISTIC = "statistic",
@@ -115,6 +117,10 @@ enum ShopCollection {
     ITEMS = "items",
     HISTORY = "history",
     ORDERS = "orders",
+}
+
+enum AuctionCollection {
+    ITEMS = "items",
 }
 
 enum SponsorCollection {
@@ -244,6 +250,9 @@ export default class Models {
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
     static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
     static ShopHistory: Model<ShopHistory> = getModel(ShopHistory, Group.SHOP, ShopCollection.HISTORY);
+
+    // Auction
+    static AuctionItem: Model<AuctionItem> = getModel(AuctionItem, Group.AUCTION, AuctionCollection.ITEMS);
 
     // Sponsor
     static Sponsor: Model<Sponsor> = getModel(Sponsor, Group.SPONSOR, SponsorCollection.SPONSORS);

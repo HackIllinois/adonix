@@ -268,3 +268,28 @@ describe("GET /profile/leaderboard", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 });
+
+describe("profile responses and auction fields", () => {
+    beforeEach(async () => {
+        const entry = { itemId: "hoodie", bidId: "b1", amount: 60, at: new Date() };
+        await Models.AttendeeProfile.updateOne(
+            { userId: TESTER_USER.userId },
+            { $set: { auctionHolds: [entry], auctionWins: [{ ...entry, itemId: "mug" }] } },
+        );
+    });
+
+    it("leaves auctionHolds and auctionWins out of GET, GET by id, and PUT", async () => {
+        const responses = [
+            await getAsAttendee("/profile/").expect(StatusCode.SuccessOK),
+            await getAsAdmin(`/profile/${TESTER_USER.userId}/`).expect(StatusCode.SuccessOK),
+            await putAsAttendee("/profile/").send(UPDATE_REQUEST).expect(StatusCode.SuccessOK),
+        ];
+        for (const response of responses) {
+            expect(response.body).not.toHaveProperty("auctionHolds");
+            expect(response.body).not.toHaveProperty("auctionWins");
+            expect(response.body).toHaveProperty("points");
+        }
+        const stored = await Models.AttendeeProfile.findOne({ userId: TESTER_USER.userId }).lean();
+        expect(stored?.auctionHolds).toHaveLength(1);
+    });
+});

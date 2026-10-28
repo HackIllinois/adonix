@@ -9,6 +9,9 @@ export class RuntimeConfigModel {
     androidVersion: string;
     @prop({ required: true })
     iosVersion: string;
+    // Auction timer switch. Missing means ON.
+    @prop({ required: false })
+    auctionTimerEnabled?: boolean;
 }
 
 interface ConfigCache {

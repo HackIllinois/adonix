@@ -23,6 +23,9 @@ import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "./profile-lib";
 
+// Auction holds and wins are bookkeeping for the auction service; /auction/me/ shows them to the attendee
+const HIDDEN_AUCTION_FIELDS = { auctionHolds: 0, auctionWins: 0 };
+
 const profileRouter = Router();
 
 profileRouter.get(
@@ -83,7 +86,7 @@ profileRouter.get(
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
-        const profile = await Models.AttendeeProfile.findOne({ userId: userId });
+        const profile = await Models.AttendeeProfile.findOne({ userId: userId }, HIDDEN_AUCTION_FIELDS);
 
         if (!profile) {
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
@@ -152,7 +155,7 @@ profileRouter.get(
     async (req, res) => {
         const { id: userId } = req.params;
 
-        const profile = await Models.AttendeeProfile.findOne({ userId });
+        const profile = await Models.AttendeeProfile.findOne({ userId }, HIDDEN_AUCTION_FIELDS);
         if (!profile) {
             return res.status(StatusCode.ClientErrorNotFound).send(AttendeeProfileNotFoundError);
         }
@@ -253,6 +256,7 @@ profileRouter.put(
             },
             {
                 new: true,
+                projection: HIDDEN_AUCTION_FIELDS,
             },
         );
 
