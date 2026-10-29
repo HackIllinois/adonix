@@ -27,6 +27,8 @@ import staffTeamRouter from "./services/staff-team/staff-team-router";
 import attendeeTeamRouter from "./services/attendee-team/attendee-team-router";
 import duelRouter from "./services/duel/duel-router";
 import CTFRouter from "./services/ctf/ctf-router";
+import devRouter from "./services/dev/dev-router";
+import { ensureSeedUsers } from "./services/dev/dev-lib";
 
 // import { InitializeConfigReader } from "./middleware/config-reader";
 import { ErrorHandler } from "./middleware/error-handler";
@@ -53,7 +55,8 @@ if (!Config.TEST) {
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :remote-addr :response-time ms :res[content-length] bytes"));
+    morgan.token("safe-url", (req) => (req.url?.startsWith("/newsletter/unsubscribe") ? req.url.split("?")[0] : req.url));
+    app.use(morgan(":status :method :safe-url :id :remote-addr :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json and limit request size
@@ -94,6 +97,11 @@ app.use("/version/", versionRouter);
 app.use("/user/", userRouter);
 app.use("/duel/", duelRouter);
 app.use("/ctf/", CTFRouter);
+
+// Dev-only seed endpoints for local debug mode. Do not allow in production
+if (!Config.PROD) {
+    app.use("/dev/", devRouter);
+}
 
 // Docs
 app.use("/docs/json", async (_req, res) => res.json(await getOpenAPISpec()));
@@ -138,6 +146,11 @@ export async function startServer(): Promise<Express.Application> {
 
     // Connect database
     await initializeDatabase();
+
+    // Seed a few test users on first boot only in dev.
+    if (!Config.PROD && !Config.TEST) {
+        await ensureSeedUsers();
+    }
 
     // Start logging
     initializeStatisticLogging();

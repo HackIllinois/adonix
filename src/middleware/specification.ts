@@ -10,6 +10,7 @@ export type Method = RouteConfig["method"];
 export enum Tag {
     ADMISSION = "Admission",
     AUTH = "Auth",
+    DEV = "Dev",
     EVENT = "Event",
     JUDGE = "Judge",
     JOB = "Job",
@@ -36,6 +37,7 @@ export enum Tag {
 export interface ResponseObject {
     description: string;
     schema: ZodType;
+    contentType?: "application/json" | "text/html";
 }
 type ResponseObjectWithId = ResponseObject & { id: string };
 export type ResponseObjectsWithId = [ResponseObjectWithId, ResponseObjectWithId, ...ResponseObjectWithId[]];

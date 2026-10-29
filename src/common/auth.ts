@@ -307,8 +307,8 @@ export function initializeUserRoles(provider: Provider, email: string): Role[] {
 
     if (provider == Provider.GOOGLE) {
         if (!email.endsWith("@hackillinois.org")) {
-            // Disallow any google emails that aren't hack
-            return [];
+            // Non-HackIllinois Google accounts get default user permissions
+            return roles;
         }
         // Otherwise, is staff, staff are also attendees
         roles.push(Role.ATTENDEE);

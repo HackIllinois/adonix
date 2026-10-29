@@ -20,6 +20,16 @@ export function restrictEventsByRoles(roles: Role[]): FilterQuery<Event> {
 }
 
 /**
+ * Checks if an event's check-in expires before the event starts, which means no one can ever check in.
+ * This happens when an event is duplicated and moved without updating its expiration.
+ * @param event The start time and expiration of the event, an expiration of 0 or undefined never expires
+ * @returns If the event expires at or before its start time
+ */
+export function expiresBeforeStart({ startTime, exp }: Pick<Event, "startTime" | "exp">): boolean {
+    return !!exp && exp <= startTime;
+}
+
+/**
  * Returns an event QR code generated from an event id, intended to make event qr codes private from event id
  * @param eventId The event id to generate a qr for
  * @returns The qr code

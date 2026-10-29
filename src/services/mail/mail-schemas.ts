@@ -1,14 +1,32 @@
 import { z } from "zod";
 import { CreateErrorAndSchema } from "../../common/schemas";
+import { NewsletterIdSchema } from "../newsletter/newsletter-schemas";
+import Config from "../../common/config";
+
+const MailingListNameSchema = NewsletterIdSchema.min(1).max(Config.MAX_STRING_LENGTH);
 
 export const MailSendSelfSchema = z
     .object({
         subject: z.string(),
         body: z.string(),
+        newsletterId: MailingListNameSchema.optional(),
     })
     .openapi("MailSendSelf");
 
 export type MailSendSelf = z.infer<typeof MailSendSelfSchema>;
+
+export const MailSendNewsletterSchema = z
+    .object({
+        subject: z.string(),
+        body: z.string(),
+        listName: MailingListNameSchema,
+    })
+    .openapi("MailSendNewsletter");
+
+export const [NewsletterRecipientsInvalidError, NewsletterRecipientsInvalidErrorSchema] = CreateErrorAndSchema({
+    error: "NewsletterRecipientsInvalid",
+    message: "This newsletter has no valid audience. Check that it is nonempty and all subscriber addresses are valid.",
+});
 
 export const MailSendSchema = z
     .object({
