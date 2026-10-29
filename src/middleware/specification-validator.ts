@@ -69,6 +69,12 @@ export function specificationValidator<
             throw new SpecificationError(errors);
         }
 
+        // Deliberately replace the body with the parsed result, which drops any fields the schema doesn't declare
+        // (e.g. server-controlled fields or mongo operators), so handlers can't accidentally persist them
+        if (spec.body) {
+            req.body = await spec.body.parseAsync(req.body);
+        }
+
         return next();
     };
 }

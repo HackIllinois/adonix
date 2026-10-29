@@ -38,6 +38,18 @@ export class AdmissionDecision {
     public correctProChallenge: boolean;
 }
 
+export class ApplicationReviewAssignment {
+    // The reviewer ID is the primary key, so there can only be one active assignment per reviewer.
+    @prop({ required: true, type: String })
+    public _id: string;
+
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ required: true })
+    public reviewCount: number;
+}
+
 export const DecisionStatusSchema = z.nativeEnum(DecisionStatus);
 export const DecisionResponseSchema = z.nativeEnum(DecisionResponse);
 
@@ -66,6 +78,18 @@ export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
         message: "TBD is not a valid update status",
     });
 export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
+
+export const ApplicationReviewSummarySchema = z
+    .object({
+        userId: UserIdSchema,
+        reviewCount: z.number().openapi({ example: 3 }),
+        averageScore: z.number().nullable().openapi({ example: 4.33 }),
+    })
+    .openapi("ApplicationReviewSummary");
+
+export type ApplicationReviewSummary = z.infer<typeof ApplicationReviewSummarySchema>;
+
+export const ApplicationReviewSummariesSchema = z.array(ApplicationReviewSummarySchema);
 
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",

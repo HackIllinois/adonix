@@ -85,6 +85,19 @@ describe("GET /registration/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 
+    it("should not include staff reviews", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: TESTER.id },
+            { reviews: [{ reviewerId: "some-staff", score: 1 }], reviewCount: 1 },
+        );
+
+        const response = await getAsUser("/registration/").expect(StatusCode.SuccessOK);
+        const body = JSON.parse(response.text);
+        expect(body).toMatchObject(SUBMITTED_REGISTRATION);
+        expect(body).not.toHaveProperty("reviews");
+        expect(body).not.toHaveProperty("reviewCount");
+    });
+
     it("should not retrieve draft registration even when draft exists", async () => {
         await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
 
@@ -179,6 +192,19 @@ describe("PUT /registration/draft/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
+    it("should ignore unknown fields and update operators", async () => {
+        await Models.RegistrationApplicationDraft.create(DRAFT_REGISTRATION);
+
+        await putAsUser("/registration/draft/")
+            .send({ firstName: "James Updated", $unset: { lastName: 1 }, $set: { email: "injected@example.com" } })
+            .expect(StatusCode.SuccessOK);
+
+        const stored: RegistrationApplicationDraft | null = await Models.RegistrationApplicationDraft.findOne({
+            userId: DRAFT_REGISTRATION.userId,
+        });
+        expect(stored).toMatchObject({ ...DRAFT_REGISTRATION, firstName: "James Updated" });
+    });
+
     it("should provide bad request error when email is invalid", async () => {
         const response = await putAsUser("/registration/draft/")
             .send(APPLICATION_INVALID_EMAIL)
@@ -224,6 +250,17 @@ describe("POST /registration/submit/", () => {
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(storedDraft).toBeNull();
+    });
+
+    it("should not let applicants pre-fill staff reviews", async () => {
+        await postAsUser("/registration/submit/")
+            .send({ ...APPLICATION, reviews: [{ reviewerId: "fake-staff", score: 5 }], reviewCount: 99 })
+            .expect(StatusCode.SuccessOK);
+
+        const stored = await Models.RegistrationApplicationSubmitted.findOne({ userId: TESTER.id })
+            .select("+reviews +reviewCount")
+            .lean();
+        expect(stored).toMatchObject({ reviews: [], reviewCount: 0 });
     });
 
     it("should submit registration even when no draft exists", async () => {
