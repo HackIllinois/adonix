@@ -38,6 +38,18 @@ export class AdmissionDecision {
     public correctProChallenge: boolean;
 }
 
+export class ApplicationReviewAssignment {
+    // The reviewer ID is the primary key, so there can only be one active assignment per reviewer.
+    @prop({ required: true, type: String })
+    public _id: string;
+
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ required: true })
+    public reviewCount: number;
+}
+
 export const DecisionStatusSchema = z.nativeEnum(DecisionStatus);
 export const DecisionResponseSchema = z.nativeEnum(DecisionResponse);
 

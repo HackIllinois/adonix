@@ -8,6 +8,8 @@ import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
 import { AttendeeTeam } from "../attendee-team/attendee-team-schemas";
+import { generateJwtToken } from "../../common/auth";
+import { Provider, Role } from "../auth/auth-schemas";
 
 const TESTER_DECISION = {
     userId: TESTER.id,
@@ -424,6 +426,96 @@ describe("GET /admission/review/next/", () => {
         expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 2 });
     });
 
+    it.each([1, 2])("keeps one pending application when next requests race with %i available", async (available) => {
+        if (available === 1) {
+            await Models.RegistrationApplicationSubmitted.deleteOne({ userId: REVIEWED_APPLICATION.userId });
+        }
+        const responses = await Promise.all(Array.from({ length: 8 }, () => getAsStaff("/admission/review/next/")));
+
+        expect(responses.map((response) => response.status)).toEqual(Array(8).fill(StatusCode.SuccessOK));
+        expect(new Set(responses.map((response) => JSON.parse(response.text).userId)).size).toBe(1);
+        expect(
+            await Models.RegistrationApplicationSubmitted.countDocuments({
+                reviews: { $elemMatch: { reviewerId: TESTER.id, score: null } },
+            }),
+        ).toBe(1);
+        expect(await getReviews(TESTER.id)).toMatchObject({ reviewCount: 1 });
+        if (available === 2) {
+            expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 2 });
+        }
+    });
+
+    it("resumes a pending review created before assignment tracking", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: REVIEWED_APPLICATION.userId },
+            { $push: { reviews: { reviewerId: TESTER.id, score: null } }, $inc: { reviewCount: 1 } },
+        );
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 3 });
+    });
+
+    it("moves on when the assigned application is deleted", async () => {
+        const first = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        await Models.RegistrationApplicationSubmitted.deleteOne({ userId: JSON.parse(first.text).userId });
+
+        const second = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(second.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+    });
+
+    it("finishes an assignment claimed before the pending review was saved", async () => {
+        await Models.ApplicationReviewAssignment.create({
+            _id: TESTER.id,
+            userId: REVIEWED_APPLICATION.userId,
+            reviewCount: REVIEWED_APPLICATION.reviewCount,
+        });
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({
+            reviews: [...REVIEWED_APPLICATION.reviews, { reviewerId: TESTER.id, score: null }],
+            reviewCount: 3,
+        });
+    });
+
+    it("spreads simultaneous reviewers across equally reviewed applications", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: REVIEWED_APPLICATION.userId },
+            { reviews: [], reviewCount: 0 },
+        );
+        const otherStaffToken = generateJwtToken({
+            id: "another-reviewer",
+            email: "another-reviewer@hackillinois.org",
+            provider: Provider.GOOGLE,
+            roles: [Role.USER, Role.STAFF],
+        });
+
+        const responses = await Promise.all([
+            getAsStaff("/admission/review/next/"),
+            getAsStaff("/admission/review/next/").set("Authorization", otherStaffToken),
+        ]);
+
+        expect(responses.map((response) => response.status)).toEqual([StatusCode.SuccessOK, StatusCode.SuccessOK]);
+        expect(new Set(responses.map((response) => JSON.parse(response.text).userId)).size).toBe(2);
+        expect(await getReviews(TESTER.id)).toMatchObject({ reviewCount: 1 });
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 1 });
+    });
+
+    it("assigns applications submitted before the review counter existed", async () => {
+        await Models.RegistrationApplicationSubmitted.collection.updateOne(
+            { userId: TESTER.id },
+            { $unset: { reviews: "", reviewCount: "" } },
+        );
+
+        const response = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toHaveProperty("userId", TESTER.id);
+        expect(await getReviews(TESTER.id)).toMatchObject({
+            reviews: [{ reviewerId: TESTER.id, score: null }],
+            reviewCount: 1,
+        });
+    });
+
     it("skips applications the reviewer has already scored", async () => {
         await Models.RegistrationApplicationSubmitted.updateOne(
             { userId: TESTER.id },
@@ -592,15 +684,16 @@ describe("GET /admission/review/:id/", () => {
     });
 
     it("ignores malformed review scores", async () => {
-        await Models.RegistrationApplicationSubmitted.create({
+        await Models.RegistrationApplicationSubmitted.collection.insertOne({
             ...REVIEWED_APPLICATION,
             reviews: [
                 { reviewerId: "other-staff-1", score: 3, comment: "Decent" },
                 { reviewerId: "other-staff-2", score: 0 },
                 { reviewerId: "other-staff-3", score: 6 },
                 { reviewerId: "other-staff-4", score: "4" },
+                { reviewerId: "other-staff-5", score: 2.5 },
             ],
-            reviewCount: 4,
+            reviewCount: 5,
         });
 
         const response = await getAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).expect(StatusCode.SuccessOK);
@@ -644,15 +737,16 @@ describe("GET /admission/review/", () => {
     });
 
     it("ignores malformed review scores in summary calculations", async () => {
-        await Models.RegistrationApplicationSubmitted.create({
+        await Models.RegistrationApplicationSubmitted.collection.insertOne({
             ...REVIEWED_APPLICATION,
             reviews: [
                 { reviewerId: "other-staff-1", score: 3 },
                 { reviewerId: "other-staff-2", score: 0 },
                 { reviewerId: "other-staff-3", score: 6 },
                 { reviewerId: "other-staff-4", score: "4" },
+                { reviewerId: "other-staff-5", score: 2.5 },
             ],
-            reviewCount: 4,
+            reviewCount: 5,
         });
 
         const response = await getAsStaff("/admission/review/").expect(StatusCode.SuccessOK);

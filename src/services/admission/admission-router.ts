@@ -41,6 +41,7 @@ import {
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
+import { getNextReviewApplication } from "./admission-lib";
 
 const admissionRouter = Router();
 
@@ -479,7 +480,9 @@ admissionRouter.get(
                             input: { $ifNull: ["$reviews.score", []] },
                             cond: {
                                 $and: [
-                                    { $isNumber: "$$this" },
+                                    {
+                                        $cond: [{ $isNumber: "$$this" }, { $eq: [{ $mod: ["$$this", 1] }, 0] }, false],
+                                    },
                                     { $gte: ["$$this", MIN_REVIEW_SCORE] },
                                     { $lte: ["$$this", MAX_REVIEW_SCORE] },
                                 ],
@@ -525,20 +528,7 @@ admissionRouter.get(
     async (req, res) => {
         const { id: reviewerId } = getAuthenticatedUser(req);
 
-        // Resume the application they were already assigned, if any
-        const pending = await Models.RegistrationApplicationSubmitted.findOne({
-            reviews: { $elemMatch: { reviewerId, score: null } },
-        }).lean();
-        if (pending) {
-            return res.status(StatusCode.SuccessOK).send(pending);
-        }
-
-        // Otherwise, atomically assign the least reviewed application they haven't reviewed
-        const assigned = await Models.RegistrationApplicationSubmitted.findOneAndUpdate(
-            { "reviews.reviewerId": { $ne: reviewerId } },
-            { $push: { reviews: { reviewerId, score: null } }, $inc: { reviewCount: 1 } },
-            { sort: { reviewCount: 1 }, new: true, lean: true },
-        );
+        const assigned = await getNextReviewApplication(reviewerId);
         if (!assigned) {
             return res.status(StatusCode.ClientErrorNotFound).send(NoApplicationsToReviewError);
         }

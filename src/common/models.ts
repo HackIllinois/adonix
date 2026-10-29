@@ -3,7 +3,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 
 import { AuthCode, AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeProfile } from "../services/profile/profile-schemas";
-import { AdmissionDecision } from "../services/admission/admission-schemas";
+import { AdmissionDecision, ApplicationReviewAssignment } from "../services/admission/admission-schemas";
 import { MentorOfficeHours, MentorProfile } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
@@ -66,6 +66,7 @@ enum AuthCollection {
 
 enum AdmissionCollection {
     DECISION = "decision",
+    REVIEW_ASSIGNMENT = "reviewassignments",
 }
 
 enum EventCollection {
@@ -179,6 +180,11 @@ export default class Models {
         AdmissionDecision,
         Group.ADMISSION,
         AdmissionCollection.DECISION,
+    );
+    static ApplicationReviewAssignment: Model<ApplicationReviewAssignment> = getModel(
+        ApplicationReviewAssignment,
+        Group.ADMISSION,
+        AdmissionCollection.REVIEW_ASSIGNMENT,
     );
 
     // Event
