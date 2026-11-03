@@ -17,9 +17,10 @@ export function renderUnsubscribePage(
     emailAddress?: string,
 ): string {
     let heading = "Unsubscribe from this mailing list?";
-    let content = `<p>Confirm that you'd like to stop receiving these HackIllinois newsletter emails at <strong>${escapeHtml(
+    // Cloudflare's email decoder cannot run under this page's script-free CSP.
+    let content = `<p>Confirm that you'd like to stop receiving these HackIllinois newsletter emails at <strong><!--email_off-->${escapeHtml(
         emailAddress ?? "",
-    )}</strong>.</p>
+    )}<!--/email_off--></strong>.</p>
         <form method="post" action="/newsletter/unsubscribe/?token=${escapeHtml(
             token ?? "",
         )}"><button type="submit">Unsubscribe</button></form>`;

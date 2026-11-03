@@ -23,6 +23,8 @@ describe("public newsletter unsubscribe", () => {
         expect(response.type).toBe("text/html");
         expect(response.text).toContain('method="post"');
         expect(response.text).toContain("Unsubscribe");
+        expect(response.text).toContain("<strong><!--email_off-->person@example.com<!--/email_off--></strong>");
+        expect(response.headers["content-security-policy"]).toContain("default-src 'none'");
         expect(response.headers["cache-control"]).toBe("no-store");
         expect(response.headers["referrer-policy"]).toBe("no-referrer");
         expect((await Models.NewsletterSubscription.findOne({ newsletterId: "first" }))?.subscribers).toEqual([
