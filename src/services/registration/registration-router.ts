@@ -1,7 +1,7 @@
 import { StatusCode } from "status-code-enum";
 import { Router } from "express";
 
-import { Templates } from "../../common/config";
+import Config, { Templates } from "../../common/config";
 
 import Models from "../../common/models";
 import {
@@ -14,15 +14,19 @@ import {
     RegistrationApplicationDraftSchema,
     RegistrationChallenge,
     RegistrationChallengeStatusSchema,
-    RegistrationChallengeSolveFailedError,
-    RegistrationChallengeSolveFailedErrorSchema,
+    RegistrationChallengeWorldSchema,
+    RegistrationChallengeInvalidPlanError,
+    RegistrationChallengeInvalidPlanErrorId,
+    RegistrationChallengeInvalidPlanErrorSchema,
+    RegistrationChallengeNoFileError,
+    RegistrationChallengeNoFileErrorSchema,
+    RegistrationChallengeNotFoundError,
+    RegistrationChallengeNotFoundErrorSchema,
     RegistrationClosedError,
     RegistrationClosedErrorSchema,
     RegistrationNotFoundError,
     RegistrationNotFoundErrorSchema,
     RegistrationStatusSchema,
-    RegistrationChallengeAlreadySolvedError,
-    RegistrationChallengeAlreadySolvedErrorSchema,
     RegistrationMissingProErrorSchema,
     RegistrationMissingProError,
 } from "./registration-schemas";
@@ -36,8 +40,10 @@ import { isRegistrationAlive } from "./registration-lib";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
-import { compareImages, generateChallenge2026 } from "./challenge-lib";
-import upload from "../../middleware/upload";
+import { assignInstance, getWorldFile, normalizeScore, toChallengeStatus, toStoredReport } from "./challenge-lib";
+import { gradePlan } from "./dispatch/dispatch-grader";
+import { GradeReport, InvalidPlanError, parsePlan } from "./dispatch/dispatch-schemas";
+import { singleJsonFile } from "../../middleware/json-upload";
 
 const registrationRouter = Router();
 
@@ -330,6 +336,21 @@ registrationRouter.post(
     },
 );
 
+/** Finds or creates the user's challenge. Upsert so concurrent first requests can't create duplicates. */
+async function getOrCreateChallenge(userId: string): Promise<RegistrationChallenge> {
+    const challenge = await Models.RegistrationChallenge.findOneAndUpdate(
+        { userId },
+        {
+            $setOnInsert: { userId, instanceId: assignInstance(userId), attempts: 0, complete: false, bestScore: 0 },
+        },
+        { upsert: true, new: true },
+    );
+    if (!challenge) {
+        throw Error("Failed to create challenge");
+    }
+    return challenge;
+}
+
 registrationRouter.get(
     "/challenge/",
     specification({
@@ -337,7 +358,8 @@ registrationRouter.get(
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Gets the challenge input for the currently authenticated user",
+        summary: "Gets the Pro challenge status for the currently authenticated user",
+        description: "Creates the challenge and assigns a world on the first call.",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The challenge status",
@@ -364,44 +386,86 @@ registrationRouter.get(
             return res.status(StatusCode.ClientErrorForbidden).send(RegistrationMissingProError);
         }
 
-        let challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
-        if (!challenge) {
-            challenge = { userId, ...generateChallenge2026(userId), attempts: 0, complete: false };
-            await Models.RegistrationChallenge.create(challenge);
+        const challenge = await getOrCreateChallenge(userId);
+        return res.status(StatusCode.SuccessOK).send(toChallengeStatus(challenge));
+    },
+);
+
+registrationRouter.get(
+    "/challenge/world/",
+    specification({
+        method: "get",
+        path: "/registration/challenge/world/",
+        tag: Tag.REGISTRATION,
+        role: Role.USER,
+        summary: "Downloads the Pro challenge world.json assigned to the currently authenticated user",
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The world.json file",
+                schema: RegistrationChallengeWorldSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find your registration",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorForbidden]: {
+                description: "You are not registered for this track",
+                schema: RegistrationMissingProErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = getAuthenticatedUser(req);
+
+        const registrationData = await Models.RegistrationApplicationSubmitted.findOne({ userId });
+        if (!registrationData) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+        if (!registrationData.pro) {
+            return res.status(StatusCode.ClientErrorForbidden).send(RegistrationMissingProError);
         }
 
-        return res.status(StatusCode.SuccessOK).send({
-            inputFileId: challenge.inputFileId,
-            attempts: challenge.attempts,
-            complete: challenge.complete,
-        });
+        const challenge = await getOrCreateChallenge(userId);
+        const { text } = await getWorldFile(challenge.instanceId);
+
+        res.attachment("world.json");
+        res.type("application/json");
+        return res.status(StatusCode.SuccessOK).send(text);
     },
 );
 
 registrationRouter.post(
     "/challenge/",
-    upload.single("solution"), // middleware handles this
     specification({
         method: "post",
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Attempts to solve the challenge by uploading a solution image",
+        summary: "Submits a plan.json for the Pro challenge and grades it",
+        description:
+            "Multipart upload with the file in the `solution` field. " +
+            "Any gradable plan returns 200 with its report, even with a low score. " +
+            "Only the best score counts, and resubmitting is allowed until registration closes.",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "Successfully solved, the new challenge status is returned",
+                description: "The plan was graded, the new challenge status is returned",
                 schema: RegistrationChallengeStatusSchema,
             },
             [StatusCode.ClientErrorBadRequest]: [
                 {
-                    id: RegistrationChallengeSolveFailedError.error,
-                    description: "Incorrect answer, try again",
-                    schema: RegistrationChallengeSolveFailedErrorSchema,
+                    id: RegistrationChallengeInvalidPlanErrorId,
+                    description: "The plan couldn't be graded (bad JSON, wrong shape, wrong instance, unknown ids)",
+                    schema: RegistrationChallengeInvalidPlanErrorSchema,
                 },
                 {
-                    id: RegistrationChallengeAlreadySolvedError.error,
-                    description: "Already solved correctly",
-                    schema: RegistrationChallengeAlreadySolvedErrorSchema,
+                    id: RegistrationChallengeNoFileError.error,
+                    description: "No .json file was uploaded",
+                    schema: RegistrationChallengeNoFileErrorSchema,
+                },
+                {
+                    id: RegistrationChallengeNotFoundError.error,
+                    description: "No registration or challenge exists yet",
+                    schema: RegistrationChallengeNotFoundErrorSchema,
                 },
             ],
             [StatusCode.ClientErrorForbidden]: {
@@ -410,6 +474,7 @@ registrationRouter.post(
             },
         },
     }),
+    singleJsonFile("solution"),
     async (req, res) => {
         const { id: userId } = getAuthenticatedUser(req);
 
@@ -418,83 +483,76 @@ registrationRouter.post(
         }
 
         if (!req.file) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({
-                error: "NoFileUploaded",
-                message: "Please upload a solution image",
-            });
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeNoFileError);
         }
 
         const registration = await Models.RegistrationApplicationSubmitted.findOne({ userId });
         if (!registration) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({
-                error: "NoChallengeFound",
-                message: "No challenge found. Please request a challenge first.",
-            });
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeNotFoundError);
         }
 
-        // Get the user's challenge
-        const challenge: RegistrationChallenge | null = await Models.RegistrationChallenge.findOne({ userId });
-
+        const challenge = await Models.RegistrationChallenge.findOne({ userId });
         if (!challenge) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({
-                error: "NoChallengeFound",
-                message: "No challenge found. Please request a challenge first.",
-            });
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeNotFoundError);
         }
 
-        if (challenge.complete) {
-            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeAlreadySolvedError);
+        const { world } = await getWorldFile(challenge.instanceId);
+
+        let report: GradeReport;
+        try {
+            report = gradePlan(world, parsePlan(req.file.buffer.toString("utf8")));
+        } catch (err) {
+            if (!(err instanceof InvalidPlanError)) {
+                throw err;
+            }
+            await Models.RegistrationChallenge.updateOne({ userId }, { $inc: { attempts: 1 } });
+            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeInvalidPlanError(err.message));
         }
 
-        const isCorrect = await compareImages(req.file.buffer, challenge.inputFileId);
-
-        const updatedAttempts = challenge.attempts + 1;
-
-        if (!isCorrect) {
-            await Models.RegistrationChallenge.findOneAndUpdate({ userId }, { attempts: updatedAttempts });
-            return res.status(StatusCode.ClientErrorBadRequest).send(RegistrationChallengeSolveFailedError);
-        }
-
-        // Solution is correct
-        const challengeResult = await Models.RegistrationChallenge.findOneAndUpdate(
+        // Atomic so concurrent submissions can never lower the best score
+        let updated = await Models.RegistrationChallenge.findOneAndUpdate(
             { userId },
-            {
-                attempts: updatedAttempts,
-                complete: true,
-            },
-            {
-                new: true,
-            },
+            { $inc: { attempts: 1 }, $max: { bestScore: report.score }, $set: { lastReport: toStoredReport(report) } },
+            { new: true },
         );
-
-        if (!challengeResult) {
+        if (!updated) {
             throw Error("Failed to update challenge");
         }
 
-        const admissionResult = await Models.AdmissionDecision.findOneAndUpdate(
-            { userId: userId },
-            {
-                correctProChallenge: true,
-            },
-            {
-                new: true,
-            },
-        );
+        const normalized = normalizeScore(updated.instanceId, updated.bestScore ?? 0);
+        if (normalized !== null) {
+            // Only the request that flips `complete` marks the admission and sends the email
+            let justPassed = false;
+            if (!updated.complete && normalized >= Config.PRO_CHALLENGE_PASS_RATIO) {
+                const flipped = await Models.RegistrationChallenge.findOneAndUpdate(
+                    { userId, complete: false },
+                    { complete: true },
+                    { new: true },
+                );
+                if (flipped) {
+                    updated = flipped;
+                    justPassed = true;
+                }
+            }
 
-        if (!admissionResult) {
-            throw Error("Failed to update admission");
+            const admission = await Models.AdmissionDecision.findOneAndUpdate(
+                { userId },
+                { $max: { proChallengeScore: normalized }, ...(justPassed ? { $set: { correctProChallenge: true } } : {}) },
+                { new: true },
+            );
+            if (!admission) {
+                throw Error("Failed to update admission");
+            }
+
+            if (justPassed) {
+                // SEND CHALLENGE COMPLETION EMAIL
+                await sendMail(Templates.CHALLENGE_COMPLETION, registration.email, {
+                    name: registration.firstName,
+                });
+            }
         }
 
-        // SEND CHALLENGE COMPLETION EMAIL
-        await sendMail(Templates.CHALLENGE_COMPLETION, registration.email, {
-            name: registration.firstName,
-        });
-
-        return res.status(StatusCode.SuccessOK).send({
-            inputFileId: challengeResult.inputFileId,
-            attempts: challengeResult.attempts,
-            complete: challengeResult.complete,
-        });
+        return res.status(StatusCode.SuccessOK).send(toChallengeStatus(updated));
     },
 );
 

@@ -140,3 +140,9 @@ devdocs/
 
 # swc
 .swc/
+
+# Local Pro challenge worlds (scripts/make-local-dispatch-worlds.ts)
+local-worlds/
+
+# Local-only Python generator/solver for the Pro challenge (never pushed)
+challenge-tools/

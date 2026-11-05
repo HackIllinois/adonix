@@ -1,0 +1,19 @@
+{
+    "instance": "tier1-sample",
+    "team": "example",
+    "routes": {
+        "car-1": [
+            { "t": 5, "cmd": "go", "to": "R1" },
+            { "t": 5, "cmd": "pickup", "order": "O1" },
+            { "t": 5, "cmd": "pickup", "order": "O2" },
+            { "t": 10, "cmd": "go", "to": "H2" },
+            { "t": 10, "cmd": "dropoff", "order": "O2" },
+            { "t": 12, "cmd": "go", "to": "H1" },
+            { "t": 12, "cmd": "dropoff", "order": "O1" },
+            { "t": 16, "cmd": "go", "to": "R2" },
+            { "t": 16, "cmd": "pickup", "order": "O3" },
+            { "t": 20, "cmd": "go", "to": "H3" },
+            { "t": 20, "cmd": "dropoff", "order": "O3" }
+        ]
+    }
+}

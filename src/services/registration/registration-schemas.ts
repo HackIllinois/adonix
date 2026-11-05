@@ -1,7 +1,8 @@
-import { index, prop } from "@typegoose/typegoose";
+import { index, modelOptions, prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 import Config from "../../common/config";
+import { GradeReportSchema } from "./dispatch/dispatch-schemas";
 
 export class ApplicationReview {
     @prop({ required: true })
@@ -203,18 +204,66 @@ export class RegistrationApplicationDraft {
     mlhNewsletter?: boolean;
 }
 
+@modelOptions({ schemaOptions: { _id: false } })
+export class ChallengeRouteError {
+    @prop({ required: true })
+    public driver: string;
+
+    @prop({ required: true })
+    public index: number;
+
+    @prop({ required: true })
+    public message: string;
+}
+
+@modelOptions({ schemaOptions: { _id: false } })
+export class ChallengeGradeReport {
+    @prop({ required: true })
+    public instance: string;
+
+    @prop({ required: true })
+    public score: number;
+
+    @prop({ required: true })
+    public totalOrders: number;
+
+    @prop({ required: true })
+    public delivered: number;
+
+    @prop({ required: true })
+    public onTime: number;
+
+    @prop({ required: true })
+    public lateMinutes: number;
+
+    @prop({ required: true })
+    public travelMinutes: number;
+
+    // Called `errors` in the API, but that name is reserved by mongoose
+    @prop({ required: true, type: () => [ChallengeRouteError] })
+    public routeErrors: ChallengeRouteError[];
+}
+
 export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
+    // Dispatch Rush world assigned to this user, see DISPATCH_INSTANCES in challenge-lib
     @prop({ required: true })
-    public inputFileId: string;
+    public instanceId: string;
 
     @prop({ required: true })
     public attempts: number;
 
+    // True once bestScore reaches the pass ratio. Never goes back to false.
     @prop({ required: true })
     public complete: boolean;
+
+    @prop({ default: 0 })
+    public bestScore?: number;
+
+    @prop({ required: false, type: () => ChallengeGradeReport })
+    public lastReport?: ChallengeGradeReport;
 }
 
 export const RegistrationStatusSchema = z
@@ -353,25 +402,47 @@ export const ApplicationReviewSchema = ApplicationReviewRequestSchema.extend({
 
 export const ApplicationReviewsSchema = z.array(ApplicationReviewSchema);
 
+export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGradeReport", {
+    example: {
+        instance: "tier1-03",
+        score: 1240,
+        totalOrders: 15,
+        delivered: 14,
+        onTime: 11,
+        lateMinutes: 12,
+        travelMinutes: 187,
+        errors: [{ driver: "car-1", index: 41, message: "car-1[41]: go to H3 at t=180, earliest possible t=186" }],
+    },
+});
+
 export const RegistrationChallengeStatusSchema = z
     .object({
-        inputFileId: z.string(),
+        instanceId: z.string(),
         attempts: z.number(),
         complete: z.boolean(),
+        bestScore: z.number(),
+        normalizedScore: z.number().nullable().openapi({
+            description: "bestScore divided by the reference score, or null if this instance isn't calibrated yet",
+        }),
+        passRatio: z.number().openapi({ description: "normalizedScore needed to pass" }),
+        lastReport: ChallengeGradeReportSchema.nullable(),
     })
     .openapi("RegistrationChallengeStatus", {
         example: {
-            inputFileId: "abc123",
+            instanceId: "tier1-03",
             attempts: 3,
-            complete: false,
+            complete: true,
+            bestScore: 1240,
+            normalizedScore: 0.87,
+            passRatio: 0.6,
+            lastReport: null,
         },
     });
+export type RegistrationChallengeStatus = z.infer<typeof RegistrationChallengeStatusSchema>;
 
-export const RegistrationChallengeSolveSchema = z
-    .object({
-        fileId: z.string().openapi({ example: "uploaded_file_id" }),
-    })
-    .openapi("RegistrationChallengeSolve");
+export const RegistrationChallengeWorldSchema = z.unknown().openapi("RegistrationChallengeWorld", {
+    description: "The Dispatch Rush world.json assigned to this user",
+});
 
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
     error: "NotFound",
@@ -398,12 +469,34 @@ export const [RegistrationClosedError, RegistrationClosedErrorSchema] = CreateEr
     message: "Registration is closed, check back next year!",
 });
 
-export const [RegistrationChallengeSolveFailedError, RegistrationChallengeSolveFailedErrorSchema] = CreateErrorAndSchema({
-    error: "IncorrectSolution",
-    message: "That's not the correct answer, try again!",
+export const [RegistrationChallengeNotFoundError, RegistrationChallengeNotFoundErrorSchema] = CreateErrorAndSchema({
+    error: "NoChallengeFound",
+    message: "No challenge found. Please request a challenge first.",
 });
 
-export const [RegistrationChallengeAlreadySolvedError, RegistrationChallengeAlreadySolvedErrorSchema] = CreateErrorAndSchema({
-    error: "AlreadySolved",
-    message: "You've already solved the challenge!",
+export const [RegistrationChallengeNoFileError, RegistrationChallengeNoFileErrorSchema] = CreateErrorAndSchema({
+    error: "NoFileUploaded",
+    message: "Please upload your plan.json",
 });
+
+// Like CreateErrorAndSchema, plus a per-request `reason` explaining what's wrong with the file
+export const RegistrationChallengeInvalidPlanErrorId = "InvalidPlan";
+const INVALID_PLAN_MESSAGE = "Your plan.json couldn't be graded";
+export const RegistrationChallengeInvalidPlanErrorSchema = z
+    .object({
+        error: z.literal(RegistrationChallengeInvalidPlanErrorId),
+        message: z.literal(INVALID_PLAN_MESSAGE),
+        reason: z.string(),
+    })
+    .openapi({
+        example: {
+            error: RegistrationChallengeInvalidPlanErrorId,
+            message: INVALID_PLAN_MESSAGE,
+            reason: 'routes has unknown driver "bike-9"',
+        },
+    });
+export function RegistrationChallengeInvalidPlanError(
+    reason: string,
+): z.infer<typeof RegistrationChallengeInvalidPlanErrorSchema> {
+    return { error: RegistrationChallengeInvalidPlanErrorId, message: INVALID_PLAN_MESSAGE, reason };
+}

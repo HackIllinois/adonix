@@ -36,6 +36,10 @@ export class AdmissionDecision {
 
     @prop({ default: false })
     public correctProChallenge: boolean;
+
+    // Best Pro challenge score divided by the reference solver's score (1.0 = matched our solver)
+    @prop({ default: 0 })
+    public proChallengeScore: number;
 }
 
 export class ApplicationReviewAssignment {
@@ -62,6 +66,7 @@ export const AdmissionDecisionSchema = z
         emailSent: z.boolean().openapi({ example: false }),
         reimbursementValue: z.number(),
         correctProChallenge: z.boolean().openapi({ example: false }),
+        proChallengeScore: z.number().openapi({ example: 0.87 }),
     })
     .openapi("AdmissionDecision");
 
