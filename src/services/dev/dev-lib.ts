@@ -26,6 +26,7 @@ function seedUserFields(userId: string): { name: string; email: string } {
 async function clearDownstreamData(userId: string): Promise<void> {
     await Models.RegistrationApplicationDraft.deleteMany({ userId });
     await Models.RegistrationApplicationSubmitted.deleteMany({ userId });
+    await Models.RegistrationChallenge.deleteMany({ userId });
     await Models.AdmissionDecision.deleteMany({ userId });
     await Models.AttendeeProfile.deleteMany({ userId });
 }

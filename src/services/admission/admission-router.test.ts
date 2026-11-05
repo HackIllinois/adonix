@@ -19,6 +19,7 @@ const TESTER_DECISION = {
     admittedPro: false,
     reimbursementValue: 0,
     correctProChallenge: false,
+    proChallengeScore: 0,
 } satisfies AdmissionDecision;
 
 const OTHER_DECISION = {
@@ -29,6 +30,7 @@ const OTHER_DECISION = {
     admittedPro: false,
     reimbursementValue: 0,
     correctProChallenge: false,
+    proChallengeScore: 0,
 } satisfies AdmissionDecision;
 
 const TESTER_APPLICATION = {

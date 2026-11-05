@@ -1,0 +1,31 @@
+{
+    "instance": "tier1-sample",
+    "shift_end": 120,
+    "coins": 0,
+    "nodes": [
+        { "id": "D0", "type": "depot" },
+        { "id": "X1", "type": "intersection" },
+        { "id": "R1", "type": "restaurant", "name": "Maize" },
+        { "id": "R2", "type": "restaurant", "name": "Cracked" },
+        { "id": "H1", "type": "house" },
+        { "id": "H2", "type": "house" },
+        { "id": "H3", "type": "house" }
+    ],
+    "edges": [
+        { "a": "D0", "b": "X1", "length": 4, "congestion": 1.0, "tags": [] },
+        { "a": "X1", "b": "R1", "length": 6, "congestion": 1.0, "tags": [] },
+        { "a": "X1", "b": "R2", "length": 4, "congestion": 2.0, "tags": ["narrow"] },
+        { "a": "R1", "b": "H1", "length": 10, "congestion": 1.0, "tags": [] },
+        { "a": "R1", "b": "H2", "length": 6, "congestion": 1.5, "tags": [] },
+        { "a": "R2", "b": "H3", "length": 8, "congestion": 1.0, "tags": [] },
+        { "a": "H1", "b": "H2", "length": 4, "congestion": 1.0, "tags": [] },
+        { "a": "R2", "b": "H2", "length": 3, "congestion": 1.3, "tags": [] },
+        { "a": "D0", "b": "H3", "length": 30, "congestion": 1.0, "tags": ["highway"] }
+    ],
+    "drivers": [{ "id": "car-1", "class": "car", "start": "D0" }],
+    "orders": [
+        { "id": "O1", "restaurant": "R1", "house": "H1", "ready_at": 5, "deadline": 20 },
+        { "id": "O2", "restaurant": "R1", "house": "H2", "ready_at": 5, "deadline": 25 },
+        { "id": "O3", "restaurant": "R2", "house": "H3", "ready_at": 10, "deadline": 30 }
+    ]
+}
