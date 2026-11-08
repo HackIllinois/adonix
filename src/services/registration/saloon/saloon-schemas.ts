@@ -1,39 +1,39 @@
-// Shapes of the Dispatch Rush world.json (our data) and plan.json (participant submission).
+// Shapes of the Saloon Rush world.json (our floor plan) and plan.json (the applicant's submission).
 // Kept free of Adonix-specific imports so the grader can be bundled into a standalone local checker.
 import { z, ZodError } from "zod";
 
 const MAX_ID_LENGTH = 64;
 const MAX_NODES = 2000;
-const MAX_EDGES = 10000;
-const MAX_DRIVERS = 50;
-const MAX_ORDERS = 2000;
-const MAX_COMMANDS_PER_DRIVER = 10000;
-const MAX_TEAM_LENGTH = 200;
-const MIN_CONGESTION = 1;
-const MAX_CONGESTION = 2.5;
-const CONGESTION_STEPS_PER_UNIT = 10;
+const MAX_CONNECTIONS = 10000;
+const MAX_MERCENARIES = 50;
+const MAX_CONTRACTS = 2000;
+const MAX_COMMANDS_PER_MERCENARY = 10000;
+const MAX_NAME_LENGTH = 200;
+const MIN_CROWD = 1;
+const MAX_CROWD = 2.5;
+const CROWD_STEPS_PER_UNIT = 10;
 const FLOAT_TOLERANCE = 1e-9;
 const MAX_REPORTED_ISSUES = 5;
 
 const IdSchema = z.string().min(1).max(MAX_ID_LENGTH);
 const MinuteSchema = z.number().int().nonnegative();
 
-export const DriverClassSchema = z.enum(["bike", "car", "truck"]);
-export type DriverClass = z.infer<typeof DriverClassSchema>;
+export const MercenaryClassSchema = z.enum(["disguiser", "pickpocket", "heavy_lifter"]);
+export type MercenaryClass = z.infer<typeof MercenaryClassSchema>;
 
-export const EdgeTagSchema = z.enum(["narrow", "highway"]);
-export type EdgeTag = z.infer<typeof EdgeTagSchema>;
+export const ConnectionTagSchema = z.enum(["crawlspace", "main_floor"]);
+export type ConnectionTag = z.infer<typeof ConnectionTagSchema>;
 
-export const NodeTypeSchema = z.enum(["depot", "restaurant", "house", "intersection"]);
+export const NodeTypeSchema = z.enum(["hideout", "game_table", "back_room", "hallway"]);
 
-// Congestion has at most one decimal place so travel times can be computed with integer math.
-const CongestionSchema = z
+// Crowd has at most one decimal place so travel times can be computed with integer math.
+const CrowdSchema = z
     .number()
-    .min(MIN_CONGESTION)
-    .max(MAX_CONGESTION)
+    .min(MIN_CROWD)
+    .max(MAX_CROWD)
     .refine(
-        (c) => Math.abs(c * CONGESTION_STEPS_PER_UNIT - Math.round(c * CONGESTION_STEPS_PER_UNIT)) < FLOAT_TOLERANCE,
-        "congestion must have at most one decimal place",
+        (c) => Math.abs(c * CROWD_STEPS_PER_UNIT - Math.round(c * CROWD_STEPS_PER_UNIT)) < FLOAT_TOLERANCE,
+        "crowd must have at most one decimal place",
     );
 
 export const WorldSchema = z.object({
@@ -45,50 +45,50 @@ export const WorldSchema = z.object({
             z.object({
                 id: IdSchema,
                 type: NodeTypeSchema,
-                name: z.string().max(MAX_TEAM_LENGTH).optional(),
+                name: z.string().max(MAX_NAME_LENGTH).optional(),
             }),
         )
         .min(1)
         .max(MAX_NODES),
-    edges: z
+    connections: z
         .array(
             z.object({
                 a: IdSchema,
                 b: IdSchema,
                 length: z.number().int().positive(),
-                congestion: CongestionSchema,
-                tags: z.array(EdgeTagSchema).default([]),
+                crowd: CrowdSchema,
+                tags: z.array(ConnectionTagSchema).default([]),
             }),
         )
-        .max(MAX_EDGES),
-    drivers: z
+        .max(MAX_CONNECTIONS),
+    mercenaries: z
         .array(
             z.object({
                 id: IdSchema,
-                class: DriverClassSchema,
-                start: IdSchema,
+                class: MercenaryClassSchema,
+                hideout: IdSchema,
             }),
         )
         .min(1)
-        .max(MAX_DRIVERS),
-    orders: z
+        .max(MAX_MERCENARIES),
+    contracts: z
         .array(
             z.object({
                 id: IdSchema,
-                restaurant: IdSchema,
-                house: IdSchema,
+                table: IdSchema,
+                back_room: IdSchema,
                 ready_at: MinuteSchema,
                 deadline: MinuteSchema,
             }),
         )
-        .max(MAX_ORDERS),
+        .max(MAX_CONTRACTS),
 });
 export type World = z.infer<typeof WorldSchema>;
-export type WorldOrder = World["orders"][number];
+export type WorldContract = World["contracts"][number];
 
 const GoCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("go"), to: IdSchema }).strict();
-const PickupCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("pickup"), order: IdSchema }).strict();
-const DropoffCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("dropoff"), order: IdSchema }).strict();
+const PickupCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("pickup"), contract: IdSchema }).strict();
+const DropoffCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("dropoff"), contract: IdSchema }).strict();
 
 export const CommandSchema = z.discriminatedUnion("cmd", [GoCommandSchema, PickupCommandSchema, DropoffCommandSchema]);
 export type Command = z.infer<typeof CommandSchema>;
@@ -96,16 +96,16 @@ export type Command = z.infer<typeof CommandSchema>;
 export const PlanSchema = z
     .object({
         instance: IdSchema,
-        team: z.string().max(MAX_TEAM_LENGTH).optional(),
-        routes: z.record(IdSchema, z.array(CommandSchema).max(MAX_COMMANDS_PER_DRIVER)),
-        // Power-ups only exist in Tier 3. An empty list is tolerated so one plan format works everywhere.
-        powerups: z.array(z.unknown()).max(0, "power-ups are not available in this tier").optional(),
+        gang: z.string().max(MAX_NAME_LENGTH).optional(),
+        routes: z.record(IdSchema, z.array(CommandSchema).max(MAX_COMMANDS_PER_MERCENARY)),
+        // The bar menu only exists in Tier 3. An empty list is tolerated so one plan format works everywhere.
+        bar_orders: z.array(z.unknown()).max(0, "bar orders aren't on the menu in this tier").optional(),
     })
     .strict();
 export type Plan = z.infer<typeof PlanSchema>;
 
 export const RouteErrorSchema = z.object({
-    driver: z.string(),
+    mercenary: z.string(),
     index: z.number().int(),
     message: z.string(),
 });
@@ -114,8 +114,8 @@ export type RouteError = z.infer<typeof RouteErrorSchema>;
 export const GradeReportSchema = z.object({
     instance: z.string(),
     score: z.number().int(),
-    totalOrders: z.number().int(),
-    delivered: z.number().int(),
+    totalContracts: z.number().int(),
+    completed: z.number().int(),
     onTime: z.number().int(),
     lateMinutes: z.number().int(),
     travelMinutes: z.number().int(),
@@ -125,7 +125,7 @@ export type GradeReport = z.infer<typeof GradeReportSchema>;
 
 /**
  * A plan that can't be graded at all (bad JSON, wrong shape, wrong instance, unknown ids).
- * Invalid commands inside an otherwise well-formed plan are NOT this - they just cut that driver's route.
+ * Invalid commands inside an otherwise well-formed plan are NOT this - they just cut that mercenary's route.
  */
 export class InvalidPlanError extends Error {
     constructor(message: string) {
@@ -163,7 +163,7 @@ export function parsePlan(text: string): Plan {
     return result.data;
 }
 
-/** Parses and sanity-checks a world.json. Throws a plain Error since a bad world is our bug, not the participant's. */
+/** Parses and sanity-checks a world.json. Throws a plain Error since a bad floor plan is our bug, not the applicant's. */
 export function parseWorld(raw: unknown): World {
     const result = WorldSchema.safeParse(raw);
     if (!result.success) {
@@ -174,35 +174,35 @@ export function parseWorld(raw: unknown): World {
     const nodeIds = new Set<string>();
     for (const node of world.nodes) {
         if (nodeIds.has(node.id)) {
-            throw new Error(`Invalid world.json: duplicate node ${node.id}`);
+            throw new Error(`Invalid world.json: duplicate spot ${node.id}`);
         }
         nodeIds.add(node.id);
     }
     const requireNode = (id: string, where: string): void => {
         if (!nodeIds.has(id)) {
-            throw new Error(`Invalid world.json: ${where} references unknown node ${id}`);
+            throw new Error(`Invalid world.json: ${where} references unknown spot ${id}`);
         }
     };
-    world.edges.forEach((edge, i) => {
-        requireNode(edge.a, `edges[${i}]`);
-        requireNode(edge.b, `edges[${i}]`);
+    world.connections.forEach((connection, i) => {
+        requireNode(connection.a, `connections[${i}]`);
+        requireNode(connection.b, `connections[${i}]`);
     });
-    const driverIds = new Set<string>();
-    for (const driver of world.drivers) {
-        if (driverIds.has(driver.id)) {
-            throw new Error(`Invalid world.json: duplicate driver ${driver.id}`);
+    const mercenaryIds = new Set<string>();
+    for (const mercenary of world.mercenaries) {
+        if (mercenaryIds.has(mercenary.id)) {
+            throw new Error(`Invalid world.json: duplicate mercenary ${mercenary.id}`);
         }
-        driverIds.add(driver.id);
-        requireNode(driver.start, `driver ${driver.id}`);
+        mercenaryIds.add(mercenary.id);
+        requireNode(mercenary.hideout, `mercenary ${mercenary.id}`);
     }
-    const orderIds = new Set<string>();
-    for (const order of world.orders) {
-        if (orderIds.has(order.id)) {
-            throw new Error(`Invalid world.json: duplicate order ${order.id}`);
+    const contractIds = new Set<string>();
+    for (const contract of world.contracts) {
+        if (contractIds.has(contract.id)) {
+            throw new Error(`Invalid world.json: duplicate contract ${contract.id}`);
         }
-        orderIds.add(order.id);
-        requireNode(order.restaurant, `order ${order.id}`);
-        requireNode(order.house, `order ${order.id}`);
+        contractIds.add(contract.id);
+        requireNode(contract.table, `contract ${contract.id}`);
+        requireNode(contract.back_room, `contract ${contract.id}`);
     }
     return world;
 }

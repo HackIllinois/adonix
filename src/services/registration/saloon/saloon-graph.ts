@@ -1,38 +1,41 @@
-// Shortest-path travel times for each driver class. Integer math only, so every run gives the same minutes.
-import { DriverClass, EdgeTag, World } from "./dispatch-schemas";
+// Shortest-path travel times for each mercenary class. Integer math only, so every run gives the same minutes.
+import { ConnectionTag, MercenaryClass, World } from "./saloon-schemas";
 
-export interface DriverClassSpec {
-    // Speed in hundredths of a block per minute, so Turbo (x1.5) stays an integer for every class
+export interface MercenaryClassSpec {
+    // Speed in hundredths of a pace per minute, so a Big Belly Burger (x1.5) stays an integer for every class
     speedHundredths: number;
+    // Satchel size: how many cash bags the mercenary can carry at once
     capacity: number;
-    ignoresCongestion: boolean;
-    forbiddenTag: EdgeTag | null;
+    ignoresCrowd: boolean;
+    forbiddenTag: ConnectionTag | null;
 }
 
-export const DRIVER_CLASSES: Record<DriverClass, DriverClassSpec> = {
-    bike: { speedHundredths: 100, capacity: 2, ignoresCongestion: true, forbiddenTag: "highway" },
-    car: { speedHundredths: 200, capacity: 4, ignoresCongestion: false, forbiddenTag: null },
-    truck: { speedHundredths: 150, capacity: 8, ignoresCongestion: false, forbiddenTag: "narrow" },
+export const MERCENARY_CLASSES: Record<MercenaryClass, MercenaryClassSpec> = {
+    // Blends in with the drinkers, but would be recognized in the light of the main floor
+    disguiser: { speedHundredths: 100, capacity: 2, ignoresCrowd: true, forbiddenTag: "main_floor" },
+    pickpocket: { speedHundredths: 200, capacity: 4, ignoresCrowd: false, forbiddenTag: null },
+    // Too big to fit through a crawlspace
+    heavy_lifter: { speedHundredths: 150, capacity: 8, ignoresCrowd: false, forbiddenTag: "crawlspace" },
 };
 
-const CONGESTION_TENTHS = 10;
-// length [blocks] * congestion [tenths] * 10 / speed [hundredths] = minutes
+const CROWD_TENTHS = 10;
+// length [paces] * crowd [tenths] * 10 / speed [hundredths] = minutes
 const UNIT_SCALE = 10;
 
 function ceilDiv(numerator: number, denominator: number): number {
     return Math.floor((numerator + denominator - 1) / denominator);
 }
 
-/** Minutes to cross one edge, or null if the class can't use it. `ceil(length / speed * congestion)`. */
-export function edgeTravelMinutes(
-    edge: { length: number; congestion: number; tags: EdgeTag[] },
-    spec: DriverClassSpec,
+/** Minutes to cross one connection, or null if the class can't use it. `ceil(length / speed * crowd)`. */
+export function connectionTravelMinutes(
+    connection: { length: number; crowd: number; tags: ConnectionTag[] },
+    spec: MercenaryClassSpec,
 ): number | null {
-    if (spec.forbiddenTag && edge.tags.includes(spec.forbiddenTag)) {
+    if (spec.forbiddenTag && connection.tags.includes(spec.forbiddenTag)) {
         return null;
     }
-    const congestionTenths = spec.ignoresCongestion ? CONGESTION_TENTHS : Math.round(edge.congestion * CONGESTION_TENTHS);
-    return ceilDiv(edge.length * congestionTenths * UNIT_SCALE, spec.speedHundredths);
+    const crowdTenths = spec.ignoresCrowd ? CROWD_TENTHS : Math.round(connection.crowd * CROWD_TENTHS);
+    return ceilDiv(connection.length * crowdTenths * UNIT_SCALE, spec.speedHundredths);
 }
 
 interface Neighbor {
@@ -90,7 +93,7 @@ class MinHeap {
     }
 }
 
-/** Lazily computed all-pairs shortest travel times for one driver class on one world. */
+/** Lazily computed all-pairs shortest travel times for one mercenary class on one floor plan. */
 export class TravelTimes {
     private readonly fromCache = new Map<number, Float64Array>();
 
@@ -99,17 +102,17 @@ export class TravelTimes {
         private readonly adjacency: Neighbor[][],
     ) {}
 
-    static build(world: World, spec: DriverClassSpec): TravelTimes {
+    static build(world: World, spec: MercenaryClassSpec): TravelTimes {
         const index = new Map<string, number>();
         world.nodes.forEach((node, i) => index.set(node.id, i));
         const adjacency: Neighbor[][] = world.nodes.map(() => []);
-        for (const edge of world.edges) {
-            const minutes = edgeTravelMinutes(edge, spec);
+        for (const connection of world.connections) {
+            const minutes = connectionTravelMinutes(connection, spec);
             if (minutes === null) {
                 continue;
             }
-            const a = index.get(edge.a)!;
-            const b = index.get(edge.b)!;
+            const a = index.get(connection.a)!;
+            const b = index.get(connection.b)!;
             adjacency[a]!.push({ to: b, minutes });
             adjacency[b]!.push({ to: a, minutes });
         }
@@ -154,19 +157,19 @@ export class TravelTimes {
     }
 }
 
-const travelTimesCache = new WeakMap<World, Map<DriverClass, TravelTimes>>();
+const travelTimesCache = new WeakMap<World, Map<MercenaryClass, TravelTimes>>();
 
-/** Travel times for a class on a world, cached per world object (worlds are cached by challenge-lib). */
-export function getTravelTimes(world: World, driverClass: DriverClass): TravelTimes {
+/** Travel times for a class on a floor plan, cached per world object (worlds are cached by challenge-lib). */
+export function getTravelTimes(world: World, mercenaryClass: MercenaryClass): TravelTimes {
     let byClass = travelTimesCache.get(world);
     if (!byClass) {
         byClass = new Map();
         travelTimesCache.set(world, byClass);
     }
-    let times = byClass.get(driverClass);
+    let times = byClass.get(mercenaryClass);
     if (!times) {
-        times = TravelTimes.build(world, DRIVER_CLASSES[driverClass]);
-        byClass.set(driverClass, times);
+        times = TravelTimes.build(world, MERCENARY_CLASSES[mercenaryClass]);
+        byClass.set(mercenaryClass, times);
     }
     return times;
 }

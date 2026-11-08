@@ -91,7 +91,7 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
-    // Dev only: read Pro challenge worlds from <dir>/<instanceId>.json instead of S3
+    // Dev only: read Saloon Rush floor plans from <dir>/<instanceId>.json instead of S3
     CHALLENGE_LOCAL_WORLDS_DIR: PROD ? undefined : env.CHALLENGE_LOCAL_WORLDS_DIR,
     // Dev only: use this reference score for every instance, so the pass flow can be tested before calibration
     CHALLENGE_LOCAL_REFERENCE_SCORE:
@@ -138,7 +138,7 @@ const Config = {
     MAX_ARRAY_LENGTH: 20,
     MAX_CHALLENGE_PLAN_SIZE_BYTES: 1024 * 1024,
 
-    /* Pro challenge */
+    /* Pro challenge (Saloon Rush) */
     // Applicants pass once their best score reaches this fraction of the reference solver's score.
     // Placeholder until playtesting.
     PRO_CHALLENGE_PASS_RATIO: 0.6,

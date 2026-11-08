@@ -41,8 +41,8 @@ import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
 import { UserIdSchema } from "../../common/schemas";
 import { assignInstance, getWorldFile, normalizeScore, toChallengeStatus, toStoredReport } from "./challenge-lib";
-import { gradePlan } from "./dispatch/dispatch-grader";
-import { GradeReport, InvalidPlanError, parsePlan } from "./dispatch/dispatch-schemas";
+import { gradePlan } from "./saloon/saloon-grader";
+import { GradeReport, InvalidPlanError, parsePlan } from "./saloon/saloon-schemas";
 import { singleJsonFile } from "../../middleware/json-upload";
 
 const registrationRouter = Router();
@@ -358,8 +358,8 @@ registrationRouter.get(
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Gets the Pro challenge status for the currently authenticated user",
-        description: "Creates the challenge and assigns a world on the first call.",
+        summary: "Gets the Saloon Rush (Pro challenge) status for the currently authenticated user",
+        description: "Creates the challenge and assigns a saloon floor plan on the first call.",
         responses: {
             [StatusCode.SuccessOK]: {
                 description: "The challenge status",
@@ -398,10 +398,10 @@ registrationRouter.get(
         path: "/registration/challenge/world/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Downloads the Pro challenge world.json assigned to the currently authenticated user",
+        summary: "Downloads the Saloon Rush floor plan (world.json) assigned to the currently authenticated user",
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The world.json file",
+                description: "The floor plan, as world.json",
                 schema: RegistrationChallengeWorldSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
@@ -441,7 +441,7 @@ registrationRouter.post(
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Submits a plan.json for the Pro challenge and grades it",
+        summary: "Submits a gang's plan.json for Saloon Rush and grades it",
         description:
             "Multipart upload with the file in the `solution` field. " +
             "Any gradable plan returns 200 with its report, even with a low score. " +

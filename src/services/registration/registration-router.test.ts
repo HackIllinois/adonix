@@ -14,8 +14,8 @@ import {
 import type * as MailLib from "../../services/mail/mail-lib";
 import type * as ChallengeLib from "./challenge-lib";
 import type * as RegistrationLib from "./registration-lib";
-import { DISPATCH_INSTANCES, assignInstance } from "./challenge-lib";
-import { parseWorld } from "./dispatch/dispatch-schemas";
+import { SALOON_INSTANCES, assignInstance } from "./challenge-lib";
+import { parseWorld } from "./saloon/saloon-schemas";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../../middleware/json-upload", () => ({
@@ -66,20 +66,20 @@ const DRAFT_OTHER_REGISTRATION = {
 } satisfies RegistrationApplicationDraft;
 const SUBMITTED_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies RegistrationApplicationSubmitted;
 
-const FIXTURES = path.join(__dirname, "dispatch", "__fixtures__");
+const FIXTURES = path.join(__dirname, "saloon", "__fixtures__");
 const SAMPLE_WORLD_TEXT = readFileSync(path.join(FIXTURES, "tier1-sample.world.json"), "utf8");
 const SAMPLE_WORLD = parseWorld(JSON.parse(SAMPLE_WORLD_TEXT));
-// Delivers all 3 orders on time: score 300
+// Completes all 3 contracts on time: score 300
 const SAMPLE_PLAN = JSON.parse(readFileSync(path.join(FIXTURES, "tier1-sample.plan.json"), "utf8"));
-// Delivers only O1 on time: score 100
-const ONE_ORDER_PLAN = {
+// Completes only C1 on time: score 100
+const ONE_CONTRACT_PLAN = {
     instance: "tier1-sample",
     routes: {
-        "car-1": [
-            { t: 5, cmd: "go", to: "R1" },
-            { t: 5, cmd: "pickup", order: "O1" },
-            { t: 10, cmd: "go", to: "H1" },
-            { t: 10, cmd: "dropoff", order: "O1" },
+        "pickpocket-1": [
+            { t: 5, cmd: "go", to: "T1" },
+            { t: 5, cmd: "pickup", contract: "C1" },
+            { t: 10, cmd: "go", to: "B1" },
+            { t: 10, cmd: "dropoff", contract: "C1" },
         ],
     },
 };
@@ -178,13 +178,13 @@ function setUploadedFile(content: unknown, originalname = "plan.json"): void {
 
 // Makes the sample world a calibrated instance for the duration of a test
 function useCalibratedSampleInstance(referenceScore: number | null = SAMPLE_REFERENCE_SCORE): void {
-    DISPATCH_INSTANCES.push({ id: "tier1-sample", referenceScore });
+    SALOON_INSTANCES.push({ id: "tier1-sample", referenceScore });
 }
 
 function removeSampleInstance(): void {
-    const index = DISPATCH_INSTANCES.findIndex((instance) => instance.id === "tier1-sample");
+    const index = SALOON_INSTANCES.findIndex((instance) => instance.id === "tier1-sample");
     if (index !== -1) {
-        DISPATCH_INSTANCES.splice(index, 1);
+        SALOON_INSTANCES.splice(index, 1);
     }
 }
 
@@ -501,7 +501,7 @@ describe("POST /registration/challenge/", () => {
             complete: true,
             bestScore: 300,
             normalizedScore: 1,
-            lastReport: { score: 300, delivered: 3, onTime: 3, errors: [] },
+            lastReport: { score: 300, completed: 3, onTime: 3, errors: [] },
         });
         expect(sendMail).toHaveBeenCalledTimes(1);
         expect(sendMail).toBeCalledWith(Templates.CHALLENGE_COMPLETION, APPLICATION.email, { name: APPLICATION.firstName });
@@ -512,7 +512,7 @@ describe("POST /registration/challenge/", () => {
     });
 
     it("records a low score without passing", async () => {
-        setUploadedFile(ONE_ORDER_PLAN);
+        setUploadedFile(ONE_CONTRACT_PLAN);
 
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
@@ -528,7 +528,7 @@ describe("POST /registration/challenge/", () => {
         setUploadedFile(SAMPLE_PLAN);
         await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
-        setUploadedFile(ONE_ORDER_PLAN);
+        setUploadedFile(ONE_CONTRACT_PLAN);
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -551,7 +551,7 @@ describe("POST /registration/challenge/", () => {
     });
 
     it("passes once the best score crosses the threshold", async () => {
-        setUploadedFile(ONE_ORDER_PLAN);
+        setUploadedFile(ONE_CONTRACT_PLAN);
         await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
         expect(sendMail).not.toHaveBeenCalled();
 
@@ -561,17 +561,19 @@ describe("POST /registration/challenge/", () => {
         expect(sendMail).toHaveBeenCalledTimes(1);
     });
 
-    it("returns route errors for invalid commands but still scores earlier deliveries", async () => {
+    it("returns route errors for invalid commands but still scores earlier contracts", async () => {
         setUploadedFile({
-            ...ONE_ORDER_PLAN,
-            routes: { "car-1": [...ONE_ORDER_PLAN.routes["car-1"], { t: 11, cmd: "go", to: "R2" }] },
+            ...ONE_CONTRACT_PLAN,
+            routes: { "pickpocket-1": [...ONE_CONTRACT_PLAN.routes["pickpocket-1"], { t: 11, cmd: "go", to: "T2" }] },
         });
 
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text).lastReport).toMatchObject({
             score: 100,
-            errors: [{ driver: "car-1", index: 4, message: "car-1[4]: go to R2 at t=11, earliest possible t=14" }],
+            errors: [
+                { mercenary: "pickpocket-1", index: 4, message: "pickpocket-1[4]: go to T2 at t=11, earliest possible t=14" },
+            ],
         });
     });
 
@@ -589,14 +591,14 @@ describe("POST /registration/challenge/", () => {
     });
 
     it("rejects a broken file with a reason and counts the attempt", async () => {
-        setUploadedFile({ ...SAMPLE_PLAN, routes: { "bike-9": [] } });
+        setUploadedFile({ ...SAMPLE_PLAN, routes: { "disguiser-9": [] } });
 
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
 
         expect(JSON.parse(response.text)).toEqual({
             error: "InvalidPlan",
             message: "Your plan.json couldn't be graded",
-            reason: 'routes has unknown driver "bike-9"',
+            reason: 'routes has unknown mercenary "disguiser-9"',
         });
         const stored = await getStoredChallenge();
         expect(stored?.attempts).toBe(1);

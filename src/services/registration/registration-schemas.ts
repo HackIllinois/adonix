@@ -2,7 +2,7 @@ import { index, modelOptions, prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 import Config from "../../common/config";
-import { GradeReportSchema } from "./dispatch/dispatch-schemas";
+import { GradeReportSchema } from "./saloon/saloon-schemas";
 
 export class ApplicationReview {
     @prop({ required: true })
@@ -207,7 +207,7 @@ export class RegistrationApplicationDraft {
 @modelOptions({ schemaOptions: { _id: false } })
 export class ChallengeRouteError {
     @prop({ required: true })
-    public driver: string;
+    public mercenary: string;
 
     @prop({ required: true })
     public index: number;
@@ -225,10 +225,10 @@ export class ChallengeGradeReport {
     public score: number;
 
     @prop({ required: true })
-    public totalOrders: number;
+    public totalContracts: number;
 
     @prop({ required: true })
-    public delivered: number;
+    public completed: number;
 
     @prop({ required: true })
     public onTime: number;
@@ -248,7 +248,7 @@ export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
-    // Dispatch Rush world assigned to this user, see DISPATCH_INSTANCES in challenge-lib
+    // Saloon Rush floor plan assigned to this user, see SALOON_INSTANCES in challenge-lib
     @prop({ required: true })
     public instanceId: string;
 
@@ -406,12 +406,18 @@ export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGr
     example: {
         instance: "tier1-03",
         score: 1240,
-        totalOrders: 15,
-        delivered: 14,
+        totalContracts: 20,
+        completed: 14,
         onTime: 11,
         lateMinutes: 12,
         travelMinutes: 187,
-        errors: [{ driver: "car-1", index: 41, message: "car-1[41]: go to H3 at t=180, earliest possible t=186" }],
+        errors: [
+            {
+                mercenary: "pickpocket-1",
+                index: 41,
+                message: "pickpocket-1[41]: go to B3 at t=180, earliest possible t=186",
+            },
+        ],
     },
 });
 
@@ -441,7 +447,7 @@ export const RegistrationChallengeStatusSchema = z
 export type RegistrationChallengeStatus = z.infer<typeof RegistrationChallengeStatusSchema>;
 
 export const RegistrationChallengeWorldSchema = z.unknown().openapi("RegistrationChallengeWorld", {
-    description: "The Dispatch Rush world.json assigned to this user",
+    description: "The Saloon Rush floor plan (world.json) assigned to this user",
 });
 
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
@@ -492,7 +498,7 @@ export const RegistrationChallengeInvalidPlanErrorSchema = z
         example: {
             error: RegistrationChallengeInvalidPlanErrorId,
             message: INVALID_PLAN_MESSAGE,
-            reason: 'routes has unknown driver "bike-9"',
+            reason: 'routes has unknown mercenary "disguiser-9"',
         },
     });
 export function RegistrationChallengeInvalidPlanError(

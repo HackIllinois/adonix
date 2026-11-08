@@ -4,19 +4,19 @@ import { readFile } from "fs/promises";
 import path from "path";
 import Config from "../../common/config";
 import { GetObjectCommand, S3 } from "@aws-sdk/client-s3";
-import { GradeReport, parseWorld, World } from "./dispatch/dispatch-schemas";
+import { GradeReport, parseWorld, World } from "./saloon/saloon-schemas";
 import type { ChallengeGradeReport, RegistrationChallenge, RegistrationChallengeStatus } from "./registration-schemas";
 
-export interface DispatchInstance {
+export interface SaloonInstance {
     id: string;
     // Score our reference solver gets on this instance, graded by gradePlan. null = not calibrated yet,
     // in which case nobody can pass on this instance (scores are still recorded).
     referenceScore: number | null;
 }
 
-// Tier 1 pool. Each id must match the world's `instance` field and its S3 key `dispatch/tier1/<id>.json`.
+// Tier 1 pool. Each id must match the world's `instance` field and its S3 key `saloon/tier1/<id>.json`.
 // Order matters: applicants are assigned by hash index, so only ever append to this list.
-export const DISPATCH_INSTANCES: DispatchInstance[] = [
+export const SALOON_INSTANCES: SaloonInstance[] = [
     { id: "tier1-01", referenceScore: null },
     { id: "tier1-02", referenceScore: null },
     { id: "tier1-03", referenceScore: null },
@@ -37,8 +37,8 @@ function getClient(): S3 {
 /** Deterministically picks an instance for a user, so refreshing never changes their world. */
 export function assignInstance(userId: string): string {
     const hash = crypto.createHash("sha256").update(userId).digest();
-    const index = hash.readUInt32BE(0) % DISPATCH_INSTANCES.length;
-    return DISPATCH_INSTANCES[index]!.id;
+    const index = hash.readUInt32BE(0) % SALOON_INSTANCES.length;
+    return SALOON_INSTANCES[index]!.id;
 }
 
 // Dev only: <CHALLENGE_LOCAL_WORLDS_DIR>/reference-scores.json ({ "tier1-01": 940, ... }), read once
@@ -65,7 +65,7 @@ export function getReferenceScore(instanceId: string): number | null {
     if (local) {
         return local;
     }
-    return DISPATCH_INSTANCES.find((instance) => instance.id === instanceId)?.referenceScore ?? null;
+    return SALOON_INSTANCES.find((instance) => instance.id === instanceId)?.referenceScore ?? null;
 }
 
 /** Score divided by the reference score, or null if the instance isn't calibrated. */
@@ -98,7 +98,7 @@ export async function fetchObjectFromS3(key: string): Promise<Buffer> {
 }
 
 export function worldKey(instanceId: string): string {
-    return `dispatch/tier1/${instanceId}.json`;
+    return `saloon/tier1/${instanceId}.json`;
 }
 
 export interface WorldFile {
@@ -114,7 +114,7 @@ const worldCache = new Map<string, Promise<WorldFile>>();
 export async function getWorldFile(instanceId: string): Promise<WorldFile> {
     let file = worldCache.get(instanceId);
     if (!file) {
-        // instanceId always comes from DISPATCH_INSTANCES, never from the request, so it's safe in a path
+        // instanceId always comes from SALOON_INSTANCES, never from the request, so it's safe in a path
         const localDir = Config.CHALLENGE_LOCAL_WORLDS_DIR;
         const read = localDir ? readFile(path.join(localDir, `${instanceId}.json`)) : fetchObjectFromS3(worldKey(instanceId));
         file = read.then((buffer) => {
@@ -144,12 +144,12 @@ function fromStoredReport(report: ChallengeGradeReport): GradeReport {
     return {
         instance: report.instance,
         score: report.score,
-        totalOrders: report.totalOrders,
-        delivered: report.delivered,
+        totalContracts: report.totalContracts,
+        completed: report.completed,
         onTime: report.onTime,
         lateMinutes: report.lateMinutes,
         travelMinutes: report.travelMinutes,
-        errors: report.routeErrors.map(({ driver, index, message }) => ({ driver, index, message })),
+        errors: report.routeErrors.map(({ mercenary, index, message }) => ({ mercenary, index, message })),
     };
 }
 

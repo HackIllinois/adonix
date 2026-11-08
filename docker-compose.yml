@@ -7,7 +7,7 @@ services:
       - ./package.json:/adonix/package.json:ro
       - ./tsconfig.json:/adonix/tsconfig.json:ro
       - ./jest.config.ts:/adonix/jest.config.ts:ro
-      # Pro challenge test worlds, see scripts/make-local-dispatch-worlds.ts
+      # Pro challenge test worlds, see scripts/make-local-saloon-worlds.ts
       - ./local-worlds:/adonix/local-worlds:ro
     env_file:
       - .env

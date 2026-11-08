@@ -141,7 +141,7 @@ devdocs/
 # swc
 .swc/
 
-# Local Pro challenge worlds (scripts/make-local-dispatch-worlds.ts)
+# Local Saloon Rush floor plans (scripts/make-local-saloon-worlds.ts)
 local-worlds/
 
 # Local-only Python generator/solver for the Pro challenge (never pushed)
