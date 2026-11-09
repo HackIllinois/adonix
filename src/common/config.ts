@@ -149,7 +149,7 @@ const Config = {
     PRO_CHALLENGE_PASS_RATIO: 0.6,
 
     AI_GRADE_DEFAULT_LIMIT: 25,
-    AI_GRADE_MAX_LIMIT: 200,
+    AI_GRADE_MAX_LIMIT: 50,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

@@ -125,6 +125,14 @@ export class RegistrationApplicationSubmitted {
     @prop({ type: Number, default: null, select: false })
     public aiGradedAt?: number | null;
 
+    // Set when AI grading fails, so later runs skip this application unless asked to retry. Epoch milliseconds
+    @prop({ type: Number, default: null, select: false })
+    public aiGradeFailedAt?: number | null;
+
+    // Short failure message for admins. Never holds secrets
+    @prop({ type: String, default: null, select: false })
+    public aiGradeError?: string | null;
+
     // The last score set, by the AI or by any reviewer (not an average)
     @prop({ type: Number, default: null, select: false })
     public finalScore?: number | null;

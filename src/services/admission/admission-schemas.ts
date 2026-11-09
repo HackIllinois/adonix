@@ -196,6 +196,10 @@ export const AiGradeRequestSchema = z
             .default(Config.AI_GRADE_DEFAULT_LIMIT)
             .openapi({ example: 25 }),
         dryRun: z.boolean().default(true).openapi({ example: true }),
+        retryFailed: z
+            .boolean()
+            .default(false)
+            .openapi({ description: "Also pick applications whose earlier AI grading failed", example: false }),
     })
     .openapi("AiGradeRequest");
 
@@ -205,6 +209,10 @@ export const AiGradeResponseSchema = z
         failed: z.number().int().openapi({ example: 1 }),
         skipped: z.number().int().openapi({ description: "Applications already graded by AI", example: 10 }),
         dryRun: z.boolean().openapi({ example: false }),
+        previouslyFailed: z.number().int().openapi({
+            description: "Ungraded applications that failed earlier and are skipped unless `retryFailed` is true",
+            example: 2,
+        }),
         userIds: z.array(UserIdSchema).openapi({ description: "Graded (or, in a dry run, would-be graded) users" }),
     })
     .openapi("AiGradeResponse");

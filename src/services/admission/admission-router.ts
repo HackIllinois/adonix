@@ -56,7 +56,7 @@ import {
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
 import { getApplicantTag, getDecisionFieldsForTag, getNextReviewApplication, listApplicants } from "./admission-lib";
 import { isLumenConfigured, requestLumenCompletion } from "./ai-grading/lumen-client";
-import { buildGradingPrompt, parseGradingReply } from "./ai-grading/ai-grading-lib";
+import { buildGradingPrompt, parseGradingReply, shortErrorMessage } from "./ai-grading/ai-grading-lib";
 
 const admissionRouter = Router();
 
@@ -896,7 +896,8 @@ admissionRouter.post(
             "Sets `finalScore` to the AI score only when `finalScore` is empty. " +
             "Invalid replies and provider errors are counted in `failed` and skipped. " +
             "`dryRun` (the default) calls nothing and lists the applications that would be graded in `userIds`. " +
-            "`skipped` is the number of applications that already have an AI score.",
+            "`skipped` is the number of applications that already have an AI score. " +
+            "Applications whose grading failed earlier are skipped unless `retryFailed` is true; `previouslyFailed` counts them.",
         body: AiGradeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
@@ -910,22 +911,35 @@ admissionRouter.post(
         },
     }),
     async (req, res) => {
-        const { limit, dryRun } = req.body;
+        const { limit, dryRun, retryFailed } = req.body;
         if (!dryRun && !isLumenConfigured()) {
             return res.status(StatusCode.ServerErrorServiceUnavailable).send(AiGradingNotConfiguredError);
         }
 
-        const ungraded = { aiScore: null };
-        const [applications, skipped] = await Promise.all([
-            Models.RegistrationApplicationSubmitted.find(ungraded).sort({ userId: 1 }).limit(limit).lean(),
+        // Failed applications are skipped unless retryFailed, so a bad one is not paid for on every run
+        const toGrade = retryFailed ? { aiScore: null } : { aiScore: null, aiGradeFailedAt: null };
+        const [applications, skipped, previouslyFailed] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.find(toGrade).sort({ userId: 1 }).limit(limit).lean(),
             Models.RegistrationApplicationSubmitted.countDocuments({ aiScore: { $ne: null } }),
+            Models.RegistrationApplicationSubmitted.countDocuments({
+                aiScore: null,
+                aiGradeFailedAt: { $ne: null },
+            }),
         ]);
 
         if (dryRun) {
-            return res
-                .status(StatusCode.SuccessOK)
-                .send({ graded: 0, failed: 0, skipped, dryRun, userIds: applications.map((a) => a.userId) });
+            return res.status(StatusCode.SuccessOK).send({
+                graded: 0,
+                failed: 0,
+                skipped,
+                dryRun,
+                previouslyFailed,
+                userIds: applications.map((a) => a.userId),
+            });
         }
+
+        const markFailed = (userId: string, message: string): Promise<unknown> =>
+            Models.RegistrationApplicationSubmitted.updateOne({ userId }, { aiGradeFailedAt: Date.now(), aiGradeError: message });
 
         const userIds: string[] = [];
         let failed = 0;
@@ -934,12 +948,19 @@ admissionRouter.post(
                 const reply = parseGradingReply(await requestLumenCompletion(buildGradingPrompt(application)));
                 if (!reply) {
                     failed++;
+                    await markFailed(application.userId, "Reply was not valid grading JSON");
                     continue;
                 }
                 const now = Date.now();
                 await Models.RegistrationApplicationSubmitted.updateOne(
                     { userId: application.userId },
-                    { aiScore: reply.score, aiReasons: reply.reasons, aiGradedAt: now },
+                    {
+                        aiScore: reply.score,
+                        aiReasons: reply.reasons,
+                        aiGradedAt: now,
+                        aiGradeFailedAt: null,
+                        aiGradeError: null,
+                    },
                 );
                 // Never overwrite a score a reviewer (or an earlier run) already set
                 await Models.RegistrationApplicationSubmitted.updateOne(
@@ -947,12 +968,15 @@ admissionRouter.post(
                     { finalScore: reply.score, finalScoreSetBy: "ai", finalScoreSetAt: now },
                 );
                 userIds.push(application.userId);
-            } catch {
+            } catch (error) {
                 failed++;
+                await markFailed(application.userId, shortErrorMessage(error)).catch(() => undefined);
             }
         }
 
-        return res.status(StatusCode.SuccessOK).send({ graded: userIds.length, failed, skipped, dryRun, userIds });
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ graded: userIds.length, failed, skipped, dryRun, previouslyFailed, userIds });
     },
 );
 
