@@ -3,7 +3,17 @@ import Models from "../../common/models";
 import { DecisionStatus, DecisionResponse, AdmissionDecision } from "./admission-schemas";
 import Config, { Templates } from "../../common/config";
 import { RegistrationApplicationSubmitted } from "../registration/registration-schemas";
-import { getAsStaff, getAsUser, putAsStaff, putAsUser, getAsAttendee, putAsApplicant, TESTER } from "../../common/testTools";
+import {
+    getAsStaff,
+    getAsUser,
+    putAsStaff,
+    delAsStaff,
+    delAsUser,
+    putAsUser,
+    getAsAttendee,
+    putAsApplicant,
+    TESTER,
+} from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import type * as MailLib from "../../services/mail/mail-lib";
 import { AttendeeProfileCreateRequest } from "../profile/profile-schemas";
@@ -759,5 +769,133 @@ describe("GET /admission/review/", () => {
                 { userId: TESTER.id, reviewCount: 0, averageScore: null },
             ]),
         );
+    });
+});
+
+describe("PUT /admission/review/:id/reviewers/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.create(REVIEWED_APPLICATION);
+    });
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await putAsUser(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`)
+            .send({ reviewerId: "new-reviewer" })
+            .expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("adds a pending review for the reviewer", async () => {
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`)
+            .send({ reviewerId: "new-reviewer" })
+            .expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({
+            reviews: [...REVIEWED_APPLICATION.reviews, { reviewerId: "new-reviewer", score: null }],
+            reviewCount: 3,
+        });
+    });
+
+    it("does nothing when the reviewer is already pending", async () => {
+        const url = `/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`;
+        await putAsStaff(url).send({ reviewerId: "new-reviewer" }).expect(StatusCode.SuccessOK);
+        await putAsStaff(url).send({ reviewerId: "new-reviewer" }).expect(StatusCode.SuccessOK);
+
+        const { reviews, reviewCount } = await getReviews(REVIEWED_APPLICATION.userId);
+        expect(reviews).toHaveLength(3);
+        expect(reviewCount).toBe(3);
+    });
+
+    it("keeps the score when the reviewer has already scored", async () => {
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`)
+            .send({ reviewerId: "other-staff-1" })
+            .expect(StatusCode.SuccessOK);
+
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({
+            reviews: REVIEWED_APPLICATION.reviews,
+            reviewCount: 2,
+        });
+    });
+
+    it("lets the new reviewer score the application afterwards", async () => {
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`)
+            .send({ reviewerId: TESTER.id })
+            .expect(StatusCode.SuccessOK);
+        const next = await getAsStaff("/admission/review/next/").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(next.text)).toHaveProperty("userId", REVIEWED_APPLICATION.userId);
+    });
+
+    it("rejects a body without a reviewer id", async () => {
+        const response = await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/`)
+            .send({})
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
+    it("gives not found for an application that does not exist", async () => {
+        const response = await putAsStaff("/admission/review/nonexistent-user/reviewers/")
+            .send({ reviewerId: "new-reviewer" })
+            .expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+    });
+});
+
+describe("DELETE /admission/review/:id/reviewers/:reviewerId/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            reviews: [...REVIEWED_APPLICATION.reviews, { reviewerId: "pending-reviewer", score: null }],
+            reviewCount: 3,
+        });
+    });
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await delAsUser(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/pending-reviewer/`).expect(
+            StatusCode.ClientErrorForbidden,
+        );
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("removes a pending review", async () => {
+        await delAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/pending-reviewer/`).expect(
+            StatusCode.SuccessOK,
+        );
+
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({
+            reviews: REVIEWED_APPLICATION.reviews,
+            reviewCount: 2,
+        });
+    });
+
+    it("clears the reviewer's tracked assignment for that application", async () => {
+        await Models.ApplicationReviewAssignment.create({
+            _id: "pending-reviewer",
+            userId: REVIEWED_APPLICATION.userId,
+            reviewCount: 2,
+        });
+        await delAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/pending-reviewer/`).expect(
+            StatusCode.SuccessOK,
+        );
+
+        expect(await Models.ApplicationReviewAssignment.exists({ _id: "pending-reviewer" })).toBeNull();
+    });
+
+    it("refuses to remove a reviewer who has scored", async () => {
+        const response = await delAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/other-staff-1/`).expect(
+            StatusCode.ClientErrorConflict,
+        );
+        expect(JSON.parse(response.text)).toHaveProperty("error", "ReviewAlreadyScored");
+        expect((await getReviews(REVIEWED_APPLICATION.userId)).reviews).toHaveLength(3);
+    });
+
+    it("does nothing for a reviewer who is not assigned", async () => {
+        await delAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/reviewers/nobody/`).expect(StatusCode.SuccessOK);
+        expect(await getReviews(REVIEWED_APPLICATION.userId)).toMatchObject({ reviewCount: 3 });
+    });
+
+    it("gives not found for an application that does not exist", async () => {
+        const response = await delAsStaff("/admission/review/nonexistent-user/reviewers/pending-reviewer/").expect(
+            StatusCode.ClientErrorNotFound,
+        );
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });

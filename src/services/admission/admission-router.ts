@@ -17,6 +17,9 @@ import {
     ProfileDataRequiredErrorSchema,
     ApplicationReviewSummariesSchema,
     ApplicationReviewSummary,
+    ApplicationReviewerRequestSchema,
+    ReviewAlreadyScoredError,
+    ReviewAlreadyScoredErrorSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -641,6 +644,103 @@ admissionRouter.get(
             return isScoredReview ? [{ reviewerId, score, comment }] : [];
         });
         return res.status(StatusCode.SuccessOK).send(reviews);
+    },
+);
+
+admissionRouter.put(
+    "/review/:id/reviewers/",
+    specification({
+        method: "put",
+        path: "/admission/review/{id}/reviewers/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Assigns a reviewer to the specified user's application",
+        description:
+            "Adds a pending review (no score yet) for the reviewer. " +
+            "Does nothing if the reviewer is already assigned or has already scored the application.",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        body: ApplicationReviewerRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The reviewer is assigned",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = req.params;
+        const { reviewerId } = req.body;
+
+        // Guarded so a reviewer can never be added twice, even with concurrent requests
+        const added = await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId, "reviews.reviewerId": { $ne: reviewerId } },
+            { $push: { reviews: { reviewerId, score: null } }, $inc: { reviewCount: 1 } },
+        );
+        if (added.matchedCount === 0 && !(await Models.RegistrationApplicationSubmitted.exists({ userId }))) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+admissionRouter.delete(
+    "/review/:id/reviewers/:reviewerId/",
+    specification({
+        method: "delete",
+        path: "/admission/review/{id}/reviewers/{reviewerId}/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Removes a reviewer from the specified user's application",
+        description:
+            "Only removes a pending review. A reviewer who has already scored the application cannot be removed. " +
+            "Does nothing if the reviewer is not assigned.",
+        parameters: z.object({
+            id: UserIdSchema,
+            reviewerId: UserIdSchema,
+        }),
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The reviewer is no longer assigned",
+                schema: SuccessResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+            [StatusCode.ClientErrorConflict]: {
+                description: "The reviewer has already scored the application",
+                schema: ReviewAlreadyScoredErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId, reviewerId } = req.params;
+
+        const removed = await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId, reviews: { $elemMatch: { reviewerId, score: null } } },
+            { $pull: { reviews: { reviewerId, score: null } }, $inc: { reviewCount: -1 } },
+        );
+        if (removed.matchedCount > 0) {
+            // Stop the "next application" tracker from handing the same application back to this reviewer
+            await Models.ApplicationReviewAssignment.deleteOne({ _id: reviewerId, userId });
+            return res.status(StatusCode.SuccessOK).send({ success: true });
+        }
+
+        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("+reviews").lean();
+        if (!application) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+        if ((application.reviews ?? []).some((review) => review.reviewerId === reviewerId)) {
+            return res.status(StatusCode.ClientErrorConflict).send(ReviewAlreadyScoredError);
+        }
+        return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );
 
