@@ -50,6 +50,11 @@ const Config = {
     PROD,
     VERSION: getVersion(),
 
+    /* AI grading (Lumen). Optional at startup; the grading endpoint checks them when it is used. */
+    LUMEN_API_KEY: env.LUMEN_API_KEY ?? "",
+    LUMEN_BASE_URL: env.LUMEN_BASE_URL ?? "",
+    LUMEN_MODEL: env.LUMEN_MODEL ?? "",
+
     /* URLs */
     PORT,
     ROOT_URL,
@@ -142,6 +147,9 @@ const Config = {
     // Applicants pass once their best score reaches this fraction of the reference solver's score.
     // Placeholder until playtesting.
     PRO_CHALLENGE_PASS_RATIO: 0.6,
+
+    AI_GRADE_DEFAULT_LIMIT: 25,
+    AI_GRADE_MAX_LIMIT: 200,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

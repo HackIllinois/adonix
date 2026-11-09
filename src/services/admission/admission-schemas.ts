@@ -1,6 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
 import { ReviewScoreSchema } from "../registration/registration-schemas";
+import Config from "../../common/config";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export enum DecisionStatus {
@@ -183,6 +184,34 @@ export const ApplicationReviewerRequestSchema = z
 export const [ReviewAlreadyScoredError, ReviewAlreadyScoredErrorSchema] = CreateErrorAndSchema({
     error: "ReviewAlreadyScored",
     message: "This reviewer has already scored the application, so they cannot be removed",
+});
+
+export const AiGradeRequestSchema = z
+    .object({
+        limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(Config.AI_GRADE_MAX_LIMIT)
+            .default(Config.AI_GRADE_DEFAULT_LIMIT)
+            .openapi({ example: 25 }),
+        dryRun: z.boolean().default(true).openapi({ example: true }),
+    })
+    .openapi("AiGradeRequest");
+
+export const AiGradeResponseSchema = z
+    .object({
+        graded: z.number().int().openapi({ example: 24 }),
+        failed: z.number().int().openapi({ example: 1 }),
+        skipped: z.number().int().openapi({ description: "Applications already graded by AI", example: 10 }),
+        dryRun: z.boolean().openapi({ example: false }),
+        userIds: z.array(UserIdSchema).openapi({ description: "Graded (or, in a dry run, would-be graded) users" }),
+    })
+    .openapi("AiGradeResponse");
+
+export const [AiGradingNotConfiguredError, AiGradingNotConfiguredErrorSchema] = CreateErrorAndSchema({
+    error: "AiGradingNotConfigured",
+    message: "LUMEN_API_KEY, LUMEN_BASE_URL and LUMEN_MODEL must be set to grade with AI",
 });
 
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({

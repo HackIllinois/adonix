@@ -26,6 +26,10 @@ import {
     ApplicantEmailsSchema,
     ApplicantTagUpdateRequestSchema,
     ApplicantTagUpdateResponseSchema,
+    AiGradeRequestSchema,
+    AiGradeResponseSchema,
+    AiGradingNotConfiguredError,
+    AiGradingNotConfiguredErrorSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -51,6 +55,8 @@ import {
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
 import { getApplicantTag, getDecisionFieldsForTag, getNextReviewApplication, listApplicants } from "./admission-lib";
+import { isLumenConfigured, requestLumenCompletion } from "./ai-grading/lumen-client";
+import { buildGradingPrompt, parseGradingReply } from "./ai-grading/ai-grading-lib";
 
 const admissionRouter = Router();
 
@@ -874,6 +880,79 @@ admissionRouter.delete(
             return res.status(StatusCode.ClientErrorConflict).send(ReviewAlreadyScoredError);
         }
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+admissionRouter.post(
+    "/ai-grade/",
+    specification({
+        method: "post",
+        path: "/admission/ai-grade/",
+        tag: Tag.ADMISSION,
+        role: Role.ADMIN,
+        summary: "Grades submitted applications that have no AI score yet",
+        description:
+            "Picks up to `limit` applications with no AI score and asks Lumen to grade each from 1 to 5. " +
+            "Sets `finalScore` to the AI score only when `finalScore` is empty. " +
+            "Invalid replies and provider errors are counted in `failed` and skipped. " +
+            "`dryRun` (the default) calls nothing and lists the applications that would be graded in `userIds`. " +
+            "`skipped` is the number of applications that already have an AI score.",
+        body: AiGradeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The grading result",
+                schema: AiGradeResponseSchema,
+            },
+            [StatusCode.ServerErrorServiceUnavailable]: {
+                description: "Lumen is not configured (only when dryRun is false)",
+                schema: AiGradingNotConfiguredErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { limit, dryRun } = req.body;
+        if (!dryRun && !isLumenConfigured()) {
+            return res.status(StatusCode.ServerErrorServiceUnavailable).send(AiGradingNotConfiguredError);
+        }
+
+        const ungraded = { aiScore: null };
+        const [applications, skipped] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.find(ungraded).sort({ userId: 1 }).limit(limit).lean(),
+            Models.RegistrationApplicationSubmitted.countDocuments({ aiScore: { $ne: null } }),
+        ]);
+
+        if (dryRun) {
+            return res
+                .status(StatusCode.SuccessOK)
+                .send({ graded: 0, failed: 0, skipped, dryRun, userIds: applications.map((a) => a.userId) });
+        }
+
+        const userIds: string[] = [];
+        let failed = 0;
+        for (const application of applications) {
+            try {
+                const reply = parseGradingReply(await requestLumenCompletion(buildGradingPrompt(application)));
+                if (!reply) {
+                    failed++;
+                    continue;
+                }
+                const now = Date.now();
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId },
+                    { aiScore: reply.score, aiReasons: reply.reasons, aiGradedAt: now },
+                );
+                // Never overwrite a score a reviewer (or an earlier run) already set
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId, finalScore: null },
+                    { finalScore: reply.score, finalScoreSetBy: "ai", finalScoreSetAt: now },
+                );
+                userIds.push(application.userId);
+            } catch {
+                failed++;
+            }
+        }
+
+        return res.status(StatusCode.SuccessOK).send({ graded: userIds.length, failed, skipped, dryRun, userIds });
     },
 );
 
