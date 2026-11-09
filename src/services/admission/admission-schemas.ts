@@ -1,5 +1,6 @@
 import { prop } from "@typegoose/typegoose";
 import { z } from "zod";
+import { ReviewScoreSchema } from "../registration/registration-schemas";
 import { CreateErrorAndSchema, UserIdSchema } from "../../common/schemas";
 
 export enum DecisionStatus {
@@ -95,6 +96,60 @@ export const ApplicationReviewSummarySchema = z
 export type ApplicationReviewSummary = z.infer<typeof ApplicationReviewSummarySchema>;
 
 export const ApplicationReviewSummariesSchema = z.array(ApplicationReviewSummarySchema);
+
+export enum ApplicantTag {
+    IN_REVIEW = "IN_REVIEW",
+    ADMITTED = "ADMITTED",
+    ADMITTED_REIMBURSED = "ADMITTED_REIMBURSED",
+    WAITLISTED = "WAITLISTED",
+    REJECTED = "REJECTED",
+}
+
+export const ApplicantTagSchema = z.nativeEnum(ApplicantTag).openapi("ApplicantTag");
+
+// "none" in the reviewerId filter means applications with no reviewers
+export const NO_REVIEWERS_FILTER = "none";
+
+export const ApplicantsQuerySchema = z.object({
+    tag: ApplicantTagSchema.optional(),
+    reviewerId: z
+        .string()
+        .optional()
+        .openapi({ description: `A reviewer's user ID, or "${NO_REVIEWERS_FILTER}" for no reviewers` }),
+});
+
+export const ApplicantsEmailsQuerySchema = z.object({
+    tag: ApplicantTagSchema,
+});
+
+export const ApplicantSchema = z
+    .object({
+        userId: UserIdSchema,
+        name: z.string().openapi({ example: "Ada Lovelace" }),
+        email: z.string().openapi({ example: "ada@example.org" }),
+        school: z.string().openapi({ example: "University of Illinois Urbana-Champaign" }),
+        reviewers: z.array(
+            z.object({
+                reviewerId: UserIdSchema,
+                score: ReviewScoreSchema.nullable(),
+            }),
+        ),
+        aiScore: ReviewScoreSchema.nullable(),
+        finalScore: ReviewScoreSchema.nullable(),
+        edited: z.boolean().openapi({ example: false }),
+        tag: ApplicantTagSchema,
+    })
+    .openapi("Applicant");
+
+export type Applicant = z.infer<typeof ApplicantSchema>;
+
+export const ApplicantsSchema = z.array(ApplicantSchema);
+
+export const ApplicantEmailsSchema = z
+    .object({
+        emails: z.array(z.string()).openapi({ example: ["ada@example.org"] }),
+    })
+    .openapi("ApplicantEmails");
 
 export const ApplicationReviewerRequestSchema = z
     .object({

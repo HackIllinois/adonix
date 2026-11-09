@@ -20,6 +20,10 @@ import {
     ApplicationReviewerRequestSchema,
     ReviewAlreadyScoredError,
     ReviewAlreadyScoredErrorSchema,
+    ApplicantsQuerySchema,
+    ApplicantsEmailsQuerySchema,
+    ApplicantsSchema,
+    ApplicantEmailsSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -44,7 +48,7 @@ import {
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
-import { getNextReviewApplication } from "./admission-lib";
+import { getNextReviewApplication, listApplicants } from "./admission-lib";
 
 const admissionRouter = Router();
 
@@ -451,6 +455,55 @@ admissionRouter.get(
         }
 
         return res.status(StatusCode.SuccessOK).send(admissionDecision);
+    },
+);
+
+admissionRouter.get(
+    "/applicants/",
+    specification({
+        method: "get",
+        path: "/admission/applicants/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Lists every submitted application with its reviewers, scores and admission tag",
+        description:
+            "Tags: IN_REVIEW (no decision or TBD), ADMITTED (accepted, no reimbursement), " +
+            "ADMITTED_REIMBURSED (accepted with a reimbursement), WAITLISTED, REJECTED. " +
+            'Use reviewerId=none to find applications with no reviewers. "edited" is true when a reviewer changed the AI score.',
+        query: ApplicantsQuerySchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The matching applicants",
+                schema: ApplicantsSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { tag, reviewerId } = req.query;
+        const applicants = await listApplicants({ tag, reviewerId });
+        return res.status(StatusCode.SuccessOK).send(applicants);
+    },
+);
+
+admissionRouter.get(
+    "/applicants/emails/",
+    specification({
+        method: "get",
+        path: "/admission/applicants/emails/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Lists the emails of every applicant with an admission tag, for building a mailing list",
+        query: ApplicantsEmailsQuerySchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The emails",
+                schema: ApplicantEmailsSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const applicants = await listApplicants({ tag: req.query.tag });
+        return res.status(StatusCode.SuccessOK).send({ emails: applicants.map((applicant) => applicant.email) });
     },
 );
 
