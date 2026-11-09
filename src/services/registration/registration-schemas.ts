@@ -113,6 +113,29 @@ export class RegistrationApplicationSubmitted {
     // Always equal to reviews.length, kept so we can sort by it atomically
     @prop({ default: 0, select: false })
     public reviewCount?: number;
+
+    // AI grading result - hidden by default like reviews
+    @prop({ type: Number, default: null, select: false })
+    public aiScore?: number | null;
+
+    @prop({ type: () => [String], default: [], select: false })
+    public aiReasons?: string[];
+
+    // Epoch milliseconds
+    @prop({ type: Number, default: null, select: false })
+    public aiGradedAt?: number | null;
+
+    // The last score set, by the AI or by any reviewer (not an average)
+    @prop({ type: Number, default: null, select: false })
+    public finalScore?: number | null;
+
+    // Reviewer user ID, or "ai"
+    @prop({ type: String, default: null, select: false })
+    public finalScoreSetBy?: string | null;
+
+    // Epoch milliseconds
+    @prop({ type: Number, default: null, select: false })
+    public finalScoreSetAt?: number | null;
 }
 
 export class RegistrationApplicationDraft {
@@ -420,6 +443,19 @@ export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGr
         ],
     },
 });
+const ReviewScoreSchema = z.number().int().min(MIN_REVIEW_SCORE).max(MAX_REVIEW_SCORE);
+
+export const ApplicationReviewDetailsSchema = z
+    .object({
+        reviews: ApplicationReviewsSchema,
+        aiScore: ReviewScoreSchema.nullable().openapi({ example: 3 }),
+        aiReasons: z.array(z.string()).openapi({ example: ["Clear essays"] }),
+        aiGradedAt: z.number().nullable().openapi({ example: 1767225600000 }),
+        finalScore: ReviewScoreSchema.nullable().openapi({ example: 4 }),
+        finalScoreSetBy: z.string().nullable().openapi({ example: "google1234" }),
+        finalScoreSetAt: z.number().nullable().openapi({ example: 1767225600000 }),
+    })
+    .openapi("ApplicationReviewDetails");
 
 export const RegistrationChallengeStatusSchema = z
     .object({

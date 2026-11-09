@@ -31,7 +31,7 @@ import { z } from "zod";
 import { SuccessResponseSchema, UserIdSchema } from "../../common/schemas";
 import {
     ApplicationReviewRequestSchema,
-    ApplicationReviewsSchema,
+    ApplicationReviewDetailsSchema,
     NoApplicationsToReviewError,
     NoApplicationsToReviewErrorSchema,
     RegistrationApplicationSubmittedSchema,
@@ -572,10 +572,13 @@ admissionRouter.put(
         const { score } = req.body;
         const comment = req.body.comment || undefined;
 
+        // The newest score from any reviewer becomes the final score
+        const finalScore = { finalScore: score, finalScoreSetBy: reviewerId, finalScoreSetAt: Date.now() };
+
         // The request replaces the whole review, so no comment means remove the old one
         const replaceReview = comment
-            ? { $set: { "reviews.$.score": score, "reviews.$.comment": comment } }
-            : { $set: { "reviews.$.score": score }, $unset: { "reviews.$.comment": "" } };
+            ? { $set: { "reviews.$.score": score, "reviews.$.comment": comment, ...finalScore } }
+            : { $set: { "reviews.$.score": score, ...finalScore }, $unset: { "reviews.$.comment": "" } };
 
         // Update their existing review (assigned or already scored)
         const updated = await Models.RegistrationApplicationSubmitted.updateOne(
@@ -589,7 +592,7 @@ admissionRouter.put(
         // Otherwise add a new review, guarded so a concurrent request can't add a second one
         const added = await Models.RegistrationApplicationSubmitted.updateOne(
             { userId, "reviews.reviewerId": { $ne: reviewerId } },
-            { $push: { reviews: { reviewerId, score, comment } }, $inc: { reviewCount: 1 } },
+            { $push: { reviews: { reviewerId, score, comment } }, $inc: { reviewCount: 1 }, $set: finalScore },
         );
         if (added.matchedCount > 0) {
             return res.status(StatusCode.SuccessOK).send({ success: true });
@@ -612,15 +615,17 @@ admissionRouter.get(
         path: "/admission/review/{id}/",
         tag: Tag.ADMISSION,
         role: Role.STAFF,
-        summary: "Gets every staff member's review of the specified user's application",
-        description: "Only scored reviews are returned - reviewers who were assigned but haven't scored yet are excluded.",
+        summary: "Gets every staff member's review, the AI score and the final score of the specified user's application",
+        description:
+            "Only scored reviews are returned - reviewers who were assigned but haven't scored yet are excluded. " +
+            "The final score is the last score set by the AI or a reviewer.",
         parameters: z.object({
             id: UserIdSchema,
         }),
         responses: {
             [StatusCode.SuccessOK]: {
-                description: "The reviews",
-                schema: ApplicationReviewsSchema,
+                description: "The reviews and scores",
+                schema: ApplicationReviewDetailsSchema,
             },
             [StatusCode.ClientErrorNotFound]: {
                 description: "Couldn't find the application",
@@ -633,7 +638,9 @@ admissionRouter.get(
         const MAX_REVIEW_SCORE = 5;
         const { id: userId } = req.params;
 
-        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId }).select("+reviews").lean();
+        const application = await Models.RegistrationApplicationSubmitted.findOne({ userId })
+            .select("+reviews +aiScore +aiReasons +aiGradedAt +finalScore +finalScoreSetBy +finalScoreSetAt")
+            .lean();
         if (!application) {
             return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
         }
@@ -643,7 +650,15 @@ admissionRouter.get(
                 typeof score === "number" && Number.isInteger(score) && score >= MIN_REVIEW_SCORE && score <= MAX_REVIEW_SCORE;
             return isScoredReview ? [{ reviewerId, score, comment }] : [];
         });
-        return res.status(StatusCode.SuccessOK).send(reviews);
+        return res.status(StatusCode.SuccessOK).send({
+            reviews,
+            aiScore: application.aiScore ?? null,
+            aiReasons: application.aiReasons ?? [],
+            aiGradedAt: application.aiGradedAt ?? null,
+            finalScore: application.finalScore ?? null,
+            finalScoreSetBy: application.finalScoreSetBy ?? null,
+            finalScoreSetAt: application.finalScoreSetAt ?? null,
+        });
     },
 );
 

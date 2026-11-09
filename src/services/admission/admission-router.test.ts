@@ -689,7 +689,7 @@ describe("GET /admission/review/:id/", () => {
         });
 
         const response = await getAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toEqual([
+        expect(JSON.parse(response.text).reviews).toEqual([
             { reviewerId: "other-staff-1", score: 3, comment: "Decent" },
             { reviewerId: "other-staff-2", score: 4 },
         ]);
@@ -709,12 +709,44 @@ describe("GET /admission/review/:id/", () => {
         });
 
         const response = await getAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toEqual([{ reviewerId: "other-staff-1", score: 3, comment: "Decent" }]);
+        expect(JSON.parse(response.text).reviews).toEqual([{ reviewerId: "other-staff-1", score: 3, comment: "Decent" }]);
     });
 
-    it("returns an empty list for an application with no reviews", async () => {
+    it("returns an empty list and empty scores for an application with no reviews", async () => {
         const response = await getAsStaff(`/admission/review/${TESTER.id}/`).expect(StatusCode.SuccessOK);
-        expect(JSON.parse(response.text)).toEqual([]);
+        expect(JSON.parse(response.text)).toEqual({
+            reviews: [],
+            aiScore: null,
+            aiReasons: [],
+            aiGradedAt: null,
+            finalScore: null,
+            finalScoreSetBy: null,
+            finalScoreSetAt: null,
+        });
+    });
+
+    it("returns the AI score, AI reasons and final score", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: TESTER.id },
+            {
+                aiScore: 3,
+                aiReasons: ["Clear essays", "Short answers"],
+                aiGradedAt: 1000,
+                finalScore: 4,
+                finalScoreSetBy: "other-staff-1",
+                finalScoreSetAt: 2000,
+            },
+        );
+
+        const response = await getAsStaff(`/admission/review/${TESTER.id}/`).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({
+            aiScore: 3,
+            aiReasons: ["Clear essays", "Short answers"],
+            aiGradedAt: 1000,
+            finalScore: 4,
+            finalScoreSetBy: "other-staff-1",
+            finalScoreSetAt: 2000,
+        });
     });
 
     it("gives not found for an application that does not exist", async () => {
@@ -769,6 +801,61 @@ describe("GET /admission/review/", () => {
                 { userId: TESTER.id, reviewCount: 0, averageScore: null },
             ]),
         );
+    });
+});
+
+async function getFinalScore(userId: string): Promise<unknown> {
+    const application = await Models.RegistrationApplicationSubmitted.findOne({ userId })
+        .select("+finalScore +finalScoreSetBy +finalScoreSetAt")
+        .lean();
+    return {
+        finalScore: application?.finalScore,
+        finalScoreSetBy: application?.finalScoreSetBy,
+        finalScoreSetAt: application?.finalScoreSetAt,
+    };
+}
+
+describe("final score on PUT /admission/review/:id/", () => {
+    it("sets the final score, who set it, and when", async () => {
+        const before = Date.now();
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 4 }).expect(StatusCode.SuccessOK);
+
+        expect(await getFinalScore(TESTER.id)).toEqual({
+            finalScore: 4,
+            finalScoreSetBy: TESTER.id,
+            finalScoreSetAt: expect.any(Number),
+        });
+        const { finalScoreSetAt } = (await getFinalScore(TESTER.id)) as { finalScoreSetAt: number };
+        expect(finalScoreSetAt).toBeGreaterThanOrEqual(before);
+        expect(finalScoreSetAt).toBeLessThanOrEqual(Date.now());
+    });
+
+    it("keeps the last score set instead of averaging", async () => {
+        await Models.RegistrationApplicationSubmitted.create({ ...REVIEWED_APPLICATION, finalScore: 2, finalScoreSetBy: "ai" });
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 5 }).expect(StatusCode.SuccessOK);
+        expect(await getFinalScore(REVIEWED_APPLICATION.userId)).toMatchObject({ finalScore: 5, finalScoreSetBy: TESTER.id });
+
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 1 }).expect(StatusCode.SuccessOK);
+        expect(await getFinalScore(REVIEWED_APPLICATION.userId)).toMatchObject({ finalScore: 1, finalScoreSetBy: TESTER.id });
+    });
+
+    it("overwrites the final score set by another reviewer", async () => {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...REVIEWED_APPLICATION,
+            finalScore: 3,
+            finalScoreSetBy: "other-staff-1",
+            finalScoreSetAt: 1000,
+        });
+        await putAsStaff(`/admission/review/${REVIEWED_APPLICATION.userId}/`).send({ score: 2 }).expect(StatusCode.SuccessOK);
+
+        const result = (await getFinalScore(REVIEWED_APPLICATION.userId)) as { finalScoreSetAt: number };
+        expect(result).toMatchObject({ finalScore: 2, finalScoreSetBy: TESTER.id });
+        expect(result.finalScoreSetAt).toBeGreaterThan(1000);
+    });
+
+    it("leaves the final score alone when the score is invalid", async () => {
+        await putAsStaff(`/admission/review/${TESTER.id}/`).send({ score: 9 }).expect(StatusCode.ClientErrorBadRequest);
+        expect(await getFinalScore(TESTER.id)).toEqual({ finalScore: null, finalScoreSetBy: null, finalScoreSetAt: null });
     });
 });
 
