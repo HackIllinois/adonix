@@ -155,6 +155,25 @@ export const ApplicantEmailsSchema = z
     })
     .openapi("ApplicantEmails");
 
+export const ApplicantTagUpdateRequestSchema = z
+    .object({
+        tag: ApplicantTagSchema,
+        reimbursementValue: z
+            .number()
+            .positive()
+            .optional()
+            .openapi({ example: 100, description: "Required (greater than 0) for ADMITTED_REIMBURSED, ignored for other tags" }),
+    })
+    .openapi("ApplicantTagUpdateRequest")
+    .refine((request) => request.tag !== ApplicantTag.ADMITTED_REIMBURSED || request.reimbursementValue !== undefined, {
+        message: "reimbursementValue is required for ADMITTED_REIMBURSED",
+        path: ["reimbursementValue"],
+    });
+
+export const ApplicantTagUpdateResponseSchema = AdmissionDecisionSchema.extend({
+    tag: ApplicantTagSchema,
+}).openapi("ApplicantTagUpdateResponse");
+
 export const ApplicationReviewerRequestSchema = z
     .object({
         reviewerId: UserIdSchema,
