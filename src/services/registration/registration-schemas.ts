@@ -73,6 +73,13 @@ export class RegistrationApplicationSubmitted {
     @prop({ required: true })
     public hackathonsParticipated: string;
 
+    // Ranking of which area the applicant is more interested in
+    @prop({ required: true })
+    public interestSoftware: string;
+
+    @prop({ required: true })
+    public interestHardware: string;
+
     @prop({ required: true })
     public application1: string;
 
@@ -99,6 +106,15 @@ export class RegistrationApplicationSubmitted {
         type: String,
     })
     public eventInterest: string[];
+
+    @prop({
+        required: true,
+        type: String,
+    })
+    public vcInvolvement: string[];
+
+    @prop({ required: true })
+    public hardwareInterest: string;
 
     @prop({ required: true })
     requestTravelReimbursement: boolean;
@@ -171,6 +187,12 @@ export class RegistrationApplicationDraft {
     public hackathonsParticipated?: string;
 
     @prop({ required: false })
+    public interestSoftware?: string;
+
+    @prop({ required: false })
+    public interestHardware?: string;
+
+    @prop({ required: false })
     public application1?: string;
 
     @prop({ required: false })
@@ -196,6 +218,15 @@ export class RegistrationApplicationDraft {
         type: String,
     })
     public eventInterest?: string[];
+
+    @prop({
+        required: false,
+        type: String,
+    })
+    public vcInvolvement?: string[];
+
+    @prop({ required: false })
+    public hardwareInterest?: string;
 
     @prop({ required: false })
     requestTravelReimbursement?: boolean;
@@ -292,6 +323,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         major: z.string().max(Config.MAX_STRING_LENGTH),
         underrepresented: z.string().max(Config.MAX_STRING_LENGTH),
         hackathonsParticipated: z.string().max(Config.MAX_STRING_LENGTH),
+        interestSoftware: z.string().max(Config.MAX_STRING_LENGTH),
+        interestHardware: z.string().max(Config.MAX_STRING_LENGTH),
         application1: z.string().max(Config.MAX_ESSAY_LENGTH),
         application2: z.string().max(Config.MAX_ESSAY_LENGTH),
         application3: z.string().max(Config.MAX_ESSAY_LENGTH),
@@ -299,6 +332,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         pro: z.boolean().optional(),
         attribution: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         eventInterest: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
+        vcInvolvement: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
+        hardwareInterest: z.string().max(Config.MAX_ESSAY_LENGTH),
         requestTravelReimbursement: z.boolean(),
         mlhNewsletter: z.boolean(),
     })
@@ -319,6 +354,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             major: "Computer science, computer engineering, or software engineering",
             underrepresented: "No",
             hackathonsParticipated: "2-3",
+            interestSoftware: "1",
+            interestHardware: "2",
             application1: "I love hack",
             application2: "I love hack",
             application3: "I love hack",
@@ -326,6 +363,8 @@ export const RegistrationApplicationSubmittedRequestSchema = z
             pro: true,
             attribution: ["Word of Mouth", "Instagram"],
             eventInterest: ["Meeting New People"],
+            vcInvolvement: ["Just curious and want to learn how VC works"],
+            hardwareInterest: "Arduino kits and soldering stations",
             requestTravelReimbursement: false,
             mlhNewsletter: true,
         },
@@ -351,6 +390,10 @@ export const RegistrationApplicationDraftRequestSchema = RegistrationApplication
             major: "Computer science, computer engineering, or software engineering",
             underrepresented: "No",
             hackathonsParticipated: "2-3",
+            interestSoftware: "1",
+            interestHardware: "2",
+            vcInvolvement: ["Just curious and want to learn how VC works"],
+            hardwareInterest: "Arduino kits and soldering stations",
         },
     },
 );
