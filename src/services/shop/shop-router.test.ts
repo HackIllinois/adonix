@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { delAsAttendee, getAsAttendee, postAsAttendee, postAsStaff, TESTER } from "../../common/testTools";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
@@ -188,6 +188,42 @@ describe("POST /shop/cart/redeem", () => {
 //
 // POST /shop/cart/:itemId
 //
+describe("POST /shop/cart/redeem points guard", () => {
+    it("refuses the order and keeps stock when points drop between the check and the deduction", async () => {
+        await Models.AttendeeTeam.create({ name: TESTER_PROFILE.team, badge: "b", points: 5000, members: 1 });
+        // Between the redeem's points check and its deduction, another spend (for example an auction hold) leaves 50 points
+        const originalFind = Models.ShopItem.find.bind(Models.ShopItem);
+        jest.spyOn(Models.ShopItem, "find").mockImplementationOnce(((...args: Parameters<typeof originalFind>) => {
+            const query = originalFind(...args);
+            return Models.AttendeeProfile.updateOne({ userId: TESTER_PROFILE.userId }, { $set: { points: 50 } }).then(
+                () => query,
+            );
+        }) as unknown as typeof Models.ShopItem.find);
+
+        const uri = generateQRCode(TESTER_PROFILE.userId);
+        const qrValue = new URL(uri).searchParams.get("qr");
+        const response = await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue });
+
+        expect(response.status).toBe(StatusCode.ClientErrorPaymentRequired);
+        expect(response.body.error).toBe("InsufficientFunds");
+        expect((await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId }))?.points).toBe(50);
+        expect((await Models.ShopItem.findOne({ itemId: TESTER_SHOP_ITEM.itemId }))?.quantity).toBe(TESTER_SHOP_ITEM.quantity);
+        expect((await Models.AttendeeTeam.findOne({ name: TESTER_PROFILE.team }))?.points).toBe(5000);
+    });
+
+    it("still takes team points on a normal redeem", async () => {
+        await Models.AttendeeTeam.create({ name: TESTER_PROFILE.team, badge: "b", points: 5000, members: 1 });
+        const uri = generateQRCode(TESTER_PROFILE.userId);
+        const qrValue = new URL(uri).searchParams.get("qr");
+        await postAsStaff("/shop/cart/redeem").send({ QRCode: qrValue }).expect(StatusCode.SuccessOK);
+        const total = INITIAL_ORDER_QUANTITY * TESTER_SHOP_ITEM.price;
+        expect((await Models.AttendeeTeam.findOne({ name: TESTER_PROFILE.team }))?.points).toBe(5000 - total);
+        const profile = await Models.AttendeeProfile.findOne({ userId: TESTER_PROFILE.userId });
+        expect(profile?.points).toBe(TESTER_PROFILE.points - total);
+        expect(profile?.pointsAccumulated).toBe(TESTER_PROFILE.pointsAccumulated);
+    });
+});
+
 describe("POST /shop/cart/:itemId", () => {
     it("allows user to add new item to cart", async () => {
         const response = await postAsAttendee(`/shop/cart/${TESTER_SHOP_ITEM.itemId}`).expect(StatusCode.SuccessOK);

@@ -1,0 +1,31 @@
+{
+    "instance": "tier1-sample",
+    "shift_end": 120,
+    "coins": 0,
+    "nodes": [
+        { "id": "HQ", "type": "hideout" },
+        { "id": "W1", "type": "hallway" },
+        { "id": "T1", "type": "game_table", "name": "Faro Table" },
+        { "id": "T2", "type": "game_table", "name": "Poker Table" },
+        { "id": "B1", "type": "back_room" },
+        { "id": "B2", "type": "back_room" },
+        { "id": "B3", "type": "back_room" }
+    ],
+    "connections": [
+        { "a": "HQ", "b": "W1", "length": 4, "crowd": 1.0, "tags": [] },
+        { "a": "W1", "b": "T1", "length": 6, "crowd": 1.0, "tags": [] },
+        { "a": "W1", "b": "T2", "length": 4, "crowd": 2.0, "tags": ["crawlspace"] },
+        { "a": "T1", "b": "B1", "length": 10, "crowd": 1.0, "tags": [] },
+        { "a": "T1", "b": "B2", "length": 6, "crowd": 1.5, "tags": [] },
+        { "a": "T2", "b": "B3", "length": 8, "crowd": 1.0, "tags": [] },
+        { "a": "B1", "b": "B2", "length": 4, "crowd": 1.0, "tags": [] },
+        { "a": "T2", "b": "B2", "length": 3, "crowd": 1.3, "tags": [] },
+        { "a": "HQ", "b": "B3", "length": 30, "crowd": 1.0, "tags": ["main_floor"] }
+    ],
+    "mercenaries": [{ "id": "pickpocket-1", "class": "pickpocket", "hideout": "HQ" }],
+    "contracts": [
+        { "id": "C1", "table": "T1", "back_room": "B1", "ready_at": 5, "deadline": 20 },
+        { "id": "C2", "table": "T1", "back_room": "B2", "ready_at": 5, "deadline": 25 },
+        { "id": "C3", "table": "T2", "back_room": "B3", "ready_at": 10, "deadline": 30 }
+    ]
+}

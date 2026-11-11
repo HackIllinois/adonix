@@ -15,8 +15,65 @@ import specification, { Tag } from "../../middleware/specification";
 import { SuccessResponseSchema } from "../../common/schemas";
 import { Role } from "../auth/auth-schemas";
 import { z } from "zod";
+import { readUnsubscribeToken, removeNewsletterSubscriber } from "./newsletter-lib";
+import { renderUnsubscribePage } from "./newsletter-view";
 
 const newsletterRouter = Router();
+
+// Register before /:id so these public pages never enter the admin-only list lookup.
+for (const method of ["get", "post"] as const) {
+    newsletterRouter[method](
+        "/unsubscribe/",
+        (_req, res, next) => {
+            res.set({
+                "Cache-Control": "no-store",
+                "Referrer-Policy": "no-referrer",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy":
+                    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+            });
+            next();
+        },
+        specification({
+            method,
+            path: "/newsletter/unsubscribe/",
+            tag: Tag.NEWSLETTER,
+            role: null,
+            summary: method === "get" ? "Show newsletter unsubscribe confirmation" : "Confirm newsletter unsubscribe",
+            query: z.object({ token: z.string().optional() }),
+            responses: {
+                [StatusCode.SuccessOK]: { description: "Unsubscribe page", schema: z.string(), contentType: "text/html" },
+                [StatusCode.ClientErrorBadRequest]: {
+                    description: "Invalid unsubscribe link",
+                    schema: z.string(),
+                    contentType: "text/html",
+                },
+                [StatusCode.ServerErrorInternal]: {
+                    description: "Temporary unsubscribe failure",
+                    schema: z.string(),
+                    contentType: "text/html",
+                },
+            },
+        }),
+        async (req, res) => {
+            const token = typeof req.query.token === "string" ? req.query.token : undefined;
+            const identity = readUnsubscribeToken(token);
+            res.type("html");
+            if (!identity) {
+                return res.status(StatusCode.ClientErrorBadRequest).send(renderUnsubscribePage("invalid"));
+            }
+            if (method === "get") {
+                return res.send(renderUnsubscribePage("confirm", token, identity.emailAddress));
+            }
+            try {
+                await removeNewsletterSubscriber(identity.listName, identity.emailAddress);
+                return res.send(renderUnsubscribePage("success"));
+            } catch {
+                return res.status(StatusCode.ServerErrorInternal).send(renderUnsubscribePage("error", token));
+            }
+        },
+    );
+}
 
 newsletterRouter.get(
     "/",
@@ -117,8 +174,7 @@ newsletterRouter.delete(
     async (req, res) => {
         const { listName, emailAddress } = req.body;
 
-        const updateQuery: UpdateQuery<NewsletterSubscription> = { $pull: { subscribers: emailAddress } };
-        await Models.NewsletterSubscription.findOneAndUpdate({ newsletterId: listName }, updateQuery, { upsert: true });
+        await removeNewsletterSubscriber(listName, emailAddress);
         return res.status(StatusCode.SuccessOK).send({ success: true });
     },
 );

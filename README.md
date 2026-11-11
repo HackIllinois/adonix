@@ -1,6 +1,14 @@
 # adonix
 HackIllinois' backend API
 
+## Newsletter unsubscribe
+
+Send mailing-list messages through `POST /mail/send/newsletter/` with `listName`, `subject`, and `body` (admin only). The API reads current subscribers and adds a signed, recipient-specific unsubscribe link to each message. The generic mail and attendee endpoints remain for operational email.
+
+The public link opens a confirmation page at `/newsletter/unsubscribe/`; only its confirmation POST removes the address, and only from that list. Repeated requests succeed without creating lists. No account, migration, or new environment variable is needed. Links use `ROOT_URL` and a purpose-specific signature with the existing `JWT_SECRET`; rotating that secret invalidates older links.
+
+Deploy this backend before updating the admin site's newsletter sender. Older admin clients continue to use the existing generic mail API, without unsubscribe links; previously delivered emails cannot acquire links retroactively.
+
 ## Installation
 
 #### Prerequisites

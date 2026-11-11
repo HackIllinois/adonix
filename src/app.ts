@@ -18,6 +18,8 @@ import puzzleRouter from "./services/puzzle/puzzle-router";
 import registrationRouter from "./services/registration/registration-router";
 import resumeRouter from "./services/resume/resume-router";
 import shopRouter from "./services/shop/shop-router";
+import auctionRouter from "./services/auction/auction-router";
+import { startAuctionTimer } from "./services/auction/auction-timer";
 import staffRouter from "./services/staff/staff-router";
 import versionRouter from "./services/version/version-router";
 import userRouter from "./services/user/user-router";
@@ -55,7 +57,8 @@ if (!Config.TEST) {
     morgan.token("id", function (req, _res) {
         return tryGetAuthenticatedUser(req)?.id || "unauthenticated";
     });
-    app.use(morgan(":status :method :url :id :remote-addr :response-time ms :res[content-length] bytes"));
+    morgan.token("safe-url", (req) => (req.url?.startsWith("/newsletter/unsubscribe") ? req.url.split("?")[0] : req.url));
+    app.use(morgan(":status :method :safe-url :id :remote-addr :response-time ms :res[content-length] bytes"));
 }
 
 // Automatically convert requests from json and limit request size
@@ -87,6 +90,7 @@ app.use("/puzzle/", puzzleRouter);
 app.use("/registration/", registrationRouter);
 app.use("/resume/", resumeRouter);
 app.use("/shop/", shopRouter);
+app.use("/auction/", auctionRouter);
 app.use("/sponsor/", sponsorRouter);
 app.use("/staff/", staffRouter);
 app.use("/statistic/", statisticRouter);
@@ -153,6 +157,7 @@ export async function startServer(): Promise<Express.Application> {
 
     // Start logging
     initializeStatisticLogging();
+    startAuctionTimer();
 
     // Connect express server
     const server = await promiseListen(port);

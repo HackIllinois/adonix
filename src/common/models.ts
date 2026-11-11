@@ -3,7 +3,7 @@ import { getModelForClass } from "@typegoose/typegoose";
 
 import { AuthCode, AuthInfo } from "../services/auth/auth-schemas";
 import { AttendeeProfile } from "../services/profile/profile-schemas";
-import { AdmissionDecision } from "../services/admission/admission-schemas";
+import { AdmissionDecision, ApplicationReviewAssignment } from "../services/admission/admission-schemas";
 import { MentorOfficeHours, MentorProfile } from "../services/mentor/mentor-schemas";
 import { Event, EventAttendance, EventFollowers } from "../services/event/event-schemas";
 import { NewsletterSubscription } from "../services/newsletter/newsletter-schemas";
@@ -13,6 +13,7 @@ import {
     RegistrationChallenge,
 } from "../services/registration/registration-schemas";
 import { ShopHistory, ShopItem, ShopOrder } from "../services/shop/shop-schemas";
+import { AuctionItem } from "../services/auction/auction-schemas";
 import { UserAttendance, UserFollowing, UserInfo } from "../services/user/user-schemas";
 import { AnyParamConstructor, IModelOptions } from "@typegoose/typegoose/lib/types";
 import { StaffShift, StaffInfo } from "../services/staff/staff-schemas";
@@ -44,6 +45,7 @@ export enum Group {
     REGISTRATION = "registration",
     RUNTIME = "runtime",
     SHOP = "shop",
+    AUCTION = "auction",
     SPONSOR = "sponsor",
     STAFF = "staff",
     STATISTIC = "statistic",
@@ -66,6 +68,7 @@ enum AuthCollection {
 
 enum AdmissionCollection {
     DECISION = "decision",
+    REVIEW_ASSIGNMENT = "reviewassignments",
 }
 
 enum EventCollection {
@@ -115,6 +118,10 @@ enum ShopCollection {
     ITEMS = "items",
     HISTORY = "history",
     ORDERS = "orders",
+}
+
+enum AuctionCollection {
+    ITEMS = "items",
 }
 
 enum SponsorCollection {
@@ -180,6 +187,11 @@ export default class Models {
         Group.ADMISSION,
         AdmissionCollection.DECISION,
     );
+    static ApplicationReviewAssignment: Model<ApplicationReviewAssignment> = getModel(
+        ApplicationReviewAssignment,
+        Group.ADMISSION,
+        AdmissionCollection.REVIEW_ASSIGNMENT,
+    );
 
     // Event
     static Event: Model<Event> = getModel(Event, Group.EVENT, EventCollection.EVENTS);
@@ -244,6 +256,9 @@ export default class Models {
     static ShopItem: Model<ShopItem> = getModel(ShopItem, Group.SHOP, ShopCollection.ITEMS);
     static ShopOrder: Model<ShopOrder> = getModel(ShopOrder, Group.SHOP, ShopCollection.ORDERS);
     static ShopHistory: Model<ShopHistory> = getModel(ShopHistory, Group.SHOP, ShopCollection.HISTORY);
+
+    // Auction
+    static AuctionItem: Model<AuctionItem> = getModel(AuctionItem, Group.AUCTION, AuctionCollection.ITEMS);
 
     // Sponsor
     static Sponsor: Model<Sponsor> = getModel(Sponsor, Group.SPONSOR, SponsorCollection.SPONSORS);

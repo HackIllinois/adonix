@@ -1,0 +1,19 @@
+{
+    "instance": "tier1-sample",
+    "gang": "example",
+    "routes": {
+        "pickpocket-1": [
+            { "t": 5, "cmd": "go", "to": "T1" },
+            { "t": 5, "cmd": "pickup", "contract": "C1" },
+            { "t": 5, "cmd": "pickup", "contract": "C2" },
+            { "t": 10, "cmd": "go", "to": "B2" },
+            { "t": 10, "cmd": "dropoff", "contract": "C2" },
+            { "t": 12, "cmd": "go", "to": "B1" },
+            { "t": 12, "cmd": "dropoff", "contract": "C1" },
+            { "t": 16, "cmd": "go", "to": "T2" },
+            { "t": 16, "cmd": "pickup", "contract": "C3" },
+            { "t": 20, "cmd": "go", "to": "B3" },
+            { "t": 20, "cmd": "dropoff", "contract": "C3" }
+        ]
+    }
+}

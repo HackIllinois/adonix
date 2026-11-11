@@ -11,10 +11,17 @@ import {
     MailBulkSendResultSchema,
     UserEmailNotFoundError,
     UserEmailNotFoundErrorSchema,
+    MailSendNewsletterSchema,
+    NewsletterRecipientsInvalidError,
+    NewsletterRecipientsInvalidErrorSchema,
 } from "./mail-schemas";
 import { Templates } from "../../common/config";
 import { getAuthenticatedUser } from "../../common/auth";
 import Models from "../../common/models";
+import { NewsletterNotFoundError, NewsletterNotFoundErrorSchema } from "../newsletter/newsletter-schemas";
+import { createUnsubscribeUrl } from "../newsletter/newsletter-lib";
+import { renderUnsubscribeEmailFooter } from "../newsletter/newsletter-view";
+import { z } from "zod";
 
 const mailRouter = Router();
 
@@ -46,10 +53,51 @@ mailRouter.post(
             return res.status(StatusCode.ClientErrorNotFound).json(UserEmailNotFoundError);
         }
 
-        const { subject, body } = req.body;
-        await sendMail(Templates.GENERIC, payload.email, { subject, body });
+        const { subject, body, newsletterId } = req.body;
+        const footer = newsletterId ? renderUnsubscribeEmailFooter(createUnsubscribeUrl(newsletterId, payload.email)) : "";
+        await sendMail(Templates.GENERIC, payload.email, { subject, body: body + footer });
 
         return res.status(StatusCode.SuccessOK).json({ success: true });
+    },
+);
+
+mailRouter.post(
+    "/send/newsletter/",
+    specification({
+        method: "post",
+        path: "/mail/send/newsletter/",
+        tag: Tag.MAIL,
+        role: Role.ADMIN,
+        summary: "Send to current newsletter subscribers with personal unsubscribe links",
+        body: MailSendNewsletterSchema,
+        responses: {
+            [StatusCode.SuccessOK]: { description: "Bulk send results", schema: MailBulkSendResultSchema },
+            [StatusCode.ClientErrorNotFound]: { description: "Newsletter not found", schema: NewsletterNotFoundErrorSchema },
+            [StatusCode.ClientErrorBadRequest]: {
+                description: "Newsletter audience is empty or invalid",
+                schema: NewsletterRecipientsInvalidErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { subject, body, listName } = req.body;
+        const newsletter = await Models.NewsletterSubscription.findOne({ newsletterId: listName });
+        if (!newsletter) {
+            return res.status(StatusCode.ClientErrorNotFound).send(NewsletterNotFoundError);
+        }
+        const emails = [...new Set(newsletter.subscribers.map((email) => email.trim().toLowerCase()).filter(Boolean))];
+        if (!emails.length || !z.array(z.string().email()).safeParse(emails).success) {
+            return res.status(StatusCode.ClientErrorBadRequest).send(NewsletterRecipientsInvalidError);
+        }
+        const result = await sendBulkMail(
+            Templates.GENERIC,
+            emails.map((email) => ({
+                email,
+                data: { body: body + renderUnsubscribeEmailFooter(createUnsubscribeUrl(listName, email)) },
+            })),
+            { subject },
+        );
+        return res.status(StatusCode.SuccessOK).json(result);
     },
 );
 

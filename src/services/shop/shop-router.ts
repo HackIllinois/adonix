@@ -26,7 +26,7 @@ import Models from "../../common/models";
 import { Role } from "../auth/auth-schemas";
 import specification, { Tag } from "../../middleware/specification";
 import { z } from "zod";
-import { updatePoints } from "../profile/profile-lib";
+import { updateTeamPoints } from "../attendee-team/attendee-team-lib";
 import { getAuthenticatedUser } from "../../common/auth";
 import { decryptQRCode, generateQRCode } from "../user/user-lib";
 import { SuccessResponseSchema } from "../../common/schemas";
@@ -313,21 +313,23 @@ shopRouter.post(
             return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
         }
 
-        let totalPrice = 0;
-        // Update the inventory and deduct points
-        for (const [itemId, quantity] of order.items.entries()) {
-            const item = itemsMap.get(itemId);
-            if (!item) {
-                return res.status(StatusCode.ClientErrorNotFound).send(ShopItemNotFoundError);
-            }
-
-            // Deduct the item's quantity from stock
-            await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
-
-            // Deduct points from the user's profile
-            totalPrice = totalPrice + quantity * item.price;
+        // Take the points in one write that runs only if they are still enough. Points can drop after
+        // the check above (another redeem, or an auction hold), and this keeps them from going below 0.
+        const debit = await Models.AttendeeProfile.updateOne(
+            { userId: order.userId, points: { $gte: totalPointsRequired } },
+            { $inc: { points: -totalPointsRequired } },
+        );
+        if (debit.matchedCount !== 1) {
+            return res.status(StatusCode.ClientErrorPaymentRequired).send(ShopInsufficientFundsError);
         }
-        await updatePoints(order.userId, -totalPrice);
+        if (profile.team) {
+            await updateTeamPoints(profile.team, -totalPointsRequired);
+        }
+
+        // Update the inventory
+        for (const [itemId, quantity] of order.items.entries()) {
+            await Models.ShopItem.updateOne({ itemId }, { $inc: { quantity: -quantity } });
+        }
 
         // Add order to history
         await Models.ShopHistory.create({

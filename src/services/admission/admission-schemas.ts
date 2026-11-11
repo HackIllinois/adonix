@@ -36,6 +36,22 @@ export class AdmissionDecision {
 
     @prop({ default: false })
     public correctProChallenge: boolean;
+
+    // Best Pro challenge score divided by the reference solver's score (1.0 = matched our solver)
+    @prop({ default: 0 })
+    public proChallengeScore: number;
+}
+
+export class ApplicationReviewAssignment {
+    // The reviewer ID is the primary key, so there can only be one active assignment per reviewer.
+    @prop({ required: true, type: String })
+    public _id: string;
+
+    @prop({ required: true })
+    public userId: string;
+
+    @prop({ required: true })
+    public reviewCount: number;
 }
 
 export const DecisionStatusSchema = z.nativeEnum(DecisionStatus);
@@ -50,6 +66,7 @@ export const AdmissionDecisionSchema = z
         emailSent: z.boolean().openapi({ example: false }),
         reimbursementValue: z.number(),
         correctProChallenge: z.boolean().openapi({ example: false }),
+        proChallengeScore: z.number().openapi({ example: 0.87 }),
     })
     .openapi("AdmissionDecision");
 
@@ -66,6 +83,18 @@ export const AdmissionDecisionUpdateSchema = AdmissionDecisionSchema.pick({
         message: "TBD is not a valid update status",
     });
 export const AdmissionDecisionUpdatesSchema = z.array(AdmissionDecisionUpdateSchema);
+
+export const ApplicationReviewSummarySchema = z
+    .object({
+        userId: UserIdSchema,
+        reviewCount: z.number().openapi({ example: 3 }),
+        averageScore: z.number().nullable().openapi({ example: 4.33 }),
+    })
+    .openapi("ApplicationReviewSummary");
+
+export type ApplicationReviewSummary = z.infer<typeof ApplicationReviewSummarySchema>;
+
+export const ApplicationReviewSummariesSchema = z.array(ApplicationReviewSummarySchema);
 
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",
