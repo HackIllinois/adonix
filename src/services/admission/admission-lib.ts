@@ -102,6 +102,15 @@ export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?:
     ]);
     const decisionByUser = new Map(decisions.map((decision) => [decision.userId, decision]));
 
+    // One query for the names of all reviewers in the list
+    const reviewerIds = [
+        ...new Set(applications.flatMap((application) => (application.reviews ?? []).map((review) => review.reviewerId))),
+    ];
+    const reviewerInfos = await Models.UserInfo.find({ userId: { $in: reviewerIds } })
+        .select("userId name")
+        .lean();
+    const reviewerNames = new Map(reviewerInfos.map((info) => [info.userId, info.name]));
+
     const applicants = applications.map((application): Applicant => {
         const aiScore = application.aiScore ?? null;
         const finalScore = application.finalScore ?? null;
@@ -110,7 +119,11 @@ export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?:
             name: `${application.firstName} ${application.lastName}`,
             email: application.email,
             school: application.school,
-            reviewers: (application.reviews ?? []).map(({ reviewerId, score }) => ({ reviewerId, score: score ?? null })),
+            reviewers: (application.reviews ?? []).map(({ reviewerId, score }) => ({
+                reviewerId,
+                name: reviewerNames.get(reviewerId) ?? null,
+                score: score ?? null,
+            })),
             aiScore,
             finalScore,
             // A reviewer changed the score the AI gave

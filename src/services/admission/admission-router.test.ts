@@ -1078,7 +1078,8 @@ describe("GET /admission/applicants/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
     });
 
-    it("lists reviewers with their scores, including pending ones", async () => {
+    it("lists reviewers with their names and scores, including pending ones", async () => {
+        await Models.UserInfo.create({ userId: "r1", name: "Rae Reviewer", email: "rae@example.org" });
         await Models.RegistrationApplicationSubmitted.updateOne(
             { userId: "admitted-user" },
             {
@@ -1090,9 +1091,10 @@ describe("GET /admission/applicants/", () => {
             },
         );
         const row = (await list()).find((entry) => entry.userId === "admitted-user");
+        // r2 has no user info, so the name is null
         expect(row).toHaveProperty("reviewers", [
-            { reviewerId: "r1", score: 4 },
-            { reviewerId: "r2", score: null },
+            { reviewerId: "r1", name: "Rae Reviewer", score: 4 },
+            { reviewerId: "r2", name: null, score: null },
         ]);
     });
 

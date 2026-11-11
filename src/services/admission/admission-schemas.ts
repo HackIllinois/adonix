@@ -131,6 +131,10 @@ export const ApplicantSchema = z
         reviewers: z.array(
             z.object({
                 reviewerId: UserIdSchema,
+                name: z
+                    .string()
+                    .nullable()
+                    .openapi({ description: "The reviewer's name, or null if unknown", example: "Rae Reviewer" }),
                 score: ReviewScoreSchema.nullable(),
             }),
         ),
