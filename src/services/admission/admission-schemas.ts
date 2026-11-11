@@ -199,7 +199,7 @@ export const AiGradeRequestSchema = z
             .max(Config.AI_GRADE_MAX_LIMIT)
             .default(Config.AI_GRADE_DEFAULT_LIMIT)
             .openapi({ example: 25 }),
-        dryRun: z.boolean().default(true).openapi({ example: true }),
+        dryRun: z.boolean().default(false).openapi({ example: false }),
     })
     .openapi("AiGradeRequest");
 

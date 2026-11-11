@@ -895,7 +895,7 @@ admissionRouter.post(
             "Picks up to `limit` applications with no AI score and asks Lumen to grade each from 1 to 5. " +
             "Sets `finalScore` to the AI score only when `finalScore` is empty. " +
             "Invalid replies and provider errors are counted in `failed` and skipped. " +
-            "`dryRun` (the default) calls nothing and lists the applications that would be graded in `userIds`. " +
+            "`dryRun` (default false) calls nothing, saves nothing and lists the applications that a real run will grade in `userIds`. " +
             "`skipped` is the number of applications that already have an AI score. " +
             "Never-tried applications go first, sorted by user ID. If room is left, applications whose grading failed earlier are tried again, oldest failure first, " +
             "until each has failed `AI_GRADE_MAX_ATTEMPTS` times (3). `retried` counts failed applications picked again in this run. " +

@@ -119,9 +119,17 @@ describe("POST /admission/ai-grade/", () => {
         await postAsStaff("/admission/ai-grade/").send({}).expect(StatusCode.ClientErrorForbidden);
     });
 
-    it("defaults to a dry run that calls nothing and changes nothing", async () => {
-        const client = mockClient();
+    it("defaults to a real run that grades", async () => {
+        const client = mockClient().mockResolvedValue(reply(4, ["strong", "clear"]));
         const response = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
+        expect(response.body).toMatchObject({ graded: 2, failed: 0, dryRun: false });
+        expect(client).toHaveBeenCalledTimes(2);
+        expect((await getScores("u1")).aiScore).not.toBeNull();
+    });
+
+    it("dry run calls nothing and changes nothing", async () => {
+        const client = mockClient();
+        const response = await postAsAdmin("/admission/ai-grade/").send({ dryRun: true }).expect(StatusCode.SuccessOK);
         expect(response.body).toMatchObject({ graded: 0, failed: 0, dryRun: true });
         expect([...response.body.userIds].sort()).toEqual(["u1", "u2"]);
         expect(client).not.toHaveBeenCalled();
@@ -140,7 +148,7 @@ describe("POST /admission/ai-grade/", () => {
     });
 
     it("respects limit in a dry run", async () => {
-        const response = await postAsAdmin("/admission/ai-grade/").send({ limit: 1 }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/admission/ai-grade/").send({ limit: 1, dryRun: true }).expect(StatusCode.SuccessOK);
         expect(response.body.userIds).toHaveLength(1);
     });
 
@@ -210,9 +218,9 @@ describe("POST /admission/ai-grade/", () => {
 
     it("picks never-tried applications before failed ones", async () => {
         await setFailed("u1", 100, 1);
-        let dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1 }).expect(StatusCode.SuccessOK);
+        let dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1, dryRun: true }).expect(StatusCode.SuccessOK);
         expect(dry.body).toMatchObject({ userIds: ["u2"], retried: 0 });
-        dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 2 }).expect(StatusCode.SuccessOK);
+        dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 2, dryRun: true }).expect(StatusCode.SuccessOK);
         expect(dry.body).toMatchObject({ userIds: ["u2", "u1"], retried: 1 });
     });
 
@@ -228,7 +236,7 @@ describe("POST /admission/ai-grade/", () => {
     it("retries the oldest failure first", async () => {
         await setFailed("u1", 300, 1);
         await setFailed("u2", 200, 1);
-        const dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1 }).expect(StatusCode.SuccessOK);
+        const dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1, dryRun: true }).expect(StatusCode.SuccessOK);
         expect(dry.body).toMatchObject({ userIds: ["u2"], retried: 1 });
     });
 
@@ -241,7 +249,7 @@ describe("POST /admission/ai-grade/", () => {
         expect(await getScores("u1")).toMatchObject({ aiGradeAttempts: Config.AI_GRADE_MAX_ATTEMPTS });
         const calls = client.mock.calls.length;
 
-        const dry = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
+        const dry = await postAsAdmin("/admission/ai-grade/").send({ dryRun: true }).expect(StatusCode.SuccessOK);
         expect(dry.body).toMatchObject({ userIds: [], gaveUp: 2 });
         const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
         expect(run.body).toMatchObject({ graded: 0, failed: 0, retried: 0, gaveUp: 2 });
@@ -250,7 +258,7 @@ describe("POST /admission/ai-grade/", () => {
 
     it("does not count applications below the maximum in gaveUp", async () => {
         await setFailed("u1", 100, Config.AI_GRADE_MAX_ATTEMPTS - 1);
-        const dry = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
+        const dry = await postAsAdmin("/admission/ai-grade/").send({ dryRun: true }).expect(StatusCode.SuccessOK);
         expect(dry.body).toMatchObject({ gaveUp: 0, retried: 1 });
         expect(dry.body.userIds).toContain("u1");
     });
@@ -279,7 +287,7 @@ describe("POST /admission/ai-grade/", () => {
 
     it("ignores the removed retryFailed field", async () => {
         await setFailed("u1", 100, Config.AI_GRADE_MAX_ATTEMPTS);
-        const response = await postAsAdmin("/admission/ai-grade/").send({ retryFailed: true }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/admission/ai-grade/").send({ retryFailed: true, dryRun: true }).expect(StatusCode.SuccessOK);
         expect(response.body.userIds).toEqual(["u2"]);
         expect(response.body).not.toHaveProperty("previouslyFailed");
     });
