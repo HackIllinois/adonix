@@ -986,3 +986,193 @@ describe("DELETE /admission/review/:id/reviewers/:reviewerId/", () => {
         expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
     });
 });
+
+// One application per tag, so the filters have something to tell apart
+const APPLICANT_SETUP = [
+    { userId: "in-review-user", email: "in-review@test.org", decision: null },
+    { userId: "tbd-user", email: "tbd@test.org", decision: { status: DecisionStatus.TBD, reimbursementValue: 0 } },
+    { userId: "admitted-user", email: "admitted@test.org", decision: { status: DecisionStatus.ACCEPTED, reimbursementValue: 0 } },
+    {
+        userId: "reimbursed-user",
+        email: "reimbursed@test.org",
+        decision: { status: DecisionStatus.ACCEPTED, reimbursementValue: 150 },
+    },
+    {
+        userId: "waitlisted-user",
+        email: "waitlisted@test.org",
+        decision: { status: DecisionStatus.WAITLISTED, reimbursementValue: 0 },
+    },
+    { userId: "rejected-user", email: "rejected@test.org", decision: { status: DecisionStatus.REJECTED, reimbursementValue: 0 } },
+];
+
+async function createApplicants(): Promise<void> {
+    for (const { userId, email, decision } of APPLICANT_SETUP) {
+        await Models.RegistrationApplicationSubmitted.create({
+            ...TESTER_APPLICATION,
+            userId,
+            email,
+            firstName: userId,
+            lastName: "Last",
+            reviews: [],
+            reviewCount: 0,
+        });
+        if (decision) {
+            await Models.AdmissionDecision.create({ ...OTHER_DECISION, userId, ...decision });
+        }
+    }
+}
+
+describe("GET /admission/applicants/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.deleteMany({});
+        await Models.AdmissionDecision.deleteMany({});
+        await createApplicants();
+    });
+
+    async function list(query = ""): Promise<Array<Record<string, unknown>>> {
+        const response = await getAsStaff(`/admission/applicants/${query}`).expect(StatusCode.SuccessOK);
+        return JSON.parse(response.text);
+    }
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await getAsUser("/admission/applicants/").expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns one row per application with its details", async () => {
+        const rows = await list();
+        expect(rows).toHaveLength(APPLICANT_SETUP.length);
+        expect(rows.find((row) => row.userId === "admitted-user")).toEqual({
+            userId: "admitted-user",
+            name: "admitted-user Last",
+            email: "admitted@test.org",
+            school: TESTER_APPLICATION.school,
+            reviewers: [],
+            aiScore: null,
+            finalScore: null,
+            edited: false,
+            tag: "ADMITTED",
+        });
+    });
+
+    it.each([
+        ["in-review-user", "IN_REVIEW"],
+        ["tbd-user", "IN_REVIEW"],
+        ["admitted-user", "ADMITTED"],
+        ["reimbursed-user", "ADMITTED_REIMBURSED"],
+        ["waitlisted-user", "WAITLISTED"],
+        ["rejected-user", "REJECTED"],
+    ])("tags %s as %s", async (userId, tag) => {
+        const rows = await list();
+        expect(rows.find((row) => row.userId === userId)).toHaveProperty("tag", tag);
+    });
+
+    it("filters by tag", async () => {
+        const rows = await list("?tag=IN_REVIEW");
+        expect(rows.map((row) => row.userId).sort()).toEqual(["in-review-user", "tbd-user"]);
+        expect((await list("?tag=ADMITTED_REIMBURSED")).map((row) => row.userId)).toEqual(["reimbursed-user"]);
+    });
+
+    it("rejects an unknown tag", async () => {
+        const response = await getAsStaff("/admission/applicants/?tag=MAYBE").expect(StatusCode.ClientErrorBadRequest);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "BadRequest");
+    });
+
+    it("lists reviewers with their names and scores, including pending ones", async () => {
+        await Models.UserInfo.create({ userId: "r1", name: "Rae Reviewer", email: "rae@example.org" });
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "admitted-user" },
+            {
+                reviews: [
+                    { reviewerId: "r1", score: 4 },
+                    { reviewerId: "r2", score: null },
+                ],
+                reviewCount: 2,
+            },
+        );
+        const row = (await list()).find((entry) => entry.userId === "admitted-user");
+        // r2 has no user info, so the name is null
+        expect(row).toHaveProperty("reviewers", [
+            { reviewerId: "r1", name: "Rae Reviewer", score: 4 },
+            { reviewerId: "r2", name: null, score: null },
+        ]);
+    });
+
+    it("filters by reviewer, and by none for applications without reviewers", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "admitted-user" },
+            { reviews: [{ reviewerId: "r1", score: 4 }], reviewCount: 1 },
+        );
+        expect((await list("?reviewerId=r1")).map((row) => row.userId)).toEqual(["admitted-user"]);
+        const none = (await list("?reviewerId=none")).map((row) => row.userId);
+        expect(none).toHaveLength(APPLICANT_SETUP.length - 1);
+        expect(none).not.toContain("admitted-user");
+    });
+
+    it("combines the tag and reviewer filters", async () => {
+        await Models.RegistrationApplicationSubmitted.updateMany(
+            { userId: { $in: ["admitted-user", "rejected-user"] } },
+            { reviews: [{ reviewerId: "r1", score: 4 }], reviewCount: 1 },
+        );
+        expect((await list("?tag=REJECTED&reviewerId=r1")).map((row) => row.userId)).toEqual(["rejected-user"]);
+    });
+
+    it("marks a score as edited when a reviewer changed the AI score", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "admitted-user" },
+            { aiScore: 3, finalScore: 5, finalScoreSetBy: "r1", finalScoreSetAt: 1 },
+        );
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "rejected-user" },
+            { aiScore: 3, finalScore: 3, finalScoreSetBy: "ai", finalScoreSetAt: 1 },
+        );
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "waitlisted-user" },
+            { aiScore: 3, finalScore: 3, finalScoreSetBy: "r1", finalScoreSetAt: 1 },
+        );
+        await Models.RegistrationApplicationSubmitted.updateOne(
+            { userId: "tbd-user" },
+            { finalScore: 2, finalScoreSetBy: "r1", finalScoreSetAt: 1 },
+        );
+
+        const rows = await list();
+        const edited = (userId: string): unknown => rows.find((row) => row.userId === userId)?.edited;
+        expect(rows.find((row) => row.userId === "admitted-user")).toMatchObject({ aiScore: 3, finalScore: 5 });
+        expect(edited("admitted-user")).toBe(true);
+        expect(edited("rejected-user")).toBe(false);
+        expect(edited("waitlisted-user")).toBe(false);
+        expect(edited("tbd-user")).toBe(false);
+    });
+});
+
+describe("GET /admission/applicants/emails/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.deleteMany({});
+        await Models.AdmissionDecision.deleteMany({});
+        await createApplicants();
+    });
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await getAsUser("/admission/applicants/emails/?tag=ADMITTED").expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns the emails of applicants with the tag", async () => {
+        const response = await getAsStaff("/admission/applicants/emails/?tag=IN_REVIEW").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text).emails.sort()).toEqual(["in-review@test.org", "tbd@test.org"]);
+
+        const admitted = await getAsStaff("/admission/applicants/emails/?tag=ADMITTED").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(admitted.text)).toEqual({ emails: ["admitted@test.org"] });
+    });
+
+    it("returns an empty list when nobody has the tag", async () => {
+        await Models.AdmissionDecision.deleteOne({ userId: "rejected-user" });
+        const response = await getAsStaff("/admission/applicants/emails/?tag=REJECTED").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toEqual({ emails: [] });
+    });
+
+    it("requires a valid tag", async () => {
+        await getAsStaff("/admission/applicants/emails/").expect(StatusCode.ClientErrorBadRequest);
+        await getAsStaff("/admission/applicants/emails/?tag=MAYBE").expect(StatusCode.ClientErrorBadRequest);
+    });
+});

@@ -443,7 +443,7 @@ export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGr
         ],
     },
 });
-const ReviewScoreSchema = z.number().int().min(MIN_REVIEW_SCORE).max(MAX_REVIEW_SCORE);
+export const ReviewScoreSchema = z.number().int().min(MIN_REVIEW_SCORE).max(MAX_REVIEW_SCORE);
 
 export const ApplicationReviewDetailsSchema = z
     .object({
