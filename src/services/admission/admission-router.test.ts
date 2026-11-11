@@ -1051,8 +1051,18 @@ describe("GET /admission/applicants/", () => {
             aiScore: null,
             finalScore: null,
             edited: false,
+            aiGradeFailed: false,
             tag: "ADMITTED",
         });
+    });
+
+    it("flags applications whose AI grading failed and that have no AI score", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne({ userId: "admitted-user" }, { aiGradeFailedAt: 5 });
+        await Models.RegistrationApplicationSubmitted.updateOne({ userId: "rejected-user" }, { aiGradeFailedAt: 5, aiScore: 3 });
+        const rows = await list();
+        expect(rows.find((row) => row.userId === "admitted-user")).toHaveProperty("aiGradeFailed", true);
+        expect(rows.find((row) => row.userId === "rejected-user")).toHaveProperty("aiGradeFailed", false);
+        expect(rows.find((row) => row.userId === "tbd-user")).toHaveProperty("aiGradeFailed", false);
     });
 
     it.each([

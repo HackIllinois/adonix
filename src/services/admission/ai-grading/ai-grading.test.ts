@@ -54,7 +54,9 @@ const reply = (score: unknown, reasons: unknown = ["a", "b"]): string => JSON.st
 
 async function getScores(userId: string): Promise<Record<string, unknown>> {
     const doc = await Models.RegistrationApplicationSubmitted.findOne({ userId })
-        .select("+aiScore +aiReasons +aiGradedAt +aiGradeFailedAt +aiGradeError +finalScore +finalScoreSetBy +finalScoreSetAt")
+        .select(
+            "+aiScore +aiReasons +aiGradedAt +aiGradeFailedAt +aiGradeError +aiGradeAttempts +finalScore +finalScoreSetBy +finalScoreSetAt",
+        )
         .lean();
     return doc as unknown as Record<string, unknown>;
 }
@@ -182,51 +184,104 @@ describe("POST /admission/ai-grade/", () => {
         });
     });
 
-    it("skips invalid replies and provider errors but keeps going", async () => {
-        mockClient().mockResolvedValueOnce(reply(9)).mockRejectedValueOnce(new Error("boom")).mockResolvedValue(reply(3));
-        let response = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
-        expect(response.body).toMatchObject({ graded: 0, failed: 2, userIds: [] });
-        expect((await getScores("u1")).aiScore).toBeNull();
+    const setFailed = (userId: string, aiGradeFailedAt: number, aiGradeAttempts: number): Promise<unknown> =>
+        Models.RegistrationApplicationSubmitted.updateOne(
+            { userId },
+            { aiGradeFailedAt, aiGradeAttempts, aiGradeError: "earlier" },
+        );
 
-        // Failed applications are skipped by default, so a retry needs the flag
-        response = await postAsAdmin("/admission/ai-grade/")
-            .send({ dryRun: false, retryFailed: true })
-            .expect(StatusCode.SuccessOK);
-        expect(response.body).toMatchObject({ graded: 2, failed: 0 });
+    it("skips invalid replies and provider errors but keeps going", async () => {
+        mockClient().mockResolvedValueOnce(reply(9)).mockRejectedValueOnce(new Error("boom"));
+        const response = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
+        expect(response.body).toMatchObject({ graded: 0, failed: 2, userIds: [], retried: 0, gaveUp: 0 });
+        expect((await getScores("u1")).aiScore).toBeNull();
     });
 
-    it("marks failures, skips them on the next run, and counts them", async () => {
+    it("marks failures with a time, a message and an attempt count", async () => {
         mockClient().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce(reply(9));
         const before = Date.now();
         await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
         const failedDoc = await getScores("u1");
         expect(failedDoc.aiGradeFailedAt as number).toBeGreaterThanOrEqual(before);
-        expect(typeof failedDoc.aiGradeError).toBe("string");
         expect(failedDoc.aiGradeError as string).toContain("boom");
-        expect((await getScores("u2")).aiGradeFailedAt).not.toBeNull();
-
-        const client = mockClient().mockReset().mockResolvedValue(reply(3));
-        const dry = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
-        expect(dry.body.userIds).toEqual([]);
-        expect(dry.body.previouslyFailed).toBe(2);
-        const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
-        expect(run.body).toMatchObject({ graded: 0, failed: 0 });
-        expect(client).not.toHaveBeenCalled();
+        expect(failedDoc.aiGradeAttempts).toBe(1);
+        expect(await getScores("u2")).toMatchObject({ aiGradeAttempts: 1 });
     });
 
-    it("retries failed applications with retryFailed and clears the failure on success", async () => {
-        mockClient().mockRejectedValueOnce(new Error("boom")).mockRejectedValueOnce(new Error("boom"));
-        await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
+    it("picks never-tried applications before failed ones", async () => {
+        await setFailed("u1", 100, 1);
+        let dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1 }).expect(StatusCode.SuccessOK);
+        expect(dry.body).toMatchObject({ userIds: ["u2"], retried: 0 });
+        dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 2 }).expect(StatusCode.SuccessOK);
+        expect(dry.body).toMatchObject({ userIds: ["u2", "u1"], retried: 1 });
+    });
 
-        const dry = await postAsAdmin("/admission/ai-grade/").send({ retryFailed: true }).expect(StatusCode.SuccessOK);
-        expect([...dry.body.userIds].sort()).toEqual(["u1", "u2"]);
+    it("retries failed applications only when room is left", async () => {
+        await setFailed("u1", 100, 1);
+        const client = mockClient().mockResolvedValue(reply(3));
+        const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false, limit: 1 }).expect(StatusCode.SuccessOK);
+        expect(run.body).toMatchObject({ graded: 1, userIds: ["u2"], retried: 0 });
+        expect(client).toHaveBeenCalledTimes(1);
+        expect((await getScores("u1")).aiScore).toBeNull();
+    });
 
+    it("retries the oldest failure first", async () => {
+        await setFailed("u1", 300, 1);
+        await setFailed("u2", 200, 1);
+        const dry = await postAsAdmin("/admission/ai-grade/").send({ limit: 1 }).expect(StatusCode.SuccessOK);
+        expect(dry.body).toMatchObject({ userIds: ["u2"], retried: 1 });
+    });
+
+    it("stops after the maximum attempts and counts those applications in gaveUp", async () => {
+        const client = mockClient().mockRejectedValue(new Error("boom"));
+        for (let attempt = 1; attempt <= Config.AI_GRADE_MAX_ATTEMPTS; attempt++) {
+            const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
+            expect(run.body).toMatchObject({ failed: 2, retried: attempt === 1 ? 0 : 2 });
+        }
+        expect(await getScores("u1")).toMatchObject({ aiGradeAttempts: Config.AI_GRADE_MAX_ATTEMPTS });
+        const calls = client.mock.calls.length;
+
+        const dry = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
+        expect(dry.body).toMatchObject({ userIds: [], gaveUp: 2 });
+        const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
+        expect(run.body).toMatchObject({ graded: 0, failed: 0, retried: 0, gaveUp: 2 });
+        expect(client).toHaveBeenCalledTimes(calls);
+    });
+
+    it("does not count applications below the maximum in gaveUp", async () => {
+        await setFailed("u1", 100, Config.AI_GRADE_MAX_ATTEMPTS - 1);
+        const dry = await postAsAdmin("/admission/ai-grade/").send({}).expect(StatusCode.SuccessOK);
+        expect(dry.body).toMatchObject({ gaveUp: 0, retried: 1 });
+        expect(dry.body.userIds).toContain("u1");
+    });
+
+    it("clears the failure and resets attempts on success", async () => {
+        await setFailed("u1", 100, 2);
         mockClient().mockResolvedValue(reply(4));
-        const run = await postAsAdmin("/admission/ai-grade/")
-            .send({ dryRun: false, retryFailed: true })
-            .expect(StatusCode.SuccessOK);
-        expect(run.body).toMatchObject({ graded: 2, failed: 0 });
-        expect(await getScores("u1")).toMatchObject({ aiScore: 4, aiGradeFailedAt: null, aiGradeError: null });
+        const run = await postAsAdmin("/admission/ai-grade/").send({ dryRun: false }).expect(StatusCode.SuccessOK);
+        expect(run.body).toMatchObject({ graded: 2, failed: 0, retried: 1 });
+        expect(await getScores("u1")).toMatchObject({
+            aiScore: 4,
+            aiGradeFailedAt: null,
+            aiGradeError: null,
+            aiGradeAttempts: 0,
+        });
+    });
+
+    it("dry run writes no failure fields and no attempts", async () => {
+        await setFailed("u1", 100, 1);
+        const client = mockClient();
+        await postAsAdmin("/admission/ai-grade/").send({ dryRun: true }).expect(StatusCode.SuccessOK);
+        expect(client).not.toHaveBeenCalled();
+        expect(await getScores("u1")).toMatchObject({ aiGradeFailedAt: 100, aiGradeError: "earlier", aiGradeAttempts: 1 });
+        expect(await getScores("u2")).toMatchObject({ aiGradeFailedAt: null, aiGradeError: null, aiGradeAttempts: 0 });
+    });
+
+    it("ignores the removed retryFailed field", async () => {
+        await setFailed("u1", 100, Config.AI_GRADE_MAX_ATTEMPTS);
+        const response = await postAsAdmin("/admission/ai-grade/").send({ retryFailed: true }).expect(StatusCode.SuccessOK);
+        expect(response.body.userIds).toEqual(["u2"]);
+        expect(response.body).not.toHaveProperty("previouslyFailed");
     });
 
     it("passes the essays to the client inside the prompt", async () => {

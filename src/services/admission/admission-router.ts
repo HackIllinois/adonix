@@ -897,7 +897,10 @@ admissionRouter.post(
             "Invalid replies and provider errors are counted in `failed` and skipped. " +
             "`dryRun` (the default) calls nothing and lists the applications that would be graded in `userIds`. " +
             "`skipped` is the number of applications that already have an AI score. " +
-            "Applications whose grading failed earlier are skipped unless `retryFailed` is true; `previouslyFailed` counts them.",
+            "Never-tried applications go first, sorted by user ID. If room is left, applications whose grading failed earlier are tried again, oldest failure first, " +
+            "until each has failed `AI_GRADE_MAX_ATTEMPTS` times (3). `retried` counts failed applications picked again in this run. " +
+            "`gaveUp` counts ungraded applications at the maximum attempts, which this endpoint never picks again. " +
+            "A dry run never writes failure fields or attempt counts.",
         body: AiGradeRequestSchema,
         responses: {
             [StatusCode.SuccessOK]: {
@@ -911,19 +914,34 @@ admissionRouter.post(
         },
     }),
     async (req, res) => {
-        const { limit, dryRun, retryFailed } = req.body;
+        const { limit, dryRun } = req.body;
         if (!dryRun && !isLumenConfigured()) {
             return res.status(StatusCode.ServerErrorServiceUnavailable).send(AiGradingNotConfiguredError);
         }
 
-        // Failed applications are skipped unless retryFailed, so a bad one is not paid for on every run
-        const toGrade = retryFailed ? { aiScore: null } : { aiScore: null, aiGradeFailedAt: null };
-        const [applications, skipped, previouslyFailed] = await Promise.all([
-            Models.RegistrationApplicationSubmitted.find(toGrade).sort({ userId: 1 }).limit(limit).lean(),
+        // Never-tried applications first. Failed ones fill the remaining room, oldest failure first, until the attempt cap
+        const neverTried = await Models.RegistrationApplicationSubmitted.find({ aiScore: null, aiGradeFailedAt: null })
+            .sort({ userId: 1 })
+            .limit(limit)
+            .lean();
+        const retries =
+            neverTried.length < limit
+                ? await Models.RegistrationApplicationSubmitted.find({
+                      aiScore: null,
+                      aiGradeFailedAt: { $ne: null },
+                      aiGradeAttempts: { $lt: Config.AI_GRADE_MAX_ATTEMPTS },
+                  })
+                      .sort({ aiGradeFailedAt: 1 })
+                      .limit(limit - neverTried.length)
+                      .lean()
+                : [];
+        const applications = [...neverTried, ...retries];
+        const retried = retries.length;
+        const [skipped, gaveUp] = await Promise.all([
             Models.RegistrationApplicationSubmitted.countDocuments({ aiScore: { $ne: null } }),
             Models.RegistrationApplicationSubmitted.countDocuments({
                 aiScore: null,
-                aiGradeFailedAt: { $ne: null },
+                aiGradeAttempts: { $gte: Config.AI_GRADE_MAX_ATTEMPTS },
             }),
         ]);
 
@@ -933,13 +951,17 @@ admissionRouter.post(
                 failed: 0,
                 skipped,
                 dryRun,
-                previouslyFailed,
+                retried,
+                gaveUp,
                 userIds: applications.map((a) => a.userId),
             });
         }
 
         const markFailed = (userId: string, message: string): Promise<unknown> =>
-            Models.RegistrationApplicationSubmitted.updateOne({ userId }, { aiGradeFailedAt: Date.now(), aiGradeError: message });
+            Models.RegistrationApplicationSubmitted.updateOne(
+                { userId },
+                { aiGradeFailedAt: Date.now(), aiGradeError: message, $inc: { aiGradeAttempts: 1 } },
+            );
 
         const userIds: string[] = [];
         let failed = 0;
@@ -960,6 +982,7 @@ admissionRouter.post(
                         aiGradedAt: now,
                         aiGradeFailedAt: null,
                         aiGradeError: null,
+                        aiGradeAttempts: 0,
                     },
                 );
                 // Never overwrite a score a reviewer (or an earlier run) already set
@@ -976,7 +999,7 @@ admissionRouter.post(
 
         return res
             .status(StatusCode.SuccessOK)
-            .send({ graded: userIds.length, failed, skipped, dryRun, previouslyFailed, userIds });
+            .send({ graded: userIds.length, failed, skipped, dryRun, retried, gaveUp, userIds });
     },
 );
 

@@ -150,6 +150,8 @@ const Config = {
 
     AI_GRADE_DEFAULT_LIMIT: 25,
     AI_GRADE_MAX_LIMIT: 50,
+    // A failed application is retried until it has failed this many times
+    AI_GRADE_MAX_ATTEMPTS: 3,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,
