@@ -1176,3 +1176,148 @@ describe("GET /admission/applicants/emails/", () => {
         await getAsStaff("/admission/applicants/emails/?tag=MAYBE").expect(StatusCode.ClientErrorBadRequest);
     });
 });
+
+describe("PUT /admission/applicants/:id/tag/", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+    let sendBulkMail: jest.SpiedFunction<typeof MailLib.sendBulkMail> = undefined!;
+
+    beforeEach(async () => {
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async () => "");
+        sendBulkMail = mockSendBulkMail();
+        sendBulkMail.mockImplementation(async () => ({ success: true, successCount: 0, failedCount: 0, errors: [] }));
+    });
+
+    const tagUrl = (id: string): string => `/admission/applicants/${id}/tag/`;
+    const getDecision = async (id: string): Promise<AdmissionDecision | null> =>
+        Models.AdmissionDecision.findOne({ userId: id }).lean();
+
+    it("gives forbidden error for user without elevated perms", async () => {
+        const response = await putAsUser(tagUrl(TESTER.id)).send({ tag: "REJECTED" }).expect(StatusCode.ClientErrorForbidden);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "Forbidden");
+    });
+
+    it("returns not found when the user has no submitted application", async () => {
+        const response = await putAsStaff(tagUrl("nobody")).send({ tag: "REJECTED" }).expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(response.text)).toHaveProperty("error", "NotFound");
+        expect(await getDecision("nobody")).toBeNull();
+    });
+
+    it("rejects an unknown tag", async () => {
+        await putAsStaff(tagUrl(TESTER.id)).send({ tag: "MAYBE" }).expect(StatusCode.ClientErrorBadRequest);
+    });
+
+    it("keeps and returns the existing pro challenge score", async () => {
+        await Models.AdmissionDecision.updateOne({ userId: TESTER.id }, { proChallengeScore: 0.87 });
+        const response = await putAsStaff(tagUrl(TESTER.id)).send({ tag: "WAITLISTED" }).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toHaveProperty("proChallengeScore", 0.87);
+        expect(await getDecision(TESTER.id)).toMatchObject({ proChallengeScore: 0.87 });
+    });
+
+    it("sets IN_REVIEW as status TBD", async () => {
+        const response = await putAsStaff(tagUrl(TESTER.id)).send({ tag: "IN_REVIEW" }).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ userId: TESTER.id, tag: "IN_REVIEW", status: DecisionStatus.TBD });
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.TBD });
+    });
+
+    it("sets ADMITTED as ACCEPTED with reimbursement 0, ignoring a given value", async () => {
+        await Models.AdmissionDecision.updateOne(
+            { userId: TESTER.id },
+            { status: DecisionStatus.REJECTED, reimbursementValue: 50 },
+        );
+        const response = await putAsStaff(tagUrl(TESTER.id))
+            .send({ tag: "ADMITTED", reimbursementValue: 99 })
+            .expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ tag: "ADMITTED", status: "ACCEPTED", reimbursementValue: 0 });
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.ACCEPTED, reimbursementValue: 0 });
+    });
+
+    it("sets ADMITTED_REIMBURSED as ACCEPTED with the given value", async () => {
+        const response = await putAsStaff(tagUrl(TESTER.id))
+            .send({ tag: "ADMITTED_REIMBURSED", reimbursementValue: 75 })
+            .expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({
+            tag: "ADMITTED_REIMBURSED",
+            status: "ACCEPTED",
+            reimbursementValue: 75,
+        });
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.ACCEPTED, reimbursementValue: 75 });
+    });
+
+    it("requires a positive reimbursement value for ADMITTED_REIMBURSED", async () => {
+        await putAsStaff(tagUrl(TESTER.id)).send({ tag: "ADMITTED_REIMBURSED" }).expect(StatusCode.ClientErrorBadRequest);
+        await putAsStaff(tagUrl(TESTER.id))
+            .send({ tag: "ADMITTED_REIMBURSED", reimbursementValue: 0 })
+            .expect(StatusCode.ClientErrorBadRequest);
+        await putAsStaff(tagUrl(TESTER.id))
+            .send({ tag: "ADMITTED_REIMBURSED", reimbursementValue: -5 })
+            .expect(StatusCode.ClientErrorBadRequest);
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.ACCEPTED, reimbursementValue: 0 });
+    });
+
+    it("sets WAITLISTED and REJECTED and zeroes the reimbursement", async () => {
+        await Models.AdmissionDecision.updateOne({ userId: TESTER.id }, { reimbursementValue: 40 });
+        let response = await putAsStaff(tagUrl(TESTER.id)).send({ tag: "WAITLISTED" }).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ tag: "WAITLISTED", status: "WAITLISTED", reimbursementValue: 0 });
+        response = await putAsStaff(tagUrl(TESTER.id)).send({ tag: "REJECTED" }).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ tag: "REJECTED", status: "REJECTED", reimbursementValue: 0 });
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.REJECTED, reimbursementValue: 0 });
+    });
+
+    it("creates a decision when the applicant has none", async () => {
+        await Models.AdmissionDecision.deleteOne({ userId: TESTER.id });
+        const response = await putAsStaff(tagUrl(TESTER.id)).send({ tag: "WAITLISTED" }).expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ tag: "WAITLISTED", emailSent: false });
+        expect(await getDecision(TESTER.id)).toMatchObject({
+            status: DecisionStatus.WAITLISTED,
+            response: DecisionResponse.PENDING,
+            emailSent: false,
+        });
+    });
+
+    it("saves a changed reimbursement within ACCEPTED and marks the email as not sent", async () => {
+        await Models.AdmissionDecision.updateOne(
+            { userId: TESTER.id },
+            { reimbursementValue: 20, emailSent: true, admittedPro: true },
+        );
+        const response = await putAsStaff(tagUrl(TESTER.id))
+            .send({ tag: "ADMITTED_REIMBURSED", reimbursementValue: 35 })
+            .expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text)).toMatchObject({ reimbursementValue: 35, emailSent: false, admittedPro: true });
+        expect(await getDecision(TESTER.id)).toMatchObject({ reimbursementValue: 35, emailSent: false, admittedPro: true });
+    });
+
+    it("keeps emailSent when nothing changes", async () => {
+        await Models.AdmissionDecision.updateOne({ userId: TESTER.id }, { emailSent: true });
+        await putAsStaff(tagUrl(TESTER.id)).send({ tag: "ADMITTED" }).expect(StatusCode.SuccessOK);
+        expect(await getDecision(TESTER.id)).toMatchObject({ status: DecisionStatus.ACCEPTED, emailSent: true });
+    });
+
+    it("marks the email as not sent when the status changes, and keeps other fields", async () => {
+        await Models.AdmissionDecision.updateOne(
+            { userId: TESTER.id },
+            { emailSent: true, admittedPro: true, response: DecisionResponse.ACCEPTED },
+        );
+        await putAsStaff(tagUrl(TESTER.id)).send({ tag: "WAITLISTED" }).expect(StatusCode.SuccessOK);
+        expect(await getDecision(TESTER.id)).toMatchObject({
+            status: DecisionStatus.WAITLISTED,
+            emailSent: false,
+            admittedPro: true,
+            response: DecisionResponse.ACCEPTED,
+        });
+    });
+
+    it("never sends email", async () => {
+        for (const body of [
+            { tag: "IN_REVIEW" },
+            { tag: "ADMITTED" },
+            { tag: "ADMITTED_REIMBURSED", reimbursementValue: 10 },
+            { tag: "WAITLISTED" },
+            { tag: "REJECTED" },
+        ]) {
+            await putAsStaff(tagUrl(TESTER.id)).send(body).expect(StatusCode.SuccessOK);
+        }
+        expect(sendMail).not.toHaveBeenCalled();
+        expect(sendBulkMail).not.toHaveBeenCalled();
+    });
+});

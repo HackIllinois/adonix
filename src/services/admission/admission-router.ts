@@ -24,6 +24,8 @@ import {
     ApplicantsEmailsQuerySchema,
     ApplicantsSchema,
     ApplicantEmailsSchema,
+    ApplicantTagUpdateRequestSchema,
+    ApplicantTagUpdateResponseSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -48,7 +50,7 @@ import {
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
-import { getNextReviewApplication, listApplicants } from "./admission-lib";
+import { getApplicantTag, getDecisionFieldsForTag, getNextReviewApplication, listApplicants } from "./admission-lib";
 
 const admissionRouter = Router();
 
@@ -504,6 +506,69 @@ admissionRouter.get(
     async (req, res) => {
         const applicants = await listApplicants({ tag: req.query.tag });
         return res.status(StatusCode.SuccessOK).send({ emails: applicants.map((applicant) => applicant.email) });
+    },
+);
+
+admissionRouter.put(
+    "/applicants/:id/tag/",
+    specification({
+        method: "put",
+        path: "/admission/applicants/{id}/tag/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Sets the admission tag of the specified applicant without sending an email",
+        description:
+            "Creates or updates the applicant's admission decision to match the tag. " +
+            "ADMITTED_REIMBURSED needs a reimbursementValue greater than 0, other tags ignore it. " +
+            "If the status or reimbursement changes, emailSent is reset to false. No email is sent.",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        body: ApplicantTagUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The applicant's tag and decision",
+                schema: ApplicantTagUpdateResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = req.params;
+        const { tag, reimbursementValue } = req.body;
+
+        if (!(await Models.RegistrationApplicationSubmitted.exists({ userId }))) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+
+        const fields = getDecisionFieldsForTag(tag, reimbursementValue);
+        const existing = await Models.AdmissionDecision.findOne({ userId }).select("status reimbursementValue").lean();
+        const changed = existing?.status !== fields.status || existing.reimbursementValue !== fields.reimbursementValue;
+
+        // Upsert keeps admittedPro, response and the other fields of an existing decision
+        const decision = await Models.AdmissionDecision.findOneAndUpdate(
+            { userId },
+            { $set: changed ? { ...fields, emailSent: false } : fields },
+            { upsert: true, new: true, lean: true },
+        );
+        if (!decision) {
+            throw new Error("Failed to save the admission decision");
+        }
+
+        return res.status(StatusCode.SuccessOK).send({
+            userId: decision.userId,
+            status: decision.status,
+            admittedPro: decision.admittedPro,
+            response: decision.response,
+            emailSent: decision.emailSent,
+            reimbursementValue: decision.reimbursementValue,
+            correctProChallenge: decision.correctProChallenge,
+            proChallengeScore: decision.proChallengeScore,
+            tag: getApplicantTag(decision),
+        });
     },
 );
 
