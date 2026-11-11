@@ -1,6 +1,17 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { StatusCode } from "status-code-enum";
-import { TESTER, getAsUser, getAsAttendee, getAsAdmin, postAsAdmin, postAsAttendee, get, post } from "../../common/testTools";
+import {
+    TESTER,
+    getAsUser,
+    getAsAttendee,
+    getAsAdmin,
+    getAsStaff,
+    postAsAdmin,
+    postAsStaff,
+    postAsAttendee,
+    get,
+    post,
+} from "../../common/testTools";
 import type * as ResumeService from "./resume-service";
 
 const MOCK_DOWNLOAD_URL = "https://resume-bucket-dev.s3.us-east-2.amazonaws.com/test-user.pdf";
@@ -92,7 +103,16 @@ describe("GET /resume/download/:id", () => {
         expect(getSignedResumeDownloadUrl).toHaveBeenCalledWith(targetUserId);
     });
 
-    it("rejects non-sponsor/admin users", async () => {
+    it("returns download url for specified user when staff", async () => {
+        const targetUserId = "target-user-123";
+        const response = await getAsStaff(`/resume/download/${targetUserId}`).expect(StatusCode.SuccessOK);
+
+        const json = JSON.parse(response.text);
+        expect(json).toHaveProperty("url", MOCK_DOWNLOAD_URL);
+        expect(getSignedResumeDownloadUrl).toHaveBeenCalledWith(targetUserId);
+    });
+
+    it("rejects non-owner attendee", async () => {
         await getAsAttendee("/resume/download/some-user-id").expect(StatusCode.ClientErrorForbidden);
     });
 
@@ -150,7 +170,18 @@ describe("POST /resume/batch-download/", () => {
         expect(json).toHaveProperty("urls", []);
     });
 
-    it("rejects non-sponsor/admin users", async () => {
+    it("returns download urls when staff", async () => {
+        const userIds = ["user1", "user2"];
+        const mockUrls = ["https://resume-bucket-dev.s3.us-east-2.amazonaws.com/user1.pdf"];
+        getSignedResumeDownloadUrlList.mockResolvedValue(mockUrls);
+
+        const response = await postAsStaff("/resume/batch-download/").send({ userIds }).expect(StatusCode.SuccessOK);
+
+        expect(JSON.parse(response.text)).toHaveProperty("urls", mockUrls);
+        expect(getSignedResumeDownloadUrlList).toHaveBeenCalledWith(userIds);
+    });
+
+    it("rejects non-owner attendee", async () => {
         await postAsAttendee("/resume/batch-download/")
             .send({ userIds: ["user1"] })
             .expect(StatusCode.ClientErrorForbidden);
