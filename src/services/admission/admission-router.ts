@@ -26,6 +26,10 @@ import {
     ApplicantEmailsSchema,
     ApplicantTagUpdateRequestSchema,
     ApplicantTagUpdateResponseSchema,
+    AiGradeRequestSchema,
+    AiGradeResponseSchema,
+    AiGradingNotConfiguredError,
+    AiGradingNotConfiguredErrorSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -51,6 +55,8 @@ import {
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
 import { getApplicantTag, getDecisionFieldsForTag, getNextReviewApplication, listApplicants } from "./admission-lib";
+import { isLumenConfigured, requestLumenCompletion } from "./ai-grading/lumen-client";
+import { buildGradingPrompt, parseGradingReply, shortErrorMessage } from "./ai-grading/ai-grading-lib";
 
 const admissionRouter = Router();
 
@@ -874,6 +880,126 @@ admissionRouter.delete(
             return res.status(StatusCode.ClientErrorConflict).send(ReviewAlreadyScoredError);
         }
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+admissionRouter.post(
+    "/ai-grade/",
+    specification({
+        method: "post",
+        path: "/admission/ai-grade/",
+        tag: Tag.ADMISSION,
+        role: Role.ADMIN,
+        summary: "Grades submitted applications that have no AI score yet",
+        description:
+            "Picks up to `limit` applications with no AI score and asks Lumen to grade each from 1 to 5. " +
+            "Sets `finalScore` to the AI score only when `finalScore` is empty. " +
+            "Invalid replies and provider errors are counted in `failed` and skipped. " +
+            "`dryRun` (default false) calls nothing, saves nothing and lists the applications that a real run will grade in `userIds`. " +
+            "`skipped` is the number of applications that already have an AI score. " +
+            "Never-tried applications go first, sorted by user ID. If room is left, applications whose grading failed earlier are tried again, oldest failure first, " +
+            "until each has failed `AI_GRADE_MAX_ATTEMPTS` times (3). `retried` counts failed applications picked again in this run. " +
+            "`gaveUp` counts ungraded applications at the maximum attempts, which this endpoint never picks again. " +
+            "A dry run never writes failure fields or attempt counts.",
+        body: AiGradeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The grading result",
+                schema: AiGradeResponseSchema,
+            },
+            [StatusCode.ServerErrorServiceUnavailable]: {
+                description: "Lumen is not configured (only when dryRun is false)",
+                schema: AiGradingNotConfiguredErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { limit, dryRun } = req.body;
+        if (!dryRun && !isLumenConfigured()) {
+            return res.status(StatusCode.ServerErrorServiceUnavailable).send(AiGradingNotConfiguredError);
+        }
+
+        // Never-tried applications first. Failed ones fill the remaining room, oldest failure first, until the attempt cap
+        const neverTried = await Models.RegistrationApplicationSubmitted.find({ aiScore: null, aiGradeFailedAt: null })
+            .sort({ userId: 1 })
+            .limit(limit)
+            .lean();
+        const retries =
+            neverTried.length < limit
+                ? await Models.RegistrationApplicationSubmitted.find({
+                      aiScore: null,
+                      aiGradeFailedAt: { $ne: null },
+                      aiGradeAttempts: { $lt: Config.AI_GRADE_MAX_ATTEMPTS },
+                  })
+                      .sort({ aiGradeFailedAt: 1 })
+                      .limit(limit - neverTried.length)
+                      .lean()
+                : [];
+        const applications = [...neverTried, ...retries];
+        const retried = retries.length;
+        const [skipped, gaveUp] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.countDocuments({ aiScore: { $ne: null } }),
+            Models.RegistrationApplicationSubmitted.countDocuments({
+                aiScore: null,
+                aiGradeAttempts: { $gte: Config.AI_GRADE_MAX_ATTEMPTS },
+            }),
+        ]);
+
+        if (dryRun) {
+            return res.status(StatusCode.SuccessOK).send({
+                graded: 0,
+                failed: 0,
+                skipped,
+                dryRun,
+                retried,
+                gaveUp,
+                userIds: applications.map((a) => a.userId),
+            });
+        }
+
+        const markFailed = (userId: string, message: string): Promise<unknown> =>
+            Models.RegistrationApplicationSubmitted.updateOne(
+                { userId },
+                { aiGradeFailedAt: Date.now(), aiGradeError: message, $inc: { aiGradeAttempts: 1 } },
+            );
+
+        const userIds: string[] = [];
+        let failed = 0;
+        for (const application of applications) {
+            try {
+                const reply = parseGradingReply(await requestLumenCompletion(buildGradingPrompt(application)));
+                if (!reply) {
+                    failed++;
+                    await markFailed(application.userId, "Reply was not valid grading JSON");
+                    continue;
+                }
+                const now = Date.now();
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId },
+                    {
+                        aiScore: reply.score,
+                        aiReasons: reply.reasons,
+                        aiGradedAt: now,
+                        aiGradeFailedAt: null,
+                        aiGradeError: null,
+                        aiGradeAttempts: 0,
+                    },
+                );
+                // Never overwrite a score a reviewer (or an earlier run) already set
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId, finalScore: null },
+                    { finalScore: reply.score, finalScoreSetBy: "ai", finalScoreSetAt: now },
+                );
+                userIds.push(application.userId);
+            } catch (error) {
+                failed++;
+                await markFailed(application.userId, shortErrorMessage(error)).catch(() => undefined);
+            }
+        }
+
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ graded: userIds.length, failed, skipped, dryRun, retried, gaveUp, userIds });
     },
 );
 
