@@ -50,6 +50,25 @@ export const ListDevUsersResponseSchema = z
         description: "Seeded users available to the local debug picker",
     });
 
+export const DevLoginRequestSchema = z
+    .object({
+        userId: z
+            .string()
+            .optional()
+            .openapi({
+                description: "An existing seeded user ID. Omit to create and log in as one fresh user.",
+                example: `${DEFAULT_SEED_PREFIX}0001`,
+            }),
+    })
+    .openapi("DevLoginRequest");
+
+export const DevLoginResponseSchema = z
+    .object({
+        user: UserInfoSchema,
+        jwt: z.string().openapi({ description: "JWT for the logged-in seeded user" }),
+    })
+    .openapi("DevLoginResponse");
+
 export const [DevDisabledError, DevDisabledErrorSchema] = CreateErrorAndSchema({
     error: "DevDisabled",
     message: "Dev endpoints are disabled in production",
