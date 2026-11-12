@@ -51,6 +51,8 @@ const TESTER_APPLICATION = {
     major: "Computer Science",
     underrepresented: "No",
     hackathonsParticipated: "2-3",
+    interestSoftware: "1",
+    interestHardware: "2",
     application1: "I love hack",
     application2: "I love hack",
     application3: "I love hack",
@@ -58,6 +60,8 @@ const TESTER_APPLICATION = {
     pro: true,
     attribution: ["Word of Mouth", "Instagram"],
     eventInterest: ["Meeting New People"],
+    vcInvolvement: ["Just curious and want to learn how VC works"],
+    hardwareInterest: "Arduino kits and soldering stations",
     requestTravelReimbursement: false,
     mlhNewsletter: true,
 } satisfies RegistrationApplicationSubmitted;
