@@ -14,7 +14,7 @@ import {
 import type * as MailLib from "../../services/mail/mail-lib";
 import type * as ChallengeLib from "./challenge-lib";
 import type * as RegistrationLib from "./registration-lib";
-import { SALOON_INSTANCES, assignInstance } from "./challenge-lib";
+import { SALOON_INSTANCES, assignInstance, parseReferenceScores } from "./challenge-lib";
 import { parseWorld } from "./saloon/saloon-schemas";
 import { Request, Response, NextFunction } from "express";
 
@@ -52,6 +52,9 @@ const APPLICATION = {
     application2: "I love hack",
     application3: "I love hack",
     applicationOptional: "optional essay",
+    firstHackathonReason: "I want to build my first team project",
+    portfolioLink: "https://example.org/projects",
+    eventSuggestions: "An embedded systems workshop",
     pro: true,
     attribution: ["Word of Mouth", "Instagram"],
     eventInterest: ["Meeting New People"],
@@ -96,6 +99,17 @@ const CHALLENGE = {
     complete: false,
     bestScore: 0,
 } satisfies RegistrationChallenge;
+
+describe("challenge calibration", () => {
+    const scores = Object.fromEntries(SALOON_INSTANCES.map(({ id }, index) => [id, SAMPLE_REFERENCE_SCORE + index]));
+    it("reads a reference score for every assigned floor plan", () => {
+        expect(parseReferenceScores(JSON.stringify(scores))).toEqual(scores);
+    });
+    it.each([null, 0, -1, "300"])("rejects invalid or missing calibration (%p)", (bad) => {
+        expect(() => parseReferenceScores(JSON.stringify({ ...scores, "tier1-01": bad }))).toThrow(/tier1-01/);
+        expect(() => parseReferenceScores("{}")).toThrow(/tier1-01/);
+    });
+});
 
 describe("GET /registration/", () => {
     beforeEach(async () => {
