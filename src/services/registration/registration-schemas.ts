@@ -93,6 +93,15 @@ export class RegistrationApplicationSubmitted {
     public applicationOptional?: string;
 
     @prop({ required: false })
+    public firstHackathonReason?: string;
+
+    @prop({ required: false })
+    public portfolioLink?: string;
+
+    @prop({ required: false })
+    public eventSuggestions?: string;
+
+    @prop({ required: false })
     public pro?: boolean;
 
     @prop({
@@ -203,6 +212,15 @@ export class RegistrationApplicationDraft {
 
     @prop({ required: false })
     public applicationOptional?: string;
+
+    @prop({ required: false })
+    public firstHackathonReason?: string;
+
+    @prop({ required: false })
+    public portfolioLink?: string;
+
+    @prop({ required: false })
+    public eventSuggestions?: string;
 
     @prop({ required: false })
     public pro?: boolean;
@@ -329,6 +347,9 @@ export const RegistrationApplicationSubmittedRequestSchema = z
         application2: z.string().max(Config.MAX_ESSAY_LENGTH),
         application3: z.string().max(Config.MAX_ESSAY_LENGTH),
         applicationOptional: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
+        firstHackathonReason: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
+        portfolioLink: z.string().url().max(Config.MAX_PORTFOLIO_URL_LENGTH).optional(),
+        eventSuggestions: z.string().max(Config.MAX_ESSAY_LENGTH).optional(),
         pro: z.boolean().optional(),
         attribution: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
         eventInterest: z.array(z.string().max(Config.MAX_STRING_LENGTH)).max(Config.MAX_ARRAY_LENGTH),
