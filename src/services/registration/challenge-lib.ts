@@ -27,6 +27,23 @@ export const SALOON_INSTANCES: SaloonInstance[] = [
     { id: "tier1-08", referenceScore: null },
 ];
 
+// Deployments can provide the calibrated scores independently of the world files.
+export function parseReferenceScores(json: string): Record<string, number> {
+    const scores = JSON.parse(json);
+    if (!scores || typeof scores !== "object" || Array.isArray(scores)) {
+        throw new Error("CHALLENGE_REFERENCE_SCORES must be an object keyed by floor plan ID");
+    }
+    for (const { id } of SALOON_INSTANCES) {
+        if (!Number.isSafeInteger(scores[id]) || scores[id] <= 0) {
+            throw new Error(`CHALLENGE_REFERENCE_SCORES needs a positive integer score for ${id}`);
+        }
+    }
+    return scores;
+}
+
+const referenceScores =
+    Config.CHALLENGE_REFERENCE_SCORES === undefined ? {} : parseReferenceScores(Config.CHALLENGE_REFERENCE_SCORES);
+
 let s3: S3 | undefined = undefined;
 
 function getClient(): S3 {
@@ -65,7 +82,7 @@ export function getReferenceScore(instanceId: string): number | null {
     if (local) {
         return local;
     }
-    return SALOON_INSTANCES.find((instance) => instance.id === instanceId)?.referenceScore ?? null;
+    return referenceScores[instanceId] ?? SALOON_INSTANCES.find((instance) => instance.id === instanceId)?.referenceScore ?? null;
 }
 
 /** Score divided by the reference score, or null if the instance isn't calibrated. */
