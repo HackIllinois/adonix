@@ -96,6 +96,17 @@ export type ApplicationReviewSummary = z.infer<typeof ApplicationReviewSummarySc
 
 export const ApplicationReviewSummariesSchema = z.array(ApplicationReviewSummarySchema);
 
+export const ApplicationReviewerRequestSchema = z
+    .object({
+        reviewerId: UserIdSchema,
+    })
+    .openapi("ApplicationReviewerRequest");
+
+export const [ReviewAlreadyScoredError, ReviewAlreadyScoredErrorSchema] = CreateErrorAndSchema({
+    error: "ReviewAlreadyScored",
+    message: "This reviewer has already scored the application, so they cannot be removed",
+});
+
 export const [DecisionNotAcceptedError, DecisionNotAcceptedErrorSchema] = CreateErrorAndSchema({
     error: "NotAccepted",
     message: "You weren't accepted, you cannot accept/decline this decision",
