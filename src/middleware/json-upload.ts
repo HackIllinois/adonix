@@ -1,5 +1,6 @@
 import multer from "multer";
 import { NextFunction, Request, RequestHandler, Response } from "express";
+import { ParamsDictionary } from "express-serve-static-core";
 import { StatusCode } from "status-code-enum";
 import Config from "../common/config";
 import { APIError } from "../common/schemas";
@@ -18,11 +19,14 @@ const upload = multer({
     },
 });
 
-/** Accepts a single .json file upload in `field`, kept in memory at req.file. */
-export function singleJsonFile(field: string): RequestHandler {
+/**
+ * Accepts a single .json file upload in `field`, kept in memory at req.file.
+ * `Params` only matches the route's typed params (e.g. a parsed `:tier`); multer doesn't read them.
+ */
+export function singleJsonFile<Params = ParamsDictionary>(field: string): RequestHandler<Params> {
     const handler = upload.single(field);
-    return (req: Request, res: Response, next: NextFunction) => {
-        handler(req, res, (err: unknown) => {
+    return (req, res: Response, next: NextFunction) => {
+        handler(req as unknown as Request, res, (err: unknown) => {
             if (err instanceof multer.MulterError) {
                 const status =
                     err.code === "LIMIT_FILE_SIZE" ? StatusCode.ClientErrorPayloadTooLarge : StatusCode.ClientErrorBadRequest;

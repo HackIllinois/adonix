@@ -146,3 +146,6 @@ local-worlds/
 
 # Local-only Python generator/solver for the Pro challenge (never pushed)
 challenge-tools/
+
+# Python bytecode from the check.py parity test
+__pycache__/

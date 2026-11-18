@@ -242,20 +242,65 @@ export class ChallengeGradeReport {
     // Called `errors` in the API, but that name is reserved by mongoose
     @prop({ required: true, type: () => [ChallengeRouteError] })
     public routeErrors: ChallengeRouteError[];
+
+    // Tier 3 bar menu (absent on reports saved before the bar existed)
+    @prop({ required: false })
+    public coinsEarned?: number;
+
+    @prop({ required: false })
+    public coinsSpent?: number;
+
+    @prop({ required: false, type: () => [ChallengeBarError] })
+    public barErrors?: ChallengeBarError[];
 }
 
+@modelOptions({ schemaOptions: { _id: false } })
+export class ChallengeBarError {
+    @prop({ required: true })
+    public index: number;
+
+    @prop({ required: true })
+    public message: string;
+}
+
+/** One applicant's progress on Tier 2 or Tier 3. Tier 1 keeps the same fields at the top of RegistrationChallenge. */
+@modelOptions({ schemaOptions: { _id: false } })
+export class ChallengeTierProgress {
+    @prop({ required: true })
+    public instanceId: string;
+
+    @prop({ default: 0 })
+    public attempts: number;
+
+    @prop({ default: 0 })
+    public bestScore?: number;
+
+    // Walking minutes of the best plan, used to break ties
+    @prop({ required: false })
+    public bestTravelMinutes?: number;
+
+    @prop({ required: false, type: () => ChallengeGradeReport })
+    public lastReport?: ChallengeGradeReport;
+
+    // Epoch ms of the last upload, for the cooldown
+    @prop({ required: false })
+    public lastSubmittedAt?: number;
+}
+
+@index({ overallScore: -1, overallTravelMinutes: 1, overallAt: 1 })
 export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
-    // Saloon Rush floor plan assigned to this user, see SALOON_INSTANCES in challenge-lib
+    // Tier 1 floor plan assigned to this user, see SALOON_INSTANCES in challenge-lib.
+    // Tier 1's progress lives at the top level so the original (v1) API and records keep working.
     @prop({ required: true })
     public instanceId: string;
 
     @prop({ required: true })
     public attempts: number;
 
-    // True once bestScore reaches the pass ratio. Never goes back to false.
+    // True once the overall score reaches the pass ratio. Never goes back to false.
     @prop({ required: true })
     public complete: boolean;
 
@@ -264,6 +309,30 @@ export class RegistrationChallenge {
 
     @prop({ required: false, type: () => ChallengeGradeReport })
     public lastReport?: ChallengeGradeReport;
+
+    @prop({ required: false })
+    public bestTravelMinutes?: number;
+
+    @prop({ required: false })
+    public lastSubmittedAt?: number;
+
+    @prop({ required: false, type: () => ChallengeTierProgress })
+    public tier2?: ChallengeTierProgress;
+
+    @prop({ required: false, type: () => ChallengeTierProgress })
+    public tier3?: ChallengeTierProgress;
+
+    // Average of best / reference over the live tiers (null until every live tier is calibrated)
+    @prop({ type: Number, required: false })
+    public overallScore?: number | null;
+
+    // Total walking minutes of the best plans across live tiers, for leaderboard ties
+    @prop({ required: false })
+    public overallTravelMinutes?: number;
+
+    // Epoch ms when overallScore last went up, for leaderboard ties
+    @prop({ required: false })
+    public overallAt?: number;
 }
 
 export const RegistrationStatusSchema = z
@@ -418,20 +487,51 @@ export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGr
                 message: "pickpocket-1[41]: go to B3 at t=180, earliest possible t=186",
             },
         ],
+        coinsEarned: 0,
+        coinsSpent: 0,
+        barErrors: [],
     },
 });
 
+const MAX_CHALLENGE_TIER = 3;
+export const ChallengeTierNumberSchema = z.coerce.number().int().min(1).max(MAX_CHALLENGE_TIER).openapi("ChallengeTier", {
+    example: 2,
+    description: "Saloon Rush tier: 1, 2 or 3",
+});
+
+export const ChallengeTierStatusSchema = z
+    .object({
+        tier: z.number().int(),
+        instanceId: z.string(),
+        attempts: z.number(),
+        bestScore: z.number(),
+        normalizedScore: z.number().nullable().openapi({
+            description: "bestScore divided by this floor plan's reference score, or null if it isn't calibrated yet",
+        }),
+        lastReport: ChallengeGradeReportSchema.nullable(),
+        nextSubmitAt: z.number().nullable().openapi({
+            description: "Epoch ms when the next upload for this tier is allowed, or null if it's allowed now",
+        }),
+    })
+    .openapi("ChallengeTierStatus");
+export type ChallengeTierStatus = z.infer<typeof ChallengeTierStatusSchema>;
+
+// The top-level fields describe Tier 1, exactly as in the original (v1) API, so existing clients keep working.
 export const RegistrationChallengeStatusSchema = z
     .object({
         instanceId: z.string(),
         attempts: z.number(),
-        complete: z.boolean(),
+        complete: z.boolean().openapi({ description: "Passed: overallScore reached passRatio" }),
         bestScore: z.number(),
         normalizedScore: z.number().nullable().openapi({
-            description: "bestScore divided by the reference score, or null if this instance isn't calibrated yet",
+            description: "Tier 1 bestScore divided by the reference score, or null if this instance isn't calibrated yet",
         }),
-        passRatio: z.number().openapi({ description: "normalizedScore needed to pass" }),
+        passRatio: z.number().openapi({ description: "overallScore needed to pass" }),
         lastReport: ChallengeGradeReportSchema.nullable(),
+        overallScore: z.number().nullable().openapi({
+            description: "Average normalizedScore over the live tiers (equal to Tier 1's while only Tier 1 is live)",
+        }),
+        tiers: z.array(ChallengeTierStatusSchema).openapi({ description: "One entry per live tier, in order" }),
     })
     .openapi("RegistrationChallengeStatus", {
         example: {
@@ -442,9 +542,59 @@ export const RegistrationChallengeStatusSchema = z
             normalizedScore: 0.87,
             passRatio: 0.6,
             lastReport: null,
+            overallScore: 0.87,
+            tiers: [
+                {
+                    tier: 1,
+                    instanceId: "tier1-03",
+                    attempts: 3,
+                    bestScore: 1240,
+                    normalizedScore: 0.87,
+                    lastReport: null,
+                    nextSubmitAt: null,
+                },
+            ],
         },
     });
 export type RegistrationChallengeStatus = z.infer<typeof RegistrationChallengeStatusSchema>;
+
+export const ChallengeLeaderboardQueryLimitSchema = z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(Config.LEADERBOARD_QUERY_LIMIT)
+    .openapi("ChallengeLeaderboardQueryLimit", {
+        example: 10,
+        description: `The number of entries to return. Must be [1, ${Config.LEADERBOARD_QUERY_LIMIT}], inclusive.`,
+    });
+
+export const ChallengeLeaderboardSchema = z
+    .object({
+        entries: z.array(
+            z.object({
+                rank: z.number().int(),
+                overallScore: z.number(),
+                tierScores: z.array(z.number().nullable()).openapi({ description: "normalizedScore per live tier" }),
+                you: z.boolean().openapi({ description: "True for the requester's own entry" }),
+            }),
+        ),
+        yourRank: z.number().int().nullable().openapi({ description: "Your rank, or null if you have no score yet" }),
+        total: z.number().int(),
+    })
+    .openapi("ChallengeLeaderboard", {
+        description: "Anonymous: no names or user ids, only ranks and scores",
+        example: {
+            /* eslint-disable no-magic-numbers */
+            entries: [
+                { rank: 1, overallScore: 1.04, tierScores: [1.04], you: false },
+                { rank: 2, overallScore: 0.92, tierScores: [0.92], you: true },
+            ],
+            /* eslint-enable no-magic-numbers */
+            yourRank: 2,
+            total: 37,
+        },
+    });
+export type ChallengeLeaderboard = z.infer<typeof ChallengeLeaderboardSchema>;
 
 export const RegistrationChallengeWorldSchema = z.unknown().openapi("RegistrationChallengeWorld", {
     description: "The Saloon Rush floor plan (world.json) assigned to this user",
@@ -484,6 +634,29 @@ export const [RegistrationChallengeNoFileError, RegistrationChallengeNoFileError
     error: "NoFileUploaded",
     message: "Please upload your plan.json",
 });
+
+export const [ChallengeTierNotAvailableError, ChallengeTierNotAvailableErrorSchema] = CreateErrorAndSchema({
+    error: "TierNotAvailable",
+    message: "That tier isn't open yet",
+});
+
+// Like CreateErrorAndSchema, plus how long to wait
+export const ChallengeSubmissionTooSoonErrorId = "SubmissionTooSoon";
+const SUBMISSION_TOO_SOON_MESSAGE = "You're uploading too fast. Wait a bit before trying this tier again.";
+export const ChallengeSubmissionTooSoonErrorSchema = z
+    .object({
+        error: z.literal(ChallengeSubmissionTooSoonErrorId),
+        message: z.literal(SUBMISSION_TOO_SOON_MESSAGE),
+        retryAfterSeconds: z.number().int(),
+    })
+    .openapi({
+        example: { error: ChallengeSubmissionTooSoonErrorId, message: SUBMISSION_TOO_SOON_MESSAGE, retryAfterSeconds: 42 },
+    });
+export function ChallengeSubmissionTooSoonError(
+    retryAfterSeconds: number,
+): z.infer<typeof ChallengeSubmissionTooSoonErrorSchema> {
+    return { error: ChallengeSubmissionTooSoonErrorId, message: SUBMISSION_TOO_SOON_MESSAGE, retryAfterSeconds };
+}
 
 // Like CreateErrorAndSchema, plus a per-request `reason` explaining what's wrong with the file
 export const RegistrationChallengeInvalidPlanErrorId = "InvalidPlan";

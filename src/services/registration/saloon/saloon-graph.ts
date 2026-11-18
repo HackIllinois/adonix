@@ -18,6 +18,14 @@ export const MERCENARY_CLASSES: Record<MercenaryClass, MercenaryClassSpec> = {
     heavy_lifter: { speedHundredths: 150, capacity: 8, ignoresCrowd: false, forbiddenTag: "crawlspace" },
 };
 
+// A Big Belly Burger multiplies speed by 3/2 (a whole number of hundredths for every class)
+const BURGER_NUMERATOR = 3;
+const BURGER_DENOMINATOR = 2;
+
+export function burgerSpec(spec: MercenaryClassSpec): MercenaryClassSpec {
+    return { ...spec, speedHundredths: (spec.speedHundredths * BURGER_NUMERATOR) / BURGER_DENOMINATOR };
+}
+
 const CROWD_TENTHS = 10;
 // length [paces] * crowd [tenths] * 10 / speed [hundredths] = minutes
 const UNIT_SCALE = 10;
@@ -157,19 +165,24 @@ export class TravelTimes {
     }
 }
 
-const travelTimesCache = new WeakMap<World, Map<MercenaryClass, TravelTimes>>();
+const travelTimesCache = new WeakMap<World, Map<string, TravelTimes>>();
 
-/** Travel times for a class on a floor plan, cached per world object (worlds are cached by challenge-lib). */
-export function getTravelTimes(world: World, mercenaryClass: MercenaryClass): TravelTimes {
-    let byClass = travelTimesCache.get(world);
-    if (!byClass) {
-        byClass = new Map();
-        travelTimesCache.set(world, byClass);
+/**
+ * Travel times for a class on a floor plan, cached per world object (worlds are cached by challenge-lib).
+ * `burger` gives the times for a mercenary who's eaten a Big Belly Burger.
+ */
+export function getTravelTimes(world: World, mercenaryClass: MercenaryClass, burger = false): TravelTimes {
+    let byKey = travelTimesCache.get(world);
+    if (!byKey) {
+        byKey = new Map();
+        travelTimesCache.set(world, byKey);
     }
-    let times = byClass.get(mercenaryClass);
+    const key = `${mercenaryClass}:${burger}`;
+    let times = byKey.get(key);
     if (!times) {
-        times = TravelTimes.build(world, MERCENARY_CLASSES[mercenaryClass]);
-        byClass.set(mercenaryClass, times);
+        const spec = MERCENARY_CLASSES[mercenaryClass];
+        times = TravelTimes.build(world, burger ? burgerSpec(spec) : spec);
+        byKey.set(key, times);
     }
     return times;
 }

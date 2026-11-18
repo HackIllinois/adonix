@@ -8,6 +8,7 @@ const MAX_CONNECTIONS = 10000;
 const MAX_MERCENARIES = 50;
 const MAX_CONTRACTS = 2000;
 const MAX_COMMANDS_PER_MERCENARY = 10000;
+const MAX_BAR_ORDERS = 2000;
 const MAX_NAME_LENGTH = 200;
 const MIN_CROWD = 1;
 const MAX_CROWD = 2.5;
@@ -39,7 +40,10 @@ const CrowdSchema = z
 export const WorldSchema = z.object({
     instance: IdSchema,
     shift_end: MinuteSchema,
-    coins: z.number().int().nonnegative().optional(),
+    // Coins the gang starts the night with (spent at the bar in Tier 3)
+    coins: z.number().int().nonnegative().default(0),
+    // The bar menu only opens in Tier 3
+    bar_open: z.boolean().default(false),
     nodes: z
         .array(
             z.object({
@@ -93,13 +97,21 @@ const DropoffCommandSchema = z.object({ t: MinuteSchema, cmd: z.literal("dropoff
 export const CommandSchema = z.discriminatedUnion("cmd", [GoCommandSchema, PickupCommandSchema, DropoffCommandSchema]);
 export type Command = z.infer<typeof CommandSchema>;
 
+// Bar menu (Tier 3): each order is bought and used in one go, at minute t
+const BeerSchema = z.object({ t: MinuteSchema, item: z.literal("beer"), contract: IdSchema }).strict();
+const BurgerSchema = z.object({ t: MinuteSchema, item: z.literal("big_belly_burger"), mercenary: IdSchema }).strict();
+const BackpackSchema = z.object({ t: MinuteSchema, item: z.literal("backpack"), mercenary: IdSchema }).strict();
+
+export const BarOrderSchema = z.discriminatedUnion("item", [BeerSchema, BurgerSchema, BackpackSchema]);
+export type BarOrder = z.infer<typeof BarOrderSchema>;
+
 export const PlanSchema = z
     .object({
         instance: IdSchema,
         gang: z.string().max(MAX_NAME_LENGTH).optional(),
         routes: z.record(IdSchema, z.array(CommandSchema).max(MAX_COMMANDS_PER_MERCENARY)),
-        // The bar menu only exists in Tier 3. An empty list is tolerated so one plan format works everywhere.
-        bar_orders: z.array(z.unknown()).max(0, "bar orders aren't on the menu in this tier").optional(),
+        // Only allowed when the floor plan's bar is open (Tier 3). An empty list is fine everywhere.
+        bar_orders: z.array(BarOrderSchema).max(MAX_BAR_ORDERS).optional(),
     })
     .strict();
 export type Plan = z.infer<typeof PlanSchema>;
@@ -111,6 +123,12 @@ export const RouteErrorSchema = z.object({
 });
 export type RouteError = z.infer<typeof RouteErrorSchema>;
 
+export const BarErrorSchema = z.object({
+    index: z.number().int(),
+    message: z.string(),
+});
+export type BarError = z.infer<typeof BarErrorSchema>;
+
 export const GradeReportSchema = z.object({
     instance: z.string(),
     score: z.number().int(),
@@ -120,6 +138,10 @@ export const GradeReportSchema = z.object({
     lateMinutes: z.number().int(),
     travelMinutes: z.number().int(),
     errors: z.array(RouteErrorSchema),
+    // Tier 3 bar menu. Always present; 0 / [] when the bar is closed.
+    coinsEarned: z.number().int(),
+    coinsSpent: z.number().int(),
+    barErrors: z.array(BarErrorSchema),
 });
 export type GradeReport = z.infer<typeof GradeReportSchema>;
 

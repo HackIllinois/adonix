@@ -18,6 +18,18 @@ export enum Templates {
     GENERIC = "generic",
 }
 
+/** Parses "1,2,3" into the list of live Pro challenge tiers. Defaults to Tier 1 only. */
+function parseChallengeTiers(value: string | undefined): (1 | 2 | 3)[] {
+    if (!value) {
+        return [1];
+    }
+    const tiers = [...new Set(value.split(",").map((t) => parseInt(t.trim())))];
+    if (tiers.length === 0 || tiers.some((t) => t !== 1 && t !== 2 && t !== 3)) {
+        throw new Error(`PRO_CHALLENGE_TIERS must be a comma-separated list of 1, 2 and 3, got "${value}"`);
+    }
+    return (tiers as (1 | 2 | 3)[]).sort();
+}
+
 function requireEnv(name: string): string {
     const value = env[name];
 
@@ -139,9 +151,15 @@ const Config = {
     MAX_CHALLENGE_PLAN_SIZE_BYTES: 1024 * 1024,
 
     /* Pro challenge (Saloon Rush) */
-    // Applicants pass once their best score reaches this fraction of the reference solver's score.
+    // Applicants pass once their average over the live tiers reaches this fraction of the reference solver's score.
     // Placeholder until playtesting.
     PRO_CHALLENGE_PASS_RATIO: 0.6,
+    // Tiers applicants can play and that count toward passing. Tier 1 only until the site supports more.
+    PRO_CHALLENGE_TIERS: parseChallengeTiers(env.PRO_CHALLENGE_TIERS),
+    // Minimum wait between uploads, per applicant and tier
+    CHALLENGE_SUBMIT_COOLDOWN_SECONDS: env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS
+        ? parseInt(env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS)
+        : 60,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { readFileSync } from "fs";
 import path from "path";
-import { contractPoints, gradePlan } from "./saloon-grader";
-import { Command, InvalidPlanError, parsePlan, parseWorld, Plan, World } from "./saloon-schemas";
+import { BAR_CLOSED_MESSAGE, contractCoins, contractPoints, gradePlan } from "./saloon-grader";
+import { BarOrder, Command, InvalidPlanError, parsePlan, parseWorld, Plan, World } from "./saloon-schemas";
 
 const FIXTURES = path.join(__dirname, "__fixtures__");
 
@@ -35,6 +35,9 @@ describe("gradePlan", () => {
             lateMinutes: 0,
             travelMinutes: 20,
             errors: [],
+            coinsEarned: 0,
+            coinsSpent: 0,
+            barErrors: [],
         });
     });
 
@@ -251,11 +254,130 @@ describe("parsePlan", () => {
         expect(() => parsePlan(text)).toThrow(InvalidPlanError);
     });
 
-    it("rejects bar orders in Tier 1 but allows an empty list", () => {
+    it("accepts bar orders but rejects items that aren't on the menu", () => {
+        const order = { t: 0, item: "big_belly_burger", mercenary: "pickpocket-1" };
+        expect(parsePlan(JSON.stringify({ instance: "x", routes: {}, bar_orders: [order] }))).toMatchObject({
+            bar_orders: [order],
+        });
         expect(() =>
-            parsePlan(JSON.stringify({ instance: "x", routes: {}, bar_orders: [{ t: 0, item: "big_belly_burger" }] })),
-        ).toThrow(/bar orders aren't on the menu/);
-        expect(parsePlan(JSON.stringify({ instance: "x", routes: {}, bar_orders: [] }))).toMatchObject({ instance: "x" });
+            parsePlan(JSON.stringify({ instance: "x", routes: {}, bar_orders: [{ t: 0, item: "whiskey", mercenary: "x" }] })),
+        ).toThrow(InvalidPlanError);
+    });
+});
+
+describe("bar menu (Tier 3)", () => {
+    // The sample plan drops off C2 at t=10 (15 early: 100 coins), C1 at t=12 (8 early: 50) and C3 at t=20 (10 early: 100)
+    function openBar(coins = 0): World {
+        return { ...loadSampleWorld(), bar_open: true, coins };
+    }
+
+    function withBar(plan: Plan, barOrders: BarOrder[]): Plan {
+        return { ...plan, bar_orders: barOrders };
+    }
+
+    // Late delivery of C1 (deadline 20) at t=30: 10 minutes late, 50 points
+    const lateC1: Command[] = [...TO_T1_LIFT_C1, { t: 30, cmd: "go", to: "B1" }, { t: 30, cmd: "dropoff", contract: "C1" }];
+
+    it("rejects any bar order when the bar is closed, but allows an empty list", () => {
+        const order: BarOrder = { t: 0, item: "beer", contract: "C1" };
+        expect(() => gradePlan(loadSampleWorld(), withBar(loadSamplePlan(), [order]))).toThrow(BAR_CLOSED_MESSAGE);
+        expect(gradePlan(loadSampleWorld(), withBar(loadSamplePlan(), [])).score).toBe(300);
+    });
+
+    it("earns 100 coins for 10+ minutes early and 50 for on time, only while the bar is open", () => {
+        expect(gradePlan(openBar(), loadSamplePlan())).toMatchObject({ score: 300, coinsEarned: 250, coinsSpent: 0 });
+        expect(gradePlan(openBar(300), loadSamplePlan()).coinsEarned).toBe(550);
+        expect(contractCoins(10, 20)).toBe(100);
+        expect(contractCoins(11, 20)).toBe(50);
+        expect(contractCoins(20, 20)).toBe(50);
+        expect(contractCoins(21, 20)).toBe(0);
+    });
+
+    it("skips an order the gang can't afford and keeps going", () => {
+        const report = gradePlan(
+            openBar(),
+            withBar(loadSamplePlan(), [{ t: 11, item: "big_belly_burger", mercenary: "pickpocket-1" }]),
+        );
+        expect(report).toMatchObject({ score: 300, coinsSpent: 0, errors: [] });
+        expect(report.barErrors).toEqual([
+            { index: 0, message: "bar_orders[0]: big_belly_burger at t=11 costs 300 coins, only 100 available" },
+        ]);
+    });
+
+    it("pays out same-minute dropoffs before serving a bar order", () => {
+        // At t=12 the C1 dropoff comes first, bringing the balance to exactly 150 for the beer
+        const report = gradePlan(openBar(), withBar(loadSamplePlan(), [{ t: 12, item: "beer", contract: "C3" }]));
+        expect(report).toMatchObject({ coinsEarned: 250, coinsSpent: 150, barErrors: [] });
+    });
+
+    it("beer pushes back a deadline by 15 minutes", () => {
+        const report = gradePlan(openBar(150), withBar(pickpocketPlan(lateC1), [{ t: 0, item: "beer", contract: "C1" }]));
+        // Deadline 20 -> 35, dropoff at 30 is on time (5 early: 50 coins)
+        expect(report).toMatchObject({ score: 100, onTime: 1, lateMinutes: 0, coinsEarned: 200, coinsSpent: 150 });
+    });
+
+    it("skips a beer for a bag that was already delivered", () => {
+        const report = gradePlan(openBar(150), withBar(pickpocketPlan(lateC1), [{ t: 31, item: "beer", contract: "C1" }]));
+        expect(report).toMatchObject({ score: 50, coinsSpent: 0 });
+        expect(report.barErrors).toEqual([
+            { index: 0, message: "bar_orders[0]: beer for C1 at t=31, but it was already delivered at t=30" },
+        ]);
+    });
+
+    it("speeds up walks that start within 30 minutes of a big belly burger", () => {
+        const burger: BarOrder = { t: 0, item: "big_belly_burger", mercenary: "pickpocket-1" };
+        // HQ -> T1 is 5 minutes normally, 4 at 1.5x speed (HQ-W1 2 + W1-T1 2)
+        const fast = gradePlan(openBar(300), withBar(pickpocketPlan([{ t: 4, cmd: "go", to: "T1" }]), [burger]));
+        expect(fast).toMatchObject({ errors: [], travelMinutes: 4, coinsSpent: 300 });
+        expect(gradePlan(openBar(300), pickpocketPlan([{ t: 4, cmd: "go", to: "T1" }])).errors[0]?.message).toBe(
+            "pickpocket-1[0]: go to T1 at t=4, earliest possible t=5",
+        );
+
+        // A walk that starts at t=30 is past the window
+        const late = gradePlan(
+            openBar(300),
+            withBar(
+                pickpocketPlan([
+                    { t: 30, cmd: "go", to: "HQ" },
+                    { t: 34, cmd: "go", to: "T1" },
+                ]),
+                [burger],
+            ),
+        );
+        expect(late.errors[0]?.message).toBe("pickpocket-1[1]: go to T1 at t=34, earliest possible t=35");
+    });
+
+    it("backpack lets a mercenary carry two more bags", () => {
+        const contracts = ["A", "B", "C", "D", "E"].map((id) => ({
+            id,
+            table: "T1",
+            back_room: "B1",
+            ready_at: 0,
+            deadline: 60,
+        }));
+        const plan = pickpocketPlan([
+            { t: 5, cmd: "go", to: "T1" },
+            ...contracts.map((c): Command => ({ t: 5, cmd: "pickup", contract: c.id })),
+        ]);
+        const report = gradePlan(
+            { ...openBar(400), contracts },
+            withBar(plan, [{ t: 0, item: "backpack", mercenary: "pickpocket-1" }]),
+        );
+        expect(report).toMatchObject({ errors: [], coinsSpent: 400 });
+    });
+
+    it("skips an order after shift_end", () => {
+        const report = gradePlan(openBar(300), withBar(loadSamplePlan(), [{ t: 121, item: "beer", contract: "C1" }]));
+        expect(report.barErrors[0]?.message).toBe("bar_orders[0]: beer at t=121 is after shift_end=120");
+    });
+
+    it("rejects orders for unknown mercenaries or contracts as a broken file", () => {
+        expect(() =>
+            gradePlan(openBar(), withBar(loadSamplePlan(), [{ t: 0, item: "backpack", mercenary: "disguiser-9" }])),
+        ).toThrow('bar_orders[0]: unknown mercenary "disguiser-9"');
+        expect(() => gradePlan(openBar(), withBar(loadSamplePlan(), [{ t: 0, item: "beer", contract: "C9" }]))).toThrow(
+            'bar_orders[0]: unknown contract "C9"',
+        );
     });
 });
 

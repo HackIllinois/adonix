@@ -84,6 +84,8 @@ const ONE_CONTRACT_PLAN = {
     },
 };
 const SAMPLE_REFERENCE_SCORE = 300;
+const DEFAULT_COOLDOWN_SECONDS = Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS;
+const DEFAULT_TIERS = Config.PRO_CHALLENGE_TIERS;
 
 const CHALLENGE = {
     userId: TESTER.id,
@@ -178,13 +180,13 @@ function setUploadedFile(content: unknown, originalname = "plan.json"): void {
 
 // Makes the sample world a calibrated instance for the duration of a test
 function useCalibratedSampleInstance(referenceScore: number | null = SAMPLE_REFERENCE_SCORE): void {
-    SALOON_INSTANCES.push({ id: "tier1-sample", referenceScore });
+    SALOON_INSTANCES[1].push({ id: "tier1-sample", referenceScore });
 }
 
 function removeSampleInstance(): void {
-    const index = SALOON_INSTANCES.findIndex((instance) => instance.id === "tier1-sample");
+    const index = SALOON_INSTANCES[1].findIndex((instance) => instance.id === "tier1-sample");
     if (index !== -1) {
-        SALOON_INSTANCES.splice(index, 1);
+        SALOON_INSTANCES[1].splice(index, 1);
     }
 }
 
@@ -391,13 +393,27 @@ describe("GET /registration/challenge/", () => {
         const response = await getAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toEqual({
+            // The original (v1) fields, describing Tier 1
             instanceId: assignInstance(TESTER.id),
             attempts: 0,
             complete: false,
             bestScore: 0,
-            normalizedScore: null,
+            normalizedScore: 0, // Tier 1 is calibrated, so a fresh 0 normalizes to 0
             passRatio: Config.PRO_CHALLENGE_PASS_RATIO,
             lastReport: null,
+            // Added for multiple tiers
+            overallScore: 0,
+            tiers: [
+                {
+                    tier: 1,
+                    instanceId: assignInstance(TESTER.id),
+                    attempts: 0,
+                    bestScore: 0,
+                    normalizedScore: 0,
+                    lastReport: null,
+                    nextSubmitAt: null,
+                },
+            ],
         });
     });
 
@@ -479,11 +495,15 @@ describe("POST /registration/challenge/", () => {
 
         sendMail = mockSendMail();
         sendMail.mockImplementation(async () => "");
+
+        // These tests upload several times in a row; the cooldown has its own tests below
+        Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = 0;
     });
 
     afterEach((): void => {
         delete (global as { mockFile?: Express.Multer.File }).mockFile;
         removeSampleInstance();
+        Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = DEFAULT_COOLDOWN_SECONDS;
     });
 
     async function getStoredChallenge(): Promise<RegistrationChallenge | null> {
@@ -645,5 +665,172 @@ describe("POST /registration/challenge/", () => {
 
         expect(JSON.parse(response.text)).toHaveProperty("error", "RegistrationClosed");
         expect((await getStoredChallenge())?.attempts).toBe(0);
+    });
+});
+
+describe("Saloon Rush tiers 2 and 3", () => {
+    let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
+    let getWorldFile: jest.SpiedFunction<typeof ChallengeLib.getWorldFile> = undefined!;
+
+    beforeEach(async (): Promise<void> => {
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
+        await Models.RegistrationChallenge.create(CHALLENGE);
+        await Models.AdmissionDecision.create({ userId: TESTER.id, status: "TBD", response: "PENDING" });
+
+        // Every floor plan scores like the sample (reference 300), and all three tiers are live
+        Config.PRO_CHALLENGE_TIERS = [1, 2, 3];
+        Config.CHALLENGE_LOCAL_REFERENCE_SCORE = SAMPLE_REFERENCE_SCORE;
+        Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = 0;
+        getWorldFile = mockGetWorldFile();
+        sendMail = mockSendMail();
+        sendMail.mockImplementation(async () => "");
+    });
+
+    afterEach((): void => {
+        delete (global as { mockFile?: Express.Multer.File }).mockFile;
+        Config.PRO_CHALLENGE_TIERS = DEFAULT_TIERS;
+        Config.CHALLENGE_LOCAL_REFERENCE_SCORE = undefined;
+        Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = DEFAULT_COOLDOWN_SECONDS;
+    });
+
+    it("lists every live tier and assigns each one a floor plan", async () => {
+        const response = await getAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
+        const body = JSON.parse(response.text);
+
+        expect(body.instanceId).toBe("tier1-sample");
+        expect(body.overallScore).toBe(0);
+        expect(body.tiers.map((t: { tier: number; instanceId: string }) => [t.tier, t.instanceId])).toEqual([
+            [1, "tier1-sample"],
+            [2, assignInstance(TESTER.id, 2)],
+            [3, assignInstance(TESTER.id, 3)],
+        ]);
+        const stored = await Models.RegistrationChallenge.findOne({ userId: TESTER.id });
+        expect(stored?.tier2?.instanceId).toBe(assignInstance(TESTER.id, 2));
+        expect(stored?.tier3?.instanceId).toBe(assignInstance(TESTER.id, 3));
+    });
+
+    it("downloads a tier's floor plan", async () => {
+        await getAsUser("/registration/challenge/world/2/").expect(StatusCode.SuccessOK);
+        expect(getWorldFile).toHaveBeenCalledWith(assignInstance(TESTER.id, 2));
+    });
+
+    it("grades each tier separately and passes on the average", async () => {
+        setUploadedFile(SAMPLE_PLAN);
+        const afterTier2 = JSON.parse((await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK)).text);
+        expect(afterTier2).toMatchObject({ bestScore: 0, attempts: 0, complete: false, overallScore: 1 / 3 });
+        expect(afterTier2.tiers[1]).toMatchObject({ tier: 2, bestScore: 300, attempts: 1, normalizedScore: 1 });
+
+        expect(sendMail).not.toHaveBeenCalled();
+
+        // Tiers 1 + 2 average 2/3, which clears the 0.6 bar
+        const passed = JSON.parse((await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK)).text);
+        expect(passed).toMatchObject({ complete: true, overallScore: 2 / 3 });
+        expect(sendMail).toHaveBeenCalledTimes(1);
+
+        const all = JSON.parse((await postAsUser("/registration/challenge/3/").expect(StatusCode.SuccessOK)).text);
+        expect(all).toMatchObject({ complete: true, overallScore: 1 });
+        expect(sendMail).toHaveBeenCalledTimes(1);
+        const admission = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
+        expect(admission).toMatchObject({ correctProChallenge: true, proChallengeScore: 1 });
+    });
+
+    it("keeps the plan with fewer walking minutes when scores tie", async () => {
+        const detour = {
+            instance: "tier1-sample",
+            routes: {
+                "pickpocket-1": [
+                    { t: 5, cmd: "go", to: "T1" },
+                    { t: 5, cmd: "pickup", contract: "C1" },
+                    { t: 10, cmd: "go", to: "B2" },
+                    { t: 12, cmd: "go", to: "B1" },
+                    { t: 12, cmd: "dropoff", contract: "C1" },
+                ],
+            },
+        };
+        setUploadedFile(detour);
+        await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
+        setUploadedFile(ONE_CONTRACT_PLAN);
+        await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
+        setUploadedFile(detour);
+        await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
+
+        const stored = await Models.RegistrationChallenge.findOne({ userId: TESTER.id });
+        expect(stored?.tier2).toMatchObject({ bestScore: 100, bestTravelMinutes: 10, attempts: 3 });
+    });
+
+    it("limits uploads to one per cooldown per tier, counting broken files", async () => {
+        Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = 60;
+        setUploadedFile("{ not json");
+        await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);
+
+        setUploadedFile(SAMPLE_PLAN);
+        const tooSoon = await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorTooManyRequests);
+        const body = JSON.parse(tooSoon.text);
+        expect(body).toMatchObject({ error: "SubmissionTooSoon" });
+        expect(body.retryAfterSeconds).toBeGreaterThan(0);
+        expect(body.retryAfterSeconds).toBeLessThanOrEqual(60);
+        expect(tooSoon.headers["retry-after"]).toBe(`${body.retryAfterSeconds}`);
+
+        // Other tiers have their own cooldown
+        await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
+
+        const status = JSON.parse((await getAsUser("/registration/challenge/").expect(StatusCode.SuccessOK)).text);
+        expect(status.attempts).toBe(1);
+        expect(status.tiers[0].nextSubmitAt).toBeGreaterThan(Date.now());
+    });
+
+    it("rejects tiers that aren't live", async () => {
+        Config.PRO_CHALLENGE_TIERS = [1];
+        setUploadedFile(SAMPLE_PLAN);
+
+        const post = await postAsUser("/registration/challenge/3/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(post.text)).toHaveProperty("error", "TierNotAvailable");
+        const world = await getAsUser("/registration/challenge/world/2/").expect(StatusCode.ClientErrorNotFound);
+        expect(JSON.parse(world.text)).toHaveProperty("error", "TierNotAvailable");
+        await getAsUser("/registration/challenge/world/9/").expect(StatusCode.ClientErrorBadRequest);
+    });
+});
+
+describe("GET /registration/challenge/leaderboard/", () => {
+    beforeEach(async () => {
+        await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
+        const others = [
+            { userId: "github-a", overallScore: 0.9, overallTravelMinutes: 200, overallAt: 5 },
+            { userId: "github-b", overallScore: 1.1, overallTravelMinutes: 300, overallAt: 9 },
+            { userId: "github-c", overallScore: 0.9, overallTravelMinutes: 150, overallAt: 7 },
+            { userId: "github-d", overallScore: 0.9, overallTravelMinutes: 150, overallAt: 3 },
+            { userId: "github-e" },
+        ];
+        await Models.RegistrationChallenge.create([
+            ...others.map((o) => ({ instanceId: "tier1-01", attempts: 1, complete: false, ...o })),
+            { ...CHALLENGE, overallScore: 1.0, overallTravelMinutes: 100, overallAt: 1 },
+        ]);
+    });
+
+    it("ranks by score, then fewer walking minutes, then who got there first, without names", async () => {
+        const response = await getAsUser("/registration/challenge/leaderboard/").expect(StatusCode.SuccessOK);
+        const body = JSON.parse(response.text);
+
+        expect(body.total).toBe(5);
+        expect(body.yourRank).toBe(2);
+        expect(body.entries.map((e: { overallScore: number; you: boolean }) => [e.overallScore, e.you])).toEqual([
+            [1.1, false],
+            [1.0, true],
+            [0.9, false],
+            [0.9, false],
+            [0.9, false],
+        ]);
+        expect(body.entries.map((e: { rank: number }) => e.rank)).toEqual([1, 2, 3, 4, 5]);
+        expect(response.text).not.toContain("github");
+    });
+
+    it("respects the limit", async () => {
+        const response = await getAsUser("/registration/challenge/leaderboard/?limit=2").expect(StatusCode.SuccessOK);
+        expect(JSON.parse(response.text).entries).toHaveLength(2);
+    });
+
+    it("requires a submitted pro registration", async () => {
+        await Models.RegistrationApplicationSubmitted.updateOne({ userId: TESTER.id }, { pro: false });
+        await getAsUser("/registration/challenge/leaderboard/").expect(StatusCode.ClientErrorForbidden);
     });
 });
