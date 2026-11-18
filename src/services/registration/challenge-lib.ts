@@ -25,8 +25,6 @@ export interface SaloonInstance {
 
 // Floor plan pools. Each id must match the world's `instance` field and its S3 key `saloon/tier<n>/<id>.json`.
 // Order matters: applicants are assigned by hash index, so only ever append to these lists.
-const pool = (tier: TierNumber): SaloonInstance[] =>
-    Array.from({ length: 8 }, (_, i) => ({ id: `tier${tier}-0${i + 1}`, referenceScore: null }));
 
 export const SALOON_INSTANCES: Record<TierNumber, SaloonInstance[]> = {
     1: [
@@ -39,9 +37,26 @@ export const SALOON_INSTANCES: Record<TierNumber, SaloonInstance[]> = {
         { id: "tier1-07", referenceScore: 1060 },
         { id: "tier1-08", referenceScore: 1010 },
     ],
-    2: pool(2),
-    // eslint-disable-next-line no-magic-numbers
-    3: pool(3),
+    2: [
+        { id: "tier2-01", referenceScore: 5095 },
+        { id: "tier2-02", referenceScore: 5400 },
+        { id: "tier2-03", referenceScore: 4980 },
+        { id: "tier2-04", referenceScore: 5070 },
+        { id: "tier2-05", referenceScore: 5180 },
+        { id: "tier2-06", referenceScore: 5130 },
+        { id: "tier2-07", referenceScore: 5240 },
+        { id: "tier2-08", referenceScore: 5375 },
+    ],
+    3: [
+        { id: "tier3-01", referenceScore: 8115 },
+        { id: "tier3-02", referenceScore: 8965 },
+        { id: "tier3-03", referenceScore: 9120 },
+        { id: "tier3-04", referenceScore: 8765 },
+        { id: "tier3-05", referenceScore: 9030 },
+        { id: "tier3-06", referenceScore: 8705 },
+        { id: "tier3-07", referenceScore: 8925 },
+        { id: "tier3-08", referenceScore: 8535 },
+    ],
 };
 
 /** Tiers applicants can play right now (Config.PRO_CHALLENGE_TIERS). */
