@@ -92,11 +92,29 @@ export function getApplicantTag(decision: { status: DecisionStatus; reimbursemen
     }
 }
 
+/** Decision fields that each tag stands for. Only ADMITTED_REIMBURSED keeps a reimbursement value. */
+export function getDecisionFieldsForTag(
+    tag: ApplicantTag,
+    reimbursementValue = 0,
+): { status: DecisionStatus; reimbursementValue: number } {
+    const statusByTag: Record<ApplicantTag, DecisionStatus> = {
+        [ApplicantTag.IN_REVIEW]: DecisionStatus.TBD,
+        [ApplicantTag.ADMITTED]: DecisionStatus.ACCEPTED,
+        [ApplicantTag.ADMITTED_REIMBURSED]: DecisionStatus.ACCEPTED,
+        [ApplicantTag.WAITLISTED]: DecisionStatus.WAITLISTED,
+        [ApplicantTag.REJECTED]: DecisionStatus.REJECTED,
+    };
+    return {
+        status: statusByTag[tag],
+        reimbursementValue: tag === ApplicantTag.ADMITTED_REIMBURSED ? reimbursementValue : 0,
+    };
+}
+
 /** Lists every submitted application with its reviewers, scores and tag, keeping only rows that match the filters. */
 export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?: string }): Promise<Applicant[]> {
     const [applications, decisions] = await Promise.all([
         Models.RegistrationApplicationSubmitted.find()
-            .select("userId firstName lastName email school +reviews +aiScore +finalScore +finalScoreSetBy")
+            .select("userId firstName lastName email school +reviews +aiScore +finalScore +finalScoreSetBy +aiGradeFailedAt")
             .lean(),
         Models.AdmissionDecision.find().select("userId status reimbursementValue").lean(),
     ]);
@@ -128,6 +146,7 @@ export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?:
             finalScore,
             // A reviewer changed the score the AI gave
             edited: aiScore !== null && finalScore !== null && application.finalScoreSetBy !== "ai" && finalScore !== aiScore,
+            aiGradeFailed: aiScore === null && (application.aiGradeFailedAt ?? null) !== null,
             tag: getApplicantTag(decisionByUser.get(application.userId)),
         };
     });
