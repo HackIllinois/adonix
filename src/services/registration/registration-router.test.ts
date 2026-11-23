@@ -69,17 +69,17 @@ const SUBMITTED_REGISTRATION = { userId: TESTER.id, ...APPLICATION } satisfies R
 const FIXTURES = path.join(__dirname, "saloon", "__fixtures__");
 const SAMPLE_WORLD_TEXT = readFileSync(path.join(FIXTURES, "tier1-sample.world.json"), "utf8");
 const SAMPLE_WORLD = parseWorld(JSON.parse(SAMPLE_WORLD_TEXT));
-// Completes all 3 contracts on time: score 300
+// Completes all 3 orders on time: score 300
 const SAMPLE_PLAN = JSON.parse(readFileSync(path.join(FIXTURES, "tier1-sample.plan.json"), "utf8"));
-// Completes only C1 on time: score 100
-const ONE_CONTRACT_PLAN = {
+// Completes only O1 on time: score 100
+const ONE_ORDER_PLAN = {
     instance: "tier1-sample",
     routes: {
-        "pickpocket-1": [
+        "speedster-1": [
             { t: 5, cmd: "go", to: "T1" },
-            { t: 5, cmd: "pickup", contract: "C1" },
-            { t: 10, cmd: "go", to: "B1" },
-            { t: 10, cmd: "dropoff", contract: "C1" },
+            { t: 5, cmd: "pickup", order: "O1" },
+            { t: 10, cmd: "go", to: "F1" },
+            { t: 10, cmd: "dropoff", order: "O1" },
         ],
     },
 };
@@ -532,7 +532,7 @@ describe("POST /registration/challenge/", () => {
     });
 
     it("records a low score without passing", async () => {
-        setUploadedFile(ONE_CONTRACT_PLAN);
+        setUploadedFile(ONE_ORDER_PLAN);
 
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
@@ -548,7 +548,7 @@ describe("POST /registration/challenge/", () => {
         setUploadedFile(SAMPLE_PLAN);
         await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
-        setUploadedFile(ONE_CONTRACT_PLAN);
+        setUploadedFile(ONE_ORDER_PLAN);
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text)).toMatchObject({
@@ -571,7 +571,7 @@ describe("POST /registration/challenge/", () => {
     });
 
     it("passes once the best score crosses the threshold", async () => {
-        setUploadedFile(ONE_CONTRACT_PLAN);
+        setUploadedFile(ONE_ORDER_PLAN);
         await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
         expect(sendMail).not.toHaveBeenCalled();
 
@@ -581,19 +581,17 @@ describe("POST /registration/challenge/", () => {
         expect(sendMail).toHaveBeenCalledTimes(1);
     });
 
-    it("returns route errors for invalid commands but still scores earlier contracts", async () => {
+    it("returns route errors for invalid commands but still scores earlier orders", async () => {
         setUploadedFile({
-            ...ONE_CONTRACT_PLAN,
-            routes: { "pickpocket-1": [...ONE_CONTRACT_PLAN.routes["pickpocket-1"], { t: 11, cmd: "go", to: "T2" }] },
+            ...ONE_ORDER_PLAN,
+            routes: { "speedster-1": [...ONE_ORDER_PLAN.routes["speedster-1"], { t: 11, cmd: "go", to: "T2" }] },
         });
 
         const response = await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
 
         expect(JSON.parse(response.text).lastReport).toMatchObject({
             score: 100,
-            errors: [
-                { mercenary: "pickpocket-1", index: 4, message: "pickpocket-1[4]: go to T2 at t=11, earliest possible t=14" },
-            ],
+            errors: [{ driver: "speedster-1", index: 4, message: "speedster-1[4]: go to T2 at t=11, earliest possible t=14" }],
         });
     });
 
@@ -618,7 +616,7 @@ describe("POST /registration/challenge/", () => {
         expect(JSON.parse(response.text)).toEqual({
             error: "InvalidPlan",
             message: "Your plan.json couldn't be graded",
-            reason: 'routes has unknown mercenary "disguiser-9"',
+            reason: 'routes has unknown driver "disguiser-9"',
         });
         const stored = await getStoredChallenge();
         expect(stored?.attempts).toBe(1);
@@ -668,7 +666,7 @@ describe("POST /registration/challenge/", () => {
     });
 });
 
-describe("Saloon Rush tiers 2 and 3", () => {
+describe("Saloon Mercenary tiers 2 and 3", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
     let getWorldFile: jest.SpiedFunction<typeof ChallengeLib.getWorldFile> = undefined!;
 
@@ -677,7 +675,7 @@ describe("Saloon Rush tiers 2 and 3", () => {
         await Models.RegistrationChallenge.create(CHALLENGE);
         await Models.AdmissionDecision.create({ userId: TESTER.id, status: "TBD", response: "PENDING" });
 
-        // Every floor plan scores like the sample (reference 300), and all three tiers are live
+        // Every world scores like the sample (reference 300), and all three tiers are live
         Config.PRO_CHALLENGE_TIERS = [1, 2, 3];
         Config.CHALLENGE_LOCAL_REFERENCE_SCORE = SAMPLE_REFERENCE_SCORE;
         Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = 0;
@@ -693,7 +691,7 @@ describe("Saloon Rush tiers 2 and 3", () => {
         Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = DEFAULT_COOLDOWN_SECONDS;
     });
 
-    it("lists every live tier and assigns each one a floor plan", async () => {
+    it("lists every live tier and assigns each one a world", async () => {
         const response = await getAsUser("/registration/challenge/").expect(StatusCode.SuccessOK);
         const body = JSON.parse(response.text);
 
@@ -709,7 +707,7 @@ describe("Saloon Rush tiers 2 and 3", () => {
         expect(stored?.tier3?.instanceId).toBe(assignInstance(TESTER.id, 3));
     });
 
-    it("downloads a tier's floor plan", async () => {
+    it("downloads a tier's world", async () => {
         await getAsUser("/registration/challenge/world/2/").expect(StatusCode.SuccessOK);
         expect(getWorldFile).toHaveBeenCalledWith(assignInstance(TESTER.id, 2));
     });
@@ -738,18 +736,18 @@ describe("Saloon Rush tiers 2 and 3", () => {
         const detour = {
             instance: "tier1-sample",
             routes: {
-                "pickpocket-1": [
+                "speedster-1": [
                     { t: 5, cmd: "go", to: "T1" },
-                    { t: 5, cmd: "pickup", contract: "C1" },
-                    { t: 10, cmd: "go", to: "B2" },
-                    { t: 12, cmd: "go", to: "B1" },
-                    { t: 12, cmd: "dropoff", contract: "C1" },
+                    { t: 5, cmd: "pickup", order: "O1" },
+                    { t: 10, cmd: "go", to: "F2" },
+                    { t: 12, cmd: "go", to: "F1" },
+                    { t: 12, cmd: "dropoff", order: "O1" },
                 ],
             },
         };
         setUploadedFile(detour);
         await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
-        setUploadedFile(ONE_CONTRACT_PLAN);
+        setUploadedFile(ONE_ORDER_PLAN);
         await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);
         setUploadedFile(detour);
         await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK);

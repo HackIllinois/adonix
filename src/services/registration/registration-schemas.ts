@@ -207,7 +207,7 @@ export class RegistrationApplicationDraft {
 @modelOptions({ schemaOptions: { _id: false } })
 export class ChallengeRouteError {
     @prop({ required: true })
-    public mercenary: string;
+    public driver: string;
 
     @prop({ required: true })
     public index: number;
@@ -225,7 +225,7 @@ export class ChallengeGradeReport {
     public score: number;
 
     @prop({ required: true })
-    public totalContracts: number;
+    public totalOrders: number;
 
     @prop({ required: true })
     public completed: number;
@@ -243,19 +243,19 @@ export class ChallengeGradeReport {
     @prop({ required: true, type: () => [ChallengeRouteError] })
     public routeErrors: ChallengeRouteError[];
 
-    // Tier 3 bar menu (absent on reports saved before the bar existed)
+    // Tier 3 power-ups (absent on reports saved before power-ups existed)
     @prop({ required: false })
     public coinsEarned?: number;
 
     @prop({ required: false })
     public coinsSpent?: number;
 
-    @prop({ required: false, type: () => [ChallengeBarError] })
-    public barErrors?: ChallengeBarError[];
+    @prop({ required: false, type: () => [ChallengePowerupError] })
+    public powerupErrors?: ChallengePowerupError[];
 }
 
 @modelOptions({ schemaOptions: { _id: false } })
-export class ChallengeBarError {
+export class ChallengePowerupError {
     @prop({ required: true })
     public index: number;
 
@@ -292,7 +292,7 @@ export class RegistrationChallenge {
     @prop({ required: true, index: true })
     public userId: string;
 
-    // Tier 1 floor plan assigned to this user, see SALOON_INSTANCES in challenge-lib.
+    // Tier 1 world assigned to this user, see SALOON_INSTANCES in challenge-lib.
     // Tier 1's progress lives at the top level so the original (v1) API and records keep working.
     @prop({ required: true })
     public instanceId: string;
@@ -475,28 +475,28 @@ export const ChallengeGradeReportSchema = GradeReportSchema.openapi("ChallengeGr
     example: {
         instance: "tier1-03",
         score: 1240,
-        totalContracts: 20,
+        totalOrders: 20,
         completed: 14,
         onTime: 11,
         lateMinutes: 12,
         travelMinutes: 187,
         errors: [
             {
-                mercenary: "pickpocket-1",
+                driver: "speedster-1",
                 index: 41,
-                message: "pickpocket-1[41]: go to B3 at t=180, earliest possible t=186",
+                message: "speedster-1[41]: go to F3 at t=180, earliest possible t=186",
             },
         ],
         coinsEarned: 0,
         coinsSpent: 0,
-        barErrors: [],
+        powerupErrors: [],
     },
 });
 
 const MAX_CHALLENGE_TIER = 3;
 export const ChallengeTierNumberSchema = z.coerce.number().int().min(1).max(MAX_CHALLENGE_TIER).openapi("ChallengeTier", {
     example: 2,
-    description: "Saloon Rush tier: 1, 2 or 3",
+    description: "Saloon Mercenary tier: 1, 2 or 3",
 });
 
 export const ChallengeTierStatusSchema = z
@@ -506,7 +506,7 @@ export const ChallengeTierStatusSchema = z
         attempts: z.number(),
         bestScore: z.number(),
         normalizedScore: z.number().nullable().openapi({
-            description: "bestScore divided by this floor plan's reference score, or null if it isn't calibrated yet",
+            description: "bestScore divided by this world's reference score, or null if it isn't calibrated yet",
         }),
         lastReport: ChallengeGradeReportSchema.nullable(),
         nextSubmitAt: z.number().nullable().openapi({
@@ -597,7 +597,7 @@ export const ChallengeLeaderboardSchema = z
 export type ChallengeLeaderboard = z.infer<typeof ChallengeLeaderboardSchema>;
 
 export const RegistrationChallengeWorldSchema = z.unknown().openapi("RegistrationChallengeWorld", {
-    description: "The Saloon Rush floor plan (world.json) assigned to this user",
+    description: "The Saloon Mercenary world.json assigned to this user",
 });
 
 export const [RegistrationNotFoundError, RegistrationNotFoundErrorSchema] = CreateErrorAndSchema({
@@ -671,7 +671,7 @@ export const RegistrationChallengeInvalidPlanErrorSchema = z
         example: {
             error: RegistrationChallengeInvalidPlanErrorId,
             message: INVALID_PLAN_MESSAGE,
-            reason: 'routes has unknown mercenary "disguiser-9"',
+            reason: 'routes has unknown driver "disguiser-9"',
         },
     });
 export function RegistrationChallengeInvalidPlanError(

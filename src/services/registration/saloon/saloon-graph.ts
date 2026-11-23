@@ -1,49 +1,49 @@
-// Shortest-path travel times for each mercenary class. Integer math only, so every run gives the same minutes.
-import { ConnectionTag, MercenaryClass, World } from "./saloon-schemas";
+// Shortest-path travel times for each driver class. Integer math only, so every run gives the same minutes.
+import { DriverClass, EdgeTag, World } from "./saloon-schemas";
 
-export interface MercenaryClassSpec {
-    // Speed in hundredths of a pace per minute, so a Big Belly Burger (x1.5) stays an integer for every class
+export interface DriverClassSpec {
+    // Speed in hundredths of a block per minute, so a Big Belly Burger (x1.5) stays an integer for every class
     speedHundredths: number;
-    // Satchel size: how many cash bags the mercenary can carry at once
+    // Capacity: how many pieces of jewelry the driver can carry at once
     capacity: number;
-    ignoresCrowd: boolean;
-    forbiddenTag: ConnectionTag | null;
+    ignoresCongestion: boolean;
+    forbiddenTag: EdgeTag | null;
 }
 
-export const MERCENARY_CLASSES: Record<MercenaryClass, MercenaryClassSpec> = {
-    // Blends in with the drinkers, but would be recognized in the light of the main floor
-    disguiser: { speedHundredths: 100, capacity: 2, ignoresCrowd: true, forbiddenTag: "main_floor" },
-    pickpocket: { speedHundredths: 200, capacity: 4, ignoresCrowd: false, forbiddenTag: null },
-    // Too big to fit through a crawlspace
-    heavy_lifter: { speedHundredths: 150, capacity: 8, ignoresCrowd: false, forbiddenTag: "crawlspace" },
+export const DRIVER_CLASSES: Record<DriverClass, DriverClassSpec> = {
+    // Blends into the crowd, but would be recognized in an exposed passage
+    disguiser: { speedHundredths: 100, capacity: 2, ignoresCongestion: true, forbiddenTag: "exposed" },
+    speedster: { speedHundredths: 200, capacity: 4, ignoresCongestion: false, forbiddenTag: null },
+    // Too big to fit through a narrow passage
+    hauler: { speedHundredths: 150, capacity: 8, ignoresCongestion: false, forbiddenTag: "narrow" },
 };
 
 // A Big Belly Burger multiplies speed by 3/2 (a whole number of hundredths for every class)
 const BURGER_NUMERATOR = 3;
 const BURGER_DENOMINATOR = 2;
 
-export function burgerSpec(spec: MercenaryClassSpec): MercenaryClassSpec {
+export function burgerSpec(spec: DriverClassSpec): DriverClassSpec {
     return { ...spec, speedHundredths: (spec.speedHundredths * BURGER_NUMERATOR) / BURGER_DENOMINATOR };
 }
 
-const CROWD_TENTHS = 10;
-// length [paces] * crowd [tenths] * 10 / speed [hundredths] = minutes
+const CONGESTION_TENTHS = 10;
+// length [blocks] * congestion [tenths] * 10 / speed [hundredths] = minutes
 const UNIT_SCALE = 10;
 
 function ceilDiv(numerator: number, denominator: number): number {
     return Math.floor((numerator + denominator - 1) / denominator);
 }
 
-/** Minutes to cross one connection, or null if the class can't use it. `ceil(length / speed * crowd)`. */
-export function connectionTravelMinutes(
-    connection: { length: number; crowd: number; tags: ConnectionTag[] },
-    spec: MercenaryClassSpec,
+/** Minutes to cross one edge, or null if the class can't use it. `ceil(length / speed * congestion)`. */
+export function edgeTravelMinutes(
+    edge: { length: number; congestion: number; tags: EdgeTag[] },
+    spec: DriverClassSpec,
 ): number | null {
-    if (spec.forbiddenTag && connection.tags.includes(spec.forbiddenTag)) {
+    if (spec.forbiddenTag && edge.tags.includes(spec.forbiddenTag)) {
         return null;
     }
-    const crowdTenths = spec.ignoresCrowd ? CROWD_TENTHS : Math.round(connection.crowd * CROWD_TENTHS);
-    return ceilDiv(connection.length * crowdTenths * UNIT_SCALE, spec.speedHundredths);
+    const congestionTenths = spec.ignoresCongestion ? CONGESTION_TENTHS : Math.round(edge.congestion * CONGESTION_TENTHS);
+    return ceilDiv(edge.length * congestionTenths * UNIT_SCALE, spec.speedHundredths);
 }
 
 interface Neighbor {
@@ -101,7 +101,7 @@ class MinHeap {
     }
 }
 
-/** Lazily computed all-pairs shortest travel times for one mercenary class on one floor plan. */
+/** Lazily computed all-pairs shortest travel times for one driver class on one world. */
 export class TravelTimes {
     private readonly fromCache = new Map<number, Float64Array>();
 
@@ -110,17 +110,17 @@ export class TravelTimes {
         private readonly adjacency: Neighbor[][],
     ) {}
 
-    static build(world: World, spec: MercenaryClassSpec): TravelTimes {
+    static build(world: World, spec: DriverClassSpec): TravelTimes {
         const index = new Map<string, number>();
         world.nodes.forEach((node, i) => index.set(node.id, i));
         const adjacency: Neighbor[][] = world.nodes.map(() => []);
-        for (const connection of world.connections) {
-            const minutes = connectionTravelMinutes(connection, spec);
+        for (const edge of world.edges) {
+            const minutes = edgeTravelMinutes(edge, spec);
             if (minutes === null) {
                 continue;
             }
-            const a = index.get(connection.a)!;
-            const b = index.get(connection.b)!;
+            const a = index.get(edge.a)!;
+            const b = index.get(edge.b)!;
             adjacency[a]!.push({ to: b, minutes });
             adjacency[b]!.push({ to: a, minutes });
         }
@@ -168,19 +168,19 @@ export class TravelTimes {
 const travelTimesCache = new WeakMap<World, Map<string, TravelTimes>>();
 
 /**
- * Travel times for a class on a floor plan, cached per world object (worlds are cached by challenge-lib).
- * `burger` gives the times for a mercenary who's eaten a Big Belly Burger.
+ * Travel times for a class on a world, cached per world object (worlds are cached by challenge-lib).
+ * `burger` gives the times for a driver who's eaten a Big Belly Burger.
  */
-export function getTravelTimes(world: World, mercenaryClass: MercenaryClass, burger = false): TravelTimes {
+export function getTravelTimes(world: World, driverClass: DriverClass, burger = false): TravelTimes {
     let byKey = travelTimesCache.get(world);
     if (!byKey) {
         byKey = new Map();
         travelTimesCache.set(world, byKey);
     }
-    const key = `${mercenaryClass}:${burger}`;
+    const key = `${driverClass}:${burger}`;
     let times = byKey.get(key);
     if (!times) {
-        const spec = MERCENARY_CLASSES[mercenaryClass];
+        const spec = DRIVER_CLASSES[driverClass];
         times = TravelTimes.build(world, burger ? burgerSpec(spec) : spec);
         byKey.set(key, times);
     }

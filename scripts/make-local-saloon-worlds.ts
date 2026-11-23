@@ -1,5 +1,5 @@
-// Dev only: writes a copy of the sample floor plan for every instance id in every tier, plus a matching plan,
-// so Saloon Rush can be tested locally without S3 or real generated floor plans.
+// Dev only: writes a copy of the sample world for every instance id in every tier, plus a matching plan,
+// so Saloon Mercenary can be tested locally without S3 or real generated worlds.
 // Usage: npx ts-node --transpile-only scripts/make-local-saloon-worlds.ts [outDir=local-worlds]
 // Then set CHALLENGE_LOCAL_WORLDS_DIR=<outDir> (and optionally CHALLENGE_LOCAL_REFERENCE_SCORE=300) in .env.
 // Tiers 2 and 3 are only playable when PRO_CHALLENGE_TIERS lists them (e.g. PRO_CHALLENGE_TIERS=1,2,3).
@@ -19,8 +19,8 @@ rmSync(path.join(outDir, "reference-scores.json"), { force: true });
 let count = 0;
 for (const tier of ALL_TIERS) {
     for (const { id } of SALOON_INSTANCES[tier]) {
-        // Tier 3 opens the bar menu
-        const tierWorld = { ...world, instance: id, ...(tier === 3 ? { bar_open: true } : {}) };
+        // Tier 3 has power-ups
+        const tierWorld = { ...world, instance: id, ...(tier === 3 ? { powerups_enabled: true } : {}) };
         writeFileSync(path.join(outDir, `${id}.json`), JSON.stringify(tierWorld, null, 4));
         writeFileSync(path.join(outDir, `${id}.plan.json`), JSON.stringify({ ...plan, instance: id }, null, 4));
         count += 1;

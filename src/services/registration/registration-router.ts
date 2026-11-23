@@ -355,7 +355,7 @@ registrationRouter.post(
     },
 );
 
-/** Finds or creates the user's challenge and every live tier's floor plan. Upserts, so concurrent first requests are safe. */
+/** Finds or creates the user's challenge and every live tier's world. Upserts, so concurrent first requests are safe. */
 async function getOrCreateChallenge(userId: string): Promise<RegistrationChallenge> {
     let challenge = await Models.RegistrationChallenge.findOneAndUpdate(
         { userId },
@@ -408,9 +408,9 @@ registrationRouter.get(
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Gets the Saloon Rush (Pro challenge) status for the currently authenticated user",
+        summary: "Gets the Saloon Mercenary (Pro challenge) status for the currently authenticated user",
         description:
-            "Creates the challenge and assigns a saloon floor plan per live tier on the first call. " +
+            "Creates the challenge and assigns a world per live tier on the first call. " +
             "The top-level fields describe Tier 1; `tiers` lists every live tier.",
         responses: {
             [StatusCode.SuccessOK]: {
@@ -447,7 +447,7 @@ registrationRouter.get(
         path: "/registration/challenge/leaderboard/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Gets the anonymous Saloon Rush leaderboard",
+        summary: "Gets the anonymous Saloon Mercenary leaderboard",
         description:
             "Ranked by overall score, then fewer walking minutes, then who got there first. " +
             "Shows no names or ids; the requester's own entry is flagged with `you`.",
@@ -515,7 +515,7 @@ registrationRouter.get(
 
 const worldResponses = {
     [StatusCode.SuccessOK]: {
-        description: "The floor plan, as world.json",
+        description: "The world, as world.json",
         schema: RegistrationChallengeWorldSchema,
     },
     [StatusCode.ClientErrorNotFound]: [
@@ -563,7 +563,7 @@ registrationRouter.get(
         path: "/registration/challenge/world/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Downloads the Tier 1 Saloon Rush floor plan (world.json) assigned to the currently authenticated user",
+        summary: "Downloads the Tier 1 Saloon Mercenary world (world.json) assigned to the currently authenticated user",
         responses: worldResponses,
     }),
     async (req, res) => sendWorld(req, res, 1),
@@ -576,7 +576,7 @@ registrationRouter.get(
         path: "/registration/challenge/world/{tier}/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Downloads the floor plan (world.json) for one tier",
+        summary: "Downloads the world (world.json) for one tier",
         parameters: ChallengeTierParamsSchema,
         responses: worldResponses,
     }),
@@ -775,7 +775,7 @@ registrationRouter.post(
         path: "/registration/challenge/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Submits a gang's Tier 1 plan.json for Saloon Rush and grades it",
+        summary: "Submits a team's Tier 1 plan.json for Saloon Mercenary and grades it",
         description: SUBMIT_DESCRIPTION,
         responses: submitResponses,
     }),
@@ -790,7 +790,7 @@ registrationRouter.post(
         path: "/registration/challenge/{tier}/",
         tag: Tag.REGISTRATION,
         role: Role.USER,
-        summary: "Submits a gang's plan.json for one tier and grades it",
+        summary: "Submits a team's plan.json for one tier and grades it",
         description: SUBMIT_DESCRIPTION,
         parameters: ChallengeTierParamsSchema,
         responses: submitResponses,

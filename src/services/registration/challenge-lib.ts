@@ -23,7 +23,7 @@ export interface SaloonInstance {
     referenceScore: number | null;
 }
 
-// Floor plan pools. Each id must match the world's `instance` field and its S3 key `saloon/tier<n>/<id>.json`.
+// World pools. Each id must match the world's `instance` field and its S3 key `saloon/tier<n>/<id>.json`.
 // Order matters: applicants are assigned by hash index, so only ever append to these lists.
 
 export const SALOON_INSTANCES: Record<TierNumber, SaloonInstance[]> = {
@@ -76,7 +76,7 @@ function getClient(): S3 {
 }
 
 /**
- * Deterministically picks a floor plan for a user and tier, so refreshing never changes it.
+ * Deterministically picks a world for a user and tier, so refreshing never changes it.
  * Tier 1 hashes the user id alone, as it always has, so existing assignments don't move.
  */
 export function assignInstance(userId: string, tier: TierNumber = 1): string {
@@ -148,7 +148,7 @@ export async function fetchObjectFromS3(key: string): Promise<Buffer> {
     return Buffer.concat(chunks);
 }
 
-/** S3 key for a floor plan: tier1-03 -> saloon/tier1/tier1-03.json */
+/** S3 key for a world: tier1-03 -> saloon/tier1/tier1-03.json */
 export function worldKey(instanceId: string): string {
     const tier = /^tier(\d)-/.exec(instanceId)?.[1] ?? "1";
     return `saloon/tier${tier}/${instanceId}.json`;
@@ -197,15 +197,15 @@ function fromStoredReport(report: ChallengeGradeReport): GradeReport {
     return {
         instance: report.instance,
         score: report.score,
-        totalContracts: report.totalContracts,
+        totalOrders: report.totalOrders,
         completed: report.completed,
         onTime: report.onTime,
         lateMinutes: report.lateMinutes,
         travelMinutes: report.travelMinutes,
-        errors: report.routeErrors.map(({ mercenary, index, message }) => ({ mercenary, index, message })),
+        errors: report.routeErrors.map(({ driver, index, message }) => ({ driver, index, message })),
         coinsEarned: report.coinsEarned ?? 0,
         coinsSpent: report.coinsSpent ?? 0,
-        barErrors: (report.barErrors ?? []).map(({ index, message }) => ({ index, message })),
+        powerupErrors: (report.powerupErrors ?? []).map(({ index, message }) => ({ index, message })),
     };
 }
 

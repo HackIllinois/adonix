@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { gradePlan } from "./saloon-grader";
-import { BarOrder, Command, InvalidPlanError, parsePlan, parseWorld, Plan, World } from "./saloon-schemas";
+import { Powerup, Command, InvalidPlanError, parsePlan, parseWorld, Plan, World } from "./saloon-schemas";
 
 const CHECK_PY = path.join(__dirname, "..", "..", "..", "..", "kit", "check.py");
 const FIXTURES = path.join(__dirname, "__fixtures__");
@@ -26,23 +26,23 @@ const describeWithPython = PYTHON ? describe : describe.skip;
 
 const sampleWorld = (): World => parseWorld(JSON.parse(readFileSync(path.join(FIXTURES, "tier1-sample.world.json"), "utf8")));
 const samplePlan = (): Plan => parsePlan(readFileSync(path.join(FIXTURES, "tier1-sample.plan.json"), "utf8"));
-const route = (commands: Command[], barOrders?: BarOrder[]): Plan => ({
+const route = (commands: Command[], barOrders?: Powerup[]): Plan => ({
     instance: "tier1-sample",
-    routes: { "pickpocket-1": commands },
-    ...(barOrders ? { bar_orders: barOrders } : {}),
+    routes: { "speedster-1": commands },
+    ...(barOrders ? { powerups: barOrders } : {}),
 });
-const openBar = (coins = 0): World => ({ ...sampleWorld(), bar_open: true, coins });
+const powerupsOn = (coins = 0): World => ({ ...sampleWorld(), powerups_enabled: true, coins });
 const twoCrew = (): World => ({
     ...sampleWorld(),
-    mercenaries: [
-        { id: "pickpocket-1", class: "pickpocket", hideout: "HQ" },
-        { id: "heavy-lifter-1", class: "heavy_lifter", hideout: "HQ" },
-        { id: "disguiser-1", class: "disguiser", hideout: "HQ" },
+    drivers: [
+        { id: "speedster-1", class: "speedster", start: "S0" },
+        { id: "hauler-1", class: "hauler", start: "S0" },
+        { id: "disguiser-1", class: "disguiser", start: "S0" },
     ],
 });
 const toT1: Command[] = [
     { t: 5, cmd: "go", to: "T1" },
-    { t: 5, cmd: "pickup", contract: "C1" },
+    { t: 5, cmd: "pickup", order: "O1" },
 ];
 
 // [name, world, plan as raw JSON]
@@ -50,16 +50,16 @@ const CASES: [string, World, unknown][] = [
     ["sample plan", sampleWorld(), samplePlan()],
     ["empty plan", sampleWorld(), { instance: "tier1-sample", routes: {} }],
     ["waiting", sampleWorld(), route([{ t: 9, cmd: "go", to: "T1" }, ...toT1.slice(1).map((c) => ({ ...c, t: 9 }))])],
-    ["late delivery", sampleWorld(), route([...toT1, { t: 30, cmd: "go", to: "B1" }, { t: 30, cmd: "dropoff", contract: "C1" }])],
+    ["late delivery", sampleWorld(), route([...toT1, { t: 30, cmd: "go", to: "F1" }, { t: 30, cmd: "dropoff", order: "O1" }])],
     ["too early", sampleWorld(), route([{ t: 4, cmd: "go", to: "T1" }])],
-    ["backwards t", sampleWorld(), route([...toT1, { t: 3, cmd: "go", to: "B1" }])],
+    ["backwards t", sampleWorld(), route([...toT1, { t: 3, cmd: "go", to: "F1" }])],
     ["after shift_end", sampleWorld(), route([{ t: 121, cmd: "go", to: "T1" }])],
     [
         "wrong table",
         sampleWorld(),
         route([
             { t: 5, cmd: "go", to: "T1" },
-            { t: 5, cmd: "pickup", contract: "C3" },
+            { t: 5, cmd: "pickup", order: "O3" },
         ]),
     ],
     [
@@ -67,104 +67,112 @@ const CASES: [string, World, unknown][] = [
         sampleWorld(),
         route([
             { t: 6, cmd: "go", to: "T2" },
-            { t: 6, cmd: "pickup", contract: "C3" },
+            { t: 6, cmd: "pickup", order: "O3" },
         ]),
     ],
     [
         "not carrying",
         sampleWorld(),
         route([
-            { t: 10, cmd: "go", to: "B1" },
-            { t: 10, cmd: "dropoff", contract: "C1" },
+            { t: 10, cmd: "go", to: "F1" },
+            { t: 10, cmd: "dropoff", order: "O1" },
         ]),
     ],
-    [
-        "wrong back room",
-        sampleWorld(),
-        route([...toT1, { t: 10, cmd: "go", to: "B2" }, { t: 10, cmd: "dropoff", contract: "C1" }]),
-    ],
+    ["wrong fence", sampleWorld(), route([...toT1, { t: 10, cmd: "go", to: "F2" }, { t: 10, cmd: "dropoff", order: "O1" }])],
     [
         "mixed crew, restrictions and ties",
         twoCrew(),
         {
             instance: "tier1-sample",
             routes: {
-                "pickpocket-1": toT1,
-                "heavy-lifter-1": [
+                "speedster-1": toT1,
+                "hauler-1": [
                     { t: 16, cmd: "go", to: "T2" },
-                    { t: 16, cmd: "pickup", contract: "C3" },
-                    { t: 22, cmd: "go", to: "B3" },
-                    { t: 22, cmd: "dropoff", contract: "C3" },
+                    { t: 16, cmd: "pickup", order: "O3" },
+                    { t: 22, cmd: "go", to: "F3" },
+                    { t: 22, cmd: "dropoff", order: "O3" },
                 ],
                 "disguiser-1": [
                     { t: 10, cmd: "go", to: "T1" },
-                    { t: 10, cmd: "pickup", contract: "C1" },
+                    { t: 10, cmd: "pickup", order: "O1" },
                 ],
             },
         },
     ],
-    ["bar: coins only", openBar(), samplePlan()],
+    ["powerups: coins only", powerupsOn(), samplePlan()],
     [
-        "bar: can't afford",
-        openBar(),
-        { ...samplePlan(), bar_orders: [{ t: 11, item: "big_belly_burger", mercenary: "pickpocket-1" }] },
+        "powerups: can't afford",
+        powerupsOn(),
+        { ...samplePlan(), powerups: [{ t: 11, type: "big_belly_burger", driver: "speedster-1" }] },
     ],
-    ["bar: same-minute payout", openBar(), { ...samplePlan(), bar_orders: [{ t: 12, item: "beer", contract: "C3" }] }],
     [
-        "bar: beer saves a late bag",
-        openBar(150),
+        "powerups: same-minute payout",
+        powerupsOn(),
+        { ...samplePlan(), powerups: [{ t: 12, type: "cactus_cocktail", order: "O3" }] },
+    ],
+    [
+        "powerups: cocktail saves a late order",
+        powerupsOn(150),
         route(
-            [...toT1, { t: 30, cmd: "go", to: "B1" }, { t: 30, cmd: "dropoff", contract: "C1" }],
-            [{ t: 0, item: "beer", contract: "C1" }],
+            [...toT1, { t: 30, cmd: "go", to: "F1" }, { t: 30, cmd: "dropoff", order: "O1" }],
+            [{ t: 0, type: "cactus_cocktail", order: "O1" }],
         ),
     ],
     [
-        "bar: beer too late",
-        openBar(150),
+        "powerups: cocktail too late",
+        powerupsOn(150),
         route(
-            [...toT1, { t: 30, cmd: "go", to: "B1" }, { t: 30, cmd: "dropoff", contract: "C1" }],
-            [{ t: 31, item: "beer", contract: "C1" }],
+            [...toT1, { t: 30, cmd: "go", to: "F1" }, { t: 30, cmd: "dropoff", order: "O1" }],
+            [{ t: 31, type: "cactus_cocktail", order: "O1" }],
         ),
     ],
     [
-        "bar: burger window",
-        openBar(300),
+        "powerups: burger window",
+        powerupsOn(300),
         route(
             [
                 { t: 4, cmd: "go", to: "T1" },
-                { t: 30, cmd: "go", to: "W1" },
+                { t: 30, cmd: "go", to: "X1" },
                 { t: 33, cmd: "go", to: "T1" },
             ],
-            [{ t: 0, item: "big_belly_burger", mercenary: "pickpocket-1" }],
+            [{ t: 0, type: "big_belly_burger", driver: "speedster-1" }],
         ),
     ],
     [
-        "bar: backpack",
+        "powerups: extra satchel",
         {
-            ...openBar(400),
-            contracts: ["A", "B", "C", "D", "E"].map((id) => ({ id, table: "T1", back_room: "B1", ready_at: 0, deadline: 60 })),
+            ...powerupsOn(400),
+            orders: ["A", "B", "C", "D", "E"].map((id) => ({ id, target: "T1", fence: "F1", ready_at: 0, deadline: 60 })),
         },
         route(
             [
                 { t: 5, cmd: "go", to: "T1" },
-                ...["A", "B", "C", "D", "E"].map((id): Command => ({ t: 5, cmd: "pickup", contract: id })),
+                ...["A", "B", "C", "D", "E"].map((id): Command => ({ t: 5, cmd: "pickup", order: id })),
             ],
-            [{ t: 0, item: "backpack", mercenary: "pickpocket-1" }],
+            [{ t: 0, type: "extra_satchel", driver: "speedster-1" }],
         ),
     ],
-    ["bar: after shift_end", openBar(300), { ...samplePlan(), bar_orders: [{ t: 121, item: "beer", contract: "C1" }] }],
-    ["broken: bar closed", sampleWorld(), { ...samplePlan(), bar_orders: [{ t: 0, item: "beer", contract: "C1" }] }],
+    [
+        "powerups: after shift_end",
+        powerupsOn(300),
+        { ...samplePlan(), powerups: [{ t: 121, type: "cactus_cocktail", order: "O1" }] },
+    ],
+    ["broken: power-ups off", sampleWorld(), { ...samplePlan(), powerups: [{ t: 0, type: "cactus_cocktail", order: "O1" }] }],
     ["broken: wrong instance", sampleWorld(), { instance: "tier1-02", routes: {} }],
-    ["broken: unknown mercenary", sampleWorld(), { instance: "tier1-sample", routes: { "disguiser-9": [] } }],
-    ["broken: unknown spot", sampleWorld(), route([{ t: 5, cmd: "go", to: "T9" }])],
-    ["broken: unknown contract", sampleWorld(), route([{ t: 5, cmd: "pickup", contract: "C9" }])],
-    ["broken: unknown bar mercenary", openBar(), { ...samplePlan(), bar_orders: [{ t: 0, item: "backpack", mercenary: "x" }] }],
+    ["broken: unknown driver", sampleWorld(), { instance: "tier1-sample", routes: { "disguiser-9": [] } }],
+    ["broken: unknown node", sampleWorld(), route([{ t: 5, cmd: "go", to: "T9" }])],
+    ["broken: unknown order", sampleWorld(), route([{ t: 5, cmd: "pickup", order: "O9" }])],
+    [
+        "broken: unknown power-up driver",
+        powerupsOn(),
+        { ...samplePlan(), powerups: [{ t: 0, type: "extra_satchel", driver: "x" }] },
+    ],
     [
         "broken: bad shape",
         sampleWorld(),
-        { instance: "tier1-sample", routes: { "pickpocket-1": [{ t: 1.5, cmd: "go", to: "T1" }] } },
+        { instance: "tier1-sample", routes: { "speedster-1": [{ t: 1.5, cmd: "go", to: "T1" }] } },
     ],
-    ["broken: extra key", sampleWorld(), { instance: "tier1-sample", routes: {}, team: "x" }],
+    ["broken: extra key", sampleWorld(), { instance: "tier1-sample", routes: {}, gang: "x" }],
 ];
 
 /** What the real grader says, in check.py's output format. */
