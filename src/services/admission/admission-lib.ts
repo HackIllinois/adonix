@@ -114,7 +114,7 @@ export function getDecisionFieldsForTag(
 export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?: string }): Promise<Applicant[]> {
     const [applications, decisions] = await Promise.all([
         Models.RegistrationApplicationSubmitted.find()
-            .select("userId firstName lastName email school +reviews +aiScore +finalScore +finalScoreSetBy")
+            .select("userId firstName lastName email school +reviews +aiScore +finalScore +finalScoreSetBy +aiGradeFailedAt")
             .lean(),
         Models.AdmissionDecision.find().select("userId status reimbursementValue").lean(),
     ]);
@@ -146,6 +146,7 @@ export async function listApplicants(filters: { tag?: ApplicantTag; reviewerId?:
             finalScore,
             // A reviewer changed the score the AI gave
             edited: aiScore !== null && finalScore !== null && application.finalScoreSetBy !== "ai" && finalScore !== aiScore,
+            aiGradeFailed: aiScore === null && (application.aiGradeFailedAt ?? null) !== null,
             tag: getApplicantTag(decisionByUser.get(application.userId)),
         };
     });
