@@ -287,7 +287,9 @@ describe("POST /admission/ai-grade/", () => {
 
     it("ignores the removed retryFailed field", async () => {
         await setFailed("u1", 100, Config.AI_GRADE_MAX_ATTEMPTS);
-        const response = await postAsAdmin("/admission/ai-grade/").send({ retryFailed: true, dryRun: true }).expect(StatusCode.SuccessOK);
+        const response = await postAsAdmin("/admission/ai-grade/")
+            .send({ retryFailed: true, dryRun: true })
+            .expect(StatusCode.SuccessOK);
         expect(response.body.userIds).toEqual(["u2"]);
         expect(response.body).not.toHaveProperty("previouslyFailed");
     });
