@@ -103,6 +103,9 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
+    // Optional JSON contents of the calibrated reference-scores.json, keyed by instance ID.
+    // Overrides the scores in SALOON_INSTANCES; if set, it must cover every world in every tier.
+    CHALLENGE_REFERENCE_SCORES: env.CHALLENGE_REFERENCE_SCORES,
     // Dev only: read Saloon Mercenary worlds from <dir>/<instanceId>.json instead of S3
     CHALLENGE_LOCAL_WORLDS_DIR: PROD ? undefined : env.CHALLENGE_LOCAL_WORLDS_DIR,
     // Dev only: use this reference score for every instance, so the pass flow can be tested before calibration
@@ -147,6 +150,7 @@ const Config = {
     MAX_REQUEST_SIZE_BYTES: 100 * 1024,
     MAX_STRING_LENGTH: 200,
     MAX_ESSAY_LENGTH: 2000,
+    MAX_PORTFOLIO_URL_LENGTH: 500,
     MAX_ARRAY_LENGTH: 20,
     MAX_CHALLENGE_PLAN_SIZE_BYTES: 1024 * 1024,
 

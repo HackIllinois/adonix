@@ -68,6 +68,23 @@ export function isLiveTier(tier: number): tier is TierNumber {
     return (liveTiers() as number[]).includes(tier);
 }
 
+// Deployments can provide the calibrated scores independently of the world files.
+export function parseReferenceScores(json: string): Record<string, number> {
+    const scores = JSON.parse(json);
+    if (!scores || typeof scores !== "object" || Array.isArray(scores)) {
+        throw new Error("CHALLENGE_REFERENCE_SCORES must be an object keyed by world ID");
+    }
+    for (const { id } of ALL_TIERS.flatMap((tier) => SALOON_INSTANCES[tier])) {
+        if (!Number.isSafeInteger(scores[id]) || scores[id] <= 0) {
+            throw new Error(`CHALLENGE_REFERENCE_SCORES needs a positive integer score for ${id}`);
+        }
+    }
+    return scores;
+}
+
+const referenceScores =
+    Config.CHALLENGE_REFERENCE_SCORES === undefined ? {} : parseReferenceScores(Config.CHALLENGE_REFERENCE_SCORES);
+
 let s3: S3 | undefined = undefined;
 
 function getClient(): S3 {
@@ -109,6 +126,9 @@ export function getReferenceScore(instanceId: string): number | null {
     const local = getLocalReferenceScore(instanceId) ?? Config.CHALLENGE_LOCAL_REFERENCE_SCORE;
     if (local) {
         return local;
+    }
+    if (referenceScores[instanceId] !== undefined) {
+        return referenceScores[instanceId];
     }
     for (const tier of ALL_TIERS) {
         const instance = SALOON_INSTANCES[tier].find((i) => i.id === instanceId);
