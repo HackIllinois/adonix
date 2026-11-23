@@ -68,7 +68,7 @@ resumeRouter.get(
         method: "get",
         path: "/resume/download/{id}",
         tag: Tag.RESUME,
-        role: [Role.SPONSOR, Role.ADMIN],
+        role: [Role.SPONSOR, Role.STAFF, Role.ADMIN],
         summary: "Gets a download url for the resume of the specified user",
         description:
             "This is for a specific user and requires higher permissions, use `GET /resume/download/` for the currently authenticated user",
@@ -97,7 +97,7 @@ resumeRouter.post(
         method: "post",
         path: "/resume/batch-download/",
         tag: Tag.RESUME,
-        role: [Role.SPONSOR, Role.ADMIN],
+        role: [Role.SPONSOR, Role.STAFF, Role.ADMIN],
         summary: "Gets a download url for all the resumes",
         body: BatchResumeDownloadListSchema,
         description: `List of presigned urls from s3 that is valid for ${Config.RESUME_URL_EXPIRY_SECONDS} seconds`,
