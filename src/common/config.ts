@@ -93,6 +93,9 @@ const Config = {
 
     SES_FROM_EMAIL: requireEnv("SES_FROM_EMAIL"),
     SES_REGION: requireEnv("SES_REGION"),
+    // Optional. Naming a configuration set overrides the sending identity's default one, so a set
+    // without click tracking keeps SES from rewriting links through awstrack.me (ad blockers block it).
+    SES_CONFIGURATION_SET: env.SES_CONFIGURATION_SET || undefined,
 
     GITHUB_OAUTH_ID: requireEnv("GITHUB_OAUTH_ID"),
     GITHUB_OAUTH_SECRET: requireEnv("GITHUB_OAUTH_SECRET"),
