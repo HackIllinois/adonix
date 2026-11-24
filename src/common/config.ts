@@ -62,6 +62,11 @@ const Config = {
     PROD,
     VERSION: getVersion(),
 
+    /* AI grading (Lumen). Optional at startup; the grading endpoint checks them when it is used. */
+    LUMEN_API_KEY: env.LUMEN_API_KEY ?? "",
+    LUMEN_BASE_URL: env.LUMEN_BASE_URL ?? "",
+    LUMEN_MODEL: env.LUMEN_MODEL ?? "",
+
     /* URLs */
     PORT,
     ROOT_URL,
@@ -164,6 +169,11 @@ const Config = {
     CHALLENGE_SUBMIT_COOLDOWN_SECONDS: env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS
         ? parseInt(env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS)
         : 60,
+
+    AI_GRADE_DEFAULT_LIMIT: 25,
+    AI_GRADE_MAX_LIMIT: 50,
+    // A failed application is retried until it has failed this many times
+    AI_GRADE_MAX_ATTEMPTS: 3,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,
