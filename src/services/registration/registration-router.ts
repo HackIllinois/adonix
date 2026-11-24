@@ -30,6 +30,8 @@ import {
     RegistrationMissingProErrorSchema,
     RegistrationMissingProError,
     ChallengeTierNumberSchema,
+    ChallengeTierLockedError,
+    ChallengeTierLockedErrorSchema,
     ChallengeLeaderboardQueryLimitSchema,
     ChallengeLeaderboardSchema,
     ChallengeTierNotAvailableError,
@@ -57,6 +59,7 @@ import {
     overallScore,
     tierPath,
     tierProgress,
+    tierUnlocked,
     toChallengeStatus,
     toStoredReport,
 } from "./challenge-lib";
@@ -530,10 +533,18 @@ const worldResponses = {
             schema: ChallengeTierNotAvailableErrorSchema,
         },
     ],
-    [StatusCode.ClientErrorForbidden]: {
-        description: "You are not registered for this track",
-        schema: RegistrationMissingProErrorSchema,
-    },
+    [StatusCode.ClientErrorForbidden]: [
+        {
+            id: RegistrationMissingProError.error,
+            description: "You are not registered for this track",
+            schema: RegistrationMissingProErrorSchema,
+        },
+        {
+            id: ChallengeTierLockedError.error,
+            description: "An earlier tier is incomplete",
+            schema: ChallengeTierLockedErrorSchema,
+        },
+    ],
 } satisfies ResponsesObject;
 
 async function sendWorld(req: ChallengeRequest, res: Response, tier: TierNumber): Promise<Response> {
@@ -545,6 +556,9 @@ async function sendWorld(req: ChallengeRequest, res: Response, tier: TierNumber)
     }
 
     const challenge = await getOrCreateChallenge(userId);
+    if (!tierUnlocked(challenge, tier)) {
+        return res.status(StatusCode.ClientErrorForbidden).send(ChallengeTierLockedError);
+    }
     const progress = tierProgress(challenge, tier);
     if (!progress) {
         return res.status(StatusCode.ClientErrorNotFound).send(ChallengeTierNotAvailableError);
@@ -612,10 +626,18 @@ const submitResponses = {
             schema: RegistrationChallengeNotFoundErrorSchema,
         },
     ],
-    [StatusCode.ClientErrorForbidden]: {
-        description: "Registration is closed",
-        schema: RegistrationClosedErrorSchema,
-    },
+    [StatusCode.ClientErrorForbidden]: [
+        {
+            id: RegistrationClosedError.error,
+            description: "Registration is closed",
+            schema: RegistrationClosedErrorSchema,
+        },
+        {
+            id: ChallengeTierLockedError.error,
+            description: "An earlier tier is incomplete",
+            schema: ChallengeTierLockedErrorSchema,
+        },
+    ],
     [StatusCode.ClientErrorNotFound]: {
         description: "That tier isn't live yet",
         schema: ChallengeTierNotAvailableErrorSchema,
@@ -654,6 +676,9 @@ async function submitPlan(req: ChallengeRequest, res: Response, tier: TierNumber
     }
     if (!tierProgress(challenge, tier)) {
         challenge = await getOrCreateChallenge(userId);
+    }
+    if (!tierUnlocked(challenge, tier)) {
+        return res.status(StatusCode.ClientErrorForbidden).send(ChallengeTierLockedError);
     }
     const progress = tierProgress(challenge, tier);
     if (!progress) {

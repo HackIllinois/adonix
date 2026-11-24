@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { StatusCode } from "status-code-enum";
 import Models from "../../common/models";
+import { recalculateRankings } from "./saloon-rollout";
 import Config, { Templates } from "../../common/config";
 import { TESTER, getAsUser, getAsAdmin, postAsUser, putAsUser } from "../../common/testTools";
 import {
@@ -403,10 +404,12 @@ describe("POST /registration/submit/", () => {
 
 describe("GET /registration/challenge/", () => {
     beforeEach(async () => {
+        Config.PRO_CHALLENGE_TIERS = [1];
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
     });
 
     afterEach((): void => {
+        Config.PRO_CHALLENGE_TIERS = DEFAULT_TIERS;
         removeSampleInstance();
     });
 
@@ -427,6 +430,8 @@ describe("GET /registration/challenge/", () => {
             tiers: [
                 {
                     tier: 1,
+                    unlocked: true,
+                    passed: false,
                     instanceId: assignInstance(TESTER.id),
                     attempts: 0,
                     bestScore: 0,
@@ -503,6 +508,7 @@ describe("POST /registration/challenge/", () => {
     let sendMail: jest.SpiedFunction<typeof MailLib.sendMail> = undefined!;
 
     beforeEach(async (): Promise<void> => {
+        Config.PRO_CHALLENGE_TIERS = [1];
         await Models.RegistrationApplicationSubmitted.create(SUBMITTED_REGISTRATION);
         await Models.RegistrationChallenge.create(CHALLENGE);
         await Models.AdmissionDecision.create({
@@ -523,6 +529,7 @@ describe("POST /registration/challenge/", () => {
 
     afterEach((): void => {
         delete (global as { mockFile?: Express.Multer.File }).mockFile;
+        Config.PRO_CHALLENGE_TIERS = DEFAULT_TIERS;
         removeSampleInstance();
         Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = DEFAULT_COOLDOWN_SECONDS;
     });
@@ -728,32 +735,76 @@ describe("Saloon Mercenary tiers 2 and 3", () => {
         expect(stored?.tier3?.instanceId).toBe(assignInstance(TESTER.id, 3));
     });
 
-    it("downloads a tier's world", async () => {
-        await getAsUser("/registration/challenge/world/2/").expect(StatusCode.SuccessOK);
+    it("enforces the exact unlock threshold on status, download and upload", async () => {
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { bestScore: 179, complete: true });
+        setUploadedFile(SAMPLE_PLAN);
+        const url = "/registration/challenge/";
+        const before = (await getAsUser(url)).body;
+        expect(before.tiers).toMatchObject([
+            { passed: false, unlocked: true },
+            { passed: false, unlocked: false },
+            { passed: false, unlocked: false },
+        ]);
+        expect((await getAsUser(url + "world/2/").expect(403)).body.error).toBe("TierLocked");
+        expect((await postAsUser(url + "2/").expect(403)).body.error).toBe("TierLocked");
+        expect((await getAsUser(url)).body.tiers[1]).toMatchObject({ attempts: 0, nextSubmitAt: null });
+        expect(getWorldFile).not.toHaveBeenCalled();
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { bestScore: 180 });
+        expect((await getAsUser(url)).body).toMatchObject({
+            complete: true,
+            tiers: [{ passed: true }, { unlocked: true, passed: false }, { unlocked: false }],
+        });
+        await getAsUser(url + "world/2/").expect(200);
         expect(getWorldFile).toHaveBeenCalledWith(assignInstance(TESTER.id, 2));
+        await getAsUser(url + "world/3/").expect(403);
+        await postAsUser(url + "3/").expect(403);
     });
 
-    it("grades each tier separately and passes on the average", async () => {
+    it("unlocks tiers in order, keeps earlier tiers playable and qualifies on the overall average", async () => {
         setUploadedFile(SAMPLE_PLAN);
-        const afterTier2 = JSON.parse((await postAsUser("/registration/challenge/2/").expect(StatusCode.SuccessOK)).text);
-        expect(afterTier2).toMatchObject({ bestScore: 0, attempts: 0, complete: false, overallScore: 1 / 3 });
-        expect(afterTier2.tiers[1]).toMatchObject({ tier: 2, bestScore: 300, attempts: 1, normalizedScore: 1 });
+        const first = (await postAsUser("/registration/challenge/").expect(200)).body;
+        expect(first).toMatchObject({ complete: false, overallScore: 1 / 3 });
+        const second = (await postAsUser("/registration/challenge/2/").expect(200)).body;
+        expect(second).toMatchObject({ complete: true, overallScore: 2 / 3 });
+        expect(second.tiers[2]).toMatchObject({ unlocked: true, passed: false });
+        await getAsUser("/registration/challenge/world/3/").expect(200);
+        const third = (await postAsUser("/registration/challenge/3/").expect(200)).body;
+        expect(third.overallScore).toBe(1);
+        expect(third.tiers[2].passed).toBe(true);
+        await postAsUser("/registration/challenge/1/").expect(200);
+        expect(sendMail).toHaveBeenCalledTimes(1);
+    });
 
+    it("rebases saved one-tier rankings and preserves qualification on repeated runs", async () => {
+        await Models.RegistrationChallenge.updateOne(
+            { userId: TESTER.id },
+            {
+                bestScore: 300,
+                bestTravelMinutes: 12,
+                complete: true,
+                overallScore: 1,
+                overallAt: 123,
+            },
+        );
+        await Models.AdmissionDecision.updateOne({ userId: TESTER.id }, { proChallengeScore: 1, correctProChallenge: true });
+        await recalculateRankings();
+        await recalculateRankings();
+        expect(await Models.RegistrationChallenge.findOne({ userId: TESTER.id })).toMatchObject({
+            overallScore: 1 / 3,
+            overallTravelMinutes: 12,
+            overallAt: 123,
+            complete: true,
+            bestScore: 300,
+        });
+        expect(await Models.AdmissionDecision.findOne({ userId: TESTER.id })).toMatchObject({
+            proChallengeScore: 1 / 3,
+            correctProChallenge: true,
+        });
         expect(sendMail).not.toHaveBeenCalled();
-
-        // Tiers 1 + 2 average 2/3, which clears the 0.6 bar
-        const passed = JSON.parse((await postAsUser("/registration/challenge/").expect(StatusCode.SuccessOK)).text);
-        expect(passed).toMatchObject({ complete: true, overallScore: 2 / 3 });
-        expect(sendMail).toHaveBeenCalledTimes(1);
-
-        const all = JSON.parse((await postAsUser("/registration/challenge/3/").expect(StatusCode.SuccessOK)).text);
-        expect(all).toMatchObject({ complete: true, overallScore: 1 });
-        expect(sendMail).toHaveBeenCalledTimes(1);
-        const admission = await Models.AdmissionDecision.findOne({ userId: TESTER.id });
-        expect(admission).toMatchObject({ correctProChallenge: true, proChallengeScore: 1 });
     });
 
     it("keeps the plan with fewer walking minutes when scores tie", async () => {
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { bestScore: 180 });
         const detour = {
             instance: "tier1-sample",
             routes: {
@@ -778,6 +829,7 @@ describe("Saloon Mercenary tiers 2 and 3", () => {
     });
 
     it("limits uploads to one per cooldown per tier, counting broken files", async () => {
+        await Models.RegistrationChallenge.updateOne({ userId: TESTER.id }, { bestScore: 180 });
         Config.CHALLENGE_SUBMIT_COOLDOWN_SECONDS = 60;
         setUploadedFile("{ not json");
         await postAsUser("/registration/challenge/").expect(StatusCode.ClientErrorBadRequest);

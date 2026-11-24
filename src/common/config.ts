@@ -18,10 +18,11 @@ export enum Templates {
     GENERIC = "generic",
 }
 
-/** Parses "1,2,3" into the list of live Pro challenge tiers. Defaults to Tier 1 only. */
+/** Parses "1,2,3" into the list of live Pro challenge tiers. All tiers are live by default. */
 function parseChallengeTiers(value: string | undefined): (1 | 2 | 3)[] {
     if (!value) {
-        return [1];
+        // eslint-disable-next-line no-magic-numbers
+        return [1, 2, 3];
     }
     const tiers = [...new Set(value.split(",").map((t) => parseInt(t.trim())))];
     if (tiers.length === 0 || tiers.some((t) => t !== 1 && t !== 2 && t !== 3)) {
@@ -163,7 +164,7 @@ const Config = {
     // Applicants pass once their average over the live tiers reaches this fraction of the reference solver's score.
     // Placeholder until playtesting.
     PRO_CHALLENGE_PASS_RATIO: 0.6,
-    // Tiers applicants can play and that count toward passing. Tier 1 only until the site supports more.
+    // Tiers applicants can play and that count toward passing.
     PRO_CHALLENGE_TIERS: parseChallengeTiers(env.PRO_CHALLENGE_TIERS),
     // Minimum wait between uploads, per applicant and tier
     CHALLENGE_SUBMIT_COOLDOWN_SECONDS: env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS
