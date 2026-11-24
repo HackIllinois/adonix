@@ -1,67 +1,65 @@
 import { describe, expect, it } from "@jest/globals";
 import { readFileSync } from "fs";
 import path from "path";
-import { MERCENARY_CLASSES, connectionTravelMinutes, TravelTimes } from "./saloon-graph";
+import { DRIVER_CLASSES, edgeTravelMinutes, TravelTimes } from "./saloon-graph";
 import { parseWorld, World } from "./saloon-schemas";
 
 function loadSampleWorld(): World {
     return parseWorld(JSON.parse(readFileSync(path.join(__dirname, "__fixtures__", "tier1-sample.world.json"), "utf8")));
 }
 
-describe("connectionTravelMinutes", () => {
-    it("computes ceil(length / speed * crowd)", () => {
-        expect(connectionTravelMinutes({ length: 4, crowd: 2.0, tags: [] }, MERCENARY_CLASSES.pickpocket)).toBe(4);
-        expect(connectionTravelMinutes({ length: 1, crowd: 1.0, tags: [] }, MERCENARY_CLASSES.pickpocket)).toBe(1); // 0.5 rounds up
-        expect(connectionTravelMinutes({ length: 9, crowd: 1.3, tags: [] }, MERCENARY_CLASSES.heavy_lifter)).toBe(8); // 7.8
+describe("edgeTravelMinutes", () => {
+    it("computes ceil(length / speed * congestion)", () => {
+        expect(edgeTravelMinutes({ length: 4, congestion: 2.0, tags: [] }, DRIVER_CLASSES.speedster)).toBe(4);
+        expect(edgeTravelMinutes({ length: 1, congestion: 1.0, tags: [] }, DRIVER_CLASSES.speedster)).toBe(1); // 0.5 rounds up
+        expect(edgeTravelMinutes({ length: 9, congestion: 1.3, tags: [] }, DRIVER_CLASSES.hauler)).toBe(8); // 7.8
     });
 
     it("uses exact integer math where floats would round wrong", () => {
         // 3 / 2.0 * 1.3 = 1.95 and 10 / 2.0 * 1.2 = 6 exactly (floats give 6.000000000000001)
-        expect(connectionTravelMinutes({ length: 3, crowd: 1.3, tags: [] }, MERCENARY_CLASSES.pickpocket)).toBe(2);
-        expect(connectionTravelMinutes({ length: 10, crowd: 1.2, tags: [] }, MERCENARY_CLASSES.pickpocket)).toBe(6);
+        expect(edgeTravelMinutes({ length: 3, congestion: 1.3, tags: [] }, DRIVER_CLASSES.speedster)).toBe(2);
+        expect(edgeTravelMinutes({ length: 10, congestion: 1.2, tags: [] }, DRIVER_CLASSES.speedster)).toBe(6);
     });
 
-    it("lets disguisers ignore crowds", () => {
-        expect(connectionTravelMinutes({ length: 4, crowd: 2.0, tags: [] }, MERCENARY_CLASSES.disguiser)).toBe(4);
+    it("lets disguisers ignore congestion", () => {
+        expect(edgeTravelMinutes({ length: 4, congestion: 2.0, tags: [] }, DRIVER_CLASSES.disguiser)).toBe(4);
     });
 
-    it("blocks connections a class can't use", () => {
-        expect(connectionTravelMinutes({ length: 4, crowd: 1, tags: ["main_floor"] }, MERCENARY_CLASSES.disguiser)).toBeNull();
-        expect(connectionTravelMinutes({ length: 4, crowd: 1, tags: ["crawlspace"] }, MERCENARY_CLASSES.heavy_lifter)).toBeNull();
-        expect(
-            connectionTravelMinutes({ length: 4, crowd: 1, tags: ["crawlspace", "main_floor"] }, MERCENARY_CLASSES.pickpocket),
-        ).toBe(2);
+    it("blocks edges a class can't use", () => {
+        expect(edgeTravelMinutes({ length: 4, congestion: 1, tags: ["exposed"] }, DRIVER_CLASSES.disguiser)).toBeNull();
+        expect(edgeTravelMinutes({ length: 4, congestion: 1, tags: ["narrow"] }, DRIVER_CLASSES.hauler)).toBeNull();
+        expect(edgeTravelMinutes({ length: 4, congestion: 1, tags: ["narrow", "exposed"] }, DRIVER_CLASSES.speedster)).toBe(2);
     });
 });
 
 describe("TravelTimes", () => {
-    it("finds shortest paths for a pickpocket", () => {
-        const times = TravelTimes.build(loadSampleWorld(), MERCENARY_CLASSES.pickpocket);
-        expect(times.between("HQ", "HQ")).toBe(0);
-        expect(times.between("HQ", "T1")).toBe(5); // HQ-W1-T1 = 2 + 3
-        expect(times.between("B1", "T2")).toBe(4); // B1-B2-T2 = 2 + 2
-        expect(times.between("T2", "HQ")).toBe(6); // T2-W1-HQ = 4 + 2
-        expect(times.between("T1", "HQ")).toBe(times.between("HQ", "T1")); // undirected
+    it("finds shortest paths for a speedster", () => {
+        const times = TravelTimes.build(loadSampleWorld(), DRIVER_CLASSES.speedster);
+        expect(times.between("S0", "S0")).toBe(0);
+        expect(times.between("S0", "T1")).toBe(5); // S0-X1-T1 = 2 + 3
+        expect(times.between("F1", "T2")).toBe(4); // F1-F2-T2 = 2 + 2
+        expect(times.between("T2", "S0")).toBe(6); // T2-X1-S0 = 4 + 2
+        expect(times.between("T1", "S0")).toBe(times.between("S0", "T1")); // undirected
     });
 
-    it("routes around connections a class can't use", () => {
+    it("routes around edges a class can't use", () => {
         const world = loadSampleWorld();
-        // A heavy lifter can't squeeze through the W1-T2 crawlspace: best is HQ-W1-T1-B2-T2 = 3 + 4 + 6 + 3,
-        // beating the main floor route HQ-B3-T2 = 20 + 6
-        const heavyLifter = TravelTimes.build(world, MERCENARY_CLASSES.heavy_lifter);
-        expect(heavyLifter.between("HQ", "T2")).toBe(16);
-        // A disguiser stays off the HQ-B3 main floor and ignores crowds: HQ-W1-T2-B3 = 4 + 4 + 8
-        const disguiser = TravelTimes.build(world, MERCENARY_CLASSES.disguiser);
-        expect(disguiser.between("HQ", "B3")).toBe(16);
+        // A hauler can't squeeze through the X1-T2 narrow passage: best is S0-X1-T1-F2-T2 = 3 + 4 + 6 + 3,
+        // beating the exposed passage route S0-F3-T2 = 20 + 6
+        const hauler = TravelTimes.build(world, DRIVER_CLASSES.hauler);
+        expect(hauler.between("S0", "T2")).toBe(16);
+        // A disguiser stays off the S0-F3 exposed passage and ignores congestion: S0-X1-T2-F3 = 4 + 4 + 8
+        const disguiser = TravelTimes.build(world, DRIVER_CLASSES.disguiser);
+        expect(disguiser.between("S0", "F3")).toBe(16);
     });
 
-    it("returns null for unreachable or unknown spots", () => {
+    it("returns null for unreachable or unknown nodes", () => {
         const world: World = {
             ...loadSampleWorld(),
-            nodes: [...loadSampleWorld().nodes, { id: "CELLAR", type: "back_room" }],
+            nodes: [...loadSampleWorld().nodes, { id: "CELLAR", type: "fence" }],
         };
-        const times = TravelTimes.build(world, MERCENARY_CLASSES.pickpocket);
-        expect(times.between("HQ", "CELLAR")).toBeNull();
-        expect(times.between("HQ", "NOPE")).toBeNull();
+        const times = TravelTimes.build(world, DRIVER_CLASSES.speedster);
+        expect(times.between("S0", "CELLAR")).toBeNull();
+        expect(times.between("S0", "NOPE")).toBeNull();
     });
 });

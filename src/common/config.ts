@@ -18,6 +18,18 @@ export enum Templates {
     GENERIC = "generic",
 }
 
+/** Parses "1,2,3" into the list of live Pro challenge tiers. Defaults to Tier 1 only. */
+function parseChallengeTiers(value: string | undefined): (1 | 2 | 3)[] {
+    if (!value) {
+        return [1];
+    }
+    const tiers = [...new Set(value.split(",").map((t) => parseInt(t.trim())))];
+    if (tiers.length === 0 || tiers.some((t) => t !== 1 && t !== 2 && t !== 3)) {
+        throw new Error(`PRO_CHALLENGE_TIERS must be a comma-separated list of 1, 2 and 3, got "${value}"`);
+    }
+    return (tiers as (1 | 2 | 3)[]).sort();
+}
+
 function requireEnv(name: string): string {
     const value = env[name];
 
@@ -91,9 +103,10 @@ const Config = {
     S3_REGION: requireEnv("S3_REGION"),
     S3_RESUME_BUCKET_NAME: requireEnv("S3_RESUME_BUCKET_NAME"),
     CHALLENGE_BUCKET_NAME: requireEnv("S3_CHALLENGE_BUCKET_NAME"),
-    // JSON contents of the calibrated reference-scores.json, keyed by instance ID.
+    // Optional JSON contents of the calibrated reference-scores.json, keyed by instance ID.
+    // Overrides the scores in SALOON_INSTANCES; if set, it must cover every world in every tier.
     CHALLENGE_REFERENCE_SCORES: env.CHALLENGE_REFERENCE_SCORES,
-    // Dev only: read Saloon Rush floor plans from <dir>/<instanceId>.json instead of S3
+    // Dev only: read Saloon Mercenary worlds from <dir>/<instanceId>.json instead of S3
     CHALLENGE_LOCAL_WORLDS_DIR: PROD ? undefined : env.CHALLENGE_LOCAL_WORLDS_DIR,
     // Dev only: use this reference score for every instance, so the pass flow can be tested before calibration
     CHALLENGE_LOCAL_REFERENCE_SCORE:
@@ -141,10 +154,16 @@ const Config = {
     MAX_ARRAY_LENGTH: 20,
     MAX_CHALLENGE_PLAN_SIZE_BYTES: 1024 * 1024,
 
-    /* Pro challenge (Saloon Rush) */
-    // Applicants pass once their best score reaches this fraction of the reference solver's score.
+    /* Pro challenge (Saloon Mercenary) */
+    // Applicants pass once their average over the live tiers reaches this fraction of the reference solver's score.
     // Placeholder until playtesting.
     PRO_CHALLENGE_PASS_RATIO: 0.6,
+    // Tiers applicants can play and that count toward passing. Tier 1 only until the site supports more.
+    PRO_CHALLENGE_TIERS: parseChallengeTiers(env.PRO_CHALLENGE_TIERS),
+    // Minimum wait between uploads, per applicant and tier
+    CHALLENGE_SUBMIT_COOLDOWN_SECONDS: env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS
+        ? parseInt(env.CHALLENGE_SUBMIT_COOLDOWN_SECONDS)
+        : 60,
 
     /* Misc */
     SHOP_BYTES_GEN: 2,

@@ -141,8 +141,11 @@ devdocs/
 # swc
 .swc/
 
-# Local Saloon Rush floor plans (scripts/make-local-saloon-worlds.ts)
+# Local Saloon Mercenary worlds (scripts/make-local-saloon-worlds.ts)
 local-worlds/
 
 # Local-only Python generator/solver for the Pro challenge (never pushed)
 challenge-tools/
+
+# Python bytecode from the check.py parity test
+__pycache__/
