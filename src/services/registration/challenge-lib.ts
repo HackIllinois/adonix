@@ -309,12 +309,27 @@ export function overallScore(challenge: RegistrationChallenge): OverallScore {
     return { score: calibrated ? total / liveTiers().length : null, travelMinutes, tierScores };
 }
 
+function tierPassed(challenge: RegistrationChallenge, tier: TierNumber): boolean {
+    const progress = tierProgress(challenge, tier);
+    if (!progress) {
+        return false;
+    }
+    const score = normalizeScore(progress.instanceId, progress.bestScore);
+    return score !== null && score >= Config.PRO_CHALLENGE_PASS_RATIO;
+}
+
+export function tierUnlocked(challenge: RegistrationChallenge, tier: TierNumber): boolean {
+    return ALL_TIERS.every((previous) => previous >= tier || tierPassed(challenge, previous));
+}
+
 function tierStatus(challenge: RegistrationChallenge, tier: TierNumber): ChallengeTierStatus {
     const progress = tierProgress(challenge, tier);
     const instanceId = progress?.instanceId ?? assignInstance(challenge.userId, tier);
     const bestScore = progress?.bestScore ?? 0;
     return {
         tier,
+        unlocked: tierUnlocked(challenge, tier),
+        passed: tierPassed(challenge, tier),
         instanceId,
         attempts: progress?.attempts ?? 0,
         bestScore,
