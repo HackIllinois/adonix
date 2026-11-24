@@ -20,6 +20,16 @@ import {
     ApplicationReviewerRequestSchema,
     ReviewAlreadyScoredError,
     ReviewAlreadyScoredErrorSchema,
+    ApplicantsQuerySchema,
+    ApplicantsEmailsQuerySchema,
+    ApplicantsSchema,
+    ApplicantEmailsSchema,
+    ApplicantTagUpdateRequestSchema,
+    ApplicantTagUpdateResponseSchema,
+    AiGradeRequestSchema,
+    AiGradeResponseSchema,
+    AiGradingNotConfiguredError,
+    AiGradingNotConfiguredErrorSchema,
 } from "./admission-schemas";
 import Models from "../../common/models";
 import { getAuthenticatedUser } from "../../common/auth";
@@ -44,7 +54,9 @@ import {
     AttendeeProfileAlreadyExistsErrorSchema,
 } from "../profile/profile-schemas";
 import { getAvatarUrlForId, assignTeamByUserId } from "../profile/profile-lib";
-import { getNextReviewApplication } from "./admission-lib";
+import { getApplicantTag, getDecisionFieldsForTag, getNextReviewApplication, listApplicants } from "./admission-lib";
+import { isLumenConfigured, requestLumenCompletion } from "./ai-grading/lumen-client";
+import { buildGradingPrompt, parseGradingReply, shortErrorMessage } from "./ai-grading/ai-grading-lib";
 
 const admissionRouter = Router();
 
@@ -455,6 +467,118 @@ admissionRouter.get(
 );
 
 admissionRouter.get(
+    "/applicants/",
+    specification({
+        method: "get",
+        path: "/admission/applicants/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Lists every submitted application with its reviewers, scores and admission tag",
+        description:
+            "Tags: IN_REVIEW (no decision or TBD), ADMITTED (accepted, no reimbursement), " +
+            "ADMITTED_REIMBURSED (accepted with a reimbursement), WAITLISTED, REJECTED. " +
+            'Use reviewerId=none to find applications with no reviewers. "edited" is true when a reviewer changed the AI score.',
+        query: ApplicantsQuerySchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The matching applicants",
+                schema: ApplicantsSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { tag, reviewerId } = req.query;
+        const applicants = await listApplicants({ tag, reviewerId });
+        return res.status(StatusCode.SuccessOK).send(applicants);
+    },
+);
+
+admissionRouter.get(
+    "/applicants/emails/",
+    specification({
+        method: "get",
+        path: "/admission/applicants/emails/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Lists the emails of every applicant with an admission tag, for building a mailing list",
+        query: ApplicantsEmailsQuerySchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The emails",
+                schema: ApplicantEmailsSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const applicants = await listApplicants({ tag: req.query.tag });
+        return res.status(StatusCode.SuccessOK).send({ emails: applicants.map((applicant) => applicant.email) });
+    },
+);
+
+admissionRouter.put(
+    "/applicants/:id/tag/",
+    specification({
+        method: "put",
+        path: "/admission/applicants/{id}/tag/",
+        tag: Tag.ADMISSION,
+        role: Role.STAFF,
+        summary: "Sets the admission tag of the specified applicant without sending an email",
+        description:
+            "Creates or updates the applicant's admission decision to match the tag. " +
+            "ADMITTED_REIMBURSED needs a reimbursementValue greater than 0, other tags ignore it. " +
+            "If the status or reimbursement changes, emailSent is reset to false. No email is sent.",
+        parameters: z.object({
+            id: UserIdSchema,
+        }),
+        body: ApplicantTagUpdateRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The applicant's tag and decision",
+                schema: ApplicantTagUpdateResponseSchema,
+            },
+            [StatusCode.ClientErrorNotFound]: {
+                description: "Couldn't find the application",
+                schema: RegistrationNotFoundErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { id: userId } = req.params;
+        const { tag, reimbursementValue } = req.body;
+
+        if (!(await Models.RegistrationApplicationSubmitted.exists({ userId }))) {
+            return res.status(StatusCode.ClientErrorNotFound).send(RegistrationNotFoundError);
+        }
+
+        const fields = getDecisionFieldsForTag(tag, reimbursementValue);
+        const existing = await Models.AdmissionDecision.findOne({ userId }).select("status reimbursementValue").lean();
+        const changed = existing?.status !== fields.status || existing.reimbursementValue !== fields.reimbursementValue;
+
+        // Upsert keeps admittedPro, response and the other fields of an existing decision
+        const decision = await Models.AdmissionDecision.findOneAndUpdate(
+            { userId },
+            { $set: changed ? { ...fields, emailSent: false } : fields },
+            { upsert: true, new: true, lean: true },
+        );
+        if (!decision) {
+            throw new Error("Failed to save the admission decision");
+        }
+
+        return res.status(StatusCode.SuccessOK).send({
+            userId: decision.userId,
+            status: decision.status,
+            admittedPro: decision.admittedPro,
+            response: decision.response,
+            emailSent: decision.emailSent,
+            reimbursementValue: decision.reimbursementValue,
+            correctProChallenge: decision.correctProChallenge,
+            proChallengeScore: decision.proChallengeScore,
+            tag: getApplicantTag(decision),
+        });
+    },
+);
+
+admissionRouter.get(
     "/review/",
     specification({
         method: "get",
@@ -756,6 +880,126 @@ admissionRouter.delete(
             return res.status(StatusCode.ClientErrorConflict).send(ReviewAlreadyScoredError);
         }
         return res.status(StatusCode.SuccessOK).send({ success: true });
+    },
+);
+
+admissionRouter.post(
+    "/ai-grade/",
+    specification({
+        method: "post",
+        path: "/admission/ai-grade/",
+        tag: Tag.ADMISSION,
+        role: Role.ADMIN,
+        summary: "Grades submitted applications that have no AI score yet",
+        description:
+            "Picks up to `limit` applications with no AI score and asks Lumen to grade each from 1 to 5. " +
+            "Sets `finalScore` to the AI score only when `finalScore` is empty. " +
+            "Invalid replies and provider errors are counted in `failed` and skipped. " +
+            "`dryRun` (default false) calls nothing, saves nothing and lists the applications that a real run will grade in `userIds`. " +
+            "`skipped` is the number of applications that already have an AI score. " +
+            "Never-tried applications go first, sorted by user ID. If room is left, applications whose grading failed earlier are tried again, oldest failure first, " +
+            "until each has failed `AI_GRADE_MAX_ATTEMPTS` times (3). `retried` counts failed applications picked again in this run. " +
+            "`gaveUp` counts ungraded applications at the maximum attempts, which this endpoint never picks again. " +
+            "A dry run never writes failure fields or attempt counts.",
+        body: AiGradeRequestSchema,
+        responses: {
+            [StatusCode.SuccessOK]: {
+                description: "The grading result",
+                schema: AiGradeResponseSchema,
+            },
+            [StatusCode.ServerErrorServiceUnavailable]: {
+                description: "Lumen is not configured (only when dryRun is false)",
+                schema: AiGradingNotConfiguredErrorSchema,
+            },
+        },
+    }),
+    async (req, res) => {
+        const { limit, dryRun } = req.body;
+        if (!dryRun && !isLumenConfigured()) {
+            return res.status(StatusCode.ServerErrorServiceUnavailable).send(AiGradingNotConfiguredError);
+        }
+
+        // Never-tried applications first. Failed ones fill the remaining room, oldest failure first, until the attempt cap
+        const neverTried = await Models.RegistrationApplicationSubmitted.find({ aiScore: null, aiGradeFailedAt: null })
+            .sort({ userId: 1 })
+            .limit(limit)
+            .lean();
+        const retries =
+            neverTried.length < limit
+                ? await Models.RegistrationApplicationSubmitted.find({
+                      aiScore: null,
+                      aiGradeFailedAt: { $ne: null },
+                      aiGradeAttempts: { $lt: Config.AI_GRADE_MAX_ATTEMPTS },
+                  })
+                      .sort({ aiGradeFailedAt: 1 })
+                      .limit(limit - neverTried.length)
+                      .lean()
+                : [];
+        const applications = [...neverTried, ...retries];
+        const retried = retries.length;
+        const [skipped, gaveUp] = await Promise.all([
+            Models.RegistrationApplicationSubmitted.countDocuments({ aiScore: { $ne: null } }),
+            Models.RegistrationApplicationSubmitted.countDocuments({
+                aiScore: null,
+                aiGradeAttempts: { $gte: Config.AI_GRADE_MAX_ATTEMPTS },
+            }),
+        ]);
+
+        if (dryRun) {
+            return res.status(StatusCode.SuccessOK).send({
+                graded: 0,
+                failed: 0,
+                skipped,
+                dryRun,
+                retried,
+                gaveUp,
+                userIds: applications.map((a) => a.userId),
+            });
+        }
+
+        const markFailed = (userId: string, message: string): Promise<unknown> =>
+            Models.RegistrationApplicationSubmitted.updateOne(
+                { userId },
+                { aiGradeFailedAt: Date.now(), aiGradeError: message, $inc: { aiGradeAttempts: 1 } },
+            );
+
+        const userIds: string[] = [];
+        let failed = 0;
+        for (const application of applications) {
+            try {
+                const reply = parseGradingReply(await requestLumenCompletion(buildGradingPrompt(application)));
+                if (!reply) {
+                    failed++;
+                    await markFailed(application.userId, "Reply was not valid grading JSON");
+                    continue;
+                }
+                const now = Date.now();
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId },
+                    {
+                        aiScore: reply.score,
+                        aiReasons: reply.reasons,
+                        aiGradedAt: now,
+                        aiGradeFailedAt: null,
+                        aiGradeError: null,
+                        aiGradeAttempts: 0,
+                    },
+                );
+                // Never overwrite a score a reviewer (or an earlier run) already set
+                await Models.RegistrationApplicationSubmitted.updateOne(
+                    { userId: application.userId, finalScore: null },
+                    { finalScore: reply.score, finalScoreSetBy: "ai", finalScoreSetAt: now },
+                );
+                userIds.push(application.userId);
+            } catch (error) {
+                failed++;
+                await markFailed(application.userId, shortErrorMessage(error)).catch(() => undefined);
+            }
+        }
+
+        return res
+            .status(StatusCode.SuccessOK)
+            .send({ graded: userIds.length, failed, skipped, dryRun, retried, gaveUp, userIds });
     },
 );
 
