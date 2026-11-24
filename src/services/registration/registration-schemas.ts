@@ -566,6 +566,8 @@ export const ChallengeTierNumberSchema = z.coerce.number().int().min(1).max(MAX_
 export const ChallengeTierStatusSchema = z
     .object({
         tier: z.number().int(),
+        unlocked: z.boolean(),
+        passed: z.boolean(),
         instanceId: z.string(),
         attempts: z.number(),
         bestScore: z.number(),
@@ -610,6 +612,8 @@ export const RegistrationChallengeStatusSchema = z
             tiers: [
                 {
                     tier: 1,
+                    unlocked: true,
+                    passed: true,
                     instanceId: "tier1-03",
                     attempts: 3,
                     bestScore: 1240,
@@ -697,6 +701,11 @@ export const [RegistrationChallengeNotFoundError, RegistrationChallengeNotFoundE
 export const [RegistrationChallengeNoFileError, RegistrationChallengeNoFileErrorSchema] = CreateErrorAndSchema({
     error: "NoFileUploaded",
     message: "Please upload your plan.json",
+});
+
+export const [ChallengeTierLockedError, ChallengeTierLockedErrorSchema] = CreateErrorAndSchema({
+    error: "TierLocked",
+    message: "Pass the earlier tiers to unlock this floor plan.",
 });
 
 export const [ChallengeTierNotAvailableError, ChallengeTierNotAvailableErrorSchema] = CreateErrorAndSchema({
