@@ -1,0 +1,15 @@
+Howdy {{name}},
+
+Thank you for registering for HackIllinois 2027! We've received your application, and we'll be in touch about the status of your application. Status updates will be sent to this email address.
+
+{{#if pro}}
+You also applied for the HackOutlaws Pro Track. Complete the Saloon Rush challenge to be considered:
+https://register.hackillinois.org/challenge/description
+
+{{/if}}
+HackIllinois 2027 takes place February 26–28, 2027. Follow @hackillinois on Instagram for announcements.
+
+Questions? Reach us at contact@hackillinois.org.
+
+See you on the frontier,
+The HackIllinois Team

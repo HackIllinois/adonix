@@ -9,7 +9,7 @@ import { readFileSync } from "fs";
 import env from "./env";
 
 export enum Templates {
-    REGISTRATION_SUBMISSION = "2026_registration_confirmation",
+    REGISTRATION_SUBMISSION = "2027_registration_confirmation",
     CHALLENGE_COMPLETION = "2026_challenge_confirmation",
     STATUS_UPDATE = "2026_status_update",
     RSVP_ACCEPTED = "2026_rsvp_accepted",

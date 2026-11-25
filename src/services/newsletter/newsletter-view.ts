@@ -1,9 +1,4 @@
-function escapeHtml(value: string): string {
-    return value.replace(/[&<>"']/g, (character) => {
-        const entities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-        return entities[character]!;
-    });
-}
+import { escapeHtml } from "../../common/html";
 
 export function renderUnsubscribeEmailFooter(url: string): string {
     return `<div style="padding:24px 20px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#555555;">You're receiving this because you subscribed to a HackIllinois mailing list.<br /><a href="${escapeHtml(
