@@ -30,6 +30,7 @@ function isThrottlingError(error: unknown): boolean {
 export async function sendMail(templateId: string, recipient: string, templateData?: Record<string, unknown>): Promise<string> {
     const command = new SendEmailCommand({
         FromEmailAddress: Config.SES_FROM_EMAIL,
+        ConfigurationSetName: Config.SES_CONFIGURATION_SET,
         Destination: {
             ToAddresses: [recipient],
         },
@@ -71,6 +72,7 @@ export async function sendBulkMail(
 
         const command = new SendBulkEmailCommand({
             FromEmailAddress: Config.SES_FROM_EMAIL,
+            ConfigurationSetName: Config.SES_CONFIGURATION_SET,
             DefaultContent: {
                 Template: {
                     TemplateName: templateId,

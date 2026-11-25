@@ -15,4 +15,9 @@ describe("unsubscribe HTML", () => {
         expect(html).toContain('href="https://example.com/?token=one&amp;next=two&quot;"');
         expect(html).toContain("Unsubscribe from this mailing list");
     });
+
+    it("keeps SES click tracking off the unsubscribe link", () => {
+        const html = renderUnsubscribeEmailFooter("https://example.com/");
+        expect(html).toContain('<a ses:no-track href="https://example.com/"');
+    });
 });

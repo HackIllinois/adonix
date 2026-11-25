@@ -6,7 +6,7 @@ function escapeHtml(value: string): string {
 }
 
 export function renderUnsubscribeEmailFooter(url: string): string {
-    return `<div style="padding:24px 20px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#555555;">You're receiving this because you subscribed to a HackIllinois mailing list.<br /><a href="${escapeHtml(
+    return `<div style="padding:24px 20px;text-align:center;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#555555;">You're receiving this because you subscribed to a HackIllinois mailing list.<br /><a ses:no-track href="${escapeHtml(
         url,
     )}" style="color:#168277;text-decoration:underline;">Unsubscribe from this mailing list</a></div>`;
 }
