@@ -308,6 +308,7 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith(Templates.REGISTRATION_SUBMISSION, APPLICATION.email, {
             name: APPLICATION.firstName,
+            nameHtml: APPLICATION.firstName,
             pro: APPLICATION.pro,
         });
 
@@ -322,6 +323,17 @@ describe("POST /registration/submit/", () => {
             userId: DRAFT_REGISTRATION.userId,
         });
         expect(storedDraft).toBeNull();
+    });
+
+    it("should HTML-escape the name the email's HTML body reads", async () => {
+        await postAsUser("/registration/submit/")
+            .send({ ...APPLICATION, firstName: `Jo & <b>O'Lee</b>` })
+            .expect(StatusCode.SuccessOK);
+        expect(sendMail).toBeCalledWith(Templates.REGISTRATION_SUBMISSION, APPLICATION.email, {
+            name: `Jo & <b>O'Lee</b>`,
+            nameHtml: "Jo &amp; &lt;b&gt;O&#39;Lee&lt;/b&gt;",
+            pro: APPLICATION.pro,
+        });
     });
 
     it("should not let applicants pre-fill staff reviews", async () => {
@@ -342,6 +354,7 @@ describe("POST /registration/submit/", () => {
         expect(JSON.parse(response.text)).toMatchObject(SUBMITTED_REGISTRATION);
         expect(sendMail).toBeCalledWith(Templates.REGISTRATION_SUBMISSION, APPLICATION.email, {
             name: APPLICATION.firstName,
+            nameHtml: APPLICATION.firstName,
             pro: APPLICATION.pro,
         });
 

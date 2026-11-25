@@ -45,6 +45,7 @@ import { getAuthenticatedUser } from "../../common/auth";
 import { Role } from "../auth/auth-schemas";
 
 import { sendMail } from "../mail/mail-lib";
+import { escapeHtml } from "../../common/html";
 import { isRegistrationAlive } from "./registration-lib";
 import specification, { ResponsesObject, Tag } from "../../middleware/specification";
 import { z } from "zod";
@@ -349,8 +350,10 @@ registrationRouter.post(
         }
 
         // SEND SUCCESSFUL REGISTRATION EMAIL
+        // SES does not HTML-escape template data, so the HTML body reads the escaped copy of the name
         await sendMail(Templates.REGISTRATION_SUBMISSION, newSubmissionInfo.email, {
             name: newSubmissionInfo.firstName,
+            nameHtml: escapeHtml(newSubmissionInfo.firstName),
             pro: newSubmissionInfo.pro ?? false,
         });
 
